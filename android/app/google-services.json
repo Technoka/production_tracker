@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "808369467122",
+    "project_id": "production-tracker-top",
+    "storage_bucket": "production-tracker-top.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:808369467122:android:82e9e1a6992ff4bd412a6b",
+        "android_client_info": {
+          "package_name": "com.example.production_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjZ4mPz3BVc0bPLlNGVFeD387Iy1g_Stg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
