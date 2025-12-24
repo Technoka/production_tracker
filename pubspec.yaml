@@ -11,9 +11,9 @@ dependencies:
     sdk: flutter
   
   # Firebase
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.16.0
-  cloud_firestore: ^4.14.0
+  firebase_core: ^3.0.0
+  firebase_auth: ^5.0.0
+  cloud_firestore: ^5.0.0
   
   # Google Sign In
   google_sign_in: ^6.2.1
@@ -41,6 +41,7 @@ flutter:
   # Configuración del icono de la app
   assets:
     - assets/icon/
+    - assets/
 
 # Configuración de flutter_launcher_icons
 flutter_launcher_icons:
