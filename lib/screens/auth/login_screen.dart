@@ -42,6 +42,51 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    
+    // Mostrar diálogo para elegir rol
+    final role = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Tipo de cuenta'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Selecciona el tipo de cuenta que deseas crear:'),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Cliente'),
+              subtitle: const Text('Ver productos'),
+              onTap: () => Navigator.pop(context, 'client'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.factory),
+              title: const Text('Fabricante'),
+              subtitle: const Text('Gestionar producción'),
+              onTap: () => Navigator.pop(context, 'manufacturer'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (role == null) return;
+
+    final success = await authService.signInWithGoogle(role: role);
+
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authService.error ?? 'Error al iniciar sesión con Google'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
@@ -160,6 +205,39 @@ class _LoginScreenState extends State<LoginScreen> {
                         'Crear cuenta',
                         style: TextStyle(fontSize: 16),
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: Colors.grey[400])),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'O continuar con',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: Colors.grey[400])),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  OutlinedButton.icon(
+                    onPressed: authService.isLoading ? null : _handleGoogleSignIn,
+                    icon: Image.network(
+                      'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                      height: 24,
+                      width: 24,
+                    ),
+                    label: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12.0),
+                      child: Text(
+                        'Continuar con Google',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.grey[300]!),
                     ),
                   ),
                 ],

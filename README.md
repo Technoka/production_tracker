@@ -77,7 +77,7 @@ Haz clic en **"Publicar"**.
 
 1. En la página principal de tu proyecto Firebase, haz clic en el ícono de **Android** (</> o robot)
 2. Registra tu app:
-   - **Nombre del paquete Android**: `com.tuempresa.gestionproduccion`
+   - **Nombre del paquete Android**: `com.example.production_tracker`
    - **Alias de la app**: Gestión Producción
    - **Certificado SHA-1**: (opcional, déjalo en blanco por ahora)
 3. Haz clic en **"Registrar app"**

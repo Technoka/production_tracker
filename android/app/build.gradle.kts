@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -6,7 +8,7 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-val localProperties = java.util.Properties()
+val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localPropertiesFile.inputStream().use { localProperties.load(it) }
@@ -16,22 +18,22 @@ val flutterVersionCode = localProperties.getProperty("flutter.versionCode")?.toI
 val flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0"
 
 android {
-    namespace = "com.tuempresa.gestionproduccion"
-    compileSdk = 34
-    ndkVersion = "25.1.8937393"
+    namespace = "com.example.production_tracker"
+    compileSdk = 36
+    ndkVersion = "26.1.10909125"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
 
     defaultConfig {
-        applicationId = "com.tuempresa.gestionproduccion"
-        minSdk = 21
+        applicationId = "com.example.production_tracker"
+        minSdk = flutter.minSdkVersion
         targetSdk = 34
         versionCode = flutterVersionCode
         versionName = flutterVersionName
