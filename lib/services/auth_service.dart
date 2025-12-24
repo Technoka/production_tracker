@@ -132,6 +132,11 @@ class AuthService extends ChangeNotifier {
       // Obtener los detalles de autenticación
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
+      // Verifica que los tokens no sean nulos antes de crear la credencial
+      if (googleAuth.idToken == null && googleAuth.accessToken == null) {
+        throw Exception("No se pudo obtener la autenticación de Google");
+      }
+      
       // Crear credencial para Firebase
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
