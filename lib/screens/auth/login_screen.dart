@@ -224,11 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   OutlinedButton.icon(
                     onPressed: authService.isLoading ? null : _handleGoogleSignIn,
-                    icon: Image.network(
-                      'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
-                      height: 24,
-                      width: 24,
-                    ),
+                    icon: Image.asset('assets/google_logo.png'),
                     label: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12.0),
                       child: Text(
