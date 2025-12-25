@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
+import 'services/organization_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home_screen.dart';
 
@@ -22,6 +23,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => OrganizationService()),
       ],
       child: MaterialApp(
         title: 'Gestión de Producción',

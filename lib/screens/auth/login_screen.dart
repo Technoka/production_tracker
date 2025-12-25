@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import 'register_screen.dart';
+import 'password_reset_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -44,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleGoogleSignIn() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    
+
     // Mostrar diálogo para elegir rol
     final role = await showDialog<String>(
       context: context,
@@ -68,8 +69,26 @@ class _LoginScreenState extends State<LoginScreen> {
               subtitle: const Text('Gestionar producción'),
               onTap: () => Navigator.pop(context, 'manufacturer'),
             ),
+            ListTile(
+              leading: const Icon(Icons.precision_manufacturing),
+              title: const Text('Operario'),
+              subtitle: const Text('Operar procesos'),
+              onTap: () => Navigator.pop(context, 'operator'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.account_balance),
+              title: const Text('Contable'),
+              subtitle: const Text('Gestión financiera'),
+              onTap: () => Navigator.pop(context, 'accountant'),
+            ),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+        ],
       ),
     );
 
@@ -80,7 +99,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authService.error ?? 'Error al iniciar sesión con Google'),
+          content:
+              Text(authService.error ?? 'Error al iniciar sesión con Google'),
           backgroundColor: Colors.red,
         ),
       );
@@ -170,7 +190,22 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PasswordResetScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text('¿Olvidaste tu contraseña?'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   FilledButton(
                     onPressed: authService.isLoading ? null : _handleLogin,
                     child: Padding(
@@ -223,8 +258,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
                   OutlinedButton.icon(
-                    onPressed: authService.isLoading ? null : _handleGoogleSignIn,
-                    icon: Image.asset('assets/google_logo.png'),
+                    onPressed:
+                        authService.isLoading ? null : _handleGoogleSignIn,
+                    icon: Image.asset(
+                      'assets/google_logo.png',
+                      height: 24,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.g_mobiledata, size: 24);
+                      },
+                    ),
                     label: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12.0),
                       child: Text(

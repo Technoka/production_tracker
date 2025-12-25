@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
-import '../models/user_model.dart';
-import 'manufacturer/manufacturer_dashboard.dart';
-import 'client/client_dashboard.dart';
+import '../services/organization_service.dart';
+import '../utils/role_utils.dart';
+import 'profile/profile_screen.dart';
+import 'organization/organization_home_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,30 +14,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  UserModel? _userData;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
-
-  Future<void> _loadUserData() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final userData = await authService.getUserData();
-    
-    if (mounted) {
-      setState(() {
-        _userData = userData;
-        _isLoading = false;
-      });
-    }
-  }
+  int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    final authService = Provider.of<AuthService>(context);
+    final user = authService.currentUserData;
+
+    if (user == null) {
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
@@ -44,37 +29,421 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    if (_userData == null) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.red,
-              ),
-              const SizedBox(height: 16),
-              const Text('Error al cargar datos del usuario'),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () {
-                  Provider.of<AuthService>(context, listen: false).signOut();
-                },
-                child: const Text('Cerrar sesión'),
-              ),
-            ],
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Gestión de Producción'),
+        actions: [
+          // Badge de rol
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: RoleUtils.buildRoleBadge(user.role, compact: true),
           ),
+          // Botón de perfil
+          IconButton(
+            icon: CircleAvatar(
+              radius: 16,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              child: Text(
+                user.name[0].toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              );
+            },
+            tooltip: 'Mi perfil',
+          ),
+        ],
+      ),
+      body: _buildBody(user),
+      drawer: _buildDrawer(context, user, authService),
+      bottomNavigationBar: _buildBottomNavigationBar(user),
+    );
+  }
+
+  Widget _buildBody(user) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.factory,
+              size: 80,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              '¡Bienvenido, ${user.name}!',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tipo de cuenta: ${user.roleDisplayName}',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+            ),
+            const SizedBox(height: 32),
+            _buildFeatureCards(user),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureCards(user) {
+    final features = <Map<String, dynamic>>[];
+
+    // Características según el rol
+    if (user.canManageProduction) {
+      features.addAll([
+        {
+          'icon': Icons.add_circle_outline,
+          'title': 'Crear Proyecto',
+          'subtitle': 'Nuevo proyecto de producción',
+          'color': Colors.blue,
+          'onTap': () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Función en desarrollo')),
+            );
+          },
+        },
+        {
+          'icon': Icons.inventory_2_outlined,
+          'title': 'Gestionar Productos',
+          'subtitle': 'Ver y editar productos',
+          'color': Colors.green,
+          'onTap': () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Función en desarrollo')),
+            );
+          },
+        },
+      ]);
+    }
+
+    if (user.canOperate) {
+      features.add({
+        'icon': Icons.play_circle_outline,
+        'title': 'Iniciar Proceso',
+        'subtitle': 'Comenzar operación',
+        'color': Colors.orange,
+        'onTap': () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Función en desarrollo')),
+          );
+        },
+      });
+    }
+
+    if (user.canViewFinancials) {
+      features.add({
+        'icon': Icons.analytics_outlined,
+        'title': 'Reportes',
+        'subtitle': 'Ver análisis financiero',
+        'color': Colors.purple,
+        'onTap': () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Función en desarrollo')),
+          );
+        },
+      });
+    }
+
+    if (user.isClient) {
+      features.add({
+        'icon': Icons.track_changes_outlined,
+        'title': 'Mis Productos',
+        'subtitle': 'Seguimiento de estado',
+        'color': Colors.teal,
+        'onTap': () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Función en desarrollo')),
+          );
+        },
+      });
+    }
+
+    return Wrap(
+      spacing: 16,
+      runSpacing: 16,
+      alignment: WrapAlignment.center,
+      children: features
+          .map((feature) => _buildFeatureCard(
+                icon: feature['icon'],
+                title: feature['title'],
+                subtitle: feature['subtitle'],
+                color: feature['color'],
+                onTap: feature['onTap'],
+              ))
+          .toList(),
+    );
+  }
+
+  Widget _buildFeatureCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      width: 160,
+      child: Card(
+        elevation: 2,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 48, color: color),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context, user, AuthService authService) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          UserAccountsDrawerHeader(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Text(
+                user.name[0].toUpperCase(),
+                style: TextStyle(
+                  fontSize: 24,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+            accountName: Text(user.name),
+            accountEmail: Text(user.email),
+          ),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Inicio'),
+            selected: _selectedIndex == 0,
+            onTap: () {
+              setState(() {
+                _selectedIndex = 0;
+              });
+              Navigator.pop(context);
+            },
+          ),
+          if (user.canManageProduction) ...[
+            ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: const Text('Proyectos'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Función en desarrollo')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.inventory_2_outlined),
+              title: const Text('Productos'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Función en desarrollo')),
+                );
+              },
+            ),
+          ],
+          if (user.canViewFinancials)
+            ListTile(
+              leading: const Icon(Icons.analytics_outlined),
+              title: const Text('Reportes'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Función en desarrollo')),
+                );
+              },
+            ),
+                      ListTile(
+              leading: const Icon(Icons.business),
+              title: const Text('Mi Organización'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const OrganizationHomeScreen(),
+                  ),
+                );
+              },
+            ),
+            const Divider(),
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Mi Perfil'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Configuración'),
+            onTap: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Función en desarrollo')),
+              );
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: Icon(Icons.logout, color: Colors.red[700]),
+            title: Text(
+              'Cerrar sesión',
+              style: TextStyle(color: Colors.red[700]),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              _showLogoutDialog(authService);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget? _buildBottomNavigationBar(user) {
+    // Solo mostrar barra inferior si hay múltiples secciones relevantes
+    final items = <BottomNavigationBarItem>[];
+
+    items.add(
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.home),
+        label: 'Inicio',
+      ),
+    );
+
+    if (user.canManageProduction) {
+      items.add(
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.folder_outlined),
+          label: 'Proyectos',
         ),
       );
     }
 
-    // Redirigir según el rol del usuario
-    if (_userData!.isManufacturer) {
-      return ManufacturerDashboard(userData: _userData!);
-    } else {
-      return ClientDashboard(userData: _userData!);
+    if (user.canViewFinancials) {
+      items.add(
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.analytics_outlined),
+          label: 'Reportes',
+        ),
+      );
     }
+
+    items.add(
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.person),
+        label: 'Perfil',
+      ),
+    );
+
+    if (items.length <= 2) return null;
+
+    return BottomNavigationBar(
+      currentIndex: _selectedIndex,
+      onTap: (index) {
+        setState(() {
+          _selectedIndex = index;
+        });
+        if (index == items.length - 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ProfileScreen(),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Función en desarrollo')),
+          );
+        }
+      },
+      items: items,
+      type: BottomNavigationBarType.fixed,
+    );
+  }
+
+  void _showLogoutDialog(AuthService authService) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cerrar sesión'),
+        content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await authService.signOut();
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Cerrar sesión'),
+          ),
+        ],
+      ),
+    );
   }
 }
