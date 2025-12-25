@@ -4,42 +4,54 @@ import '../../services/auth_service.dart';
 import '../../utils/role_utils.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
+import '../../widgets/common_refresh.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    final user = authService.currentUserData;
+Widget build(BuildContext context) {
+  final authService = Provider.of<AuthService>(context);
+  final user = authService.currentUserData;
 
-    if (user == null) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mi Perfil'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const EditProfileScreen(),
-                ),
-              );
-            },
-            tooltip: 'Editar perfil',
-          ),
-        ],
+  if (user == null) {
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
       ),
-      body: SingleChildScrollView(
+    );
+  }
+
+  // Función para recargar los datos del perfil
+  Future<void> handleRefresh() async {
+    // Usamos listen: false porque estamos dentro de una función asíncrona
+    await Provider.of<AuthService>(context, listen: false).loadUserData();
+  }
+
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('Mi Perfil'),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.edit),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const EditProfileScreen(),
+              ),
+            );
+          },
+          tooltip: 'Editar perfil',
+        ),
+      ],
+    ),
+    // AQUI EMPIEZA LA MAGIA DEL REFRESH
+    body: CommonRefresh(
+      onRefresh: handleRefresh,
+      child: SingleChildScrollView(
+        // IMPORTANTE: Esto permite hacer scroll (y refresh) aunque el contenido sea corto
+        physics: const AlwaysScrollableScrollPhysics(), 
         child: Column(
           children: [
             // Header con nombre
@@ -49,30 +61,25 @@ class ProfileScreen extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.primary.withOpacity(0.8),
-                  ],
+                  colors: [Colors.blue[700]!, Colors.blue[500]!],
                 ),
               ),
               child: Column(
                 children: [
                   const SizedBox(height: 32),
-                  // Avatar inicial
                   CircleAvatar(
-                    radius: 60,
+                    radius: 50,
                     backgroundColor: Colors.white,
                     child: Text(
                       user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
                       style: TextStyle(
-                        fontSize: 48,
+                        fontSize: 40,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
+                        color: Colors.blue[700],
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Nombre
                   Text(
                     user.name,
                     style: const TextStyle(
@@ -82,40 +89,21 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // Email
-                  Text(
-                    user.email,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Badge de rol
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          RoleUtils.getRoleIcon(user.role),
-                          size: 18,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          user.roleDisplayName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      user.roleDisplayName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -123,106 +111,50 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
 
-            // Información del perfil
+            // Información detallada
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle(context, 'Información Personal'),
-                  const SizedBox(height: 8),
-                  _buildInfoCard(
-                    context,
-                    children: [
-                      _buildInfoTile(
-                        icon: Icons.person_outline,
-                        label: 'Nombre',
-                        value: user.name,
-                      ),
-                      const Divider(),
-                      _buildInfoTile(
-                        icon: Icons.email_outlined,
-                        label: 'Correo electrónico',
-                        value: user.email,
-                      ),
-                      if (user.phone != null) ...[
-                        const Divider(),
-                        _buildInfoTile(
-                          icon: Icons.phone_outlined,
-                          label: 'Teléfono',
-                          value: user.phone!,
-                        ),
-                      ],
-                      const Divider(),
-                      _buildInfoTile(
-                        icon: Icons.calendar_today_outlined,
-                        label: 'Miembro desde',
-                        value: _formatDate(user.createdAt),
-                      ),
-                    ],
+                  _buildInfoTile(label: 'Correo electrónico', value: user.email, icon: Icons.email),
+                  const Divider(),
+                  if (user.phone != null) ...[
+                    _buildInfoTile(label: 'Teléfono', value: user.phone!, icon: Icons.phone),
+                    const Divider(),
+                  ],
+                  _buildInfoTile(
+                    label: 'Miembro desde',
+                    value: _formatDate(user.createdAt),
+                    icon: Icons.calendar_today,
                   ),
-
-                  const SizedBox(height: 24),
-                  _buildSectionTitle(context, 'Seguridad'),
-                  const SizedBox(height: 8),
-                  _buildInfoCard(
-                    context,
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.lock_outline),
-                        title: const Text('Cambiar contraseña'),
-                        subtitle: Text(
-                          _isGoogleUser(context)
-                              ? 'No disponible para cuentas de Google'
-                              : 'Actualiza tu contraseña',
-                        ),
-                        trailing: _isGoogleUser(context)
-                            ? null
-                            : const Icon(Icons.chevron_right),
-                        enabled: !_isGoogleUser(context),
-                        onTap: _isGoogleUser(context)
-                            ? null
-                            : () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const ChangePasswordScreen(),
-                                  ),
-                                );
-                              },
+                  const SizedBox(height: 32),
+                  
+                  // Botón Cerrar Sesión
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showLogoutDialog(context, authService),
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Cerrar sesión'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                    ],
+                    ),
                   ),
-
-                  const SizedBox(height: 24),
-                  _buildSectionTitle(context, 'Cuenta'),
-                  const SizedBox(height: 8),
-                  _buildInfoCard(
-                    context,
-                    children: [
-                      ListTile(
-                        leading: Icon(
-                          Icons.logout,
-                          color: Colors.red[700],
-                        ),
-                        title: Text(
-                          'Cerrar sesión',
-                          style: TextStyle(color: Colors.red[700]),
-                        ),
-                        onTap: () => _showLogoutDialog(context, authService),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
+                  
+                  // Espacio extra para asegurar que el scroll llegue hasta abajo
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   bool _isGoogleUser(BuildContext context) {
     final authService = Provider.of<AuthService>(context, listen: false);
