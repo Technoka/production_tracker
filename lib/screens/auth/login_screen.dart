@@ -38,6 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(
           content: Text(authService.error ?? 'Error al iniciar sesión'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -113,6 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
             content:
                 Text(authService.error ?? 'Error al iniciar sesión con Google'),
             backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
           ),
         );
       }
