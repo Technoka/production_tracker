@@ -46,61 +46,81 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleGoogleSignIn() async {
     final authService = Provider.of<AuthService>(context, listen: false);
 
-    // Mostrar diálogo para elegir rol
-    final role = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Tipo de cuenta'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Selecciona el tipo de cuenta que deseas crear:'),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Cliente'),
-              subtitle: const Text('Ver productos'),
-              onTap: () => Navigator.pop(context, 'client'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.factory),
-              title: const Text('Fabricante'),
-              subtitle: const Text('Gestionar producción'),
-              onTap: () => Navigator.pop(context, 'manufacturer'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.precision_manufacturing),
-              title: const Text('Operario'),
-              subtitle: const Text('Operar procesos'),
-              onTap: () => Navigator.pop(context, 'operator'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.account_balance),
-              title: const Text('Contable'),
-              subtitle: const Text('Gestión financiera'),
-              onTap: () => Navigator.pop(context, 'accountant'),
+    // Primero, intentar iniciar sesión con Google
+    final tempSuccess = await authService.signInWithGoogle(role: null);
+
+    // Si fue exitoso, el usuario ya existe y ya está logueado
+    if (tempSuccess) return;
+
+    // Si no fue exitoso, verificar el error
+    if (authService.error == 'Selecciona un tipo de cuenta') {
+      // Es un usuario nuevo, necesita elegir rol
+      if (!mounted) return;
+      
+      final role = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Tipo de cuenta'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Selecciona el tipo de cuenta que deseas crear:'),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.person),
+                title: const Text('Cliente'),
+                subtitle: const Text('Ver productos'),
+                onTap: () => Navigator.pop(context, 'client'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.factory),
+                title: const Text('Fabricante'),
+                subtitle: const Text('Gestionar producción'),
+                onTap: () => Navigator.pop(context, 'manufacturer'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.precision_manufacturing),
+                title: const Text('Operario'),
+                subtitle: const Text('Operar procesos'),
+                onTap: () => Navigator.pop(context, 'operator'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.account_balance),
+                title: const Text('Contable'),
+                subtitle: const Text('Gestión financiera'),
+                onTap: () => Navigator.pop(context, 'accountant'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+      );
+
+      if (role == null) return;
+
+      // Intentar de nuevo con el rol seleccionado
+      final success = await authService.signInWithGoogle(role: role);
+
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text(authService.error ?? 'Error al iniciar sesión con Google'),
+            backgroundColor: Colors.red,
           ),
-        ],
-      ),
-    );
-
-    if (role == null) return;
-
-    final success = await authService.signInWithGoogle(role: role);
-
-    if (!success && mounted) {
+        );
+      }
+    } else if (mounted && authService.error != null) {
+      // Otro tipo de error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              Text(authService.error ?? 'Error al iniciar sesión con Google'),
+          content: Text(authService.error!),
           backgroundColor: Colors.red,
         ),
       );
