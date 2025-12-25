@@ -238,7 +238,11 @@ Widget build(BuildContext context) {
           ),
           FilledButton(
             onPressed: () async {
+              // Cerrar el diálogo
               Navigator.pop(context);
+              // Cerrar la pantalla de perfil (volver al home)
+              Navigator.pop(context);
+              // Cerrar sesión
               await authService.signOut();
             },
             style: FilledButton.styleFrom(
