@@ -29,6 +29,9 @@ class _OrganizationHomeScreenState extends State<OrganizationHomeScreen> {
     final user = authService.currentUserData;
     if (user?.organizationId != null) {
       await organizationService.loadOrganization(user!.organizationId!);
+    } else {
+      // Reload user data from Firestore to get updated organizationId
+      await authService.getUserData();
     }
   }
 
@@ -44,13 +47,25 @@ class _OrganizationHomeScreenState extends State<OrganizationHomeScreen> {
       );
     }
 
-    // Si el usuario ya tiene organización, mostrar detalles
-    if (user.organizationId != null &&
-        organizationService.currentOrganization != null) {
-      return OrganizationDetailScreen(
-        organization: organizationService.currentOrganization!,
-      );
-    }
+// Si el usuario tiene orgId pero el servicio no tiene la org cargada o es la equivocada
+  if (user.organizationId != null && 
+      organizationService.currentOrganization?.id != user.organizationId) {
+    
+    // Usamos microtask para no interrumpir el build actual
+    Future.microtask(() => 
+      organizationService.loadOrganization(user.organizationId!)
+    );
+  }
+
+  // 1. Si está cargando, mostrar rueda
+  if (organizationService.isLoading) {
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  }
+  
+  // 2. SI TIENE ORGANIZACIÓN: Mostrar la pantalla de detalles (Dashboard)
+  if (user.organizationId != null && organizationService.currentOrganization != null) {
+    return const OrganizationDetailScreen(); 
+  }
 
     // Si no tiene organización, mostrar opciones
     return Scaffold(
