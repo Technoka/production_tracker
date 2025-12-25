@@ -339,32 +339,52 @@ class AuthService extends ChangeNotifier {
   }
 
   // Cargar datos del usuario desde Firestore
-  Future<void> _loadUserData() async {
-    if (currentUser == null) return;
+Future<void> _loadUserData() async {
+  if (currentUser == null) return;
 
-    try {
-      final doc = await _firestore
-          .collection('users')
-          .doc(currentUser!.uid)
-          .get();
-      
-      if (doc.exists) {
-        _currentUserData = UserModel.fromMap(doc.data()!);
-      }
-    } catch (e) {
-      debugPrint('Error al cargar datos del usuario: $e');
+  try {
+    final doc = await _firestore
+        .collection('users')
+        .doc(currentUser!.uid)
+        .get();
+    
+    if (doc.exists && doc.data() != null) {
+      _currentUserData = UserModel.fromMap(doc.data()!);
+      notifyListeners(); // IMPORTANTE: Avisar que ya tenemos datos
+    } else {
+      _currentUserData = null;
     }
+  } catch (e) {
+    debugPrint('Error crítico al cargar datos: $e');
+    _currentUserData = null;
+    rethrow; // Lanzar para que el FutureBuilder sepa que falló
   }
+}
 
   // Obtener datos del usuario
-  Future<UserModel?> getUserData() async {
-    if (_currentUserData != null) return _currentUserData;
+Future<UserModel?> getUserData() async {
+  // 1. Si ya tenemos los datos en memoria, los devolvemos rápido
+  if (_currentUserData != null) return _currentUserData;
 
-    if (currentUser == null) return null;
+  // 2. Si no hay sesión de Firebase activa, no podemos pedir nada
+  if (currentUser == null) return null;
 
+  // 3. Si hay sesión pero no datos, los cargamos de Firestore
+  try {
+    _isLoading = true;
+    notifyListeners(); // Avisamos que estamos cargando
+    
     await _loadUserData();
+    
+    _isLoading = false;
+    notifyListeners();
     return _currentUserData;
+  } catch (e) {
+    _isLoading = false;
+    notifyListeners();
+    return null;
   }
+}
 
   // Mensajes de error traducidos
   String _getErrorMessage(String code) {
