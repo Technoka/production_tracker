@@ -8,20 +8,19 @@ import 'organization_members_screen.dart';
 import 'invite_member_screen.dart';
 
 class OrganizationDetailScreen extends StatelessWidget {
-  final OrganizationModel organization;
 
   const OrganizationDetailScreen({
-    super.key,
-    required this.organization,
+    super.key
   });
 
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final organizationService = Provider.of<OrganizationService>(context);
+    final organization = organizationService.currentOrganization;
     final user = authService.currentUserData;
 
-    if (user == null) {
+    if (user == null || organization == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:math';
 import '../models/organization_model.dart';
@@ -230,7 +231,6 @@ class OrganizationService extends ChangeNotifier {
   // Aceptar invitación
   Future<bool> acceptInvitation({
     required String invitationId,
-    required String organizationId,
     required String userId,
   }) async {
     try {
@@ -390,6 +390,18 @@ class OrganizationService extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return true;
+    } on FirebaseException catch (e) {
+      // Manejar errores específicos de Firebase
+      if (e.code == 'permission-denied') {
+        _error = 'Código de invitación inválido o sin permisos';
+      } else if (e.code == 'not-found') {
+        _error = 'Código de invitación no encontrado';
+      } else {
+        _error = 'Error al verificar el código: ${e.message}';
+      }
+      _isLoading = false;
+      notifyListeners();
+      return false;
     } catch (e) {
       _error = 'Error al unirse a la organización: $e';
       _isLoading = false;
@@ -400,60 +412,73 @@ class OrganizationService extends ChangeNotifier {
 
   // ==================== GESTIÓN DE MIEMBROS ====================
 
-  // Cargar miembros (Hecha pública y robusta)
   Future<void> loadOrganizationMembers() async {
     if (_currentOrganization == null) return;
 
     try {
-      _isLoading = true;
-      // No notificamos aquí para evitar parpadeos innecesarios si ya había datos
-      
       final memberIds = _currentOrganization!.memberIds;
       if (memberIds.isEmpty) {
         _organizationMembers = [];
-        _isLoading = false;
-        notifyListeners();
         return;
       }
 
       // Cargar miembros en lotes de 10 (límite de Firestore para 'in')
-      List<UserModel> tempMembers = [];
+      _organizationMembers = [];
       for (var i = 0; i < memberIds.length; i += 10) {
-        // Safe range slicing
-        final end = (i + 10 < memberIds.length) ? i + 10 : memberIds.length;
-        final batch = memberIds.sublist(i, end);
-        
-        if (batch.isEmpty) continue;
-
+        final batch = memberIds.skip(i).take(10).toList();
         final snapshot = await _firestore
             .collection('users')
             .where(FieldPath.documentId, whereIn: batch)
             .get();
 
-        tempMembers.addAll(
+        _organizationMembers.addAll(
           snapshot.docs.map((doc) => UserModel.fromMap(doc.data())),
         );
       }
 
-      _organizationMembers = tempMembers;
-      _isLoading = false;
       notifyListeners();
     } catch (e) {
       debugPrint('Error al cargar miembros: $e');
-      _error = 'Error cargando miembros: $e';
-      _isLoading = false;
-      notifyListeners();
     }
   }
 
-  // Promover a administrador (Tu versión es correcta)
+  // Stream de miembros
+  Stream<List<UserModel>> watchOrganizationMembers(String organizationId) {
+    return _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .snapshots()
+        .asyncMap((orgSnapshot) async {
+      if (!orgSnapshot.exists) return [];
+
+      final org = OrganizationModel.fromMap(orgSnapshot.data()!);
+      final memberIds = org.memberIds;
+
+      if (memberIds.isEmpty) return [];
+
+      // Cargar miembros
+      final members = <UserModel>[];
+      for (var i = 0; i < memberIds.length; i += 10) {
+        final batch = memberIds.skip(i).take(10).toList();
+        final snapshot = await _firestore
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+
+        members.addAll(
+          snapshot.docs.map((doc) => UserModel.fromMap(doc.data())),
+        );
+      }
+
+      return members;
+    });
+  }
+
+  // Promover a administrador
   Future<bool> promoteToAdmin(String userId) async {
     if (_currentOrganization == null) return false;
 
     try {
-      _isLoading = true;
-      notifyListeners();
-
       await _firestore
           .collection('organizations')
           .doc(_currentOrganization!.id)
@@ -462,23 +487,20 @@ class OrganizationService extends ChangeNotifier {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      // Recargamos la organización para actualizar los adminIds locales
       await loadOrganization(_currentOrganization!.id);
-      _isLoading = false;
-      notifyListeners();
       return true;
     } catch (e) {
       _error = 'Error al promover usuario: $e';
-      _isLoading = false;
       notifyListeners();
       return false;
     }
   }
 
-  // Remover administrador (Tu versión es correcta)
+  // Remover administrador
   Future<bool> demoteFromAdmin(String userId) async {
     if (_currentOrganization == null) return false;
 
+    // No se puede remover al propietario
     if (_currentOrganization!.ownerId == userId) {
       _error = 'No puedes remover permisos al propietario';
       notifyListeners();
@@ -486,9 +508,6 @@ class OrganizationService extends ChangeNotifier {
     }
 
     try {
-      _isLoading = true;
-      notifyListeners();
-
       await _firestore
           .collection('organizations')
           .doc(_currentOrganization!.id)
@@ -498,21 +517,19 @@ class OrganizationService extends ChangeNotifier {
       });
 
       await loadOrganization(_currentOrganization!.id);
-      _isLoading = false;
-      notifyListeners();
       return true;
     } catch (e) {
       _error = 'Error al remover permisos: $e';
-      _isLoading = false;
       notifyListeners();
       return false;
     }
   }
 
-  // Eliminar miembro (Tu versión con TRANSACCIÓN es perfecta)
+  // Eliminar miembro
   Future<bool> removeMember(String userId) async {
     if (_currentOrganization == null) return false;
 
+    // No se puede eliminar al propietario
     if (_currentOrganization!.ownerId == userId) {
       _error = 'No puedes eliminar al propietario';
       notifyListeners();
@@ -520,36 +537,29 @@ class OrganizationService extends ChangeNotifier {
     }
 
     try {
-      _isLoading = true;
-      notifyListeners();
-
       await _firestore.runTransaction((transaction) async {
-        // Referencias
-        final userRef = _firestore.collection('users').doc(userId);
-        final orgRef = _firestore.collection('organizations').doc(_currentOrganization!.id);
+        transaction.update(
+          _firestore.collection('users').doc(userId),
+          {
+            'organizationId': null,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+        );
 
-        transaction.update(userRef, {
-          'organizationId': null,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-
-        transaction.update(orgRef, {
-          'memberIds': FieldValue.arrayRemove([userId]),
-          'adminIds': FieldValue.arrayRemove([userId]),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+        transaction.update(
+          _firestore.collection('organizations').doc(_currentOrganization!.id),
+          {
+            'memberIds': FieldValue.arrayRemove([userId]),
+            'adminIds': FieldValue.arrayRemove([userId]),
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+        );
       });
 
-      // Recargar datos locales tras la transacción exitosa
       await loadOrganization(_currentOrganization!.id);
-      await loadOrganizationMembers(); // Recargamos la lista para quitar al usuario visualmente
-      
-      _isLoading = false;
-      notifyListeners();
       return true;
     } catch (e) {
       _error = 'Error al eliminar miembro: $e';
-      _isLoading = false;
       notifyListeners();
       return false;
     }
@@ -557,8 +567,16 @@ class OrganizationService extends ChangeNotifier {
 
   // Salir de la organización
   Future<bool> leaveOrganization(String userId) async {
-     // Reutilizamos la lógica segura de removeMember
-     return await removeMember(userId);
+    if (_currentOrganization == null) return false;
+
+    // El propietario no puede salir
+    if (_currentOrganization!.ownerId == userId) {
+      _error = 'El propietario no puede salir de la organización';
+      notifyListeners();
+      return false;
+    }
+
+    return await removeMember(userId);
   }
 
   // ==================== ACTUALIZAR ORGANIZACIÓN ====================

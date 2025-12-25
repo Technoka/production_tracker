@@ -23,57 +23,37 @@ class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
     super.dispose();
   }
 
-  Future<void> _handleCreateOrganization() async {
-    if (!_formKey.currentState!.validate()) return;
+Future<void> _handleCreateOrganization() async {
+  if (!_formKey.currentState!.validate()) return;
 
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final organizationService =
-        Provider.of<OrganizationService>(context, listen: false);
+  final authService = Provider.of<AuthService>(context, listen: false);
+  final organizationService = Provider.of<OrganizationService>(context, listen: false);
 
-    final user = authService.currentUserData;
-    if (user == null) return;
+  final user = authService.currentUserData;
+  if (user == null) return;
 
-    // Verificar que el usuario no pertenece a otra organización
-    if (user.organizationId != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ya perteneces a una organización'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+  final organizationId = await organizationService.createOrganization(
+    name: _nameController.text.trim(),
+    description: _descriptionController.text.trim(),
+    ownerId: user.uid,
+  );
 
-    final organizationId = await organizationService.createOrganization(
-      name: _nameController.text.trim(),
-      description: _descriptionController.text.trim(),
-      ownerId: user.uid,
-    );
+  // AQUÍ ESTÁ LA CORRECCIÓN:
+  // Verificamos 'mounted' antes de usar cualquier cosa que necesite el 'context'
+  if (organizationId != null && mounted) {
+    
+    // 1. Refrescar los datos del usuario para que detecte su nueva organización
+    await authService.getUserData(); 
+    
+    // 2. Cargar la organización en el servicio global
+    await organizationService.loadOrganization(organizationId);
 
+    // 3. Ahora sí, hacemos el pop con seguridad
     if (mounted) {
-      if (organizationId != null) {
-        // Recargar datos del usuario
-        await authService.getUserData();
-
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Organización creada exitosamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              organizationService.error ?? 'Error al crear organización',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      Navigator.pop(context);
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

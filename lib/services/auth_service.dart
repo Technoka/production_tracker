@@ -92,7 +92,7 @@ class AuthService extends ChangeNotifier {
         password: password,
       );
 
-      await _loadUserData();
+      await loadUserData();
 
       // Verificar si el usuario está activo
       if (_currentUserData != null && !_currentUserData!.isActive) {
@@ -121,10 +121,17 @@ class AuthService extends ChangeNotifier {
 
   // Cerrar sesión
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    await _auth.signOut();
-    _currentUserData = null;
-    notifyListeners();
+    try {
+      await _googleSignIn.signOut();
+      await _auth.signOut();
+      _currentUserData = null;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error al cerrar sesión: $e');
+      // Forzar cierre de sesión aunque haya error
+      _currentUserData = null;
+      notifyListeners();
+    }
   }
 
   // Iniciar sesión con Google
@@ -198,7 +205,7 @@ class AuthService extends ChangeNotifier {
         _currentUserData = userModel;
       } else {
         // Usuario existente, cargar datos
-        await _loadUserData();
+        await loadUserData();
 
         // Verificar si el usuario está activo
         if (_currentUserData != null && !_currentUserData!.isActive) {
@@ -284,7 +291,7 @@ class AuthService extends ChangeNotifier {
           .update(updatedData);
 
       // Recargar datos del usuario
-      await _loadUserData();
+      await loadUserData();
 
       _isLoading = false;
       notifyListeners();
@@ -339,8 +346,14 @@ class AuthService extends ChangeNotifier {
   }
 
   // Cargar datos del usuario desde Firestore
-Future<void> _loadUserData() async {
-  if (currentUser == null) return;
+// En auth_service.dart
+
+Future<void> loadUserData() async {
+  if (currentUser == null) {
+    _currentUserData = null;
+    notifyListeners();
+    return;
+  }
 
   try {
     final doc = await _firestore
@@ -349,42 +362,36 @@ Future<void> _loadUserData() async {
         .get();
     
     if (doc.exists && doc.data() != null) {
-      _currentUserData = UserModel.fromMap(doc.data()!);
-      notifyListeners(); // IMPORTANTE: Avisar que ya tenemos datos
+      // Usamos un try-catch interno por si el mapeo de datos falla
+      try {
+        _currentUserData = UserModel.fromMap(doc.data()!);
+      } catch (mapError) {
+        debugPrint('Error de mapeo en UserModel: $mapError');
+        _currentUserData = null;
+      }
     } else {
       _currentUserData = null;
     }
   } catch (e) {
-    debugPrint('Error crítico al cargar datos: $e');
+    debugPrint('Error al cargar datos del usuario: $e');
     _currentUserData = null;
-    rethrow; // Lanzar para que el FutureBuilder sepa que falló
+  } finally {
+    // ESTO ES LO MÁS IMPORTANTE: 
+    // Siempre avisamos a la app que la carga terminó, sea con éxito o error.
+    _isLoading = false; 
+    notifyListeners();
   }
 }
 
   // Obtener datos del usuario
-Future<UserModel?> getUserData() async {
-  // 1. Si ya tenemos los datos en memoria, los devolvemos rápido
-  if (_currentUserData != null) return _currentUserData;
+  Future<UserModel?> getUserData() async {
+    if (_currentUserData != null) return _currentUserData;
 
-  // 2. Si no hay sesión de Firebase activa, no podemos pedir nada
-  if (currentUser == null) return null;
+    if (currentUser == null) return null;
 
-  // 3. Si hay sesión pero no datos, los cargamos de Firestore
-  try {
-    _isLoading = true;
-    notifyListeners(); // Avisamos que estamos cargando
-    
-    await _loadUserData();
-    
-    _isLoading = false;
-    notifyListeners();
+    await loadUserData();
     return _currentUserData;
-  } catch (e) {
-    _isLoading = false;
-    notifyListeners();
-    return null;
   }
-}
 
   // Mensajes de error traducidos
   String _getErrorMessage(String code) {
@@ -398,7 +405,9 @@ Future<UserModel?> getUserData() async {
       case 'user-not-found':
         return 'Usuario no encontrado';
       case 'wrong-password':
-        return 'Contraseña incorrecta';
+        return 'La contraseña actual es incorrecta';
+      case 'invalid-credential':
+        return 'La contraseña actual es incorrecta';
       case 'too-many-requests':
         return 'Demasiados intentos. Intenta más tarde';
       case 'user-disabled':

@@ -19,10 +19,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    loadUserData();
   }
 
-  void _loadUserData() {
+  void loadUserData() {
     final authService = Provider.of<AuthService>(context, listen: false);
     final user = authService.currentUserData;
     if (user != null) {
