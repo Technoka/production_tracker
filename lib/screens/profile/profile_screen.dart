@@ -171,17 +171,26 @@ class ProfileScreen extends StatelessWidget {
                       ListTile(
                         leading: const Icon(Icons.lock_outline),
                         title: const Text('Cambiar contraseña'),
-                        subtitle: const Text('Actualiza tu contraseña'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const ChangePasswordScreen(),
-                            ),
-                          );
-                        },
+                        subtitle: Text(
+                          _isGoogleUser(context)
+                              ? 'No disponible para cuentas de Google'
+                              : 'Actualiza tu contraseña',
+                        ),
+                        trailing: _isGoogleUser(context)
+                            ? null
+                            : const Icon(Icons.chevron_right),
+                        enabled: !_isGoogleUser(context),
+                        onTap: _isGoogleUser(context)
+                            ? null
+                            : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ChangePasswordScreen(),
+                                  ),
+                                );
+                              },
                       ),
                     ],
                   ),
@@ -213,6 +222,12 @@ class ProfileScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _isGoogleUser(BuildContext context) {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final providers = authService.currentUser?.providerData ?? [];
+    return providers.any((provider) => provider.providerId == 'google.com');
   }
 
   Widget _buildSectionTitle(BuildContext context, String title) {
