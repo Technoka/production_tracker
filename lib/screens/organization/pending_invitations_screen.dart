@@ -130,7 +130,6 @@ Future<void> _handleAccept(
 
   final success = await service.acceptInvitation(
     invitationId: invitation.id,
-    organizationId: invitation.toMap()['organizationId'], // Si aquí da error, prueba invitation.toMap()['organizationId'] para confirmar si es un tema de tipos
     userId: auth.currentUser!.uid,
   );
 

@@ -31,6 +31,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final authService = Provider.of<AuthService>(context, listen: false);
+    
+    // Limpiar error anterior
+    authService.clearError();
+    
     final success = await authService.changePassword(
       currentPassword: _currentPasswordController.text,
       newPassword: _newPasswordController.text,
@@ -46,10 +50,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           ),
         );
       } else {
+        // Mostrar error específico
+        String errorMessage = authService.error ?? 'Error al cambiar contraseña';
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authService.error ?? 'Error al cambiar contraseña'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
