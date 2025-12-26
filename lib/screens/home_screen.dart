@@ -5,6 +5,7 @@ import '../services/organization_service.dart';
 import '../utils/role_utils.dart';
 import 'profile/profile_screen.dart';
 import 'organization/organization_home_screen.dart';
+import 'clients/clients_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -111,6 +112,20 @@ class _HomeScreenState extends State<HomeScreen> {
     // Características según el rol
     if (user.canManageProduction) {
       features.addAll([
+        {
+          'icon': Icons.people_outline,
+          'title': 'Clientes',
+          'subtitle': 'Gestionar clientes',
+          'color': Colors.purple,
+          'onTap': () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ClientsListScreen(),
+              ),
+            );
+          },
+        },
         {
           'icon': Icons.add_circle_outline,
           'title': 'Crear Proyecto',
@@ -275,6 +290,19 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           if (user.canManageProduction) ...[
             ListTile(
+              leading: const Icon(Icons.people_outlined),
+              title: const Text('Clientes'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ClientsListScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.folder_outlined),
               title: const Text('Proyectos'),
               onTap: () {
@@ -306,9 +334,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-              ListTile(
-  leading: const Icon(Icons.business),
-  title: const Text('Mi Organización'),
+                      ListTile(
+              leading: const Icon(Icons.business),
+              title: const Text('Mi Organización'),
   trailing: StreamBuilder<List<dynamic>>(
     stream: organizationService.getPendingInvitations(user.email),
     builder: (context, snapshot) {
@@ -332,16 +360,15 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     },
   ),
-  onTap: () {
-    //Navigator.pop(context);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const OrganizationHomeScreen(),
-      ),
-    );
-  },
-),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const OrganizationHomeScreen(),
+                  ),
+                );
+              },
+            ),
             const Divider(),
           ListTile(
             leading: const Icon(Icons.person),

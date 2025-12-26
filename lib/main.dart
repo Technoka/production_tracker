@@ -4,8 +4,11 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/organization_service.dart';
+import 'services/client_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:country_picker/country_picker.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,8 +27,21 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => OrganizationService()),
+        ChangeNotifierProvider(create: (_) => ClientService()),
       ],
       child: MaterialApp(
+        supportedLocales: const [
+          Locale('es'),
+          Locale('en'),
+        ],
+        localizationsDelegates: const [
+          // Estos son los delegados estándar de Flutter
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          // ESTE ES EL IMPORTANTE para la librería de países
+          CountryLocalizations.delegate,
+        ],
         title: 'Gestión de Producción',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
