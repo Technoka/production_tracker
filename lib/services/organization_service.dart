@@ -251,8 +251,6 @@ Future<bool> acceptInvitation({
   }
 
   try {
-    msg("DEBUG 1: Entrando con ID: $invitationId");
-
     final invRef = _firestore.collection('invitations').doc(invitationId);
     
     // PASO CRÍTICO: Intentamos leer con un catch específico
@@ -260,11 +258,8 @@ Future<bool> acceptInvitation({
     try {
       invDoc = await invRef.get().timeout(const Duration(seconds: 5));
     } catch (e) {
-      msg("ERROR EN LECTURA (Reglas/Red): $e", isError: true);
       return false;
     }
-
-    msg("DEBUG 2: Lectura exitosa");
 
     if (!invDoc.exists) {
       msg("ERROR: El documento no existe en Firestore", isError: true);
@@ -279,8 +274,6 @@ Future<bool> acceptInvitation({
       return false;
     }
 
-    msg("DEBUG 3: Iniciando Transacción...");
-
     await _firestore.runTransaction((transaction) async {
       transaction.update(_firestore.collection('users').doc(userId), {
         'organizationId': orgId,
@@ -290,8 +283,6 @@ Future<bool> acceptInvitation({
       });
       transaction.update(invRef, {'status': 'accepted'});
     });
-
-    msg("DEBUG 4: ¡Todo Guardado!", isError: false);
     
     await loadOrganization(orgId);
     return true;

@@ -6,6 +6,7 @@ import 'create_organization_screen.dart';
 import 'organization_detail_screen.dart';
 import 'join_organization_screen.dart';
 import 'pending_invitations_screen.dart';
+import '../../models/user_model.dart';
 
 class OrganizationHomeScreen extends StatefulWidget {
   const OrganizationHomeScreen({super.key});
@@ -35,74 +36,87 @@ class _OrganizationHomeScreenState extends State<OrganizationHomeScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    final organizationService = Provider.of<OrganizationService>(context);
-    final user = authService.currentUserData;
-
-    if (user == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-// Si el usuario tiene orgId pero el servicio no tiene la org cargada o es la equivocada
-  if (user.organizationId != null && 
-      organizationService.currentOrganization?.id != user.organizationId) {
+  
     
-    // Usamos microtask para no interrumpir el build actual
-    Future.microtask(() => 
-      organizationService.loadOrganization(user.organizationId!)
-    );
-  }
+@override
+Widget build(BuildContext context) {
+  final authService = Provider.of<AuthService>(context);
+  final organizationService = Provider.of<OrganizationService>(context);
+  
+  // Usamos un valor local para evitar problemas con nulos
+  final currentUser = authService.currentUserData;
 
-  // 1. Si está cargando, mostrar rueda
-  if (organizationService.isLoading) {
+  if (currentUser == null) {
     return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
-  
-  // 2. SI TIENE ORGANIZACIÓN: Mostrar la pantalla de detalles (Dashboard)
-  if (user.organizationId != null && organizationService.currentOrganization != null) {
-    return const OrganizationDetailScreen(); 
-  }
 
-    // Si no tiene organización, mostrar opciones
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mi Organización'),
-        actions: [
-          // Badge de invitaciones pendientes
-          StreamBuilder<List<dynamic>>(
-            stream: organizationService.getPendingInvitations(user.email),
-            builder: (context, snapshot) {
-              final count = snapshot.data?.length ?? 0;
-              if (count == 0) return const SizedBox.shrink();
+  // LÓGICA PRINCIPAL: Escuchar cambios en tiempo real
+  return StreamBuilder<UserModel?>(
+    // Usamos el stream para detectar si aceptaste una invitación
+    stream: authService.userStream, 
+    initialData: currentUser, // Usamos los datos actuales mientras conecta
+    builder: (context, snapshot) {
+      
+      final user = snapshot.data ?? currentUser;
 
-              return IconButton(
-                icon: Badge(
-                  label: Text('$count'),
-                  child: const Icon(Icons.mail_outline),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PendingInvitationsScreen(),
-                    ),
-                  );
-                },
-                tooltip: 'Invitaciones pendientes',
-              );
-            },
-          ),
-        ],
-      ),
-      body: organizationService.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _buildNoOrganizationView(context, user),
-    );
-  }
+      // CASO 1: El usuario YA TIENE organización (detectado por Stream o local)
+      if (user.organizationId != null) {
+        
+        // Verificamos si necesitamos cargar los datos de la org en el servicio
+        if (organizationService.currentOrganization?.id != user.organizationId) {
+           Future.microtask(() => 
+             organizationService.loadOrganization(user.organizationId!)
+           );
+        }
+
+        // Si el servicio ya cargó la org, mostramos el Dashboard
+        if (organizationService.currentOrganization != null && !organizationService.isLoading) {
+           return const OrganizationDetailScreen(); // Esta pantalla ya tiene su propio Scaffold
+        }
+
+        // Si está cargando la org, mostramos rueda
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+
+      // CASO 2: NO TIENE ORGANIZACIÓN (Aquí estaba el error de pantalla negra)
+      // Debemos devolver un Scaffold explícito aquí para pintar el fondo y la AppBar
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Mi Organización'),
+          actions: [
+            // TU CÓDIGO DE BURBUJA (BADGE)
+            StreamBuilder<List<dynamic>>(
+              stream: organizationService.getPendingInvitations(user.email),
+              builder: (context, invitationSnapshot) {
+                final count = invitationSnapshot.data?.length ?? 0;
+                if (count == 0) return const SizedBox.shrink();
+
+                return IconButton(
+                  icon: Badge(
+                    label: Text('$count'),
+                    child: const Icon(Icons.mail_outline),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PendingInvitationsScreen(),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+        // Aquí pintamos la vista que antes salía negra, ahora dentro del body
+        body: organizationService.isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : _buildNoOrganizationView(context, user),
+      );
+    },
+  );
+}
 
   Widget _buildNoOrganizationView(BuildContext context, user) {
     return Center(

@@ -134,7 +134,12 @@ Future<void> _handleAccept(
 
   if (success && context.mounted) {
     await auth.loadUserData();
-    Navigator.pop(context);
+    if (context.mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/organization_home',
+        (route) => false,
+      );
+    }
   }
 }
 

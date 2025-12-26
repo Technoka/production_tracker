@@ -19,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
+    final organizationService = Provider.of<OrganizationService>(context);
     final user = authService.currentUserData;
 
     if (user == null) {
@@ -64,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: _buildBody(user),
-      drawer: _buildDrawer(context, user, authService),
+      drawer: _buildDrawer(context, user, authService, organizationService),
       bottomNavigationBar: _buildBottomNavigationBar(user),
     );
   }
@@ -239,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildDrawer(BuildContext context, user, AuthService authService) {
+  Widget _buildDrawer(BuildContext context, user, AuthService authService, OrganizationService organizationService) {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -305,19 +306,42 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-                      ListTile(
-              leading: const Icon(Icons.business),
-              title: const Text('Mi Organización'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const OrganizationHomeScreen(),
-                  ),
-                );
-              },
-            ),
+              ListTile(
+  leading: const Icon(Icons.business),
+  title: const Text('Mi Organización'),
+  trailing: StreamBuilder<List<dynamic>>(
+    stream: organizationService.getPendingInvitations(user.email),
+    builder: (context, snapshot) {
+      final count = snapshot.data?.length ?? 0;
+      if (count == 0) return const Icon(Icons.chevron_right);
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          '$count',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    },
+  ),
+  onTap: () {
+    //Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const OrganizationHomeScreen(),
+      ),
+    );
+  },
+),
             const Divider(),
           ListTile(
             leading: const Icon(Icons.person),

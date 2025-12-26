@@ -107,10 +107,18 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return true;
     } on FirebaseAuthException catch (e) {
-      _error = _getErrorMessage(e.code);
+      String error = 'Ha ocurrido un error: ${e.message}';
       _isLoading = false;
       notifyListeners();
-      return false;
+      if (e.code == 'user-not-found') {
+      error = 'El usuario no existe.';
+    } else if (e.code == 'wrong-password') {
+      error = 'Contraseña incorrecta.';
+    } else if (e.code == 'invalid-email') {
+      error = 'El formato del correo es inválido.';
+    }
+      // Lanzamos una excepción que capturaremos en la UI para mostrar el SnackBar
+      throw error;
     } catch (e) {
       _error = 'Error inesperado: $e';
       _isLoading = false;
@@ -434,4 +442,21 @@ Future<void> loadUserData() async {
     _error = null;
     notifyListeners();
   }
+
+  // 1. NUEVA FUNCIÓN: Escucha cambios en tiempo real del usuario
+  Stream<UserModel?> get userStream {
+    final user = _auth.currentUser;
+    if (user == null) return Stream.value(null);
+
+    return _firestore
+        .collection('users')
+        .doc(user.uid)
+        .snapshots()
+        .map((snapshot) {
+          if (!snapshot.exists || snapshot.data() == null) return null;
+          // Asegúrate de que tu UserModel tenga fromMap
+          return UserModel.fromMap(snapshot.data()!);
+        });
+  }
 }
+
