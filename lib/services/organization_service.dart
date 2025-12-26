@@ -6,6 +6,8 @@ import 'dart:math';
 import '../models/organization_model.dart';
 import '../models/user_model.dart';
 
+import 'package:flutter/material.dart';
+
 class OrganizationService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _uuid = const Uuid();
@@ -229,80 +231,76 @@ class OrganizationService extends ChangeNotifier {
   }
 
   // Aceptar invitación
-  Future<bool> acceptInvitation({
-    required String invitationId,
-    required String userId,
-  }) async {
+// En organization_service.dart
+
+Future<bool> acceptInvitation({
+  required BuildContext context,
+  required String invitationId,
+  required String userId,
+}) async {
+  // Función rápida para mensajes en pantalla
+  void msg(String text, {bool isError = false}) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(text),
+        backgroundColor: isError ? Colors.red : Colors.blue,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  try {
+    msg("DEBUG 1: Entrando con ID: $invitationId");
+
+    final invRef = _firestore.collection('invitations').doc(invitationId);
+    
+    // PASO CRÍTICO: Intentamos leer con un catch específico
+    final DocumentSnapshot invDoc;
     try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
-
-      final invDoc = await _firestore
-          .collection('invitations')
-          .doc(invitationId)
-          .get();
-
-      if (!invDoc.exists) {
-        throw Exception('Invitación no encontrada');
-      }
-
-      final invitation = InvitationModel.fromMap(invDoc.data()!);
-
-      if (!invitation.isPending) {
-        throw Exception('Esta invitación ya no es válida');
-      }
-
-      // Verificar que el usuario no pertenece a otra organización
-      final userDoc = await _firestore.collection('users').doc(userId).get();
-      final user = UserModel.fromMap(userDoc.data()!);
-
-      if (user.organizationId != null) {
-        _error = 'Ya perteneces a una organización';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-
-      // Usar transacción para asegurar consistencia
-      await _firestore.runTransaction((transaction) async {
-        // Actualizar usuario
-        transaction.update(
-          _firestore.collection('users').doc(userId),
-          {
-            'organizationId': invitation.organizationId,
-            'updatedAt': FieldValue.serverTimestamp(),
-          },
-        );
-
-        // Actualizar organización
-        transaction.update(
-          _firestore.collection('organizations').doc(invitation.organizationId),
-          {
-            'memberIds': FieldValue.arrayUnion([userId]),
-            'updatedAt': FieldValue.serverTimestamp(),
-          },
-        );
-
-        // Actualizar invitación
-        transaction.update(
-          _firestore.collection('invitations').doc(invitationId),
-          {'status': 'accepted'},
-        );
-      });
-
-      await loadOrganization(invitation.organizationId);
-
-      _isLoading = false;
-      notifyListeners();
-      return true;
+      invDoc = await invRef.get().timeout(const Duration(seconds: 5));
     } catch (e) {
-      _error = 'Error al aceptar invitación: $e';
-      _isLoading = false;
-      notifyListeners();
+      msg("ERROR EN LECTURA (Reglas/Red): $e", isError: true);
       return false;
     }
+
+    msg("DEBUG 2: Lectura exitosa");
+
+    if (!invDoc.exists) {
+      msg("ERROR: El documento no existe en Firestore", isError: true);
+      return false;
+    }
+
+    final data = invDoc.data() as Map<String, dynamic>?;
+    final orgId = data?['organizationId'];
+
+    if (orgId == null) {
+      msg("ERROR: La invitación no tiene organizationId", isError: true);
+      return false;
+    }
+
+    msg("DEBUG 3: Iniciando Transacción...");
+
+    await _firestore.runTransaction((transaction) async {
+      transaction.update(_firestore.collection('users').doc(userId), {
+        'organizationId': orgId,
+      });
+      transaction.update(_firestore.collection('organizations').doc(orgId), {
+        'memberIds': FieldValue.arrayUnion([userId]),
+      });
+      transaction.update(invRef, {'status': 'accepted'});
+    });
+
+    msg("DEBUG 4: ¡Todo Guardado!", isError: false);
+    
+    await loadOrganization(orgId);
+    return true;
+
+  } catch (e) {
+    msg("FALLO GENERAL: $e", isError: true);
+    return false;
   }
+}
 
   // Rechazar invitación
   Future<bool> rejectInvitation(String invitationId) async {

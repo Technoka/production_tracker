@@ -123,27 +123,20 @@ Future<void> _handleAccept(
   BuildContext context,
   OrganizationService service,
   AuthService auth,
-  InvitationModel invitation, // <--- Asegúrate de que este nombre sea exacto
+  InvitationModel invitation,
 ) async {
-  // Debug: imprime para verificar que el objeto tiene el dato
-  print('Aceptando invitacion para org: ${invitation.organizationId}');
-
+  // IMPORTANTE: Ahora pasamos "context" como primer argumento
   final success = await service.acceptInvitation(
+    context: context, // <--- Le damos permiso al servicio para usar la UI
     invitationId: invitation.id,
     userId: auth.currentUser!.uid,
   );
 
-    if (success && context.mounted) {
-      // Recargamos los datos del usuario para que el Home detecte la nueva organizationId
-      await auth.getUserData();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Te has unido a ${invitation.organizationName}')),
-        );
-        Navigator.pop(context); // Volver al home
-      }
-    }
+  if (success && context.mounted) {
+    await auth.loadUserData();
+    Navigator.pop(context);
   }
+}
 
   Future<void> _handleReject(
     BuildContext context,

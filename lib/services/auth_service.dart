@@ -22,130 +22,130 @@ class AuthService extends ChangeNotifier {
   String? get error => _error;
 
   // Registrar nuevo usuario
-Future<bool> register({
-  required String email,
-  required String password,
-  required String name,
-  required String role,
-  String? phone,
-}) async {
-  try {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  Future<bool> register({
+    required String email,
+    required String password,
+    required String name,
+    required String role,
+    String? phone,
+  }) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
 
-    // 1. Intentar crear en Firebase Auth
-    final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+      // Crear usuario en Firebase Auth
+      final UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-// Actualizar el nombre de usuario en Firebase Auth
+      // Actualizar el nombre de usuario en Firebase Auth
       await userCredential.user!.updateDisplayName(name);
 
-    // 2. Crear el modelo
-    final userModel = UserModel(
-      uid: userCredential.user!.uid,
-      email: email,
-      name: name,
-      role: role,
-      phone: phone,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
+      // Crear documento de usuario en Firestore
+      final userModel = UserModel(
+        uid: userCredential.user!.uid,
+        email: email,
+        name: name,
+        role: role,
+        phone: phone,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
 
-    // 3. Guardar en Firestore
-    await _firestore
-        .collection('users')
-        .doc(userCredential.user!.uid)
-        .set(userModel.toMap());
+      await _firestore
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set(userModel.toMap());
 
-    _currentUserData = userModel;
-    _isLoading = false;
-    notifyListeners();
-    return true;
-  } on FirebaseAuthException catch (e) {
-    // Si el error es 'email-already-in-use', realmente ya está en la base de datos
-    _error = _getErrorMessage(e.code);
-    _isLoading = false;
-    notifyListeners();
-    return false;
-  } catch (e) {
-    _error = 'Error al crear la base de datos del usuario';
-    _isLoading = false;
-    notifyListeners();
-    return false;
-  }
-}
-
-  // Iniciar sesión
-Future<bool> signIn({
-  required String email,
-  required String password,
-}) async {
-  try {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-
-    await loadUserData();
-
-    // Verificación de cuenta activa
-    if (_currentUserData != null && !_currentUserData!.isActive) {
-      await signOut();
-      _error = 'Tu cuenta ha sido desactivada. Contacta al administrador.';
+      _currentUserData = userModel;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _error = _getErrorMessage(e.code);
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _error = 'Error inesperado: $e';
       _isLoading = false;
       notifyListeners();
       return false;
     }
-
-    _isLoading = false;
-    notifyListeners();
-    return true;
-  } on FirebaseAuthException catch (e) {
-    _error = _getErrorMessage(e.code);
-    
-    // DELAY DE SEGURIDAD de 3 segundos si las credenciales fallan
-    if (e.code == 'wrong-password' || e.code == 'user-not-found' || e.code == 'invalid-credential') {
-      await Future.delayed(const Duration(seconds: 3));
-    }
-    
-    _isLoading = false;
-    notifyListeners();
-    return false;
-  } catch (e) {
-    _error = 'Error inesperado';
-    _isLoading = false;
-    notifyListeners();
-    return false;
   }
-}
+
+  // Iniciar sesión
+  Future<bool> signIn({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      await loadUserData();
+
+      // Verificar si el usuario está activo
+      if (_currentUserData != null && !_currentUserData!.isActive) {
+        await signOut();
+        _error = 'Tu cuenta ha sido desactivada. Contacta al administrador.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _error = _getErrorMessage(e.code);
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _error = 'Error inesperado: $e';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
 
   // Cerrar sesión
-Future<void> signOut() async {
-  try {
-    _isLoading = true;
-    notifyListeners();
-
-    await _auth.signOut();
-    await _googleSignIn.signOut();
-
-    // LIMPIEZA TOTAL DE MEMORIA
-    _currentUserData = null;
-    _error = null;
-    _isLoading = false; 
-
-    notifyListeners(); // Notificamos para que el StreamBuilder reaccione
-  } catch (e) {
-    _isLoading = false;
-    notifyListeners();
+  Future<void> signOut() async {
+    try {
+      // Limpiar datos locales primero
+      _currentUserData = null;
+      _error = null;
+      _isLoading = false;
+      
+      // Cerrar sesión de Google primero (sin await para evitar bloqueos)
+      _googleSignIn.signOut().catchError((e) {
+        debugPrint('Error al cerrar sesión de Google: $e');
+      });
+      
+      // Cerrar sesión de Firebase
+      await _auth.signOut();
+      
+      // Notificar cambios
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error al cerrar sesión: $e');
+      // Forzar limpieza aunque haya error
+      _currentUserData = null;
+      _error = null;
+      _isLoading = false;
+      notifyListeners();
+    }
   }
-}
 
   // Iniciar sesión con Google
   Future<bool> signInWithGoogle({String? role}) async {
@@ -359,8 +359,6 @@ Future<void> signOut() async {
   }
 
   // Cargar datos del usuario desde Firestore
-// En auth_service.dart
-
 Future<void> loadUserData() async {
   if (currentUser == null) {
     _currentUserData = null;
@@ -393,8 +391,8 @@ Future<void> loadUserData() async {
     // Siempre avisamos a la app que la carga terminó, sea con éxito o error.
     _isLoading = false; 
     notifyListeners();
+    }
   }
-}
 
   // Obtener datos del usuario
   Future<UserModel?> getUserData() async {

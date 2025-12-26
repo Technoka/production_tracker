@@ -138,7 +138,7 @@ class InvitationModel {
       email: map['email'] as String,
       invitedBy: map['invitedBy'] as String,
       invitedByName: map['invitedByName'] as String,
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : DateTime.now(),
       expiresAt: map['expiresAt'] != null
           ? (map['expiresAt'] as Timestamp).toDate()
           : null,
