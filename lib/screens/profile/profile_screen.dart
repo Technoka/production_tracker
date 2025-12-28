@@ -10,17 +10,17 @@ class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
-Widget build(BuildContext context) {
-  final authService = Provider.of<AuthService>(context);
-  final user = authService.currentUserData;
+  Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context);
+    final user = authService.currentUserData;
 
-  if (user == null) {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-  }
+    if (user == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
   // Función para recargar los datos del perfil
   Future<void> handleRefresh() async {
@@ -28,24 +28,24 @@ Widget build(BuildContext context) {
     await Provider.of<AuthService>(context, listen: false).loadUserData();
   }
 
-  return Scaffold(
-    appBar: AppBar(
-      title: const Text('Mi Perfil'),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.edit),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const EditProfileScreen(),
-              ),
-            );
-          },
-          tooltip: 'Editar perfil',
-        ),
-      ],
-    ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mi Perfil'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const EditProfileScreen(),
+                ),
+              );
+            },
+            tooltip: 'Editar perfil',
+          ),
+        ],
+      ),
     // AQUI EMPIEZA LA MAGIA DEL REFRESH
     body: CommonRefresh(
       onRefresh: handleRefresh,
@@ -67,6 +67,7 @@ Widget build(BuildContext context) {
               child: Column(
                 children: [
                   const SizedBox(height: 32),
+                  // Avatar inicial
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: Colors.white,
@@ -75,11 +76,12 @@ Widget build(BuildContext context) {
                       style: TextStyle(
                         fontSize: 40,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue[700],
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
+                  // Nombre
                   Text(
                     user.name,
                     style: const TextStyle(
@@ -89,21 +91,40 @@ Widget build(BuildContext context) {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
+                  // Email
+                  Text(
+                    user.email,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.9),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Badge de rol
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text(
-                      user.roleDisplayName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          RoleUtils.getRoleIcon(user.role),
+                          size: 18,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          user.roleDisplayName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -111,50 +132,106 @@ Widget build(BuildContext context) {
               ),
             ),
 
-            // Información detallada
+            // Información del perfil
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoTile(label: 'Correo electrónico', value: user.email, icon: Icons.email),
-                  const Divider(),
-                  if (user.phone != null) ...[
-                    _buildInfoTile(label: 'Teléfono', value: user.phone!, icon: Icons.phone),
-                    const Divider(),
-                  ],
-                  _buildInfoTile(
-                    label: 'Miembro desde',
-                    value: _formatDate(user.createdAt),
-                    icon: Icons.calendar_today,
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  // Botón Cerrar Sesión
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showLogoutDialog(context, authService),
-                      icon: const Icon(Icons.logout),
-                      label: const Text('Cerrar sesión'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                  _buildSectionTitle(context, 'Información Personal'),
+                  const SizedBox(height: 8),
+                  _buildInfoCard(
+                    context,
+                    children: [
+                      _buildInfoTile(
+                        icon: Icons.person_outline,
+                        label: 'Nombre',
+                        value: user.name,
                       ),
-                    ),
+                      const Divider(),
+                      _buildInfoTile(
+                        icon: Icons.email_outlined,
+                        label: 'Correo electrónico',
+                        value: user.email,
+                      ),
+                      if (user.phone != null) ...[
+                        const Divider(),
+                        _buildInfoTile(
+                          icon: Icons.phone_outlined,
+                          label: 'Teléfono',
+                          value: user.phone!,
+                        ),
+                      ],
+                      const Divider(),
+                      _buildInfoTile(
+                        icon: Icons.calendar_today_outlined,
+                        label: 'Miembro desde',
+                        value: _formatDate(user.createdAt),
+                      ),
+                    ],
                   ),
-                  
-                  // Espacio extra para asegurar que el scroll llegue hasta abajo
-                  const SizedBox(height: 40),
+
+                  const SizedBox(height: 24),
+                  _buildSectionTitle(context, 'Seguridad'),
+                  const SizedBox(height: 8),
+                  _buildInfoCard(
+                    context,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.lock_outline),
+                        title: const Text('Cambiar contraseña'),
+                        subtitle: Text(
+                          _isGoogleUser(context)
+                              ? 'No disponible para cuentas de Google'
+                              : 'Actualiza tu contraseña',
+                        ),
+                        trailing: _isGoogleUser(context)
+                            ? null
+                            : const Icon(Icons.chevron_right),
+                        enabled: !_isGoogleUser(context),
+                        onTap: _isGoogleUser(context)
+                            ? null
+                            : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ChangePasswordScreen(),
+                                  ),
+                                );
+                              },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+                  _buildSectionTitle(context, 'Cuenta'),
+                  const SizedBox(height: 8),
+                  _buildInfoCard(
+                    context,
+                    children: [
+                      ListTile(
+                        leading: Icon(
+                          Icons.logout,
+                          color: Colors.red[700],
+                        ),
+                        title: Text(
+                          'Cerrar sesión',
+                          style: TextStyle(color: Colors.red[700]),
+                        ),
+                        onTap: () => _showLogoutDialog(context, authService),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ],
         ),
       ),
-    ),
-  );
-}
+    ));
+  }
 
   bool _isGoogleUser(BuildContext context) {
     final authService = Provider.of<AuthService>(context, listen: false);
