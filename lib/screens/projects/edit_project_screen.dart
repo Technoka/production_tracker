@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/project_service.dart';
 import '../../services/organization_service.dart';
+import '../../services/auth_service.dart';
 import '../../models/project_model.dart';
 import '../../models/user_model.dart';
 
@@ -76,6 +77,8 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   Widget build(BuildContext context) {
     final projectService = Provider.of<ProjectService>(context);
     final organizationService = Provider.of<OrganizationService>(context);
+    final authService = Provider.of<AuthService>(context);
+    final user = authService.currentUser;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Editar Proyecto')),
@@ -116,23 +119,69 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                StreamBuilder<List<UserModel>>(
-                  stream: organizationService.watchOrganizationMembers(widget.project.organizationId),
-                  builder: (context, snapshot) {
-                    final members = snapshot.data ?? [];
-                    return Container(
-                      decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
-                      child: Column(
-                        children: members.map((m) => CheckboxListTile(
-                          title: Text(m.name),
-                          subtitle: Text(m.roleDisplayName),
-                          value: _selectedMembers.contains(m.uid),
-                          onChanged: (v) => setState(() => v! ? _selectedMembers.add(m.uid) : _selectedMembers.remove(m.uid)),
-                        )).toList(),
+             StreamBuilder<List<UserModel>>(
+  stream: organizationService.watchOrganizationMembers(widget.project.organizationId),
+  builder: (context, snapshot) {
+    final members = snapshot.data ?? [];
+
+    // ORDENAR: Te pones a ti mismo al principio de la lista
+    // members.sort((a, b) => a.uid == user?.uid ? -1 : 1);
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300), 
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: members.map((m) {
+          final isMe = m.uid == user?.uid;
+          final isSelected = _selectedMembers.contains(m.uid);
+
+          return CheckboxListTile(
+            // Identificador visual "TÚ"
+            title: Row(
+              children: [
+                Text(m.name),
+                if (isMe) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    ),
+                    child: const Text(
+                      'TÚ',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            subtitle: Text(m.roleDisplayName),
+            secondary: isMe ? const Icon(Icons.person_pin, color: Colors.blue) : null,
+            value: isSelected,
+            activeColor: Colors.blue,
+            // Fondo sutil si eres tú para diferenciar la fila
+            tileColor: isMe ? Colors.blue.withOpacity(0.05) : null,
+            onChanged: (v) => setState(() {
+              if (v == true) {
+                _selectedMembers.add(m.uid);
+              } else {
+                _selectedMembers.remove(m.uid);
+              }
+            }),
+          );
+        }).toList(),
+      ),
+    );
+  },
+),
                 const SizedBox(height: 32),
                 FilledButton(
                   onPressed: projectService.isLoading ? null : _handleUpdate,

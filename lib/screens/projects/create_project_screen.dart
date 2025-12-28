@@ -190,34 +190,67 @@ StreamBuilder<List<ClientModel>>(
                 const SizedBox(height: 24),
                 Text('Asignar Miembros', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                StreamBuilder<List<UserModel>>(
-                  stream: organizationService.watchOrganizationMembers(user.organizationId!),
-                  builder: (context, snapshot) {
-                    final members = snapshot.data ?? [];
-                    return Container(
-                      decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
-                      child: Column(
-                        children: members.map((member) {
-                          final isSelected = _selectedMembers.contains(member.uid);
-                          return CheckboxListTile(
-                            title: Text(member.name),
-                            subtitle: Text(member.roleDisplayName),
-                            value: isSelected,
-                            onChanged: (value) {
-                              setState(() {
-                                if (value == true) {
-                                  _selectedMembers.add(member.uid);
-                                } else {
-                                  _selectedMembers.remove(member.uid);
-                                }
-                              });
-                            },
-                          );
-                        }).toList(),
+              StreamBuilder<List<UserModel>>(
+  stream: organizationService.watchOrganizationMembers(user.organizationId!),
+  builder: (context, snapshot) {
+    final members = snapshot.data ?? [];
+    
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300), 
+        borderRadius: BorderRadius.circular(12)
+      ),
+      child: Column(
+        children: members.map((member) {
+          // 1. Identificamos si este miembro es el usuario actual
+          final isMe = member.uid == user.uid;
+          final isSelected = _selectedMembers.contains(member.uid);
+
+          return CheckboxListTile(
+            // 2. Añadimos "(Tú)" al nombre si es el usuario actual
+            title: Row(
+              children: [
+                Text(member.name),
+                if (isMe) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'TÚ',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            subtitle: Text(member.roleDisplayName),
+            // 3. Opcional: un icono de persona para ti mismo
+            secondary: isMe ? const Icon(Icons.account_circle, color: Colors.blue) : null,
+            value: isSelected,
+            activeColor: Colors.blue,
+            onChanged: (value) {
+              setState(() {
+                if (value == true) {
+                  _selectedMembers.add(member.uid);
+                } else {
+                  _selectedMembers.remove(member.uid);
+                }
+              });
+            },
+          );
+        }).toList(),
+      ),
+    );
+  },
+),
                 const SizedBox(height: 32),
                 FilledButton(
                   onPressed: projectService.isLoading ? null : _handleCreate,

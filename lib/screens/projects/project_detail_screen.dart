@@ -104,23 +104,66 @@ class ProjectDetailScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   _buildSectionTitle(context, 'Miembros Asignados (${project.memberCount})'),
                   const SizedBox(height: 8),
-                  StreamBuilder<List<UserModel>>(
-                    stream: Provider.of<OrganizationService>(context, listen: false).watchOrganizationMembers(project.organizationId),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const CircularProgressIndicator();
-                      final allMembers = snapshot.data!;
-                      final assignedMembers = allMembers.where((m) => project.assignedMembers.contains(m.uid)).toList();
-                      return Card(
-                        child: Column(
-                          children: assignedMembers.map((member) => ListTile(
-                            leading: CircleAvatar(child: Text(member.name[0])),
-                            title: Text(member.name),
-                            subtitle: Text(member.roleDisplayName),
-                          )).toList(),
-                        ),
-                      );
-                    },
+StreamBuilder<List<UserModel>>(
+  stream: Provider.of<OrganizationService>(context, listen: false)
+      .watchOrganizationMembers(project.organizationId),
+  builder: (context, snapshot) {
+    if (!snapshot.hasData) return const CircularProgressIndicator();
+    
+    final allMembers = snapshot.data!;
+    // Filtramos los miembros asignados
+    final assignedMembers = allMembers.where((m) => project.assignedMembers.contains(m.uid)).toList();
+
+    // ORDENAR: Hacemos que tú aparezcas el primero en la lista
+    assignedMembers.sort((a, b) => a.uid == user.uid ? -1 : 1);
+
+    return Card(
+      child: Column(
+        children: assignedMembers.map((member) {
+          // Identificamos si es el usuario actual
+          final isMe = member.uid == user.uid;
+
+          return ListTile(
+            leading: CircleAvatar(
+              backgroundColor: isMe ? Colors.blue : null,
+              child: Text(
+                member.name[0],
+                style: TextStyle(color: isMe ? Colors.white : null),
+              ),
+            ),
+            title: Row(
+              children: [
+                Text(member.name),
+                if (isMe) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    ),
+                    child: const Text(
+                      'TÚ',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
                   ),
+                ],
+              ],
+            ),
+            subtitle: Text(member.roleDisplayName),
+            // Si eres tú, podemos destacar el fondo sutilmente
+            tileColor: isMe ? Colors.blue.withOpacity(0.05) : null,
+          );
+        }).toList(),
+      ),
+    );
+  },
+),
                   if (canEdit) ...[
                     const SizedBox(height: 24),
                     _buildSectionTitle(context, 'Cambiar Estado'),
