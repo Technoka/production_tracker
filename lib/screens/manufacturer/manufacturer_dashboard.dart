@@ -77,7 +77,7 @@ class ManufacturerDashboard extends StatelessWidget {
           ),
           Expanded(
             child: StreamBuilder<List<ProjectModel>>(
-              stream: firestoreService.getManufacturerProjects(userData.uid),
+              stream: firestoreService.getOrganizationProjects(userData.uid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -196,7 +196,7 @@ class ManufacturerDashboard extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (context) =>
-                  CreateProjectScreen(manufacturerId: userData.uid),
+                  const CreateProjectScreen(),
             ),
           );
         },

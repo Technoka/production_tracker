@@ -139,4 +139,13 @@ class ClientModel {
     return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1))
         .toUpperCase();
   }
+
+  //Arreglar dropdown con objetos repetidos
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ClientModel && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }

@@ -9,75 +9,93 @@ class FirestoreService {
 
   // ==================== PROYECTOS ====================
 
-  // Crear proyecto
-  Future<String?> createProject({
-    required String name,
-    required String description,
-    required String manufacturerId,
-    required String clientId,
-  }) async {
-    try {
-      final projectId = _uuid.v4();
-      final project = ProjectModel(
-        id: projectId,
-        name: name,
-        description: description,
-        manufacturerId: manufacturerId,
-        clientId: clientId,
-        status: 'En planificación',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
+Future<String?> createProject({
+  required String name,
+  required String description,
+  required String organizationId, // Antes manufacturerId
+  required String clientId,
+  required String createdBy,      // Necesario para el nuevo modelo
+  required DateTime startDate,
+  required DateTime estimatedEndDate,
+  List<String> assignedMembers = const [], // Lista vacía por defecto
+}) async {
+  try {
+    // 1. Generar ID único (puedes seguir usando uuid o el id de doc de Firebase)
+    final projectId = _firestore.collection('projects').doc().id;
 
-      await _firestore
-          .collection('projects')
-          .doc(projectId)
-          .set(project.toMap());
+    // 2. Crear instancia del modelo con los nuevos campos
+    final project = ProjectModel(
+      id: projectId,
+      name: name,
+      description: description,
+      clientId: clientId,
+      organizationId: organizationId,
+      // Usamos el valor del enum 'preparation' (En Preparación)
+      status: ProjectStatus.preparation.value, 
+      startDate: startDate,
+      estimatedEndDate: estimatedEndDate,
+      assignedMembers: assignedMembers,
+      createdBy: createdBy,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      isActive: true,
+    );
 
-      return projectId;
-    } catch (e) {
-      print('Error al crear proyecto: $e');
-      return null;
-    }
+    // 3. Guardar en Firestore usando el toMap() del modelo
+    await _firestore
+        .collection('projects')
+        .doc(projectId)
+        .set(project.toMap());
+
+    return projectId;
+  } catch (e) {
+    print('Error al crear proyecto: $e');
+    return null;
   }
+}
 
   // Obtener proyectos del fabricante
-  Stream<List<ProjectModel>> getManufacturerProjects(String manufacturerId) {
-    return _firestore
-        .collection('projects')
-        .where('manufacturerId', isEqualTo: manufacturerId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ProjectModel.fromMap(doc.data()))
-            .toList());
-  }
+Stream<List<ProjectModel>> getOrganizationProjects(String organizationId) {
+  return _firestore
+      .collection('projects')
+      .where('organizationId', isEqualTo: organizationId) // Campo actualizado
+      .where('isActive', isEqualTo: true)
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => ProjectModel.fromMap(doc.data()))
+          .toList());
+}
 
   // Obtener proyectos del cliente
-  Stream<List<ProjectModel>> getClientProjects(String clientId) {
-    return _firestore
-        .collection('projects')
-        .where('clientId', isEqualTo: clientId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ProjectModel.fromMap(doc.data()))
-            .toList());
-  }
+Stream<List<ProjectModel>> getClientProjects(String clientId) {
+  return _firestore
+      .collection('projects')
+      .where('clientId', isEqualTo: clientId)
+      .where('isActive', isEqualTo: true) // Recomendado: filtrar solo activos
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => ProjectModel.fromMap(doc.data()))
+          .toList());
+}
 
   // Actualizar estado del proyecto
-  Future<bool> updateProjectStatus(String projectId, String status) async {
-    try {
-      await _firestore.collection('projects').doc(projectId).update({
-        'status': status,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return true;
-    } catch (e) {
-      print('Error al actualizar proyecto: $e');
-      return false;
-    }
+Future<bool> updateProjectStatus(String projectId, String status) async {
+  try {
+    // Opcional: Validar que el status existe en tu enum antes de subirlo
+    // ProjectStatus.fromString(status); 
+
+    await _firestore.collection('projects').doc(projectId).update({
+      'status': status,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    return true;
+  } catch (e) {
+    print('Error al actualizar estado del proyecto: $e');
+    return false;
   }
+}
 
   // ==================== PRODUCTOS ====================
 

@@ -23,6 +23,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
   DateTime _startDate = DateTime.now();
   DateTime _estimatedEndDate = DateTime.now().add(const Duration(days: 30));
   List<String> _selectedMembers = [];
+  String? _selectedClientId;
 
   @override
   void dispose() {
@@ -52,31 +53,12 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
     }
   }
 
-  void _showDebugMessage(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.blue,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
   Future<void> _handleCreate() async {
-    _showDebugMessage('🔵 Iniciando creación de proyecto...');
-    
-    if (!_formKey.currentState!.validate()) {
-      _showDebugMessage('❌ Formulario no válido', isError: true);
-      return;
-    }
-    
-    if (_selectedClient == null) {
-      _showDebugMessage('❌ Cliente no seleccionado', isError: true);
-      return;
-    }
-
-    if (_estimatedEndDate.isBefore(_startDate)) {
-      _showDebugMessage('❌ Fecha de entrega debe ser posterior a fecha de inicio', isError: true);
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedClientId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor selecciona un cliente'), backgroundColor: Colors.red),
+      );
       return;
     }
 
@@ -84,44 +66,29 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
     final projectService = Provider.of<ProjectService>(context, listen: false);
     final user = authService.currentUserData;
 
-    if (user == null || user.organizationId == null) {
-      _showDebugMessage('❌ Usuario sin organización', isError: true);
-      return;
-    }
+    if (user == null || user.organizationId == null) return;
 
-    _showDebugMessage('🔵 Usuario: ${user.name}');
-    await Future.delayed(const Duration(milliseconds: 500));
-    _showDebugMessage('🔵 Cliente: ${_selectedClient!.name}');
-    await Future.delayed(const Duration(milliseconds: 500));
-    _showDebugMessage('🔵 Miembros: ${_selectedMembers.length}');
-    await Future.delayed(const Duration(milliseconds: 500));
+    final projectId = await projectService.createProject(
+      name: _nameController.text.trim(),
+      description: _descriptionController.text.trim(),
+      clientId: _selectedClientId!,
+      organizationId: user.organizationId!,
+      startDate: _startDate,
+      estimatedEndDate: _estimatedEndDate,
+      assignedMembers: _selectedMembers,
+      createdBy: user.uid,
+    );
 
-    try {
-      _showDebugMessage('🔵 Enviando a Firestore...');
-      
-      final projectId = await projectService.createProject(
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim(),
-        clientId: _selectedClient!.id,
-        organizationId: user.organizationId!,
-        startDate: _startDate,
-        estimatedEndDate: _estimatedEndDate,
-        assignedMembers: _selectedMembers,
-        createdBy: user.uid,
-      );
-
-      if (mounted) {
-        if (projectId != null) {
-          _showDebugMessage('✅ ¡Proyecto creado exitosamente!');
-          await Future.delayed(const Duration(seconds: 1));
-          Navigator.pop(context);
-        } else {
-          _showDebugMessage('❌ Error: ${projectService.error ?? "projectId es null"}', isError: true);
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        _showDebugMessage('❌ Excepción: $e', isError: true);
+    if (mounted) {
+      if (projectId != null) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Proyecto creado exitosamente'), backgroundColor: Colors.green),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(projectService.error ?? 'Error al crear proyecto'), backgroundColor: Colors.red),
+        );
       }
     }
   }
@@ -163,62 +130,29 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
                   validator: (value) => (value == null || value.isEmpty) ? 'Ingresa la descripción' : null,
                 ),
                 const SizedBox(height: 16),
-                StreamBuilder<List<ClientModel>>(
-                  stream: clientService.watchClients(user!.organizationId!),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const LinearProgressIndicator();
-                    }
-                    
-                    final clients = snapshot.data ?? [];
-                    
-                    if (clients.isEmpty) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.orange[50],
-                              border: Border.all(color: Colors.orange[300]!),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.warning, color: Colors.orange[700]),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    'No hay clientes registrados. Crea un cliente primero.',
-                                    style: TextStyle(color: Colors.orange[900]),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      );
-                    }
-                    
-                    return DropdownButtonFormField<ClientModel>(
-                      decoration: const InputDecoration(
-                        labelText: 'Cliente *',
-                        prefixIcon: Icon(Icons.person),
-                        border: OutlineInputBorder(),
-                      ),
-                      value: _selectedClient,
-                      items: clients.map((client) => DropdownMenuItem(
-                        value: client,
-                        child: Text('${client.name} - ${client.company}'),
-                      )).toList(),
-                      onChanged: (value) {
-                        setState(() => _selectedClient = value);
-                        print('Cliente seleccionado: ${value?.name}'); // Debug
-                      },
-                      validator: (value) => value == null ? 'Selecciona un cliente' : null,
-                    );
-                  },
-                ),
+StreamBuilder<List<ClientModel>>(
+  stream: clientService.watchClients(user!.organizationId!),
+  builder: (context, snapshot) {
+    final clients = snapshot.data ?? [];
+    
+    // Cambiamos el tipo de ClientModel a String aquí:
+    return DropdownButtonFormField<String>( 
+      decoration: const InputDecoration(
+        labelText: 'Cliente *',
+        prefixIcon: Icon(Icons.person),
+        border: OutlineInputBorder(),
+      ),
+      value: _selectedClientId,
+      // Ahora el valor del item (String) coincide con el del Dropdown (String)
+      items: clients.map((client) => DropdownMenuItem<String>(
+        value: client.id, 
+        child: Text('${client.name} - ${client.company}'),
+      )).toList(),
+      onChanged: (id) => setState(() => _selectedClientId = id),
+      validator: (value) => value == null ? 'Selecciona un cliente' : null,
+    );
+  },
+),
                 const SizedBox(height: 24),
                 Text('Fechas', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),

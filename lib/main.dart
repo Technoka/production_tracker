@@ -5,6 +5,7 @@ import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/organization_service.dart';
 import 'services/client_service.dart';
+import 'services/project_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -28,6 +29,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => OrganizationService()),
         ChangeNotifierProvider(create: (_) => ClientService()),
+        ChangeNotifierProvider(create: (_) => ProjectService()),
       ],
       child: MaterialApp(
         supportedLocales: const [

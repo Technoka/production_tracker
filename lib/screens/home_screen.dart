@@ -6,6 +6,7 @@ import '../utils/role_utils.dart';
 import 'profile/profile_screen.dart';
 import 'organization/organization_home_screen.dart';
 import 'clients/clients_list_screen.dart';
+import 'projects/projects_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -112,6 +113,20 @@ class _HomeScreenState extends State<HomeScreen> {
     // Características según el rol
     if (user.canManageProduction) {
       features.addAll([
+        {
+          'icon': Icons.folder_outlined,
+          'title': 'Proyectos',
+          'subtitle': 'Gestionar proyectos',
+          'color': Colors.green,
+          'onTap': () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProjectsListScreen(),
+              ),
+            );
+          },
+        },
         {
           'icon': Icons.people_outline,
           'title': 'Clientes',
@@ -290,6 +305,19 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           if (user.canManageProduction) ...[
             ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: const Text('Proyectos'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProjectsListScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.people_outlined),
               title: const Text('Clientes'),
               onTap: () {
@@ -299,16 +327,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   MaterialPageRoute(
                     builder: (context) => const ClientsListScreen(),
                   ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.folder_outlined),
-              title: const Text('Proyectos'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Función en desarrollo')),
                 );
               },
             ),
