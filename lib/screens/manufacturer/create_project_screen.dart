@@ -71,8 +71,11 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
     final projectId = await _firestoreService.createProject(
       name: _nameController.text.trim(),
       description: _descriptionController.text.trim(),
-      manufacturerId: widget.manufacturerId,
+      organizationId: widget.manufacturerId,
       clientId: _selectedClient!['uid'],
+      createdBy: widget.manufacturerId,
+      startDate: DateTime.now(),
+      estimatedEndDate: DateTime.now().add(const Duration(days: 30)),
     );
 
     if (mounted) {
