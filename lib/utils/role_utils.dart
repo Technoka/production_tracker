@@ -222,6 +222,18 @@ class RoleUtils {
            role == UserRole.manufacturer;
   }
 
+    // Verificar si el usuario puede ver información financiera
+  static bool canViewFinancials(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    return role == UserRole.admin || role == UserRole.accountant;
+  }
+
+  // Verificar si el usuario puede gestionar información financiera
+  static bool canManageFinancials(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    return role == UserRole.admin || role == UserRole.accountant;
+  }
+
   // ==================== MÉTODOS DE UTILIDAD ====================
 
   // Obtener lista de permisos de catálogo por rol
