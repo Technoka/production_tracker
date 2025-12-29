@@ -5,6 +5,8 @@ import '../../models/project_product_model.dart';
 import '../../models/user_model.dart';
 import '../../services/project_product_service.dart';
 import '../../utils/role_utils.dart';
+import 'product_phases_screen.dart';
+import '../../widgets/phase_progress_indicator.dart';
 
 class ProjectProductDetailScreen extends StatefulWidget {
   final String projectId;
@@ -151,6 +153,11 @@ class _ProjectProductDetailScreenState
           appBar: AppBar(
             title: const Text('Detalle del Producto'),
             actions: [
+                // Botón de acceso rápido a fases siempre visible
+              IconButton(
+                icon: const Icon(Icons.fact_check),
+                onPressed: () => _navigateToPhases(product),
+              ),
               if (_canEdit() && !_isEditing)
                 IconButton(
                   icon: const Icon(Icons.edit),
@@ -204,9 +211,20 @@ class _ProjectProductDetailScreenState
                 ),
             ],
           ),
-          body: _isEditing
-              ? _buildEditForm(product)
-              : _buildDetailView(product),
+body: Column(
+          children: [
+            // 1. Cabecera fija de fases (No scrolleable para que siempre esté a la vista)
+            _buildPhasesHeader(product),
+            
+            // 2. Área de detalles con scroll
+            Expanded(
+                child: _isEditing 
+                    ? _buildEditForm(product) 
+                    : _buildDetailView(product),
+            ),
+          ],
+        ),
+      
           floatingActionButton: _isEditing
               ? FloatingActionButton.extended(
                   onPressed: _isLoading ? null : () => _saveChanges(product),
@@ -225,6 +243,117 @@ class _ProjectProductDetailScreenState
               : null,
         );
       },
+    );
+  }
+
+  Widget _buildPhasesHeader(ProjectProductModel product) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    decoration: BoxDecoration(
+      color: Theme.of(context).primaryColor.withOpacity(0.05),
+      border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+    ),
+    child: Row(
+      children: [
+        // El indicador ya tiene sus propios SizedBox internos de tamaño 'size'
+        PhaseProgressIndicator(
+          organizationId: widget.currentUser.organizationId!,
+          projectId: widget.projectId,
+          productId: widget.productId,
+          size: 50, // Definimos un tamaño claro
+          showLabel: true,
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'PROGRESO DE PRODUCCIÓN',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[600],
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Seguimiento por fases',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () => _navigateToPhases(product),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+          ),
+          child: const Text('Gestionar'),
+        ),
+      ],
+    ),
+  );
+}
+
+  // Widget para mostrar el resumen de fases de forma atractiva
+  Widget _buildPhasesSummaryCard(ProjectProductModel product) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _navigateToPhases(product),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Progreso de Producción',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Pulsa para gestionar las fases',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              // Tu widget de indicador circular o de barra
+              PhaseProgressIndicator(
+                organizationId: widget.currentUser.organizationId!,
+                projectId: widget.projectId,
+                productId: widget.productId,
+                size: 50,
+              ),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToPhases(ProjectProductModel product) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductPhasesScreen(
+          organizationId: widget.currentUser.organizationId!,
+          projectId: widget.projectId,
+          productId: widget.productId,
+          productName: product.catalogProductName, // O el nombre del modelo
+          currentUser: widget.currentUser,
+        ),
+      ),
     );
   }
 
@@ -717,6 +846,7 @@ class _ProjectProductDetailScreenState
     final newId = await _productService.duplicateProduct(
       projectId: widget.projectId,
       productId: widget.productId,
+      organizationId: widget.currentUser.organizationId!,
       createdBy: widget.currentUser.uid,
     );
 

@@ -1,16 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/project_product_model.dart';
-import '../models/product_catalog_model.dart';
 import 'product_catalog_service.dart';
+import 'phase_service.dart'; // 1. Importar PhaseService
 
 class ProjectProductService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final ProductCatalogService _catalogService = ProductCatalogService();
+  final PhaseService _phaseService = PhaseService(); // 2. Instanciar PhaseService
 
   // ==================== CREAR PRODUCTO EN PROYECTO ====================
 
   Future<String?> addProductToProject({
     required String projectId,
+    required String organizationId, // 3. Requerido para inicializar fases
     required String catalogProductId,
     required int quantity,
     required double unitPrice,
@@ -52,12 +54,20 @@ class ProjectProductService {
         updatedAt: now,
       );
 
+      // Guardar el producto
       await _firestore
           .collection('projects')
           .doc(projectId)
           .collection('products')
           .doc(productId)
           .set(projectProduct.toMap());
+
+      // 4. Inicializar automáticamente las fases de producción
+      await _phaseService.initializeProductPhases(
+        organizationId,
+        projectId,
+        productId,
+      );
 
       // Incrementar contador de uso del producto del catálogo
       await _catalogService.incrementUsageCount(catalogProductId);
@@ -223,6 +233,10 @@ class ProjectProductService {
     required String productId,
   }) async {
     try {
+      // Nota: Idealmente deberíamos eliminar también la subcolección 'phaseProgress'
+      // pero Firestore no elimina subcolecciones automáticamente.
+      // Se puede dejar así o implementar una eliminación recursiva con Cloud Functions.
+      
       await _firestore
           .collection('projects')
           .doc(projectId)
@@ -292,6 +306,7 @@ class ProjectProductService {
   Future<String?> duplicateProduct({
     required String projectId,
     required String productId,
+    required String organizationId, // 5. Agregado organizationId
     required String createdBy,
   }) async {
     try {
@@ -306,6 +321,7 @@ class ProjectProductService {
 
       return await addProductToProject(
         projectId: projectId,
+        organizationId: organizationId, // 6. Pasar organizationId
         catalogProductId: original.catalogProductId,
         quantity: original.quantity,
         unitPrice: original.unitPrice,

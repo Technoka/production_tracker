@@ -105,6 +105,7 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
 
       final productId = await _productService.addProductToProject(
         projectId: widget.projectId,
+        organizationId: widget.organizationId,
         catalogProductId: _selectedProduct!.id,
         quantity: quantity,
         unitPrice: unitPrice,
