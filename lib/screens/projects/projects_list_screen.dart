@@ -148,7 +148,7 @@ class _ProjectsListScreenState extends State<ProjectsListScreen>
   }
 
   // Todos los proyectos de la organización
-  Widget _buildAllProjectsList(UserModel user) {
+Widget _buildAllProjectsList(UserModel user) {
     return StreamBuilder<List<ProjectModel>>(
       stream: Provider.of<ProjectService>(context, listen: false)
           .watchProjects(user.organizationId!),
@@ -193,35 +193,11 @@ class _ProjectsListScreenState extends State<ProjectsListScreen>
           );
         }
 
-        return RefreshIndicator(
-          onRefresh: () async {
-            setState(() {});
-            await Future.delayed(const Duration(milliseconds: 500));
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: projects.length,
-            itemBuilder: (context, index) {
-              final project = projects[index];
-              return _ProjectCard(
-                project: project,
-                currentUser: user,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    // CORRECCIÓN: Solo pasamos projectId
-                    builder: (_) => ProjectDetailScreen(projectId: project.id),
-                  ),
-                ),
-              );
-            },
-          ),
-        );
+        return _buildListView(projects, user);
       },
     );
   }
 
-  // Solo proyectos asignados al usuario
   Widget _buildMyProjectsList(UserModel user) {
     return StreamBuilder<List<ProjectModel>>(
       stream: Provider.of<ProjectService>(context, listen: false)
@@ -244,12 +220,16 @@ class _ProjectsListScreenState extends State<ProjectsListScreen>
           );
         }
 
-        var projects = snapshot.data ?? [];
+        final projects = _applyFilters(snapshot.data ?? []);
 
-        // Aplicar filtros localmente
-        projects = _applyFilters(projects);
+        return _buildListView(projects, user);
+      },
+    );
+  }
 
-        if (projects.isEmpty) {
+  // Widget común para renderizar la lista y manejar la navegación
+  Widget _buildListView(List<ProjectModel> projects, UserModel user) {
+    if (projects.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -272,29 +252,30 @@ class _ProjectsListScreenState extends State<ProjectsListScreen>
               ],
             ),
           );
-        }
+    }
 
-        return RefreshIndicator(
+    return RefreshIndicator(
           onRefresh: () async {
             setState(() {});
             await Future.delayed(const Duration(milliseconds: 500));
           },
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: projects.length,
-            itemBuilder: (context, index) => _ProjectCard(
-              project: projects[index],
-              currentUser: user,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ProjectDetailScreen(projectId: projects[index].id),
-                ),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: projects.length,
+        itemBuilder: (context, index) {
+          final project = projects[index];
+          return _ProjectCard(
+            project: project,
+            currentUser: user,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProjectDetailScreen(projectId: project.id),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

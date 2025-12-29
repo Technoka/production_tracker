@@ -23,11 +23,32 @@ class ProjectDetailScreen extends StatefulWidget {
   State<ProjectDetailScreen> createState() => _ProjectDetailScreenState();
 }
 
-class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
+class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTickerProviderStateMixin {
   final ProjectProductService _productService = ProjectProductService();
   final ProjectService _projectService = ProjectService();
+  late TabController _tabController;
   int _selectedTab = 0; // 0: Detalles, 1: Productos
 
+  @override
+    void initState() {
+      super.initState();
+      // 2. Inicializamos para 2 pestañas
+      _tabController = TabController(length: 2, vsync: this);
+      
+      // 3. Escuchamos cuando cambia la pestaña para refrescar el FAB
+    //   _tabController.addListener(() {
+    //     if (!_tabController.indexIsChanging) {
+    //       setState(() {}); // Refresca la UI para mostrar/ocultar el FAB
+    //     }
+    //   });
+    }
+
+    @override
+    void dispose() {
+      _tabController.dispose(); // Importante limpiar el controlador
+      super.dispose();
+    }
+  
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
@@ -141,7 +162,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             ),
         ],
         bottom: TabBar(
-          controller: null,
+          controller: _tabController,
           onTap: (index) {
             setState(() {
               _selectedTab = index;
@@ -153,9 +174,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           ],
         ),
       ),
-      body: _selectedTab == 0
-          ? _buildDetailsTab(context, user, projectService, project)
-          : _buildProductsTab(context, user, project),
+      body: TabBarView(
+            controller: _tabController, // Asignamos el controlador
+            children: [
+              _buildDetailsTab(context, user, projectService, project),
+              _buildProductsTab(context, user, project),
+            ],
+          ),
       floatingActionButton: _selectedTab == 1 && canManageProducts
           ? FloatingActionButton.extended(
               onPressed: () async {
