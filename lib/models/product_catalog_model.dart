@@ -1,0 +1,282 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+/// Modelo de catálogo de productos - Plantilla base reutilizable
+class ProductCatalogModel {
+  final String id;
+  final String organizationId;
+  final String name;
+  final String reference; // SKU/Código único
+  final String description;
+  final String? category; // Ej: "Muebles", "Puertas", "Ventanas"
+  final List<String> imageUrls; // URLs de imágenes del producto
+  final Map<String, dynamic> specifications; // Especificaciones técnicas flexibles
+  final List<String> tags; // Etiquetas para búsqueda
+  final MaterialInfo? materialInfo; // Información de materiales
+  final DimensionsInfo? dimensions; // Dimensiones estándar
+  final double? estimatedWeight; // Peso estimado en kg
+  final double? basePrice; // Precio base de referencia
+  final String? notes; // Notas adicionales
+  final bool isActive; // Si está activo en el catálogo
+  final String createdBy; // UID del creador
+  final DateTime createdAt;
+  final String? updatedBy; // UID del último editor
+  final DateTime updatedAt;
+  final int usageCount; // Contador de veces usado en proyectos
+
+  ProductCatalogModel({
+    required this.id,
+    required this.organizationId,
+    required this.name,
+    required this.reference,
+    required this.description,
+    this.category,
+    this.imageUrls = const [],
+    this.specifications = const {},
+    this.tags = const [],
+    this.materialInfo,
+    this.dimensions,
+    this.estimatedWeight,
+    this.basePrice,
+    this.notes,
+    this.isActive = true,
+    required this.createdBy,
+    required this.createdAt,
+    this.updatedBy,
+    required this.updatedAt,
+    this.usageCount = 0,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'organizationId': organizationId,
+      'name': name,
+      'reference': reference,
+      'description': description,
+      'category': category,
+      'imageUrls': imageUrls,
+      'specifications': specifications,
+      'tags': tags,
+      'materialInfo': materialInfo?.toMap(),
+      'dimensions': dimensions?.toMap(),
+      'estimatedWeight': estimatedWeight,
+      'basePrice': basePrice,
+      'notes': notes,
+      'isActive': isActive,
+      'createdBy': createdBy,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedBy': updatedBy,
+      'updatedAt': Timestamp.fromDate(updatedAt),
+      'usageCount': usageCount,
+    };
+  }
+
+  factory ProductCatalogModel.fromMap(Map<String, dynamic> map) {
+    return ProductCatalogModel(
+      id: map['id'] as String,
+      organizationId: map['organizationId'] as String,
+      name: map['name'] as String,
+      reference: map['reference'] as String,
+      description: map['description'] as String,
+      category: map['category'] as String?,
+      imageUrls: map['imageUrls'] != null 
+          ? List<String>.from(map['imageUrls'] as List)
+          : [],
+      specifications: map['specifications'] != null
+          ? Map<String, dynamic>.from(map['specifications'] as Map)
+          : {},
+      tags: map['tags'] != null 
+          ? List<String>.from(map['tags'] as List)
+          : [],
+      materialInfo: map['materialInfo'] != null
+          ? MaterialInfo.fromMap(map['materialInfo'] as Map<String, dynamic>)
+          : null,
+      dimensions: map['dimensions'] != null
+          ? DimensionsInfo.fromMap(map['dimensions'] as Map<String, dynamic>)
+          : null,
+      estimatedWeight: map['estimatedWeight'] as double?,
+      basePrice: map['basePrice'] as double?,
+      notes: map['notes'] as String?,
+      isActive: map['isActive'] as bool? ?? true,
+      createdBy: map['createdBy'] as String,
+      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      updatedBy: map['updatedBy'] as String?,
+      updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+      usageCount: map['usageCount'] as int? ?? 0,
+    );
+  }
+
+  ProductCatalogModel copyWith({
+    String? id,
+    String? organizationId,
+    String? name,
+    String? reference,
+    String? description,
+    String? category,
+    List<String>? imageUrls,
+    Map<String, dynamic>? specifications,
+    List<String>? tags,
+    MaterialInfo? materialInfo,
+    DimensionsInfo? dimensions,
+    double? estimatedWeight,
+    double? basePrice,
+    String? notes,
+    bool? isActive,
+    String? createdBy,
+    DateTime? createdAt,
+    String? updatedBy,
+    DateTime? updatedAt,
+    int? usageCount,
+  }) {
+    return ProductCatalogModel(
+      id: id ?? this.id,
+      organizationId: organizationId ?? this.organizationId,
+      name: name ?? this.name,
+      reference: reference ?? this.reference,
+      description: description ?? this.description,
+      category: category ?? this.category,
+      imageUrls: imageUrls ?? this.imageUrls,
+      specifications: specifications ?? this.specifications,
+      tags: tags ?? this.tags,
+      materialInfo: materialInfo ?? this.materialInfo,
+      dimensions: dimensions ?? this.dimensions,
+      estimatedWeight: estimatedWeight ?? this.estimatedWeight,
+      basePrice: basePrice ?? this.basePrice,
+      notes: notes ?? this.notes,
+      isActive: isActive ?? this.isActive,
+      createdBy: createdBy ?? this.createdBy,
+      createdAt: createdAt ?? this.createdAt,
+      updatedBy: updatedBy ?? this.updatedBy,
+      updatedAt: updatedAt ?? this.updatedAt,
+      usageCount: usageCount ?? this.usageCount,
+    );
+  }
+
+  // Helpers para búsqueda y filtrado
+  bool matchesSearch(String query) {
+    final lowerQuery = query.toLowerCase();
+    return name.toLowerCase().contains(lowerQuery) ||
+           reference.toLowerCase().contains(lowerQuery) ||
+           description.toLowerCase().contains(lowerQuery) ||
+           (category?.toLowerCase().contains(lowerQuery) ?? false) ||
+           tags.any((tag) => tag.toLowerCase().contains(lowerQuery));
+  }
+
+  bool matchesCategory(String? categoryFilter) {
+    if (categoryFilter == null || categoryFilter.isEmpty) return true;
+    return category?.toLowerCase() == categoryFilter.toLowerCase();
+  }
+
+  bool matchesTags(List<String> tagFilters) {
+    if (tagFilters.isEmpty) return true;
+    return tagFilters.any((filter) => 
+      tags.any((tag) => tag.toLowerCase() == filter.toLowerCase())
+    );
+  }
+}
+
+/// Información de materiales del producto
+class MaterialInfo {
+  final String primaryMaterial; // Material principal
+  final List<String> secondaryMaterials; // Materiales secundarios
+  final String? finish; // Acabado (barnizado, lacado, etc)
+  final String? color; // Color principal
+
+  MaterialInfo({
+    required this.primaryMaterial,
+    this.secondaryMaterials = const [],
+    this.finish,
+    this.color,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'primaryMaterial': primaryMaterial,
+      'secondaryMaterials': secondaryMaterials,
+      'finish': finish,
+      'color': color,
+    };
+  }
+
+  factory MaterialInfo.fromMap(Map<String, dynamic> map) {
+    return MaterialInfo(
+      primaryMaterial: map['primaryMaterial'] as String,
+      secondaryMaterials: map['secondaryMaterials'] != null
+          ? List<String>.from(map['secondaryMaterials'] as List)
+          : [],
+      finish: map['finish'] as String?,
+      color: map['color'] as String?,
+    );
+  }
+
+  MaterialInfo copyWith({
+    String? primaryMaterial,
+    List<String>? secondaryMaterials,
+    String? finish,
+    String? color,
+  }) {
+    return MaterialInfo(
+      primaryMaterial: primaryMaterial ?? this.primaryMaterial,
+      secondaryMaterials: secondaryMaterials ?? this.secondaryMaterials,
+      finish: finish ?? this.finish,
+      color: color ?? this.color,
+    );
+  }
+}
+
+/// Información de dimensiones del producto
+class DimensionsInfo {
+  final double? width; // Ancho en cm
+  final double? height; // Alto en cm
+  final double? depth; // Profundidad en cm
+  final String unit; // Unidad de medida
+
+  DimensionsInfo({
+    this.width,
+    this.height,
+    this.depth,
+    this.unit = 'cm',
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'width': width,
+      'height': height,
+      'depth': depth,
+      'unit': unit,
+    };
+  }
+
+  factory DimensionsInfo.fromMap(Map<String, dynamic> map) {
+    return DimensionsInfo(
+      width: map['width'] as double?,
+      height: map['height'] as double?,
+      depth: map['depth'] as double?,
+      unit: map['unit'] as String? ?? 'cm',
+    );
+  }
+
+  DimensionsInfo copyWith({
+    double? width,
+    double? height,
+    double? depth,
+    String? unit,
+  }) {
+    return DimensionsInfo(
+      width: width ?? this.width,
+      height: height ?? this.height,
+      depth: depth ?? this.depth,
+      unit: unit ?? this.unit,
+    );
+  }
+
+  String toDisplayString() {
+    final parts = <String>[];
+    if (width != null) parts.add('${width}$unit');
+    if (height != null) parts.add('${height}$unit');
+    if (depth != null) parts.add('${depth}$unit');
+    return parts.join(' × ');
+  }
+
+  bool get hasAnyDimension => width != null || height != null || depth != null;
+}

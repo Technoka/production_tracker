@@ -7,6 +7,7 @@ import 'profile/profile_screen.dart';
 import 'organization/organization_home_screen.dart';
 import 'clients/clients_list_screen.dart';
 import 'projects/projects_list_screen.dart';
+import 'catalog/product_catalog_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -107,10 +108,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFeatureCards(user) {
+Widget _buildFeatureCards(user) {
     final features = <Map<String, dynamic>>[];
 
-    // Características según el rol
     if (user.canManageProduction) {
       features.addAll([
         {
@@ -121,9 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'onTap': () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const ProjectsListScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const ProjectsListScreen()),
             );
           },
         },
@@ -135,49 +133,35 @@ class _HomeScreenState extends State<HomeScreen> {
           'onTap': () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const ClientsListScreen(),
-              ),
-            );
-          },
-        },
-        {
-          'icon': Icons.add_circle_outline,
-          'title': 'Crear Proyecto',
-          'subtitle': 'Nuevo proyecto de producción',
-          'color': Colors.blue,
-          'onTap': () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Función en desarrollo')),
+              MaterialPageRoute(builder: (context) => const ClientsListScreen()),
             );
           },
         },
         {
           'icon': Icons.inventory_2_outlined,
           'title': 'Gestionar Productos',
-          'subtitle': 'Ver y editar productos',
+          'subtitle': 'Ver y editar catálogo',
           'color': Colors.green,
           'onTap': () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Función en desarrollo')),
-            );
+            // FUNCIONALIDAD AÑADIDA: Navegación al catálogo
+            if (user.organizationId != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProductCatalogScreen(
+                    organizationId: user.organizationId!,
+                    currentUser: user,
+                  ),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Error: No tienes una organización asignada')),
+              );
+            }
           },
         },
       ]);
-    }
-
-    if (user.canOperate) {
-      features.add({
-        'icon': Icons.play_circle_outline,
-        'title': 'Iniciar Proceso',
-        'subtitle': 'Comenzar operación',
-        'color': Colors.orange,
-        'onTap': () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Función en desarrollo')),
-          );
-        },
-      });
     }
 
     if (user.canViewFinancials) {
@@ -197,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (user.isClient) {
       features.add({
         'icon': Icons.track_changes_outlined,
-        'title': 'Mis Productos',
+        'title': 'Productos',
         'subtitle': 'Seguimiento de estado',
         'color': Colors.teal,
         'onTap': () {
@@ -270,7 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildDrawer(BuildContext context, user, AuthService authService, OrganizationService organizationService) {
+Widget _buildDrawer(BuildContext context, user, AuthService authService, OrganizationService organizationService) {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -297,9 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
             title: const Text('Inicio'),
             selected: _selectedIndex == 0,
             onTap: () {
-              setState(() {
-                _selectedIndex = 0;
-              });
+              setState(() => _selectedIndex = 0);
               Navigator.pop(context);
             },
           ),
@@ -334,13 +316,22 @@ class _HomeScreenState extends State<HomeScreen> {
               leading: const Icon(Icons.inventory_2_outlined),
               title: const Text('Productos'),
               onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Función en desarrollo')),
-                );
+                Navigator.pop(context); // Cerrar drawer
+                if (user.organizationId != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductCatalogScreen(
+                        organizationId: user.organizationId!,
+                        currentUser: user,
+                      ),
+                    ),
+                  );
+                }
               },
             ),
           ],
+          
           if (user.canViewFinancials)
             ListTile(
               leading: const Icon(Icons.analytics_outlined),
@@ -428,67 +419,80 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget? _buildBottomNavigationBar(user) {
-    // Solo mostrar barra inferior si hay múltiples secciones relevantes
-    final items = <BottomNavigationBarItem>[];
+Widget? _buildBottomNavigationBar(user) {
+  final items = <BottomNavigationBarItem>[];
 
+  items.add(
+    const BottomNavigationBarItem(
+      icon: Icon(Icons.home),
+      label: 'Inicio',
+    ),
+  );
+
+  if (user.canManageProduction) {
     items.add(
       const BottomNavigationBarItem(
-        icon: Icon(Icons.home),
-        label: 'Inicio',
+        icon: Icon(Icons.folder_outlined),
+        label: 'Proyectos',
       ),
-    );
-
-    if (user.canManageProduction) {
-      items.add(
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.folder_outlined),
-          label: 'Proyectos',
-        ),
-      );
-    }
-
-    if (user.canViewFinancials) {
-      items.add(
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.analytics_outlined),
-          label: 'Reportes',
-        ),
-      );
-    }
-
-    items.add(
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.person),
-        label: 'Perfil',
-      ),
-    );
-
-    if (items.length <= 2) return null;
-
-    return BottomNavigationBar(
-      currentIndex: _selectedIndex,
-      onTap: (index) {
-        setState(() {
-          _selectedIndex = index;
-        });
-        if (index == items.length - 1) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ProfileScreen(),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Función en desarrollo')),
-          );
-        }
-      },
-      items: items,
-      type: BottomNavigationBarType.fixed,
     );
   }
+
+  if (user.canViewFinancials) {
+    items.add(
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.analytics_outlined),
+        label: 'Reportes',
+      ),
+    );
+  }
+
+  items.add(
+    const BottomNavigationBarItem(
+      icon: Icon(Icons.person),
+      label: 'Perfil',
+    ),
+  );
+
+  if (items.length <= 2) return null;
+
+  return BottomNavigationBar(
+    currentIndex: _selectedIndex,
+    onTap: (index) {
+      setState(() {
+        _selectedIndex = index;
+      });
+
+      // 1. Obtener la etiqueta (label) del ítem pulsado para saber qué acción tomar
+      final label = items[index].label;
+
+      if (label == 'Perfil') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ProfileScreen(),
+          ),
+        );
+      } else if (label == 'Proyectos') {
+        // 2. Navegar a la pantalla de lista de proyectos
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ProjectsListScreen(),
+          ),
+        );
+      } else if (label == 'Inicio') {
+        // Ya estamos en Inicio, no hace falta navegar, el setState ya actualiza la UI
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Función en desarrollo')),
+        );
+      }
+    },
+    items: items,
+    type: BottomNavigationBarType.fixed,
+  );
+}
 
   void _showLogoutDialog(AuthService authService) {
     showDialog(

@@ -82,6 +82,20 @@ class RoleUtils {
     }
   }
 
+    // Obtener el nombre legible del rol
+  static String getRoleName(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    return role.displayName;
+  }
+
+  // Verificar si el usuario puede crear proyectos
+  static bool canCreateProjects(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    return role == UserRole.admin ||
+           role == UserRole.productionManager ||
+           role == UserRole.manufacturer;
+  }
+
   // Verificar si un usuario puede realizar una acción específica
   static bool canPerformAction(UserModel user, String action) {
     switch (action) {
@@ -107,6 +121,138 @@ class RoleUtils {
         return user.canManageProduction || user.canViewFinancials;
       default:
         return false;
+    }
+  }
+
+  // ==================== PERMISOS DE CATÁLOGO DE PRODUCTOS ====================
+
+  // Verificar si el usuario puede gestionar el catálogo de productos (crear/editar)
+  static bool canManageProducts(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    return role == UserRole.admin || 
+           role == UserRole.productionManager ||
+           role == UserRole.manufacturer;
+  }
+
+  // Verificar si el usuario puede ver el catálogo de productos
+  static bool canViewProductCatalog(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    return role == UserRole.admin ||
+           role == UserRole.productionManager ||
+           role == UserRole.manufacturer ||
+           role == UserRole.operator ||
+           role == UserRole.accountant;
+  }
+
+  // Verificar si el usuario puede crear productos en el catálogo
+  static bool canCreateProductCatalog(String roleValue) {
+    return canManageProducts(roleValue);
+  }
+
+  // Verificar si el usuario puede editar productos del catálogo
+  static bool canEditProductCatalog(String roleValue) {
+    return canManageProducts(roleValue);
+  }
+
+  // Verificar si el usuario puede eliminar productos del catálogo
+  static bool canDeleteProductCatalog(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    return role == UserRole.admin || role == UserRole.manufacturer;
+  }
+
+  // Verificar si el usuario puede desactivar/reactivar productos
+  static bool canToggleProductActive(String roleValue) {
+    return canManageProducts(roleValue);
+  }
+
+  // Verificar si el usuario puede duplicar productos del catálogo
+  static bool canDuplicateProduct(String roleValue) {
+    return canManageProducts(roleValue);
+  }
+
+  // ==================== PERMISOS EXTENDIDOS ====================
+
+  // Verificar si el usuario puede gestionar clientes
+  static bool canManageClients(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    return role == UserRole.admin ||
+           role == UserRole.productionManager ||
+           role == UserRole.manufacturer;
+  }
+
+  // Verificar si el usuario puede ver clientes
+  static bool canViewClients(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    return role == UserRole.admin ||
+           role == UserRole.productionManager ||
+           role == UserRole.manufacturer ||
+           role == UserRole.operator ||
+           role == UserRole.accountant;
+  }
+
+  // Verificar si el usuario puede gestionar proyectos
+  static bool canManageProjects(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    return role == UserRole.admin ||
+           role == UserRole.productionManager ||
+           role == UserRole.manufacturer;
+  }
+
+  // Verificar si el usuario puede ver proyectos
+  static bool canViewProjects(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    return role == UserRole.admin ||
+           role == UserRole.productionManager ||
+           role == UserRole.manufacturer ||
+           role == UserRole.operator ||
+           role == UserRole.accountant;
+  }
+
+  // Verificar si el usuario puede gestionar la organización
+  static bool canManageOrganization(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    return role == UserRole.admin || role == UserRole.manufacturer;
+  }
+
+  // Verificar si el usuario puede invitar miembros
+  static bool canInviteMembers(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    return role == UserRole.admin ||
+           role == UserRole.productionManager ||
+           role == UserRole.manufacturer;
+  }
+
+  // ==================== MÉTODOS DE UTILIDAD ====================
+
+  // Obtener lista de permisos de catálogo por rol
+  static List<String> getCatalogPermissions(String roleValue) {
+    final role = UserRole.fromString(roleValue);
+    switch (role) {
+      case UserRole.admin:
+      case UserRole.manufacturer:
+        return [
+          'Ver catálogo de productos',
+          'Crear productos en catálogo',
+          'Editar productos del catálogo',
+          'Duplicar productos',
+          'Desactivar/reactivar productos',
+          'Eliminar productos del catálogo',
+        ];
+      case UserRole.productionManager:
+        return [
+          'Ver catálogo de productos',
+          'Crear productos en catálogo',
+          'Editar productos del catálogo',
+          'Duplicar productos',
+          'Desactivar/reactivar productos',
+        ];
+      case UserRole.operator:
+      case UserRole.accountant:
+        return [
+          'Ver catálogo de productos',
+        ];
+      case UserRole.client:
+        return [];
     }
   }
 
