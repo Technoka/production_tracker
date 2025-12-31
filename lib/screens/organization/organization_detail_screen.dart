@@ -6,6 +6,7 @@ import '../../services/organization_service.dart';
 import '../../models/organization_model.dart';
 import 'organization_members_screen.dart';
 import 'invite_member_screen.dart';
+import 'manage_phases_screen.dart';
 
 class OrganizationDetailScreen extends StatelessWidget {
 
@@ -308,6 +309,27 @@ class OrganizationDetailScreen extends StatelessWidget {
                       Card(
                         child: Column(
                           children: [
+                            
+                      // Añadir botón para gestionar fases
+                          ListTile(
+                            leading: const Icon(Icons.format_list_numbered),
+                            title: const Text('Gestión de Fases'),
+                            subtitle: const Text('Configurar fases de producción'),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ManagePhasesScreen(
+                                    organizationId: org.id,
+                                    currentUser: user,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+
+                              const Divider(height: 1),
                             ListTile(
                               leading: const Icon(Icons.people),
                               title: const Text('Ver miembros'),

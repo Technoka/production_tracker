@@ -55,13 +55,11 @@ class PhaseProgressIndicator extends StatelessWidget {
         }
 
         final completedCount = phases.where((p) => p.isCompleted).length;
-        final totalCount = phases.length;
         final progress = completedCount / phases.length;
         final percentage = (progress * 100).round();
 
         return Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(
               width: size,
@@ -95,7 +93,7 @@ class PhaseProgressIndicator extends StatelessWidget {
             if (showLabel) ...[
               const SizedBox(height: 4),
               Text(
-                '$completedCount/$totalCount',
+                '$completedCount/${phases.length}',
                 style: const TextStyle(
                   fontSize: 10,
                   color: Colors.grey,
