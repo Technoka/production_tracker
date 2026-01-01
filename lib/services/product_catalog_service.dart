@@ -39,10 +39,17 @@ class ProductCatalogService {
       if (existingRef.docs.isNotEmpty) {
         throw Exception('Ya existe un producto con la referencia "$reference"');
       }
+
+      final productId = _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('product_catalog')
+          .doc().id;
+      print('Creating product with doc ID: $productId');
       final now = DateTime.now();
 
       final product = ProductCatalogModel(
-        id: '', // Se asignará automáticamente
+        id: productId,
         organizationId: organizationId,
         name: name,
         reference: reference,
@@ -67,13 +74,14 @@ class ProductCatalogService {
         updatedAt: now,
       );
 
-      final docRef = await _firestore
+      await _firestore
           .collection('organizations')
           .doc(organizationId)
           .collection('product_catalog')
-          .add(product.toMap());
+          .doc(productId)
+          .set(product.toMap());
 
-      return docRef.id;
+      return productId;
     } catch (e) {
       print('Error al crear producto en catálogo: $e');
       return null;
@@ -333,11 +341,16 @@ class ProductCatalogService {
   // ==================== DESACTIVAR PRODUCTO ====================
   
   Future<bool> deactivateProduct({
+    required String organizationId,
     required String productId,
     required String updatedBy,
   }) async {
     try {
-      await _firestore.collection('product_catalog').doc(productId).update({
+      await _firestore
+      .collection('organizations')
+      .doc(organizationId)
+      .collection('product_catalog')
+      .doc(productId).update({
         'isActive': false,
         'updatedBy': updatedBy,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -352,11 +365,16 @@ class ProductCatalogService {
   // ==================== REACTIVAR PRODUCTO ====================
   
   Future<bool> reactivateProduct({
+    required String organizationId,
     required String productId,
     required String updatedBy,
   }) async {
     try {
-      await _firestore.collection('product_catalog').doc(productId).update({
+      await _firestore
+      .collection('organizations')
+      .doc(organizationId)
+      .collection('product_catalog')
+      .doc(productId).update({
         'isActive': true,
         'updatedBy': updatedBy,
         'updatedAt': FieldValue.serverTimestamp(),

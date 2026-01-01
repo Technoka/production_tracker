@@ -487,10 +487,12 @@ class _ProductCatalogDetailScreenState
 
     final success = _product!.isActive
         ? await _catalogService.deactivateProduct(
+          organizationId: widget.organizationId,
             productId: _product!.id,
             updatedBy: widget.currentUser.uid,
           )
         : await _catalogService.reactivateProduct(
+            organizationId: widget.organizationId,
             productId: _product!.id,
             updatedBy: widget.currentUser.uid,
           );

@@ -350,10 +350,12 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
 
     final success = product.isActive
         ? await _catalogService.deactivateProduct(
+          organizationId: widget.organizationId,
             productId: product.id,
             updatedBy: widget.currentUser.uid,
           )
         : await _catalogService.reactivateProduct(
+            organizationId: widget.organizationId,
             productId: product.id,
             updatedBy: widget.currentUser.uid,
           );

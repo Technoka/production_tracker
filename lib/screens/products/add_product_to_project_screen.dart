@@ -524,7 +524,14 @@ class _ProductSelectorSheetState extends State<_ProductSelectorSheet> {
 
                   if (products.isEmpty) {
                     return const Center(
-                      child: Text('No hay productos disponibles'),
+                        child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text('No hay productos disponibles.'),
+                          SizedBox(height: 8),
+                          Text('Debes añadir primero productos al catálogo.'),
+                        ],
+                        ),
                     );
                   }
 
