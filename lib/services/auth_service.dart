@@ -155,99 +155,114 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Iniciar sesión con Google
+// Iniciar sesión con Google (VERSIÓN SEGURA)
   Future<bool> signInWithGoogle({String? role}) async {
     try {
       _isLoading = true;
       _error = null;
       notifyListeners();
 
-      // Iniciar el flujo de autenticación de Google
+      // 1. Iniciar flujo
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
+      
       if (googleUser == null) {
-        // El usuario canceló el inicio de sesión
         _isLoading = false;
         notifyListeners();
         return false;
       }
 
-      // Obtener los detalles de autenticación
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      // 2. Obtener auth
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-      // Verifica que los tokens no sean nulos antes de crear la credencial
-      if (googleAuth.idToken == null && googleAuth.accessToken == null) {
-        throw Exception("No se pudo obtener la autenticación de Google");
+      if (googleAuth.accessToken == null && googleAuth.idToken == null) {
+        throw Exception("Tokens de Google nulos. Verifica la configuración de GCP.");
       }
 
-      // Crear credencial para Firebase
+      // 3. Credencial Firebase
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // Iniciar sesión en Firebase con la credencial de Google
-      final UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
+      // 4. Login en Firebase
+      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user;
 
-      // Verificar si el usuario ya existe en Firestore
-      final userDoc = await _firestore
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .get();
+      if (user == null) {
+        throw Exception("Firebase devolvió un usuario nulo");
+      }
+
+      // 5. Verificar Firestore
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
 
       if (!userDoc.exists) {
-        // Es un nuevo usuario, necesita elegir rol
+        // --- USUARIO NUEVO ---
         if (role == null) {
-          // Si no se proporcionó rol, cerrar sesión y pedir rol
           await signOut();
-          _error = 'Por favor selecciona un tipo de cuenta';
+          _error = 'Selecciona un tipo de cuenta'; // Este string exacto es el que espera tu LoginScreen
           _isLoading = false;
           notifyListeners();
           return false;
         }
 
-        // Crear documento de usuario en Firestore
+        // Validación defensiva del email
+        final email = user.email;
+        if (email == null) {
+          throw Exception("Tu cuenta de Google no comparte el email. No podemos registrarte.");
+        }
+
         final userModel = UserModel(
-          uid: userCredential.user!.uid,
-          email: userCredential.user!.email!,
-          name: userCredential.user!.displayName ?? 'Usuario',
+          uid: user.uid,
+          email: email, 
+          name: user.displayName ?? 'Usuario',
           role: role,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
+          // Asegúrate de pasar todos los campos que tu modelo requiera
         );
 
-        await _firestore
-            .collection('users')
-            .doc(userCredential.user!.uid)
-            .set(userModel.toMap());
-
+        await _firestore.collection('users').doc(user.uid).set(userModel.toMap());
         _currentUserData = userModel;
+        
       } else {
-        // Usuario existente, cargar datos
-        await loadUserData();
-
-        // Verificar si el usuario está activo
-        if (_currentUserData != null && !_currentUserData!.isActive) {
-          await signOut();
-          _error = 'Tu cuenta ha sido desactivada. Contacta al administrador.';
-          _isLoading = false;
-          notifyListeners();
-          return false;
+        // --- USUARIO EXISTENTE ---
+        // Aquí suele estar el error: los datos en Firestore están corruptos o incompletos
+        try {
+           // Usamos el mapa directamente para evitar que fromMap crashee si falta algo
+           final data = userDoc.data();
+           if (data == null) throw Exception("Documento de usuario vacío");
+           
+           // Intenta cargar, si falla fromMap, capturamos el error específico
+           _currentUserData = UserModel.fromMap(data);
+           
+           if (!_currentUserData!.isActive) {
+             await signOut();
+             _error = 'Tu cuenta ha sido desactivada.';
+             _isLoading = false;
+             notifyListeners();
+             return false;
+           }
+        } catch (e) {
+          print("Error al mapear usuario existente: $e");
+          // Si el usuario existe pero está corrupto, ¿qué hacemos?
+          // Opción: Sobreescribirlo o lanzar error
+          throw Exception("Error en tus datos de perfil: $e. Contacta soporte.");
         }
       }
 
       _isLoading = false;
       notifyListeners();
       return true;
+
     } on FirebaseAuthException catch (e) {
       _error = _getErrorMessage(e.code);
       _isLoading = false;
       notifyListeners();
       return false;
-    } catch (e) {
-      _error = 'Error al iniciar sesión con Google: $e';
+    } catch (e, stackTrace) { // Agregamos stackTrace para ver en consola
+      print("Error detallado: $e");
+      print(stackTrace);
+      _error = 'Error: $e'; // Mostramos el error real en pantalla
       _isLoading = false;
       notifyListeners();
       return false;
