@@ -35,7 +35,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
         title: const Text('Inicializar Fases'),
         content: const Text(
           '¿Deseas crear las fases de producción predeterminadas? '
-          'Esto añadirá las 8 fases estándar del proceso de fabricación de bolsos.',
+          'Esto añadirá las 5 fases estándar del proceso de fabricación de bolsos.',
         ),
         actions: [
           TextButton(
