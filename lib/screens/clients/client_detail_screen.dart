@@ -37,7 +37,7 @@ class ClientDetailScreen extends StatelessWidget {
     Future<void> handleRefresh() async {
       // Usamos listen: false porque estamos dentro de una función asíncrona
       if (user.organizationId != null) {
-        await clientService.loadClients(user.organizationId!);
+        await clientService.getOrganizationClients(user.organizationId!);
       }
     }
 
@@ -61,7 +61,7 @@ class ClientDetailScreen extends StatelessWidget {
           if (canDelete)
             IconButton(
               icon: const Icon(Icons.delete),
-              onPressed: () => _showDeleteDialog(context, clientService),
+              onPressed: () => _showDeleteDialog(context, clientService, organizationId),
               tooltip: 'Eliminar',
             ),
         ],
@@ -300,7 +300,24 @@ class ClientDetailScreen extends StatelessWidget {
     );
   }
 
-  void _showDeleteDialog(BuildContext context, ClientService clientService) {
+  void _showDeleteDialog(BuildContext context, ClientService clientService, String? organizationId) {
+    if (organizationId == null) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error'),
+          content: const Text('No se puede eliminar el cliente. Organización no encontrada.'),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -316,7 +333,7 @@ class ClientDetailScreen extends StatelessWidget {
           FilledButton(
             onPressed: () async {
               Navigator.pop(context);
-              final success = await clientService.deleteClient(client.id);
+              final success = await clientService.deleteClient(organizationId, client.id);
               if (context.mounted) {
                 if (success) {
                   Navigator.pop(context);

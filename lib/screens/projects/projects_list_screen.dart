@@ -171,9 +171,13 @@ Widget _buildAllProjectsList(UserModel user) {
         }
 
         var projects = snapshot.data ?? [];
+        print('Total projects fetched: ${projects.length}');
 
         // Aplicar filtros localmente
         projects = _applyFilters(projects);
+        for (var project in projects) {
+          print('Filtered project: ${project.name}');
+        }
 
         if (projects.isEmpty) {
           return Center(

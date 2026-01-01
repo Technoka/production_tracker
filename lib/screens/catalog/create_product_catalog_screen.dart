@@ -123,7 +123,7 @@ class _CreateProductCatalogScreenState
         );
       }
 
-      final productId = await _catalogService.createProductCatalog(
+      final productId = await _catalogService.createProduct(
         organizationId: widget.organizationId,
         name: _nameController.text.trim(),
         reference: _referenceController.text.trim(),

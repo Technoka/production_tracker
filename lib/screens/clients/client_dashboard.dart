@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
 import '../../models/project_model.dart';
 import '../../services/auth_service.dart';
-import '../../services/firestore_service.dart';
+import '../../services/client_service.dart';
 import 'client_project_detail.dart';
 
 class ClientDashboard extends StatelessWidget {
@@ -13,7 +13,7 @@ class ClientDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final firestoreService = FirestoreService();
+    final clientService = Provider.of<ClientService>(context, listen: false);
 
     return Scaffold(
       appBar: AppBar(
@@ -76,7 +76,7 @@ class ClientDashboard extends StatelessWidget {
           ),
           Expanded(
             child: StreamBuilder<List<ProjectModel>>(
-              stream: firestoreService.getClientProjects(userData.uid),
+              stream: clientService.getClientProjects(userData.organizationId!, userData.uid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -177,7 +177,7 @@ class ClientDashboard extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  ClientProjectDetail(project: project),
+                                  ClientProjectDetail(project: project, organizationId: userData.organizationId!),
                             ),
                           );
                         },

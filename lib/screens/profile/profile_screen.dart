@@ -5,6 +5,7 @@ import '../../utils/role_utils.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
 import '../../widgets/common_refresh.dart';
+import '../../utils/migration_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -210,6 +211,20 @@ class ProfileScreen extends StatelessWidget {
                   _buildInfoCard(
                     context,
                     children: [
+                        ListTile(
+                          leading: const Icon(Icons.storage_outlined),
+                          title: const Text('Migrar base de datos'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                            builder: (context) => const MigrationScreen(),
+                            ),
+                          );
+                          },
+                        ),
+                      const Divider(),
                       ListTile(
                         leading: Icon(
                           Icons.logout,

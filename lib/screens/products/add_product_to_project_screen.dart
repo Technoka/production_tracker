@@ -505,7 +505,7 @@ class _ProductSelectorSheetState extends State<_ProductSelectorSheet> {
             // Lista de productos
             Expanded(
               child: StreamBuilder<List<ProductCatalogModel>>(
-                stream: _catalogService.getOrganizationCatalog(
+                stream: _catalogService.getOrganizationProductsStream(
                   widget.organizationId,
                   includeInactive: false,
                 ),

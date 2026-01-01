@@ -158,7 +158,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
           if (canDelete)
             IconButton(
               icon: const Icon(Icons.delete),
-              onPressed: () => _showDeleteDialog(context, projectService, project),
+              onPressed: () => _showDeleteDialog(context, projectService, project, user.organizationId!),
             ),
         ],
         bottom: TabBar(
@@ -262,7 +262,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
                   const SizedBox(height: 8),
                   FutureBuilder<ClientModel?>(
                     future: Provider.of<ClientService>(context, listen: false)
-                        .getClient(project.clientId),
+                        .getClient(project.organizationId, project.clientId),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
                         return const CircularProgressIndicator();
@@ -393,6 +393,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
                                   if (selected) {
                                     final success = await projectService
                                         .updateProjectStatus(
+                                            user.organizationId!,
                                             project.id, status.value);
                                     if (success && context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
@@ -427,7 +428,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
         setState(() {});
       },
       child: StreamBuilder<List<ProjectProductModel>>(
-        stream: _productService.watchProjectProducts(project.id),
+        stream: _productService.watchProjectProducts(project.organizationId, project.id),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -618,7 +619,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
-  void _showDeleteDialog(BuildContext context, ProjectService projectService, ProjectModel project) {
+  void _showDeleteDialog(BuildContext context, ProjectService projectService, ProjectModel project, String organizationId) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -634,7 +635,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
             onPressed: () async {
               Navigator.pop(context);
               final success =
-                  await projectService.deleteProject(project.id);
+                  await projectService.deleteProject(organizationId, project.id);
               if (context.mounted) {
                 if (success) {
                   Navigator.pop(context);

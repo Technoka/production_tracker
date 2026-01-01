@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/client_service.dart';
+import 'package:country_picker/country_picker.dart';
 
 class CreateClientScreen extends StatefulWidget {
   const CreateClientScreen({super.key});
@@ -21,6 +22,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
   final _postalCodeController = TextEditingController();
   final _countryController = TextEditingController();
   final _notesController = TextEditingController();
+  String _selectedCountryCode = "+34"; // Valor por defecto
 
   @override
   void dispose() {
@@ -57,9 +59,8 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
       name: _nameController.text.trim(),
       company: _companyController.text.trim(),
       email: _emailController.text.trim(),
-      phone: _phoneController.text.trim().isEmpty
-          ? null
-          : _phoneController.text.trim(),
+      phone: (_phoneController.text.trim().startsWith('+') ? _phoneController.text.trim() : '$_selectedCountryCode${_phoneController.text.trim()}'),
+      
       address: _addressController.text.trim().isEmpty
           ? null
           : _addressController.text.trim(),
@@ -181,15 +182,47 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Teléfono',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                    border: OutlineInputBorder(),
-                    helperText: 'Opcional',
+                    hintText: '123 456 789',
+                    border: const OutlineInputBorder(),
+                    // Usamos prefixIcon para meter el selector dentro del campo
+                    prefixIcon: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      margin: const EdgeInsets.only(right: 8),
+                      child: InkWell(
+                        onTap: () {
+                          showCountryPicker(
+                            context: context,
+                            favorite: <String>['ES'],
+                            showPhoneCode: true, // Esto es clave para que muestre el +34, +52, etc.
+                            onSelect: (Country country) {
+                              setState(() {
+                                _selectedCountryCode = "+${country.phoneCode}";
+                              });
+                            },
+                          );
+                        },
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.phone_outlined, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              _selectedCountryCode,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const Icon(Icons.arrow_drop_down),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -243,14 +276,34 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-
                 TextFormField(
                   controller: _countryController,
-                  textCapitalization: TextCapitalization.words,
+                  readOnly: true, // Evita que salga el teclado
+                  onTap: () {
+                    showCountryPicker(
+                      context: context,
+                      favorite: <String>['ES'],
+                      showPhoneCode: false,
+                      onSelect: (Country country) {
+                        setState(() {
+                          // Guardamos el nombre y la bandera en el controller
+                          _countryController.text = "${country.flagEmoji} ${country.nameLocalized ?? country.name}";
+                        });
+                      },
+                      countryListTheme: CountryListThemeData(
+                        borderRadius: BorderRadius.circular(15),
+                        inputDecoration: const InputDecoration(
+                          labelText: 'Buscar país',
+                          prefixIcon: Icon(Icons.search),
+                        ),
+                      ),
+                    );
+                  },
                   decoration: const InputDecoration(
                     labelText: 'País',
                     prefixIcon: Icon(Icons.public),
                     border: OutlineInputBorder(),
+                    suffixIcon: Icon(Icons.arrow_drop_down),
                   ),
                 ),
                 const SizedBox(height: 24),

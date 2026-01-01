@@ -10,11 +10,13 @@ import 'edit_product_catalog_screen.dart';
 class ProductCatalogDetailScreen extends StatefulWidget {
   final String productId;
   final UserModel currentUser;
+  final String organizationId;
 
   const ProductCatalogDetailScreen({
     super.key,
     required this.productId,
     required this.currentUser,
+    required this.organizationId,
   });
 
   @override
@@ -27,6 +29,7 @@ class _ProductCatalogDetailScreenState
   final ProductCatalogService _catalogService = ProductCatalogService();
   ProductCatalogModel? _product;
   bool _isLoading = true;
+  late String organizationId;
 
   @override
   void initState() {
@@ -39,7 +42,7 @@ class _ProductCatalogDetailScreenState
       _isLoading = true;
     });
 
-    final product = await _catalogService.getProductById(widget.productId);
+    final product = await _catalogService.getProductById(widget.organizationId, widget.productId);
 
     if (mounted) {
       setState(() {
@@ -423,6 +426,7 @@ class _ProductCatalogDetailScreenState
     final newId = await _catalogService.duplicateProduct(
       productId: _product!.id,
       createdBy: widget.currentUser.uid,
+      organizationId: widget.organizationId,
     );
 
     if (mounted) {
@@ -440,6 +444,7 @@ class _ProductCatalogDetailScreenState
             builder: (context) => ProductCatalogDetailScreen(
               productId: newId,
               currentUser: widget.currentUser,
+              organizationId: widget.organizationId,
             ),
           ),
         );
@@ -539,7 +544,7 @@ class _ProductCatalogDetailScreenState
 
     if (confirm != true) return;
 
-    final success = await _catalogService.deleteProduct(_product!.id);
+    final success = await _catalogService.deleteProduct(widget.organizationId, _product!.id);
 
     if (mounted) {
       if (success) {

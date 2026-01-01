@@ -18,6 +18,26 @@ class ProjectProductModel {
   final String? updatedBy;
   final DateTime updatedAt;
 
+  // NUEVOS CAMPOS PARA SLA (FASE 5)
+  final int? expectedDuration;           // Horas esperadas
+  final double? actualDuration;          // Horas reales
+  final bool isBlocked;
+  final String? blockReason;
+  
+  // NUEVOS CAMPOS PARA KANBAN (FASE 6)
+  final int kanbanPosition;              // Orden en la columna
+  final String? swimlane;                // Para agrupar
+  final int urgencyLevel;                // 0-10
+  
+  // NUEVOS CAMPOS PARA CONTROL CALIDAD (FASES FUTURAS)
+  final String qualityStatus;            // "pending", "approved", "rejected"
+  final String? qualityNotes;
+  final String? qualityCheckedBy;
+  final DateTime? qualityCheckedAt;
+  
+  // NUEVOS CAMPOS PARA MATERIALES (FASE 9)
+  final String materialStatus;           // "available", "pending", "missing"
+
   ProjectProductModel({
     required this.id,
     required this.projectId,
@@ -34,6 +54,19 @@ class ProjectProductModel {
     required this.createdAt,
     this.updatedBy,
     required this.updatedAt,
+
+    this.expectedDuration,
+    this.actualDuration,
+    this.isBlocked = false,
+    this.blockReason,
+    this.kanbanPosition = 0,
+    this.swimlane,
+    this.urgencyLevel = 5,
+    this.qualityStatus = 'pending',
+    this.qualityNotes,
+    this.qualityCheckedBy,
+    this.qualityCheckedAt,
+    this.materialStatus = 'pending',
   });
 
   Map<String, dynamic> toMap() {
@@ -53,6 +86,18 @@ class ProjectProductModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedBy': updatedBy,
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'expectedDuration': expectedDuration,
+      'actualDuration': actualDuration,
+      'isBlocked': isBlocked,
+      'blockReason': blockReason,
+      'kanbanPosition': kanbanPosition,
+      'swimlane': swimlane,
+      'urgencyLevel': urgencyLevel,
+      'qualityStatus': qualityStatus,
+      'qualityNotes': qualityNotes,
+      'qualityCheckedBy': qualityCheckedBy,
+      'qualityCheckedAt': qualityCheckedAt != null ? Timestamp.fromDate(qualityCheckedAt!) : null,
+      'materialStatus': materialStatus,
     };
   }
 
@@ -75,6 +120,22 @@ class ProjectProductModel {
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedBy: map['updatedBy'] as String?,
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+      expectedDuration: map['expectedDuration'],
+      actualDuration: map['actualDuration'] != null 
+          ? (map['actualDuration'] as num).toDouble()
+          : null,
+      isBlocked: map['isBlocked'] ?? false,
+      blockReason: map['blockReason'],
+      kanbanPosition: map['kanbanPosition'] ?? 0,
+      swimlane: map['swimlane'],
+      urgencyLevel: map['urgencyLevel'] ?? 5,
+      qualityStatus: map['qualityStatus'] ?? 'pending',
+      qualityNotes: map['qualityNotes'],
+      qualityCheckedBy: map['qualityCheckedBy'],
+      qualityCheckedAt: map['qualityCheckedAt'] != null
+          ? (map['qualityCheckedAt'] as Timestamp).toDate()
+          : null,
+      materialStatus: map['materialStatus'] ?? 'pending',
     );
   }
 

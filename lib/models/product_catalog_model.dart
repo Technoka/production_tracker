@@ -22,6 +22,14 @@ class ProductCatalogModel {
   final String? updatedBy; // UID del último editor
   final DateTime updatedAt;
   final int usageCount; // Contador de veces usado en proyectos
+  final String approvalStatus;           // "pending", "approved", "rejected"
+  final String? approvedBy;
+  final DateTime? approvedAt;
+  final String? rejectionReason;
+  final String? clientId;                // Producto específico para un cliente
+  final bool isPublic;                   // Disponible para todos los clientes
+  final int? estimatedProductionHours;   // Tiempo estimado en horas
+  final List<Map<String, dynamic>>? clientPrices;  // Precios por cliente
 
   ProductCatalogModel({
     required this.id,
@@ -44,6 +52,14 @@ class ProductCatalogModel {
     this.updatedBy,
     required this.updatedAt,
     this.usageCount = 0,
+    this.approvalStatus = 'approved',
+    this.approvedBy,
+    this.approvedAt,
+    this.rejectionReason,
+    this.clientId,
+    this.isPublic = true,
+    this.estimatedProductionHours,
+    this.clientPrices,
   });
 
   Map<String, dynamic> toMap() {
@@ -68,6 +84,14 @@ class ProductCatalogModel {
       'updatedBy': updatedBy,
       'updatedAt': Timestamp.fromDate(updatedAt),
       'usageCount': usageCount,
+      'approvalStatus': approvalStatus,
+      'approvedBy': approvedBy,
+      'approvedAt': approvedAt != null ? Timestamp.fromDate(approvedAt!) : null,
+      'rejectionReason': rejectionReason,
+      'clientId': clientId,
+      'isPublic': isPublic,
+      'estimatedProductionHours': estimatedProductionHours,
+      'clientPrices': clientPrices,
     };
   }
 
@@ -103,6 +127,18 @@ class ProductCatalogModel {
       updatedBy: map['updatedBy'] as String?,
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
       usageCount: map['usageCount'] as int? ?? 0,
+      approvalStatus: map['approvalStatus'] ?? 'approved',
+      approvedBy: map['approvedBy'],
+      approvedAt: map['approvedAt'] != null 
+          ? (map['approvedAt'] as Timestamp).toDate() 
+          : null,
+      rejectionReason: map['rejectionReason'],
+      clientId: map['clientId'],
+      isPublic: map['isPublic'] ?? true,
+      estimatedProductionHours: map['estimatedProductionHours'],
+      clientPrices: map['clientPrices'] != null 
+          ? List<Map<String, dynamic>>.from(map['clientPrices']) 
+          : null,
     );
   }
 
@@ -127,6 +163,14 @@ class ProductCatalogModel {
     String? updatedBy,
     DateTime? updatedAt,
     int? usageCount,
+    String? approvalStatus,
+    String? approvedBy,
+    DateTime? approvedAt,
+    String? rejectionReason,
+    String? clientId,
+    bool? isPublic,
+    int? estimatedProductionHours,
+    List<Map<String, dynamic>>? clientPrices,
   }) {
     return ProductCatalogModel(
       id: id ?? this.id,
@@ -149,6 +193,14 @@ class ProductCatalogModel {
       updatedBy: updatedBy ?? this.updatedBy,
       updatedAt: updatedAt ?? this.updatedAt,
       usageCount: usageCount ?? this.usageCount,
+      approvalStatus: approvalStatus ?? this.approvalStatus,
+      approvedBy: approvedBy ?? this.approvedBy,
+      approvedAt: approvedAt ?? this.approvedAt,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      clientId: clientId ?? this.clientId,
+      isPublic: isPublic ?? this.isPublic,
+      estimatedProductionHours: estimatedProductionHours ?? this.estimatedProductionHours,
+      clientPrices: clientPrices ?? this.clientPrices,
     );
   }
 

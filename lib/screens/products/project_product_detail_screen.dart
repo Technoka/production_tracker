@@ -108,7 +108,7 @@ class _ProjectProductDetailScreenState
   Widget build(BuildContext context) {
     return StreamBuilder<ProjectProductModel?>(
       stream: _productService
-          .watchProjectProducts(widget.projectId)
+          .watchProjectProducts(widget.currentUser.organizationId!, widget.projectId)
           .map((products) => products.firstWhere(
                 (p) => p.id == widget.productId,
                 orElse: () => products.first, // Fallback temporal
@@ -733,6 +733,7 @@ body: Column(
       );
 
       final success = await _productService.updateProjectProduct(
+        organizationId: widget.currentUser.organizationId!,
         projectId: widget.projectId,
         productId: widget.productId,
         updatedBy: widget.currentUser.uid,
@@ -801,6 +802,7 @@ body: Column(
 
   Future<void> _updateStatus(ProjectProductModel product, String newStatus) async {
     final success = await _productService.updateProductStatus(
+      organizationId: widget.currentUser.organizationId!,
       projectId: widget.projectId,
       productId: widget.productId,
       status: newStatus,
@@ -894,6 +896,7 @@ body: Column(
     if (confirm != true) return;
 
     final success = await _productService.removeProductFromProject(
+      organizationId: widget.currentUser.organizationId!,
       projectId: widget.projectId,
       productId: widget.productId,
     );

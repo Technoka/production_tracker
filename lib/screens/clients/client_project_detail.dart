@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/services/product_catalog_service.dart';
 import 'package:intl/intl.dart';
 import '../../models/project_model.dart';
 import '../../models/product_model.dart';
-import '../../services/firestore_service.dart';
+import '../../services/project_service.dart';
 import 'client_product_detail.dart';
 
 class ClientProjectDetail extends StatelessWidget {
   final ProjectModel project;
+  final String organizationId;
 
-  const ClientProjectDetail({super.key, required this.project});
+  const ClientProjectDetail({super.key, required this.project, required this.organizationId});
 
   @override
   Widget build(BuildContext context) {
-    final firestoreService = FirestoreService();
+    final projectService = ProjectService();
 
     return Scaffold(
       appBar: AppBar(
@@ -80,7 +82,7 @@ class ClientProjectDetail extends StatelessWidget {
           ),
           Expanded(
             child: StreamBuilder<List<ProductModel>>(
-              stream: firestoreService.getProjectProducts(project.id),
+              stream: projectService.watchProjectProducts(organizationId, project.id),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());

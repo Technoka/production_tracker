@@ -60,6 +60,7 @@ class _EditClientScreenState extends State<EditClientScreen> {
     final clientService = Provider.of<ClientService>(context, listen: false);
 
     final success = await clientService.updateClient(
+      organizationId: widget.client.organizationId,
       clientId: widget.client.id,
       name: _nameController.text.trim(),
       company: _companyController.text.trim(),

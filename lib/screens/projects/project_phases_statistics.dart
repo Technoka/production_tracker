@@ -71,7 +71,7 @@ class ProjectPhasesStatisticsScreen extends StatelessWidget {
             final stats = statsSnapshot.data ?? {};
 
             return StreamBuilder<List<ProjectProductModel>>(
-              stream: productService.watchProjectProducts(projectId),
+              stream: productService.watchProjectProducts(organizationId, projectId),
               builder: (context, productsSnapshot) {
                 final products = productsSnapshot.data ?? [];
 

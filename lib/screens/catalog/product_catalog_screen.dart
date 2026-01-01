@@ -156,7 +156,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
           // Lista de productos
           Expanded(
             child: StreamBuilder<List<ProductCatalogModel>>(
-              stream: _catalogService.getOrganizationCatalog(
+              stream: _catalogService.getOrganizationProductsStream(
                 widget.organizationId,
                 includeInactive: _showInactive,
               ),
@@ -252,6 +252,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                               builder: (context) => ProductCatalogDetailScreen(
                                 productId: product.id,
                                 currentUser: widget.currentUser,
+                                organizationId: widget.organizationId,
                               ),
                             ),
                           );

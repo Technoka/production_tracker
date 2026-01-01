@@ -170,7 +170,8 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
         );
       }
 
-      final success = await _catalogService.updateProductCatalog(
+      final success = await _catalogService.updateProduct(
+        organizationId: widget.product.organizationId,
         productId: widget.product.id,
         updatedBy: widget.currentUser.uid,
         name: _nameController.text.trim(),

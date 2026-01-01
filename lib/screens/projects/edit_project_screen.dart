@@ -55,6 +55,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
 
     final projectService = Provider.of<ProjectService>(context, listen: false);
     final success = await projectService.updateProject(
+      organizationId: widget.project.organizationId,
       projectId: widget.project.id,
       name: _nameController.text.trim(),
       description: _descriptionController.text.trim(),

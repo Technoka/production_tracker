@@ -22,12 +22,14 @@ class ProjectProductService {
   }) async {
     try {
       // Obtener información del producto del catálogo
-      final catalogProduct = await _catalogService.getProductById(catalogProductId);
+      final catalogProduct = await _catalogService.getProductById(organizationId, catalogProductId);
       if (catalogProduct == null) {
         throw Exception('Producto del catálogo no encontrado');
       }
 
       final productId = _firestore
+          .collection('organizations')  
+          .doc(organizationId)
           .collection('projects')
           .doc(projectId)
           .collection('products')
@@ -56,6 +58,8 @@ class ProjectProductService {
 
       // Guardar el producto
       await _firestore
+          .collection('organizations')  
+          .doc(organizationId)
           .collection('projects')
           .doc(projectId)
           .collection('products')
@@ -70,7 +74,7 @@ class ProjectProductService {
       );
 
       // Incrementar contador de uso del producto del catálogo
-      await _catalogService.incrementUsageCount(catalogProductId);
+      await _catalogService.incrementUsageCount(organizationId, catalogProductId);
 
       return productId;
     } catch (e) {
@@ -81,8 +85,10 @@ class ProjectProductService {
 
   // ==================== OBTENER PRODUCTOS DEL PROYECTO ====================
 
-  Stream<List<ProjectProductModel>> watchProjectProducts(String projectId) {
+  Stream<List<ProjectProductModel>> watchProjectProducts(String organizationId, String projectId) {
     return _firestore
+          .collection('organizations')  
+          .doc(organizationId)
         .collection('projects')
         .doc(projectId)
         .collection('products')
@@ -93,9 +99,11 @@ class ProjectProductService {
             .toList());
   }
 
-  Future<List<ProjectProductModel>> getProjectProducts(String projectId) async {
+  Future<List<ProjectProductModel>> getProjectProducts(String organizationId, String projectId) async {
     try {
       final snapshot = await _firestore
+          .collection('organizations')  
+          .doc(organizationId)
           .collection('projects')
           .doc(projectId)
           .collection('products')
@@ -112,11 +120,14 @@ class ProjectProductService {
   }
 
   Future<ProjectProductModel?> getProductById({
+    required String organizationId,
     required String projectId,
     required String productId,
   }) async {
     try {
       final doc = await _firestore
+          .collection('organizations')  
+          .doc(organizationId)
           .collection('projects')
           .doc(projectId)
           .collection('products')
@@ -135,6 +146,7 @@ class ProjectProductService {
   // ==================== ACTUALIZAR PRODUCTO ====================
 
   Future<bool> updateProjectProduct({
+    required String organizationId,
     required String projectId,
     required String productId,
     required String updatedBy,
@@ -146,6 +158,7 @@ class ProjectProductService {
     try {
       // Obtener producto actual para calcular nuevo total
       final currentProduct = await getProductById(
+        organizationId: organizationId,
         projectId: projectId,
         productId: productId,
       );
@@ -186,6 +199,8 @@ class ProjectProductService {
       }
 
       await _firestore
+          .collection('organizations')  
+          .doc(organizationId)
           .collection('projects')
           .doc(projectId)
           .collection('products')
@@ -202,6 +217,7 @@ class ProjectProductService {
   // ==================== ACTUALIZAR ESTADO DEL PRODUCTO ====================
 
   Future<bool> updateProductStatus({
+    required String organizationId,
     required String projectId,
     required String productId,
     required String status,
@@ -209,6 +225,8 @@ class ProjectProductService {
   }) async {
     try {
       await _firestore
+          .collection('organizations')  
+          .doc(organizationId)
           .collection('projects')
           .doc(projectId)
           .collection('products')
@@ -229,6 +247,7 @@ class ProjectProductService {
   // ==================== ELIMINAR PRODUCTO ====================
 
   Future<bool> removeProductFromProject({
+    required String organizationId,
     required String projectId,
     required String productId,
   }) async {
@@ -238,6 +257,8 @@ class ProjectProductService {
       // Se puede dejar así o implementar una eliminación recursiva con Cloud Functions.
       
       await _firestore
+          .collection('organizations')  
+          .doc(organizationId)
           .collection('projects')
           .doc(projectId)
           .collection('products')
@@ -253,9 +274,9 @@ class ProjectProductService {
 
   // ==================== ESTADÍSTICAS ====================
 
-  Future<Map<String, dynamic>> getProjectProductStats(String projectId) async {
+  Future<Map<String, dynamic>> getProjectProductStats(String organizationId, String projectId) async {
     try {
-      final products = await getProjectProducts(projectId);
+      final products = await getProjectProducts(organizationId, projectId);
 
       final totalProducts = products.length;
       final totalUnits = products.fold<int>(0, (sum, p) => sum + p.quantity);
@@ -284,11 +305,11 @@ class ProjectProductService {
 
   // ==================== PRODUCTOS AGRUPADOS POR ESTADO ====================
 
-  Future<Map<String, List<ProjectProductModel>>> getProductsByStatus(
+  Future<Map<String, List<ProjectProductModel>>> getProductsByStatus(String organizationId,
     String projectId,
   ) async {
     try {
-      final products = await getProjectProducts(projectId);
+      final products = await getProjectProducts(organizationId, projectId);
 
       return {
         'pendiente': products.where((p) => p.isPending).toList(),
@@ -311,6 +332,7 @@ class ProjectProductService {
   }) async {
     try {
       final original = await getProductById(
+        organizationId: organizationId,
         projectId: projectId,
         productId: productId,
       );
@@ -338,12 +360,13 @@ class ProjectProductService {
   // ==================== ACTUALIZAR PRECIOS EN LOTE ====================
 
   Future<bool> updateAllProductsPrices({
+    required String organizationId,
     required String projectId,
     required double priceMultiplier,
     required String updatedBy,
   }) async {
     try {
-      final products = await getProjectProducts(projectId);
+      final products = await getProjectProducts(organizationId, projectId);
 
       final batch = _firestore.batch();
 
@@ -352,6 +375,8 @@ class ProjectProductService {
         final newTotalPrice = newUnitPrice * product.quantity;
 
         final docRef = _firestore
+          .collection('organizations')  
+          .doc(organizationId)
             .collection('projects')
             .doc(projectId)
             .collection('products')

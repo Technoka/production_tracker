@@ -94,11 +94,35 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
             child: StreamBuilder<List<ClientModel>>(
               stream: clientService.watchClients(user.organizationId!),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
+                }
+                print("Snapshot data: ${snapshot.data}");
+
+                if (!snapshot.hasData || snapshot.data == null) {
+                  return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                    Icon(Icons.people_outline,
+                      size: 64, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No hay clientes registrados',
+                      style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(color: Colors.grey[600]),
+                    ),
+                    ],
+                  ),
+                  );
                 }
 
                 if (snapshot.hasError) {
+                  print("🔥🔥 ERROR CRÍTICO EN CLIENTES: ${snapshot.error}");
+                  print("StackTrace: ${snapshot.stackTrace}");
+                  
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -116,7 +140,24 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                 }
 
                 final allClients = snapshot.data ?? [];
-                final clients = clientService.filteredClients;
+                // final clients = clientService.searchClients(user.organizationId, clientService.searchQuery);
+                final query = clientService.searchQuery.toLowerCase().trim();
+              
+              List<ClientModel> clients;
+              
+              if (query.isEmpty) {
+                clients = allClients;
+              } else {
+                // Filtramos localmente (es mucho más rápido y fluido)
+                clients = allClients.where((client) {
+                  final nameMatch = client.name.toLowerCase().contains(query);
+                  // Asegúrate de que tu modelo tenga estos campos o ajustalos
+                  final emailMatch = client.email?.toLowerCase().contains(query) ?? false;
+                  final companyMatch = client.company?.toLowerCase().contains(query) ?? false;
+                  
+                  return nameMatch || emailMatch || companyMatch;
+                }).toList();
+              }
 
                 if (allClients.isEmpty) {
                   return Center(

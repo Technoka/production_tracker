@@ -35,6 +35,29 @@ class ProjectModel {
   final DateTime updatedAt;
   final bool isActive;
 
+  // NUEVOS CAMPOS PARA SLA Y ALERTAS (FASE 5)
+  final int? totalSlaHours;
+  final DateTime? expectedCompletionDate;
+  final bool isDelayed;
+  final double delayHours;
+  
+  // NUEVOS CAMPOS PARA KANBAN (FASE 6)
+  final int priority;                    // 1-5 (1=máxima)
+  final String urgencyLevel;             // "low", "medium", "high", "critical"
+  final List<String>? tags;
+  
+  // NUEVOS CAMPOS PARA FACTURACIÓN (FASE 10)
+  final String invoiceStatus;            // "pending", "issued", "paid", "overdue"
+  final String? invoiceId;               // ID de Holded
+  final double totalAmount;
+  final double paidAmount;
+  final DateTime? paymentDueDate;
+  
+  // NUEVOS CAMPOS PARA MÉTRICAS (FASE 13)
+  final DateTime? startedAt;
+  final DateTime? actualCompletionDate;
+  final double? leadTimeHours;
+
   ProjectModel({
     required this.id,
     required this.name,
@@ -50,6 +73,21 @@ class ProjectModel {
     required this.createdAt,
     required this.updatedAt,
     this.isActive = true,
+    this.totalSlaHours,
+    this.expectedCompletionDate,
+    this.isDelayed = false,
+    this.delayHours = 0,
+    this.priority = 3,
+    this.urgencyLevel = 'medium',
+    this.tags,
+    this.invoiceStatus = 'pending',
+    this.invoiceId,
+    this.totalAmount = 0,
+    this.paidAmount = 0,
+    this.paymentDueDate,
+    this.startedAt,
+    this.actualCompletionDate,
+    this.leadTimeHours,
   });
 
   Map<String, dynamic> toMap() {
@@ -68,6 +106,21 @@ class ProjectModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'isActive': isActive,
+      'totalSlaHours': totalSlaHours,
+      'expectedCompletionDate': expectedCompletionDate != null ? Timestamp.fromDate(expectedCompletionDate!) : null,
+      'isDelayed': isDelayed,
+      'delayHours': delayHours,
+      'priority': priority,
+      'urgencyLevel': urgencyLevel,
+      'tags': tags,
+      'invoiceStatus': invoiceStatus,
+      'invoiceId': invoiceId,
+      'totalAmount': totalAmount,
+      'paidAmount': paidAmount,
+      'paymentDueDate': paymentDueDate != null ? Timestamp.fromDate(paymentDueDate!) : null,
+      'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
+      'actualCompletionDate': actualCompletionDate != null ? Timestamp.fromDate(actualCompletionDate!) : null,
+      'leadTimeHours': leadTimeHours,
     };
   }
 
@@ -89,6 +142,31 @@ class ProjectModel {
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
       isActive: map['isActive'] as bool? ?? true,
+            totalSlaHours: map['totalSlaHours'],
+      expectedCompletionDate: map['expectedCompletionDate'] != null
+          ? (map['expectedCompletionDate'] as Timestamp).toDate()
+          : null,
+      isDelayed: map['isDelayed'] ?? false,
+      delayHours: (map['delayHours'] ?? 0).toDouble(),
+      priority: map['priority'] ?? 3,
+      urgencyLevel: map['urgencyLevel'] ?? 'medium',
+      tags: map['tags'] != null ? List<String>.from(map['tags']) : null,
+      invoiceStatus: map['invoiceStatus'] ?? 'pending',
+      invoiceId: map['invoiceId'],
+      totalAmount: (map['totalAmount'] ?? 0).toDouble(),
+      paidAmount: (map['paidAmount'] ?? 0).toDouble(),
+      paymentDueDate: map['paymentDueDate'] != null
+          ? (map['paymentDueDate'] as Timestamp).toDate()
+          : null,
+      startedAt: map['startedAt'] != null
+          ? (map['startedAt'] as Timestamp).toDate()
+          : null,
+      actualCompletionDate: map['actualCompletionDate'] != null
+          ? (map['actualCompletionDate'] as Timestamp).toDate()
+          : null,
+      leadTimeHours: map['leadTimeHours'] != null 
+          ? (map['leadTimeHours'] as num).toDouble()
+          : null,
     );
   }
 
@@ -107,6 +185,21 @@ class ProjectModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isActive,
+    int? totalSlaHours,
+    DateTime? expectedCompletionDate,
+    bool? isDelayed,
+    double? delayHours,
+    int? priority,
+    String? urgencyLevel,
+    List<String>? tags,
+    String? invoiceStatus,
+    String? invoiceId,
+    double? totalAmount,
+    double? paidAmount,
+    DateTime? paymentDueDate,
+    DateTime? startedAt,
+    DateTime? actualCompletionDate,
+    double? leadTimeHours
   }) {
     return ProjectModel(
       id: id ?? this.id,
@@ -123,6 +216,21 @@ class ProjectModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,
+      totalSlaHours: totalSlaHours ?? this.totalSlaHours,
+      expectedCompletionDate: expectedCompletionDate ?? this.expectedCompletionDate,
+      isDelayed: isDelayed ?? this.isDelayed,
+      delayHours: delayHours ?? this.delayHours,
+      priority: priority ?? this.priority,
+      urgencyLevel: urgencyLevel ?? this.urgencyLevel,
+      tags: tags ?? this.tags,
+      invoiceStatus: invoiceStatus ?? this.invoiceStatus,
+      invoiceId: invoiceId ?? this.invoiceId,
+      totalAmount: totalAmount ?? this.totalAmount,
+      paidAmount: paidAmount ?? this.paidAmount,
+      paymentDueDate: paymentDueDate ?? this.paymentDueDate,
+      startedAt: startedAt ?? this.startedAt,
+      actualCompletionDate: actualCompletionDate ?? this.actualCompletionDate,
+      leadTimeHours: leadTimeHours ?? this.leadTimeHours,
     );
   }
 

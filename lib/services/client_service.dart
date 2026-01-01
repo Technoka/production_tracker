@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:uuid/uuid.dart';
 import '../models/client_model.dart';
+import '../models/project_model.dart';
 
 class ClientService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -23,17 +24,18 @@ class ClientService extends ChangeNotifier {
   // ==================== CREAR CLIENTE ====================
 
   Future<String?> createClient({
+    required String organizationId,
     required String name,
-    required String company,
     required String email,
+    required String createdBy,
+    required String company,
     String? phone,
     String? address,
     String? city,
     String? postalCode,
     String? country,
     String? notes,
-    required String organizationId,
-    required String createdBy,
+    String? userId, // Para portal del cliente (Fase 12)
   }) async {
     try {
       _isLoading = true;
@@ -41,27 +43,36 @@ class ClientService extends ChangeNotifier {
       notifyListeners();
 
       final clientId = _uuid.v4();
+      
+      final now = DateTime.now();
+
       final client = ClientModel(
         id: clientId,
+        organizationId: organizationId,
         name: name,
-        company: company,
         email: email,
+        company: company,
         phone: phone,
         address: address,
-        city: city,
-        postalCode: postalCode,
-        country: country,
         notes: notes,
-        organizationId: organizationId,
+        userId: userId,
         createdBy: createdBy,
-        createdAt: DateTime.now(),
+        createdAt: now,
+        updatedAt: now,
       );
 
-      await _firestore.collection('clients').doc(clientId).set(client.toMap());
+      final docRef = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .doc(clientId)
+          .set(client.toMap());
 
       _isLoading = false;
       notifyListeners();
+
       return clientId;
+      
     } on FirebaseException catch (e) {
       _error = 'Error al crear cliente: ${e.message}';
       _isLoading = false;
@@ -80,30 +91,31 @@ class ClientService extends ChangeNotifier {
   // Stream de clientes de una organización
   Stream<List<ClientModel>> watchClients(String organizationId) {
     return _firestore
+        .collection('organizations')
+        .doc(organizationId)
         .collection('clients')
-        .where('organizationId', isEqualTo: organizationId)
         .where('isActive', isEqualTo: true)
         .orderBy('name')
         .snapshots()
         .map((snapshot) {
       _clients = snapshot.docs
-          .map((doc) => ClientModel.fromMap(doc.data()))
+            .map((doc) => ClientModel.fromMap(doc.data()))
           .toList();
       return _clients;
     });
   }
 
-  // Cargar clientes una vez
-  Future<List<ClientModel>> loadClients(String organizationId) async {
+  /// Obtener clientes (one-time)
+  Future<List<ClientModel>> getOrganizationClients(String organizationId) async {
     try {
       _isLoading = true;
       _error = null;
       notifyListeners();
 
       final snapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
           .collection('clients')
-          .where('organizationId', isEqualTo: organizationId)
-          .where('isActive', isEqualTo: true)
           .orderBy('name')
           .get();
 
@@ -122,27 +134,89 @@ class ClientService extends ChangeNotifier {
     }
   }
 
-  // Obtener un cliente específico
-  Future<ClientModel?> getClient(String clientId) async {
+  /// Obtener cliente por ID (stream)
+  Stream<ClientModel?> getClientStream(
+    String organizationId,
+    String clientId,
+  ) {
+    return _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('clients')
+        .doc(clientId)
+        .snapshots()
+        .map((doc) {
+      if (!doc.exists) return null;
+      return ClientModel.fromMap(doc.data()!);
+    });
+  }
+
+  /// Obtener cliente por ID (one-time)
+  Future<ClientModel?> getClient(
+    String organizationId,
+    String clientId,
+  ) async {
     try {
-      final doc = await _firestore.collection('clients').doc(clientId).get();
-      if (doc.exists) {
-        return ClientModel.fromMap(doc.data()!);
-      }
-      return null;
+      final doc = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .doc(clientId)
+          .get();
+
+      if (!doc.exists) return null;
+      return ClientModel.fromMap(doc.data()!);
     } catch (e) {
-      _error = 'Error al obtener cliente: $e';
-      notifyListeners();
+      print('Error getting client: $e');
       return null;
     }
   }
 
+  /// Obtener cliente por userId (para portal cliente)
+  Future<ClientModel?> getClientByUserId(
+    String organizationId,
+    String userId,
+  ) async {
+    try {
+      final snapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) return null;
+      return ClientModel.fromMap(snapshot.docs.first.data());
+    } catch (e) {
+      print('Error getting client by userId: $e');
+      return null;
+    }
+  }
+
+  
+  // Obtener proyectos del cliente
+Stream<List<ProjectModel>> getClientProjects(String organizationId, String clientId) {
+  return _firestore
+      .collection('organizations')
+      .doc(organizationId)
+      .collection('projects')
+      .where('clientId', isEqualTo: clientId)
+      .where('isActive', isEqualTo: true) // Recomendado: filtrar solo activos
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => ProjectModel.fromMap(doc.data()))
+          .toList());
+}
+
   // ==================== ACTUALIZAR CLIENTE ====================
 
   Future<bool> updateClient({
+    required String organizationId,
     required String clientId,
     String? name,
-    String? company,
+    String? company,    
     String? email,
     String? phone,
     String? address,
@@ -150,6 +224,7 @@ class ClientService extends ChangeNotifier {
     String? postalCode,
     String? country,
     String? notes,
+    String? userId,
   }) async {
     try {
       _isLoading = true;
@@ -158,18 +233,25 @@ class ClientService extends ChangeNotifier {
 
       final updates = <String, dynamic>{
         'updatedAt': FieldValue.serverTimestamp(),
-        'name': name,
-        'company': company,
-        'enail': email,
-        'phone': phone,
-        'address': address,
-        'city': city,
-        'postalCode': postalCode,
-        'country': country,
-        'notes': notes
       };
 
-      await _firestore.collection('clients').doc(clientId).update(updates);
+      if (name != null) updates['name'] = name;
+      if (email != null) updates['email'] = email;
+      if (company != null) updates['company'] = company;
+      if (phone != null) updates['phone'] = phone;
+      if (address != null) updates['address'] = address;
+      if (city != null) updates['city'] = city;
+      if (postalCode != null) updates['postalCode'] = postalCode;
+      if (country != null) updates['country'] = country;
+      if (notes != null) updates['notes'] = notes;
+      if (userId != null) updates['userId'] = userId;
+
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .doc(clientId)
+          .update(updates);
 
       _isLoading = false;
       notifyListeners();
@@ -189,18 +271,38 @@ class ClientService extends ChangeNotifier {
 
   // ==================== ELIMINAR CLIENTE ====================
 
-  // Eliminación lógica (soft delete)
-  Future<bool> deleteClient(String clientId) async {
+  Future<bool> deleteClient(
+    String organizationId,
+    String clientId,
+  ) async {
     try {
       _isLoading = true;
       _error = null;
       notifyListeners();
+      // Verificar si tiene proyectos asociados
+      final projectsSnapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('projects')
+          .where('clientId', isEqualTo: clientId)
+          .limit(1)
+          .get();
 
-      await _firestore.collection('clients').doc(clientId).update({
-        'isActive': false,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      if (projectsSnapshot.docs.isNotEmpty) {
+        _error = 'Cannot delete client with associated projects';
+        
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
 
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .doc(clientId)
+          .delete();
+          
       _isLoading = false;
       notifyListeners();
       return true;
@@ -213,18 +315,23 @@ class ClientService extends ChangeNotifier {
       _error = 'Error inesperado al eliminar cliente: $e';
       _isLoading = false;
       notifyListeners();
-      return false;
+      return false;      
     }
   }
 
   // Eliminación física (permanente) - solo para casos especiales
-  Future<bool> permanentlyDeleteClient(String clientId) async {
+  Future<bool> permanentlyDeleteClient(String organizationId, String clientId) async {
     try {
       _isLoading = true;
       _error = null;
       notifyListeners();
 
-      await _firestore.collection('clients').doc(clientId).delete();
+      await _firestore
+      .collection('organizations')
+      .doc(organizationId)
+      .collection('clients')
+      .doc(clientId)
+      .delete();
 
       _isLoading = false;
       notifyListeners();
@@ -250,75 +357,196 @@ class ClientService extends ChangeNotifier {
   }
 
   void clearSearch() {
-    _searchQuery = '';
-    notifyListeners();
-  }
+  _searchQuery = '';
+  notifyListeners();
+}
 
-  List<ClientModel> get filteredClients {
-    if (_searchQuery.isEmpty) {
-      return _clients;
+  Future<List<ClientModel>> searchClients(
+    String? organizationId,
+    String query,
+  ) async {
+    try {
+      if (organizationId == null) return _clients;
+
+      final lowerQuery = query.toLowerCase().trim();
+
+      // Firestore no tiene búsqueda full-text, así que obtenemos todos y filtramos
+      final snapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .get();
+
+      return snapshot.docs
+          .map((doc) => ClientModel.fromMap(doc.data()))
+          .where((client) =>
+              client.name.toLowerCase().contains(lowerQuery) ||
+              (client.email?.toLowerCase().contains(lowerQuery) ?? false) ||
+              (client.company?.toLowerCase().contains(lowerQuery) ?? false))
+          .toList();
+    } catch (e) {
+      print('Error searching clients: $e');
+      return [];
     }
-
-    return _clients.where((client) {
-      final nameMatch = client.name.toLowerCase().contains(_searchQuery);
-      final companyMatch = client.company.toLowerCase().contains(_searchQuery);
-      final emailMatch = client.email.toLowerCase().contains(_searchQuery);
-      final phoneMatch =
-          client.phone?.toLowerCase().contains(_searchQuery) ?? false;
-      final cityMatch = client.city?.toLowerCase().contains(_searchQuery) ?? false;
-
-      return nameMatch || companyMatch || emailMatch || phoneMatch || cityMatch;
-    }).toList();
   }
 
-  // Filtrar por ciudad
-  List<ClientModel> getClientsByCity(String city) {
-    return _clients
-        .where((client) =>
-            client.city?.toLowerCase() == city.toLowerCase())
-        .toList();
-  }
+  Future<List<ClientModel>> searchClientsByName(
+    String organizationId,
+    String namePrefix,
+  ) async {
+    try {
+      // Búsqueda por prefijo (más eficiente)
+      final snapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .orderBy('name')
+          .startAt([namePrefix])
+          .endAt([namePrefix + '\uf8ff'])
+          .get();
 
-  // Filtrar por país
-  List<ClientModel> getClientsByCountry(String country) {
-    return _clients
-        .where((client) =>
-            client.country?.toLowerCase() == country.toLowerCase())
-        .toList();
-  }
-
-  // Obtener todas las ciudades únicas
-  List<String> get uniqueCities {
-    final cities = _clients
-        .where((client) => client.city != null && client.city!.isNotEmpty)
-        .map((client) => client.city!)
-        .toSet()
-        .toList();
-    cities.sort();
-    return cities;
-  }
-
-  // Obtener todos los países únicos
-  List<String> get uniqueCountries {
-    final countries = _clients
-        .where((client) => client.country != null && client.country!.isNotEmpty)
-        .map((client) => client.country!)
-        .toSet()
-        .toList();
-    countries.sort();
-    return countries;
+      return snapshot.docs
+          .map((doc) => ClientModel.fromMap(doc.data()))
+          .toList();
+    } catch (e) {
+      print('Error searching clients by name: $e');
+      return [];
+    }
   }
 
   // ==================== ESTADÍSTICAS ====================
 
-  int get totalClients => _clients.length;
+  Future<Map<String, dynamic>> getClientStatistics(
+    String organizationId,
+    String clientId,
+  ) async {
+    try {
+      // Obtener proyectos del cliente
+      final projectsSnapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('projects')
+          .where('clientId', isEqualTo: clientId)
+          .get();
 
-  int get clientsWithAddress =>
-      _clients.where((client) => client.hasAddress).length;
+      final projects = projectsSnapshot.docs;
+      final totalProjects = projects.length;
 
-  int get clientsWithPhone => _clients.where((client) => client.hasPhone).length;
+      int activeProjects = 0;
+      int completedProjects = 0;
+      int delayedProjects = 0;
 
-  // ==================== UTILIDADES ====================
+      for (final projectDoc in projects) {
+        final status = projectDoc.data()['status'] as String?;
+        final isDelayed = projectDoc.data()['isDelayed'] as bool? ?? false;
+
+        if (status == 'in_production' || status == 'in_preparation') {
+          activeProjects++;
+        }
+        if (status == 'completed' || status == 'delivered') {
+          completedProjects++;
+        }
+        if (isDelayed) {
+          delayedProjects++;
+        }
+      }
+
+      return {
+        'totalProjects': totalProjects,
+        'activeProjects': activeProjects,
+        'completedProjects': completedProjects,
+        'delayedProjects': delayedProjects,
+      };
+    } catch (e) {
+      print('Error getting client statistics: $e');
+      return {
+        'totalProjects': 0,
+        'activeProjects': 0,
+        'completedProjects': 0,
+        'delayedProjects': 0,
+      };
+    }
+  }
+
+  // ==================== VINCULAR USUARIO (PORTAL CLIENTE) ====================
+
+  Future<bool> linkUserToClient(
+    String organizationId,
+    String clientId,
+    String userId,
+  ) async {
+    try {
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .doc(clientId)
+          .update({
+        'userId': userId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      return true;
+    } catch (e) {
+      print('Error linking user to client: $e');
+      return false;
+    }
+  }
+
+  Future<bool> unlinkUserFromClient(
+    String organizationId,
+    String clientId,
+  ) async {
+    try {
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .doc(clientId)
+          .update({
+        'userId': FieldValue.delete(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      return true;
+    } catch (e) {
+      print('Error unlinking user from client: $e');
+      return false;
+    }
+  }
+
+  // ==================== VALIDACIÓN ====================
+
+  Future<bool> emailExists(
+    String organizationId,
+    String email, {
+    String? excludeClientId,
+  }) async {
+    try {
+      var query = _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .where('email', isEqualTo: email)
+          .limit(1);
+
+      final snapshot = await query.get();
+
+      if (snapshot.docs.isEmpty) return false;
+
+      // Si estamos editando, excluir el cliente actual
+      if (excludeClientId != null) {
+        return snapshot.docs.first.id != excludeClientId;
+      }
+
+      return true;
+    } catch (e) {
+      print('Error checking email: $e');
+      return false;
+    }
+  }
+
+    // ==================== UTILIDADES ====================
 
   void clearError() {
     _error = null;

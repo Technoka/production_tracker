@@ -16,6 +16,7 @@ class ClientModel {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final bool isActive;
+  final String? userId; // para portal del cliente
 
   ClientModel({
     required this.id,
@@ -33,6 +34,7 @@ class ClientModel {
     required this.createdAt,
     this.updatedAt,
     this.isActive = true,
+    this.userId,
   });
 
   Map<String, dynamic> toMap() {
@@ -52,6 +54,7 @@ class ClientModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'isActive': isActive,
+      'userId': userId,
     };
   }
 
@@ -70,10 +73,9 @@ class ClientModel {
       organizationId: map['organizationId'] as String,
       createdBy: map['createdBy'] as String,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
-      updatedAt: map['updatedAt'] != null
-          ? (map['updatedAt'] as Timestamp).toDate()
-          : null,
+      updatedAt: map['updatedAt'] != null ? (map['updatedAt'] as Timestamp).toDate() : null,
       isActive: map['isActive'] as bool? ?? true,
+      userId: map['userId'] != null ? (map['userId'] as String) : null,
     );
   }
 
@@ -93,6 +95,7 @@ class ClientModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isActive,
+    String? userId,
   }) {
     return ClientModel(
       id: id ?? this.id,
@@ -110,6 +113,7 @@ class ClientModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,
+      userId: userId ?? this.userId,
     );
   }
 
