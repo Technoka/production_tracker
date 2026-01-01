@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:uuid/uuid.dart';
 import '../models/project_model.dart';
 
@@ -34,6 +33,12 @@ class ProjectService extends ChangeNotifier {
     required DateTime estimatedEndDate,
     required List<String> assignedMembers,
     required String createdBy,
+    // Nuevos campos opcionales para inicialización
+    int priority = 3,
+    String urgencyLevel = 'medium',
+    List<String>? tags,
+    int? totalSlaHours,
+    double totalAmount = 0,
   }) async {
     try {
       _isLoading = true;
@@ -62,6 +67,14 @@ class ProjectService extends ChangeNotifier {
         createdBy: createdBy,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        // Inicialización de nuevos campos
+        priority: priority,
+        urgencyLevel: urgencyLevel,
+        tags: tags,
+        totalSlaHours: totalSlaHours,
+        totalAmount: totalAmount,
+        invoiceStatus: 'pending', // Valor por defecto
+        isDelayed: false,
       );
 
       await _firestore.collection('projects').doc(projectId).set(project.toMap());
@@ -138,6 +151,17 @@ class ProjectService extends ChangeNotifier {
     DateTime? startDate,
     DateTime? estimatedEndDate,
     List<String>? assignedMembers,
+    // Nuevos campos actualizables
+    int? priority,
+    String? urgencyLevel,
+    List<String>? tags,
+    int? totalSlaHours,
+    DateTime? expectedCompletionDate,
+    String? invoiceStatus,
+    String? invoiceId,
+    double? totalAmount,
+    double? paidAmount,
+    DateTime? paymentDueDate,
   }) async {
     try {
       _isLoading = true;
@@ -148,6 +172,7 @@ class ProjectService extends ChangeNotifier {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
+      // Campos básicos
       if (name != null) updates['name'] = name;
       if (description != null) updates['description'] = description;
       if (startDate != null) updates['startDate'] = Timestamp.fromDate(startDate);
@@ -155,6 +180,26 @@ class ProjectService extends ChangeNotifier {
         updates['estimatedEndDate'] = Timestamp.fromDate(estimatedEndDate);
       }
       if (assignedMembers != null) updates['assignedMembers'] = assignedMembers;
+
+      // Campos de Kanban y Prioridad
+      if (priority != null) updates['priority'] = priority;
+      if (urgencyLevel != null) updates['urgencyLevel'] = urgencyLevel;
+      if (tags != null) updates['tags'] = tags;
+
+      // Campos de SLA
+      if (totalSlaHours != null) updates['totalSlaHours'] = totalSlaHours;
+      if (expectedCompletionDate != null) {
+        updates['expectedCompletionDate'] = Timestamp.fromDate(expectedCompletionDate);
+      }
+
+      // Campos Financieros
+      if (invoiceStatus != null) updates['invoiceStatus'] = invoiceStatus;
+      if (invoiceId != null) updates['invoiceId'] = invoiceId;
+      if (totalAmount != null) updates['totalAmount'] = totalAmount;
+      if (paidAmount != null) updates['paidAmount'] = paidAmount;
+      if (paymentDueDate != null) {
+        updates['paymentDueDate'] = Timestamp.fromDate(paymentDueDate);
+      }
 
       await _firestore.collection('projects').doc(projectId).update(updates);
 
@@ -186,10 +231,26 @@ class ProjectService extends ChangeNotifier {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      // Si el estado es completado o entregado, guardar fecha real
+      // Si el estado es completado o entregado, guardar fechas reales
       if (newStatus == ProjectStatus.completed.value ||
           newStatus == ProjectStatus.delivered.value) {
-        updates['actualEndDate'] = FieldValue.serverTimestamp();
+        final now = FieldValue.serverTimestamp();
+        updates['actualEndDate'] = now;
+        updates['actualCompletionDate'] = now; // Nuevo campo de métricas
+      } 
+      // Si se vuelve a un estado anterior (reabrir), limpiamos las fechas de finalización
+      else if (newStatus == ProjectStatus.preparation.value || 
+               newStatus == ProjectStatus.production.value) {
+        updates['actualEndDate'] = null;
+        updates['actualCompletionDate'] = null;
+      }
+      
+      // Registrar fecha de inicio real si pasa a producción por primera vez
+      if (newStatus == ProjectStatus.production.value) {
+        // Nota: Podríamos verificar si ya tiene startedAt para no sobrescribirlo,
+        // pero eso requeriría una lectura previa o usar reglas de seguridad/cloud functions.
+        // Por simplicidad, aquí podríamos actualizarlo o dejarlo para lógica más específica.
+        // updates['startedAt'] = FieldValue.serverTimestamp();
       }
 
       await _firestore.collection('projects').doc(projectId).update(updates);
@@ -285,7 +346,9 @@ class ProjectService extends ChangeNotifier {
       filtered = filtered.where((project) {
         final nameMatch = project.name.toLowerCase().contains(_searchQuery);
         final descMatch = project.description.toLowerCase().contains(_searchQuery);
-        return nameMatch || descMatch;
+        // Búsqueda también en tags
+        final tagMatch = project.tags?.any((tag) => tag.toLowerCase().contains(_searchQuery)) ?? false;
+        return nameMatch || descMatch || tagMatch;
       }).toList();
     }
 
@@ -316,6 +379,11 @@ class ProjectService extends ChangeNotifier {
   }
 
   int get overdueCount => overdueProjects.length;
+  
+  // Total facturado (suma de totalAmount de todos los proyectos)
+  double get totalRevenue {
+    return _projects.fold(0, (sum, project) => sum + project.totalAmount);
+  }
 
   // ==================== UTILIDADES ====================
 
