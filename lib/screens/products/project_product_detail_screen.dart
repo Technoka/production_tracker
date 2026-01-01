@@ -498,26 +498,6 @@ body: Column(
             const SizedBox(height: 16),
           ],
 
-          // Acciones rápidas (cambiar estado)
-          if (_canEdit()) ...[
-            _buildSectionTitle(context, 'Cambiar Estado'),
-            Wrap(
-              spacing: 8,
-              children: ProjectProductStatus.values
-                  .map((status) => FilterChip(
-                        label: Text(status.displayName),
-                        selected: product.status == status.value,
-                        onSelected: (selected) async {
-                          if (selected) {
-                            await _updateStatus(product, status.value);
-                          }
-                        },
-                      ))
-                  .toList(),
-            ),
-            const SizedBox(height: 16),
-          ],
-
           // Información del sistema
           _buildSectionTitle(context, 'Información del Sistema'),
           Card(
