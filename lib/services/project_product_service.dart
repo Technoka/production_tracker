@@ -283,18 +283,18 @@ class ProjectProductService {
       final totalValue = products.fold<double>(0, (sum, p) => sum + p.totalPrice);
 
       final pendingCount = products.where((p) => p.isPending).length;
-      final inProductionCount = products.where((p) => p.isInProduction).length;
-      final completedCount = products.where((p) => p.isCompleted).length;
+      final inProgressCount = products.where((p) => p.isCao).length + products.where((p) => p.isHold).length + products.where((p) => p.isControl).length;
+      final okCount = products.where((p) => p.isOk).length;
 
       return {
         'totalProducts': totalProducts,
         'totalUnits': totalUnits,
         'totalValue': totalValue,
         'pendingCount': pendingCount,
-        'inProductionCount': inProductionCount,
-        'completedCount': completedCount,
+        'inProductionCount': inProgressCount,
+        'completedCount': okCount,
         'completionPercentage': totalProducts > 0
-            ? (completedCount / totalProducts * 100).toStringAsFixed(1)
+            ? (okCount / totalProducts * 100).toStringAsFixed(1)
             : '0.0',
       };
     } catch (e) {
@@ -313,8 +313,10 @@ class ProjectProductService {
 
       return {
         'pendiente': products.where((p) => p.isPending).toList(),
-        'en_produccion': products.where((p) => p.isInProduction).toList(),
-        'completado': products.where((p) => p.isCompleted).toList(),
+        'cao': products.where((p) => p.isCao).toList(),
+        'hold': products.where((p) => p.isHold).toList(),
+        'control': products.where((p) => p.isControl).toList(),
+        'ok': products.where((p) => p.isOk).toList(),
       };
     } catch (e) {
       print('Error al agrupar productos por estado: $e');
