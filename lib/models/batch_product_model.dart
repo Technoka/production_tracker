@@ -1,4 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+
+/// Estados del producto en el ciclo completo
+enum ProductStatus {
+  pending('pending', 'Pendiente', Colors.grey),
+  cao('cao', 'CAO', Colors.red),
+  hold('hold', 'Hold', Colors.orange),
+  control('control', 'Control', Colors.blue),
+  ok('ok', 'OK', Colors.green);
+
+  final String value;
+  final String displayName;
+  final Color color;
+  
+  const ProductStatus(this.value, this.displayName, this.color);
+
+  static ProductStatus fromString(String value) {
+    return ProductStatus.values.firstWhere(
+      (status) => status.value == value.toLowerCase(),
+      orElse: () => ProductStatus.pending,
+    );
+  }
+}
 
 /// Modelo de Producto dentro de un Lote de Producción
 class BatchProductModel {
@@ -46,6 +69,15 @@ class BatchProductModel {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  // NUEVOS CAMPOS para estados
+  final String productStatus; // "pending", "cao", "hold", "control", "ok"
+  final DateTime? sentToClientAt; // Cuándo se envió al cliente
+  final DateTime? evaluatedAt; // Cuándo el cliente lo evaluó
+  final int returnedCount; // Productos devueltos (si CAO)
+  final int repairedCount; // De los devueltos, cuántos se repararon
+  final int discardedCount; // De los devueltos, cuántos son basura
+  final String? returnReason; // Motivo de devolución
+
   BatchProductModel({
     required this.id,
     required this.batchId,
@@ -76,6 +108,13 @@ class BatchProductModel {
     this.actualDuration,
     required this.createdAt,
     required this.updatedAt,
+    this.productStatus = 'pending',
+    this.sentToClientAt,
+    this.evaluatedAt,
+    this.returnedCount = 0,
+    this.repairedCount = 0,
+    this.discardedCount = 0,
+    this.returnReason,
   });
 
   Map<String, dynamic> toMap() {
@@ -113,6 +152,17 @@ class BatchProductModel {
       'actualDuration': actualDuration,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'productStatus': productStatus,
+      'sentToClientAt': sentToClientAt != null
+          ? Timestamp.fromDate(sentToClientAt!)
+          : null,
+      'evaluatedAt': evaluatedAt != null
+          ? Timestamp.fromDate(evaluatedAt!)
+          : null,
+      'returnedCount': returnedCount,
+      'repairedCount': repairedCount,
+      'discardedCount': discardedCount,
+      'returnReason': returnReason,
     };
   }
 
@@ -158,6 +208,17 @@ class BatchProductModel {
           : null,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+      productStatus: map['productStatus'] as String? ?? 'pending',
+      sentToClientAt: map['sentToClientAt'] != null
+          ? (map['sentToClientAt'] as Timestamp).toDate()
+          : null,
+      evaluatedAt: map['evaluatedAt'] != null
+          ? (map['evaluatedAt'] as Timestamp).toDate()
+          : null,
+      returnedCount: map['returnedCount'] as int? ?? 0,
+      repairedCount: map['repairedCount'] as int? ?? 0,
+      discardedCount: map['discardedCount'] as int? ?? 0,
+      returnReason: map['returnReason'] as String?,
     );
   }
 
@@ -191,6 +252,13 @@ class BatchProductModel {
     double? actualDuration,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? productStatus,
+    DateTime? sentToClientAt,
+    DateTime? evaluatedAt,
+    int? returnedCount,
+    int? repairedCount,
+    int? discardedCount,
+    String? returnReason,
   }) {
     return BatchProductModel(
       id: id ?? this.id,
@@ -222,6 +290,13 @@ class BatchProductModel {
       actualDuration: actualDuration ?? this.actualDuration,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      productStatus: productStatus ?? this.productStatus,
+      sentToClientAt: sentToClientAt ?? this.sentToClientAt,
+      evaluatedAt: evaluatedAt ?? this.evaluatedAt,
+      returnedCount: returnedCount ?? this.returnedCount,
+      repairedCount: repairedCount ?? this.repairedCount,
+      discardedCount: discardedCount ?? this.discardedCount,
+      returnReason: returnReason ?? this.returnReason,
     );
   }
 
@@ -253,7 +328,28 @@ class BatchProductModel {
 
   /// Número total de fases
   int get totalPhasesCount => phaseProgress.length;
+
+  
+  ProductStatus get statusEnum => ProductStatus.fromString(productStatus);
+  String get statusDisplayName => statusEnum.displayName;
+  Color get statusColor => statusEnum.color;
+  
+  bool get isPending => productStatus == 'pending';
+  bool get isHold => productStatus == 'hold';
+  bool get isCAO => productStatus == 'cao';
+  bool get isControl => productStatus == 'control';
+  bool get isOK => productStatus == 'ok';
+  
+  bool get isInStudio => currentPhase == 'studio';
+  bool get hasBeenSent => sentToClientAt != null;
+  bool get hasBeenEvaluated => evaluatedAt != null;
+  bool get hasReturns => returnedCount > 0;
+  
+  // Validar que reparados + basura = devueltos
+  bool get isReturnBalanced => (repairedCount + discardedCount) == returnedCount;
 }
+
+
 
 /// Datos de progreso por fase
 class PhaseProgressData {

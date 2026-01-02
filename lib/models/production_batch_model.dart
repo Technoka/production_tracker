@@ -22,6 +22,7 @@ enum BatchStatus {
 class ProductionBatchModel {
   final String id;
   final String batchNumber; // Número de lote auto-generado (ej: LOT-2026-001)
+  final String batchPrefix; // Prefijo de 3 caracteres (ej: FL1)
   final String projectId;
   final String projectName;
   final String clientId;
@@ -47,6 +48,7 @@ class ProductionBatchModel {
   ProductionBatchModel({
     required this.id,
     required this.batchNumber,
+    required this.batchPrefix,
     required this.projectId,
     required this.projectName,
     required this.clientId,
@@ -72,6 +74,7 @@ class ProductionBatchModel {
     return {
       'id': id,
       'batchNumber': batchNumber,
+      'batchPrefix': batchPrefix,
       'projectId': projectId,
       'projectName': projectName,
       'clientId': clientId,
@@ -102,6 +105,7 @@ class ProductionBatchModel {
     return ProductionBatchModel(
       id: map['id'] as String,
       batchNumber: map['batchNumber'] as String,
+      batchPrefix: map['batchPrefix'] as String? ?? '',
       projectId: map['projectId'] as String,
       projectName: map['projectName'] as String,
       clientId: map['clientId'] as String,
@@ -133,6 +137,7 @@ class ProductionBatchModel {
   ProductionBatchModel copyWith({
     String? id,
     String? batchNumber,
+    String? batchPrefix,
     String? projectId,
     String? projectName,
     String? clientId,
@@ -156,6 +161,7 @@ class ProductionBatchModel {
     return ProductionBatchModel(
       id: id ?? this.id,
       batchNumber: batchNumber ?? this.batchNumber,
+      batchPrefix: batchPrefix ?? this.batchPrefix,
       projectId: projectId ?? this.projectId,
       projectName: projectName ?? this.projectName,
       clientId: clientId ?? this.clientId,
@@ -201,4 +207,84 @@ class ProductionBatchModel {
   bool get isPending => status == BatchStatus.pending.value;
   bool get isInProgress => status == BatchStatus.inProgress.value;
   bool get isCompleted => status == BatchStatus.completed.value;
+}
+
+// AÑADIR función helper para generar el número de lote
+class BatchNumberHelper {
+  /// Genera el número de lote basado en el prefijo
+  /// Formato: XXXYYWW
+  /// - XXX: Prefijo de 3 caracteres en mayúsculas
+  /// - YY: Últimos 2 dígitos del año
+  /// - WW: Número de semana del año (01-53)
+  static String generateBatchNumber(String prefix) {
+    final now = DateTime.now();
+    
+    // Asegurar que el prefijo tiene exactamente 3 caracteres
+    String cleanPrefix = prefix.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (cleanPrefix.length > 3) {
+      cleanPrefix = cleanPrefix.substring(0, 3);
+    } else {
+      cleanPrefix = cleanPrefix.padRight(3, '0');
+    }
+    
+    // Obtener año (últimos 2 dígitos)
+    final year = now.year.toString().substring(2);
+    
+    // Calcular número de semana ISO
+    final week = _getISOWeekNumber(now).toString().padLeft(2, '0');
+    
+    return '$cleanPrefix$year$week';
+  }
+  
+  /// Genera preview del número de lote mientras el usuario escribe
+  static String previewBatchNumber(String partialPrefix) {
+    final now = DateTime.now();
+    
+    // Limpiar y convertir a mayúsculas
+    String cleanPrefix = partialPrefix.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    
+    // Completar con guiones bajos si faltan caracteres
+    if (cleanPrefix.length < 3) {
+      cleanPrefix = cleanPrefix.padRight(3, '_');
+    } else if (cleanPrefix.length > 3) {
+      cleanPrefix = cleanPrefix.substring(0, 3);
+    }
+    
+    final year = now.year.toString().substring(2);
+    final week = _getISOWeekNumber(now).toString().padLeft(2, '0');
+    
+    return '$cleanPrefix$year$week';
+  }
+  
+  /// Valida que el prefijo sea válido (3 caracteres alfanuméricos)
+  static bool isValidPrefix(String prefix) {
+    final cleaned = prefix.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    return cleaned.length == 3;
+  }
+  
+  /// Calcula el número de semana ISO 8601
+  static int _getISOWeekNumber(DateTime date) {
+    // Día del año
+    final dayOfYear = int.parse(
+      date.difference(DateTime(date.year, 1, 1)).inDays.toString(),
+    ) + 1;
+    
+    // Día de la semana del 1 de enero (1 = lunes, 7 = domingo)
+    final jan1WeekDay = DateTime(date.year, 1, 1).weekday;
+    
+    // Calcular semana
+    int weekNumber = ((dayOfYear + jan1WeekDay - 2) / 7).ceil();
+    
+    // Ajustar si es necesario
+    if (weekNumber == 0) {
+      weekNumber = _getISOWeekNumber(DateTime(date.year - 1, 12, 31));
+    } else if (weekNumber == 53) {
+      final dec31WeekDay = DateTime(date.year, 12, 31).weekday;
+      if (dec31WeekDay < 4) {
+        weekNumber = 1;
+      }
+    }
+    
+    return weekNumber;
+  }
 }

@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/organization_service.dart';
-import '../services/production_batch_service.dart';
 import '../utils/role_utils.dart';
-import '../widgets/production_summary_widget.dart';
 import 'profile/profile_screen.dart';
 import 'organization/organization_home_screen.dart';
 import 'clients/clients_list_screen.dart';
 import 'projects/projects_list_screen.dart';
 import 'catalog/product_catalog_screen.dart';
 import 'production/production_batches_list_screen.dart';
+import '../widgets/production_dashboard_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -107,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Resumen de Producción (NUEVO)
             if (user.canManageProduction && user.organizationId != null) ...[
-              ProductionSummaryWidget(
+              ProductionDashboardWidget(
                 organizationId: user.organizationId!,
               ),
               const SizedBox(height: 24),

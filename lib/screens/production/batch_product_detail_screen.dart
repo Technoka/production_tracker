@@ -67,23 +67,86 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
           appBar: AppBar(
             title: Text(product.productName),
             actions: [
-              if (user?.canManageProduction ?? false)
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert),
-                  onSelected: (value) => _handleAction(value, product, user!),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Eliminar', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+  if (user?.canManageProduction ?? false)
+    PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert),
+      onSelected: (value) => _handleAction(value, product, user!),
+      itemBuilder: (context) => [
+        // Gestión de estados
+        if (product.isInStudio && product.isPending)
+          const PopupMenuItem(
+            value: 'send_to_client',
+            child: Row(
+              children: [
+                Icon(Icons.send, size: 20),
+                SizedBox(width: 8),
+                Text('Enviar al Cliente (→ Hold)'),
+              ],
+            ),
+          ),
+        
+        if (product.isHold)
+          const PopupMenuItem(
+            value: 'approve',
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, size: 20, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Aprobar (→ OK)', style: TextStyle(color: Colors.green)),
+              ],
+            ),
+          ),
+        
+        if (product.isHold)
+          const PopupMenuItem(
+            value: 'reject',
+            child: Row(
+              children: [
+                Icon(Icons.cancel, size: 20, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Rechazar (→ CAO)', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
+        
+        if (product.isCAO && !product.isReturnBalanced)
+          const PopupMenuItem(
+            value: 'classify_returns',
+            child: Row(
+              children: [
+                Icon(Icons.category, size: 20),
+                SizedBox(width: 8),
+                Text('Clasificar Devoluciones'),
+              ],
+            ),
+          ),
+        
+        if (product.isPending && !product.isInStudio)
+          const PopupMenuItem(
+            value: 'move_to_control',
+            child: Row(
+              children: [
+                Icon(Icons.verified, size: 20),
+                SizedBox(width: 8),
+                Text('Mover a Control'),
+              ],
+            ),
+          ),
+        
+        const PopupMenuDivider(),
+        
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete, size: 20, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Eliminar', style: TextStyle(color: Colors.red)),
+            ],
+          ),
+        ),
+      ],
+    ),
             ],
           ),
           body: RefreshIndicator(
@@ -95,6 +158,9 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               children: [
                 // Información del producto
                 _buildProductInfoCard(product, user),
+                const SizedBox(height: 16),
+                
+                _buildProductStatusCard(product),
                 const SizedBox(height: 16),
 
                 // Progreso por fases
@@ -282,6 +348,168 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     );
   }
 
+// ================= NUEVO CÓDIGO PARA ESTADOS DEL PRODUCTO =================
+  Widget _buildProductStatusCard(BatchProductModel product) {
+  return Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.color_lens, color: product.statusColor),
+              const SizedBox(width: 8),
+              const Text(
+                'Estado del Producto',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+
+          // Estado actual
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: product.statusColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: product.statusColor, width: 2),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _getStatusIcon(product.productStatus),
+                  color: product.statusColor,
+                  size: 32,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.statusDisplayName,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: product.statusColor,
+                        ),
+                      ),
+                      Text(
+                        _getStatusDescription(product.productStatus),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Información adicional según estado
+          const SizedBox(height: 16),
+
+          if (product.hasBeenSent) ...[
+            _buildInfoRow(
+              Icons.send,
+              'Enviado al cliente',
+              _formatDateTime(product.sentToClientAt!),
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          if (product.hasBeenEvaluated) ...[
+            _buildInfoRow(
+              Icons.rate_review,
+              'Evaluado',
+              _formatDateTime(product.evaluatedAt!),
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          if (product.isCAO) ...[
+            const Divider(),
+            const SizedBox(height: 8),
+            Text(
+              'Devoluciones',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.red[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildInfoRow(
+              Icons.assignment_return,
+              'Devueltos',
+              '${product.returnedCount} unidades',
+            ),
+            if (product.returnReason != null) ...[
+              const SizedBox(height: 4),
+              _buildInfoRow(
+                Icons.comment,
+                'Motivo',
+                product.returnReason!,
+              ),
+            ],
+            
+            if (product.isReturnBalanced) ...[
+              const SizedBox(height: 8),
+              const Divider(),
+              const SizedBox(height: 8),
+              _buildInfoRow(
+                Icons.build,
+                'Reparados',
+                '${product.repairedCount} unidades',
+              ),
+              const SizedBox(height: 4),
+              _buildInfoRow(
+                Icons.delete_forever,
+                'Descartados',
+                '${product.discardedCount} unidades',
+              ),
+            ] else if (product.returnedCount > 0) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange[300]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning, color: Colors.orange[700]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Pendiente clasificar devoluciones',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.orange[900],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
+
   Widget _buildPhasesCard(BatchProductModel product, UserModel? user) {
     return Card(
       child: Padding(
@@ -348,90 +576,106 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     );
   }
 
-  Widget _buildPhaseItem(
-    ProductionPhase phase,
-    PhaseProgressData? progress,
-    bool isCurrentPhase,
-    UserModel? user,
-    BatchProductModel product,
-    List<ProductionPhase> allPhases,
-    int currentIndex,
-  ) {
-    final isPending = progress?.isPending ?? true;
-    final isInProgress = progress?.isInProgress ?? false;
-    final isCompleted = progress?.isCompleted ?? false;
+Widget _buildPhaseItem(
+  ProductionPhase phase,
+  PhaseProgressData? progress,
+  bool isCurrentPhase,
+  UserModel? user,
+  BatchProductModel product,
+  List<ProductionPhase> allPhases,
+  int currentIndex,
+) {
+  final isPending = progress?.isPending ?? true;
+  final isInProgress = progress?.isInProgress ?? false;
+  final isCompleted = progress?.isCompleted ?? false;
 
-    Color backgroundColor;
-    Color borderColor;
-    IconData icon;
+  Color backgroundColor;
+  Color borderColor;
+  IconData icon;
 
-    if (isCompleted) {
-      backgroundColor = Colors.green[50]!;
-      borderColor = Colors.green;
-      icon = Icons.check_circle;
-    } else if (isInProgress || isCurrentPhase) {
-      backgroundColor = Colors.blue[50]!;
-      borderColor = Colors.blue;
-      icon = Icons.play_circle;
-    } else {
-      backgroundColor = Colors.grey[100]!;
-      borderColor = Colors.grey;
-      icon = Icons.radio_button_unchecked;
-    }
+  if (isCompleted) {
+    backgroundColor = Colors.green[50]!;
+    borderColor = Colors.green;
+    icon = Icons.check_circle;
+  } else if (isInProgress || isCurrentPhase) {
+    backgroundColor = Colors.blue[50]!;
+    borderColor = Colors.blue;
+    icon = Icons.play_circle;
+  } else {
+    backgroundColor = Colors.grey[100]!;
+    borderColor = Colors.grey;
+    icon = Icons.radio_button_unchecked;
+  }
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        border: Border.all(color: borderColor, width: 2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: borderColor, size: 24),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+  return Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: backgroundColor,
+      border: Border.all(color: borderColor, width: 2),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: borderColor, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    phase.name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: borderColor,
+                    ),
+                  ),
+                  if (phase.description != null)
                     Text(
-                      phase.name,
+                      phase.description!,
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: borderColor,
+                        fontSize: 12,
+                        color: Colors.grey[600],
                       ),
                     ),
-                    if (phase.description != null)
-                      Text(
-                        phase.description!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                  ],
-                ),
+                ],
               ),
-              if (isCurrentPhase && (user?.canManageProduction ?? false)) ...[
-                // Botón para avanzar a siguiente fase
-                if (currentIndex < allPhases.length - 1)
+            ),
+            
+            // Botones de acción
+            if (user?.canManageProduction ?? false) ...[
+              // Retroceder (solo admin)
+              if ((user?.isAdmin ?? false) && (isCompleted && currentIndex > 0)) ...[
                   IconButton(
-                    icon: const Icon(Icons.arrow_forward),
-                    onPressed: () => _showAdvancePhaseDialog(
+                    icon: const Icon(Icons.undo, color: Colors.orange),
+                    onPressed: () => _showRollbackDialog(
                       product,
-                      allPhases[currentIndex + 1],
+                      allPhases[currentIndex - 1],
                       user!,
                     ),
-                    tooltip: 'Avanzar fase',
+                    tooltip: 'Retroceder fase',
                   ),
+                ],
+            ],
+              
+              // Avanzar
+              if (isCurrentPhase && currentIndex < allPhases.length - 1) ...[
+                IconButton(
+                  icon: const Icon(Icons.arrow_forward),
+                  onPressed: () => _showAdvancePhaseDialog(
+                    product,
+                    allPhases[currentIndex + 1],
+                    user!,
+                  ),
+                  tooltip: 'Avanzar fase',
+                ),
               ],
             ],
-          ),
-
+          
+        ),
           // Detalles de la fase
           if (progress != null) ...[
             const SizedBox(height: 8),
@@ -490,6 +734,99 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       ),
     );
   }
+
+  void _showRollbackDialog(
+  BatchProductModel product,
+  ProductionPhase previousPhase,
+  UserModel user,
+) {
+  final reasonController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.warning, color: Colors.orange),
+          SizedBox(width: 8),
+          Text('Retroceder Fase'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '¿Retroceder a "${previousPhase.name}"?',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Esta acción solo debe realizarse en casos excepcionales.',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: reasonController,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Motivo del retroceso *',
+              border: OutlineInputBorder(),
+              hintText: 'Explica por qué se retrocede...',
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () async {
+            if (reasonController.text.trim().isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Debes indicar el motivo')),
+              );
+              return;
+            }
+
+            final batchService = Provider.of<ProductionBatchService>(
+              context,
+              listen: false,
+            );
+
+            Navigator.pop(context);
+
+            final success = await batchService.updateProductPhaseWithRollback(
+              organizationId: widget.organizationId,
+              batchId: widget.batchId,
+              productId: widget.productId,
+              newPhaseId: previousPhase.id,
+              newPhaseName: previousPhase.name,
+              userId: user.uid,
+              userName: user.name,
+              isRollback: true,
+              notes: reasonController.text.trim(),
+            );
+
+            if (success && mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Retrocedido a: ${previousPhase.name}'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+              setState(() {});
+            }
+          },
+          style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+          child: const Text('Retroceder'),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildCustomizationCard(BatchProductModel product) {
     return Card(
@@ -641,15 +978,355 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     );
   }
 
-  Future<void> _handleAction(
-    String action,
-    BatchProductModel product,
-    UserModel user,
-  ) async {
-    if (action == 'delete') {
+Future<void> _handleAction(
+  String action,
+  BatchProductModel product,
+  UserModel user,
+) async {
+  final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+
+  switch (action) {
+    case 'send_to_client':
+      final confirm = await _showConfirmDialog(
+        'Enviar al Cliente',
+        '¿Enviar este producto al cliente?\n\nEl estado cambiará a Hold.',
+      );
+      if (confirm == true) {
+        final success = await batchService.sendProductToClient(
+          organizationId: widget.organizationId,
+          batchId: widget.batchId,
+          productId: widget.productId,
+        );
+        if (success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Producto enviado al cliente')),
+          );
+          setState(() {});
+        }
+      }
+      break;
+
+    case 'approve':
+      final confirm = await _showConfirmDialog(
+        'Aprobar Producto',
+        '¿Aprobar este producto?\n\nEl estado cambiará a OK.',
+      );
+      if (confirm == true) {
+        final success = await batchService.approveProduct(
+          organizationId: widget.organizationId,
+          batchId: widget.batchId,
+          productId: widget.productId,
+        );
+        if (success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Producto aprobado'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          setState(() {});
+        }
+      }
+      break;
+
+    case 'reject':
+      _showRejectDialog(product);
+      break;
+
+    case 'classify_returns':
+      _showClassifyReturnsDialog(product);
+      break;
+
+    case 'move_to_control':
+      final confirm = await _showConfirmDialog(
+        'Mover a Control',
+        '¿Mover este producto a Control?',
+      );
+      if (confirm == true) {
+        final success = await batchService.moveToControl(
+          organizationId: widget.organizationId,
+          batchId: widget.batchId,
+          productId: widget.productId,
+        );
+        if (success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Movido a Control')),
+          );
+          setState(() {});
+        }
+      }
+      break;
+
+    case 'delete':
       _showDeleteConfirmation(product);
-    }
+      break;
   }
+}
+
+void _showRejectDialog(BatchProductModel product) {
+  final returnedController = TextEditingController(text: product.quantity.toString());
+  final reasonController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Rechazar Producto'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('El producto será marcado como CAO (no conforme).'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: returnedController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Unidades devueltas *',
+                border: OutlineInputBorder(),
+                helperText: 'Cantidad de productos devueltos',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Motivo del rechazo *',
+                border: OutlineInputBorder(),
+                hintText: 'Describe los defectos encontrados...',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () async {
+            final returned = int.tryParse(returnedController.text);
+            if (returned == null || returned <= 0) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Cantidad inválida')),
+              );
+              return;
+            }
+            if (reasonController.text.trim().isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Debes indicar el motivo')),
+              );
+              return;
+            }
+
+            final batchService = Provider.of<ProductionBatchService>(
+              context,
+              listen: false,
+            );
+
+            Navigator.pop(context);
+
+            final success = await batchService.rejectProduct(
+              organizationId: widget.organizationId,
+              batchId: widget.batchId,
+              productId: widget.productId,
+              returnedCount: returned,
+              returnReason: reasonController.text.trim(),
+            );
+
+            if (success && mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Producto rechazado (CAO)'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              setState(() {});
+            }
+          },
+          style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          child: const Text('Rechazar'),
+        ),
+      ],
+    ),
+  );
+}
+
+// AÑADIR diálogo para clasificar devoluciones:
+
+void _showClassifyReturnsDialog(BatchProductModel product) {
+  final repairedController = TextEditingController();
+  final discardedController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) {
+        final repaired = int.tryParse(repairedController.text) ?? 0;
+        final discarded = int.tryParse(discardedController.text) ?? 0;
+        final total = repaired + discarded;
+        final isValid = total == product.returnedCount;
+
+        return AlertDialog(
+          title: const Text('Clasificar Devoluciones'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Total devueltos: ${product.returnedCount} unidades'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: repairedController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Reparados',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.build),
+                ),
+                onChanged: (_) => setDialogState(() {}),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: discardedController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Descartados (basura)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.delete_forever),
+                ),
+                onChanged: (_) => setDialogState(() {}),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isValid ? Colors.green[50] : Colors.red[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isValid ? Colors.green : Colors.red,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isValid ? Icons.check_circle : Icons.error,
+                      color: isValid ? Colors.green : Colors.red,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Total: $total / ${product.returnedCount}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isValid ? Colors.green[900] : Colors.red[900],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: !isValid
+                  ? null
+                  : () async {
+                      final batchService = Provider.of<ProductionBatchService>(
+                        context,
+                        listen: false,
+                      );
+
+                      Navigator.pop(context);
+
+                      final success = await batchService.classifyReturns(
+                        organizationId: widget.organizationId,
+                        batchId: widget.batchId,
+                        productId: widget.productId,
+                        repairedCount: repaired,
+                        discardedCount: discarded,
+                      );
+
+                      if (success && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Devoluciones clasificadas'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        setState(() {});
+                      }
+                    },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
+// AÑADIR helpers:
+
+IconData _getStatusIcon(String status) {
+  switch (status) {
+    case 'pending':
+      return Icons.schedule;
+    case 'cao':
+      return Icons.error;
+    case 'hold':
+      return Icons.pause_circle;
+    case 'control':
+      return Icons.verified;
+    case 'ok':
+      return Icons.check_circle;
+    default:
+      return Icons.help_outline;
+  }
+}
+
+String _getStatusDescription(String status) {
+  switch (status) {
+    case 'pending':
+      return 'En proceso de fabricación';
+    case 'cao':
+      return 'No conforme - Devuelto por el cliente';
+    case 'hold':
+      return 'Enviado - Pendiente de evaluación del cliente';
+    case 'control':
+      return 'En control de calidad';
+    case 'ok':
+      return 'Aprobado por el cliente';
+    default:
+      return status;
+  }
+}
+
+Future<bool?> _showConfirmDialog(String title, String message) {
+  return showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Confirmar'),
+        ),
+      ],
+    ),
+  );
+}
 
   void _showDeleteConfirmation(BatchProductModel product) {
     showDialog(
@@ -699,4 +1376,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       ),
     );
   }
+
+  
 }

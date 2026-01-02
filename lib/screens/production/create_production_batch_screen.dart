@@ -6,6 +6,8 @@ import '../../services/auth_service.dart';
 import '../../services/project_service.dart';
 import '../../services/client_service.dart';
 import '../../services/production_batch_service.dart';
+import '../../models/production_batch_model.dart';
+import 'package:flutter/services.dart';
 
 class CreateProductionBatchScreen extends StatefulWidget {
   final String organizationId;
@@ -30,6 +32,8 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
   String _urgencyLevel = 'medium';
   DateTime? _expectedCompletionDate;
   bool _isLoading = false;
+  final _prefixController = TextEditingController();
+  String _batchNumberPreview = '';
 
   @override
   void initState() {
@@ -38,6 +42,25 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
     if (widget.projectId != null) {
       _loadProject();
     }
+    // Listener para actualizar preview en tiempo real
+    _prefixController.addListener(_updateBatchNumberPreview);
+    _updateBatchNumberPreview(); // Preview inicial
+  }
+
+  void _updateBatchNumberPreview() {
+    setState(() {
+      _batchNumberPreview = BatchNumberHelper.previewBatchNumber(
+        _prefixController.text,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _prefixController.removeListener(_updateBatchNumberPreview);
+    _prefixController.dispose();
+    _notesController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProject() async {
@@ -54,12 +77,6 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
   }
 
   @override
-  void dispose() {
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -71,40 +88,110 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
           padding: const EdgeInsets.all(16),
           children: [
             // Información del lote
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Información del Lote',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'El número de lote se generará automáticamente',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
+Card(
+  child: Padding(
+    padding: const EdgeInsets.all(16),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Información del Lote',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        
+        // Campo de prefijo
+        TextFormField(
+          controller: _prefixController,
+          decoration: InputDecoration(
+            labelText: 'Prefijo del Lote *',
+            hintText: 'Ej: FL1, ABC, X99',
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.tag),
+            helperText: '3 caracteres alfanuméricos',
+            counterText: '${_prefixController.text.length}/3',
+          ),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+            LengthLimitingTextInputFormatter(3),
+            UpperCaseTextFormatter(), // Convertir a mayúsculas
+          ],
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'El prefijo es obligatorio';
+            }
+            if (!BatchNumberHelper.isValidPrefix(value)) {
+              return 'Debe tener exactamente 3 caracteres alfanuméricos';
+            }
+            return null;
+          },
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Preview del número de lote
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blue[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.preview, size: 18, color: Colors.blue[700]),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Preview del número de lote:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[700],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _batchNumberPreview,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue[900],
+                  letterSpacing: 2,
+                  fontFamily: 'monospace',
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Formato: Prefijo (3) + Año (2) + Semana (2)',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  ),
+),
             const SizedBox(height: 16),
 
             // Seleccionar Proyecto
@@ -448,76 +535,90 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
     }
   }
 
-  Future<void> _createBatch() async {
-    if (!_formKey.currentState!.validate()) return;
+Future<void> _createBatch() async {
+  if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedProject == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Debes seleccionar un proyecto')),
-      );
-      return;
+  if (_selectedProject == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Debes seleccionar un proyecto')),
+    );
+    return;
+  }
+
+  setState(() => _isLoading = true);
+
+  final authService = Provider.of<AuthService>(context, listen: false);
+  final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+  final clientService = Provider.of<ClientService>(context, listen: false);
+
+  try {
+    final client = await clientService.getClient(
+      widget.organizationId,
+      _selectedProject!.clientId,
+    );
+
+    if (client == null) {
+      throw Exception('No se pudo obtener la información del cliente');
     }
 
-    setState(() => _isLoading = true);
+    final batchId = await batchService.createProductionBatch(
+      organizationId: widget.organizationId,
+      projectId: _selectedProject!.id,
+      projectName: _selectedProject!.name,
+      clientId: client.id,
+      clientName: client.name,
+      createdBy: authService.currentUser!.uid,
+      batchPrefix: _prefixController.text.toUpperCase(), // NUEVO
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
+      priority: _priority,
+      urgencyLevel: _urgencyLevel,
+      expectedCompletionDate: _expectedCompletionDate,
+    );
 
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final batchService = Provider.of<ProductionBatchService>(context, listen: false);
-    final clientService = Provider.of<ClientService>(context, listen: false);
-
-    try {
-      // Obtener información del cliente
-      final client = await clientService.getClient(
-        widget.organizationId,
-        _selectedProject!.clientId,
+    if (batchId != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lote $_batchNumberPreview creado exitosamente'),
+          backgroundColor: Colors.green,
+        ),
       );
-
-      if (client == null) {
-        throw Exception('No se pudo obtener la información del cliente');
-      }
-
-      final batchId = await batchService.createProductionBatch(
-        organizationId: widget.organizationId,
-        projectId: _selectedProject!.id,
-        projectName: _selectedProject!.name,
-        clientId: client.id,
-        clientName: client.name,
-        createdBy: authService.currentUser!.uid,
-        notes: _notesController.text.trim().isEmpty
-            ? null
-            : _notesController.text.trim(),
-        priority: _priority,
-        urgencyLevel: _urgencyLevel,
-        expectedCompletionDate: _expectedCompletionDate,
+      Navigator.pop(context, batchId);
+    } else if (mounted) {
+      throw Exception(batchService.error ?? 'Error desconocido');
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al crear lote: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
-
-      if (batchId != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Lote de producción creado exitosamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context, batchId);
-      } else if (mounted) {
-        throw Exception(batchService.error ?? 'Error desconocido');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al crear lote: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+}
+
+/// Text formatter para convertir a mayúsculas
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+    );
   }
 }
