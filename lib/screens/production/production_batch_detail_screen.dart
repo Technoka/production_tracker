@@ -270,85 +270,237 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
       ),
     );
   }
+Widget _buildProgressCard(ProductionBatchModel batch) {
+  return FutureBuilder<Map<String, double>>(
+    future: _calculateProgressStats(batch),
+    builder: (context, statsSnapshot) {
+      final stats = statsSnapshot.data ?? {
+        'phaseProgress': 0.0,
+        'statusProgress': 0.0,
+        'phaseCompleted': 0,
+        'phaseTotal': 0,
+        'statusCompleted': 0,
+        'statusTotal': 0,
+      };
 
-  Widget _buildProgressCard(ProductionBatchModel batch) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.analytics_outlined),
-                const SizedBox(width: 8),
-                const Text(
-                  'Progreso General',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.analytics_outlined),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Progreso General',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+                ],
+              ),
+              const SizedBox(height: 16),
 
-            // Barra de progreso
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '${batch.completedProducts} de ${batch.totalProducts} productos',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
+              // PROGRESO 1: FASES DE PRODUCCIÓN
+              Row(
+                children: [
+                  Icon(Icons.precision_manufacturing, size: 18, color: Colors.blue[700]),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Fases de Producción',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${stats['phaseCompleted']?.toInt() ?? 0} de ${stats['phaseTotal']?.toInt() ?? 0} en Studio',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                          Text(
-                            '${batch.progressPercentage}%',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                            Text(
+                              '${((stats['phaseProgress'] ?? 0) * 100).toInt()}%',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        LinearProgressIndicator(
+                          value: stats['phaseProgress'] ?? 0,
+                          minHeight: 10,
+                          backgroundColor: Colors.grey[200],
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            stats['phaseProgress'] == 1.0 
+                                ? Colors.green 
+                                : Colors.blue,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value: batch.progress,
-                        minHeight: 8,
-                        backgroundColor: Colors.grey[200],
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          batch.isComplete ? Colors.green : Colors.blue,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // PROGRESO 2: ESTADOS (OK)
+              Row(
+                children: [
+                  Icon(Icons.check_circle, size: 18, color: Colors.green[700]),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Estado Final (OK)',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${stats['statusCompleted']?.toInt() ?? 0} de ${stats['statusTotal']?.toInt() ?? 0} aprobados',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              '${((stats['statusProgress'] ?? 0) * 100).toInt()}%',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        LinearProgressIndicator(
+                          value: stats['statusProgress'] ?? 0,
+                          minHeight: 10,
+                          backgroundColor: Colors.grey[200],
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            stats['statusProgress'] == 1.0 
+                                ? Colors.green 
+                                : Colors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              // Resumen textual
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Producción: Todos en Studio (${((stats['phaseProgress'] ?? 0) * 100).toInt()}%) | '
+                        'Aprobación: Todos OK (${((stats['statusProgress'] ?? 0) * 100).toInt()}%)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[700],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            if (batch.pendingProducts > 0) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Productos pendientes: ${batch.pendingProducts}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
+                    ),
+                  ],
                 ),
               ),
             ],
-          ],
+          ),
         ),
-      ),
-    );
+      );
+    },
+  );
+}
+
+// AÑADIR este método helper para calcular estadísticas:
+Future<Map<String, double>> _calculateProgressStats(ProductionBatchModel batch) async {
+  final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+  
+  try {
+    final products = await batchService
+        .watchBatchProducts(widget.organizationId, widget.batchId)
+        .first;
+
+    if (products.isEmpty) {
+      return {
+        'phaseProgress': 0.0,
+        'statusProgress': 0.0,
+        'phaseCompleted': 0.0,
+        'phaseTotal': 0.0,
+        'statusCompleted': 0.0,
+        'statusTotal': 0.0,
+      };
+    }
+
+    // Contar productos en Studio (fase completada)
+    final inStudio = products.where((p) => p.isInStudio).length;
+    final phaseProgress = inStudio / products.length;
+
+    // Contar productos en estado OK
+    final okStatus = products.where((p) => p.isOK).length;
+    final statusProgress = okStatus / products.length;
+
+    return {
+      'phaseProgress': phaseProgress,
+      'statusProgress': statusProgress,
+      'phaseCompleted': inStudio.toDouble(),
+      'phaseTotal': products.length.toDouble(),
+      'statusCompleted': okStatus.toDouble(),
+      'statusTotal': products.length.toDouble(),
+    };
+  } catch (e) {
+    return {
+      'phaseProgress': 0.0,
+      'statusProgress': 0.0,
+      'phaseCompleted': 0.0,
+      'phaseTotal': 0.0,
+      'statusCompleted': 0.0,
+      'statusTotal': 0.0,
+    };
   }
+}
 
   Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user) {
     return Card(
