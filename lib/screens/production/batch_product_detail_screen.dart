@@ -464,36 +464,28 @@ Widget _buildProductStatusActions(BatchProductModel product, UserModel? user) {
     // 1. Preparamos la lista de acciones disponibles
     final List<Widget> actions = [];
 
-    // Enviar al cliente
+    // FLUJO: Studio + Pending → OK directo o CAO
     if (product.isInStudio && product.isPending) {
       actions.add(_buildActionButton(
-        icon: Icons.send,
-        label: 'Enviar al Cliente',
-        color: Colors.blue,
-        onPressed: () => _handleAction('send_to_client', product),
-      ));
-    }
-
-    // Aprobar / Rechazar (Hold)
-    if (product.isHold) {
-      actions.add(_buildActionButton(
         icon: Icons.check_circle,
-        label: 'Aprobar',
+        label: 'Todo Correcto (→ OK)',
         color: Colors.green,
-        onPressed: () => _handleAction('approve', product),
+        onPressed: () => _handleAction('approve_directly', product),
       ));
       // Añadimos un pequeño espacio entre botones si hay varios
       if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
       
       actions.add(_buildActionButton(
         icon: Icons.cancel,
-        label: 'Rechazar',
+        label: 'Hay Defectos (→ CAO)',
         color: Colors.red,
-        onPressed: () => _handleAction('reject', product),
+        onPressed: () => _handleAction('reject_directly', product),
       ));
     }
+    // Añadimos un pequeño espacio entre botones si hay varios
+    if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
 
-    // Clasificar devoluciones (CAO)
+      // FLUJO: CAO sin clasificar → Clasificar
     if (product.isCAO && !product.isReturnBalanced) {
       actions.add(_buildActionButton(
         icon: Icons.category,
@@ -502,14 +494,49 @@ Widget _buildProductStatusActions(BatchProductModel product, UserModel? user) {
         onPressed: () => _handleAction('classify_returns', product),
       ));
     }
+    // Añadimos un pequeño espacio entre botones si hay varios
+    if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
 
-    // Mover a Control
-    if (product.isPending && !product.isInStudio) {
+      // FLUJO: CAO clasificado → Control
+    if (product.isCAO && product.isReturnBalanced && !product.isControl) {
       actions.add(_buildActionButton(
         icon: Icons.verified,
-        label: 'Mover a Control',
+        label: 'Analizar (→ Control)',
         color: Colors.blue,
         onPressed: () => _handleAction('move_to_control', product),
+      ));
+    }
+    // Añadimos un pequeño espacio entre botones si hay varios
+    if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
+    
+      // FLUJO: Hold → OK o CAO
+    if (product.isHold) {
+      actions.add(_buildActionButton(
+        icon: Icons.check_circle,
+        label: 'Aprobar (→ OK)',
+        color: Colors.green,
+        onPressed: () => _handleAction('approve', product),
+      ));
+      // Añadimos un pequeño espacio entre botones si hay varios
+      if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
+      
+      actions.add(_buildActionButton(
+        icon: Icons.cancel,
+        label: 'Rechazar (→ CAO)',
+        color: Colors.red,
+        onPressed: () => _handleAction('reject', product),
+      ));
+    }
+    // Añadimos un pequeño espacio entre botones si hay varios
+    if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
+    
+      // FLUJO: Control → OK
+    if (product.isCAO && product.isReturnBalanced && !product.isControl) {
+      actions.add(_buildActionButton(
+        icon: Icons.check_circle,
+        label: 'Finalizar (→ OK)',
+        color: Colors.green,
+        onPressed: () => _handleAction('approve', product),
       ));
     }
 
@@ -582,11 +609,11 @@ Widget _buildProductStatusActions(BatchProductModel product, UserModel? user) {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.list_alt),
-                const SizedBox(width: 8),
-                const Text(
+                Icon(Icons.list_alt),
+                SizedBox(width: 8),
+                Text(
                   'Fases de Producción',
                   style: TextStyle(
                     fontSize: 18,
@@ -650,7 +677,6 @@ Widget _buildPhaseItem(
   List<ProductionPhase> allPhases,
   int currentIndex,
 ) {
-  final isPending = progress?.isPending ?? true;
   final isInProgress = progress?.isInProgress ?? false;
   final isCompleted = progress?.isCompleted ?? false;
 
@@ -713,12 +739,12 @@ Widget _buildPhaseItem(
             // Botones de acción
             if (user?.canManageProduction ?? false) ...[
               // Retroceder (solo admin)
-              if ((user?.isAdmin ?? false) && (isCompleted && currentIndex > 0)) ...[
+              if ((user?.isAdmin ?? false) && (isCompleted)) ...[
                   IconButton(
                     icon: const Icon(Icons.undo, color: Colors.orange),
                     onPressed: () => _showRollbackDialog(
                       product,
-                      allPhases[currentIndex - 1],
+                      allPhases[currentIndex],
                       user!,
                     ),
                     tooltip: 'Retroceder fase',
@@ -1043,11 +1069,44 @@ Widget _buildPhaseItem(
 
 Future<void> _handleAction(
   String action,
-  BatchProductModel product,
+  BatchProductModel product
 ) async {
   final batchService = Provider.of<ProductionBatchService>(context, listen: false);
 
   switch (action) {
+    case 'approve_directly':
+      final confirm = await _showConfirmDialog(
+        'Aprobar Producto',
+        '¿Confirmar que el producto está correcto?\n\nPasará directamente a OK.',
+      );
+      if (confirm == true) {
+        final success = await batchService.approveProductDirectly(
+          organizationId: widget.organizationId,
+          batchId: widget.batchId,
+          productId: widget.productId,
+        );
+        if (success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Producto aprobado'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else if (mounted && batchService.error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(batchService.error!),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+      break;
+
+    case 'reject_directly':
+      _showRejectDirectlyDialog(product);
+      break;
+
     case 'send_to_client':
       final confirm = await _showConfirmDialog(
         'Enviar al Cliente',
@@ -1062,6 +1121,13 @@ Future<void> _handleAction(
         if (success && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Producto enviado al cliente')),
+          );
+        } else if (mounted && batchService.error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(batchService.error!),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -1085,6 +1151,13 @@ Future<void> _handleAction(
               backgroundColor: Colors.green,
             ),
           );
+        } else if (mounted && batchService.error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(batchService.error!),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       }
       break;
@@ -1100,7 +1173,7 @@ Future<void> _handleAction(
     case 'move_to_control':
       final confirm = await _showConfirmDialog(
         'Mover a Control',
-        '¿Mover este producto a Control?',
+        '¿Mover los productos devueltos a Control para análisis?',
       );
       if (confirm == true) {
         final success = await batchService.moveToControl(
@@ -1112,6 +1185,13 @@ Future<void> _handleAction(
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Movido a Control')),
           );
+        } else if (mounted && batchService.error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(batchService.error!),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       }
       break;
@@ -1120,6 +1200,115 @@ Future<void> _handleAction(
       _showDeleteConfirmation(product);
       break;
   }
+}
+
+// AÑADIR nuevo diálogo para rechazo directo desde Studio:
+
+void _showRejectDirectlyDialog(BatchProductModel product) {
+  final returnedController = TextEditingController();
+  final reasonController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) {
+        final returned = int.tryParse(returnedController.text) ?? 0;
+        final isValidQuantity = returned >= 1 && returned <= product.quantity;
+
+        return AlertDialog(
+          title: const Text('Rechazar Producto (CAO)'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'El producto será marcado como CAO (no conforme).',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Total de productos: ${product.quantity}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: returnedController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Unidades con defectos *',
+                    border: const OutlineInputBorder(),
+                    helperText: 'Entre 1 y ${product.quantity}',
+                    errorText: returned > 0 && !isValidQuantity
+                        ? 'Debe ser entre 1 y ${product.quantity}'
+                        : null,
+                    suffixIcon: returned > 0
+                        ? Icon(
+                            isValidQuantity ? Icons.check_circle : Icons.error,
+                            color: isValidQuantity ? Colors.green : Colors.red,
+                          )
+                        : null,
+                  ),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Motivo del rechazo *',
+                    border: OutlineInputBorder(),
+                    hintText: 'Describe los defectos...',
+                  ),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: !isValidQuantity || reasonController.text.trim().isEmpty
+                  ? null
+                  : () async {
+                      final batchService = Provider.of<ProductionBatchService>(
+                        context,
+                        listen: false,
+                      );
+
+                      Navigator.pop(context);
+
+                      final success = await batchService.rejectProductDirectly(
+                        organizationId: widget.organizationId,
+                        batchId: widget.batchId,
+                        productId: widget.productId,
+                        returnedCount: returned,
+                        returnReason: reasonController.text.trim(),
+                      );
+
+                      if (success && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Producto rechazado (CAO)'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Rechazar'),
+            ),
+          ],
+        );
+      },
+    ),
+  );
 }
 
 void _showRejectDialog(BatchProductModel product) {
