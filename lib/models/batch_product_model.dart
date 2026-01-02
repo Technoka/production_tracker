@@ -372,31 +372,35 @@ class PhaseProgressData {
     this.notes,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'status': status,
-      'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
-      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
-      'completedBy': completedBy,
-      'completedByName': completedByName,
-      'notes': notes,
-    };
-  }
+Map<String, dynamic> toMap() {
+  return {
+    'status': status,
+    'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
+    'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+    'completedBy': completedBy,
+    'completedByName': completedByName,
+    'notes': notes,
+  };
+}
 
-  factory PhaseProgressData.fromMap(Map<String, dynamic> map) {
-    return PhaseProgressData(
-      status: map['status'] as String,
-      startedAt: map['startedAt'] != null
-          ? (map['startedAt'] as Timestamp).toDate()
-          : null,
-      completedAt: map['completedAt'] != null
-          ? (map['completedAt'] as Timestamp).toDate()
-          : null,
-      completedBy: map['completedBy'] as String?,
-      completedByName: map['completedByName'] as String?,
-      notes: map['notes'] as String?,
-    );
-  }
+factory PhaseProgressData.fromMap(Map<String, dynamic> map) {
+  return PhaseProgressData(
+    status: map['status'] as String? ?? 'pending',
+    startedAt: map['startedAt'] != null 
+        ? (map['startedAt'] is Timestamp 
+            ? (map['startedAt'] as Timestamp).toDate() 
+            : null)
+        : null,
+    completedAt: map['completedAt'] != null 
+        ? (map['completedAt'] is Timestamp 
+            ? (map['completedAt'] as Timestamp).toDate() 
+            : null)
+        : null,
+    completedBy: map['completedBy'] as String?,
+    completedByName: map['completedByName'] as String?,
+    notes: map['notes'] as String?,
+  );
+}
 
   PhaseProgressData copyWith({
     String? status,
@@ -419,4 +423,5 @@ class PhaseProgressData {
   bool get isPending => status == 'pending';
   bool get isInProgress => status == 'in_progress';
   bool get isCompleted => status == 'completed';
+  bool get isControl => status == 'control';
 }
