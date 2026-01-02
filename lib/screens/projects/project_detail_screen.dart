@@ -13,6 +13,7 @@ import '../../utils/role_utils.dart';
 import 'edit_project_screen.dart';
 import '../products/add_product_to_project_screen.dart';
 import '../products/project_product_detail_screen.dart';
+import '../../widgets/universal_loading_screen.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final String projectId; // Cambiar a recibir solo el ID
@@ -55,7 +56,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
     final user = authService.currentUserData;
 
     if (user == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const UniversalLoadingScreen();
     }
 
     // Usar StreamBuilder para actualización en tiempo real

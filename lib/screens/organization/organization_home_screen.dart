@@ -7,6 +7,7 @@ import 'organization_detail_screen.dart';
 import 'join_organization_screen.dart';
 import 'pending_invitations_screen.dart';
 import '../../models/user_model.dart';
+import '../../widgets/universal_loading_screen.dart';
 
 class OrganizationHomeScreen extends StatefulWidget {
   const OrganizationHomeScreen({super.key});
@@ -47,7 +48,7 @@ Widget build(BuildContext context) {
   final currentUser = authService.currentUserData;
 
   if (currentUser == null) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return const UniversalLoadingScreen();
   }
 
   // LÓGICA PRINCIPAL: Escuchar cambios en tiempo real
@@ -75,7 +76,7 @@ Widget build(BuildContext context) {
         }
 
         // Si está cargando la org, mostramos rueda
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return const UniversalLoadingScreen();
       }
 
       // CASO 2: NO TIENE ORGANIZACIÓN (Aquí estaba el error de pantalla negra)
