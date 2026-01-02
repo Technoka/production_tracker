@@ -27,13 +27,14 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
   final _formKey = GlobalKey<FormState>();
   final _notesController = TextEditingController();
 
+
   ProjectModel? _selectedProject;
   int _priority = 3;
   String _urgencyLevel = 'medium';
   DateTime? _expectedCompletionDate;
   bool _isLoading = false;
   final _prefixController = TextEditingController();
-  String _batchNumberPreview = '';
+  final ValueNotifier<String> _batchNumberPreview = ValueNotifier<String>('___2601'); // NUEVO
 
   @override
   void initState() {
@@ -42,17 +43,17 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
     if (widget.projectId != null) {
       _loadProject();
     }
-    // Listener para actualizar preview en tiempo real
+    // CAMBIAR el listener:
     _prefixController.addListener(_updateBatchNumberPreview);
-    _updateBatchNumberPreview(); // Preview inicial
+    _updateBatchNumberPreview();
   }
 
   void _updateBatchNumberPreview() {
-    setState(() {
-      _batchNumberPreview = BatchNumberHelper.previewBatchNumber(
-        _prefixController.text,
-      );
-    });
+    // ELIMINAR setState
+    // Solo actualizar el ValueNotifier
+    _batchNumberPreview.value = BatchNumberHelper.previewBatchNumber(
+      _prefixController.text,
+    );
   }
 
   @override
@@ -60,6 +61,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
     _prefixController.removeListener(_updateBatchNumberPreview);
     _prefixController.dispose();
     _notesController.dispose();
+    _batchNumberPreview.dispose();
     super.dispose();
   }
 
@@ -142,52 +144,57 @@ Card(
         const SizedBox(height: 16),
         
         // Preview del número de lote
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.blue[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue[200]!),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+ValueListenableBuilder<String>(
+  valueListenable: _batchNumberPreview,
+  builder: (context, preview, _) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Icon(Icons.preview, size: 18, color: Colors.blue[700]),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Preview del número de lote:',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue[700],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
+              Icon(Icons.preview, size: 18, color: Colors.blue[700]),
+              const SizedBox(width: 8),
               Text(
-                _batchNumberPreview,
+                'Preview del número de lote:',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue[900],
-                  letterSpacing: 2,
-                  fontFamily: 'monospace',
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Formato: Prefijo (3) + Año (2) + Semana (2)',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
+                  color: Colors.blue[700],
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            preview,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue[900],
+              letterSpacing: 2,
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Formato: Prefijo (3) + Año (2) + Semana (2)',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  },
+),
       ],
     ),
   ),
@@ -580,7 +587,7 @@ Future<void> _createBatch() async {
     if (batchId != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lote $_batchNumberPreview creado exitosamente'),
+          content: Text('Lote ${_batchNumberPreview.value} creado exitosamente'),
           backgroundColor: Colors.green,
         ),
       );
