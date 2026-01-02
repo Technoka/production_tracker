@@ -11,7 +11,7 @@ class ProjectProductModel {
   final ProductCustomization customization; // Personalizaciones
   final double unitPrice; // Precio unitario
   final double totalPrice; // Precio total (quantity * unitPrice)
-  final String status; // pendiente, en_produccion, completado
+  final String status; // pending, ok, cao, hold, control
   final String? notes; // Notas adicionales
   final String createdBy;
   final DateTime createdAt;
@@ -114,7 +114,7 @@ class ProjectProductModel {
       ),
       unitPrice: (map['unitPrice'] as num).toDouble(),
       totalPrice: (map['totalPrice'] as num).toDouble(),
-      status: map['status'] as String,
+      status: map['status'] as String? ?? 'pending', // Default a 'ok' si es nulo
       notes: map['notes'] as String?,
       createdBy: map['createdBy'] as String,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
@@ -175,19 +175,25 @@ class ProjectProductModel {
     );
   }
 
-  // Helpers
-  bool get isPending => status == 'pendiente';
-  bool get isInProduction => status == 'en_produccion';
-  bool get isCompleted => status == 'completado';
+  // Helpers actualizados para los nuevos estados
+  bool get isPending => status == 'pending';
+  bool get isOk => status == 'ok';
+  bool get isCao => status == 'cao';
+  bool get isHold => status == 'hold';
+  bool get isControl => status == 'control';
 
   String get statusDisplayName {
     switch (status) {
-      case 'pendiente':
-        return 'Pendiente';
-      case 'en_produccion':
-        return 'En Producción';
-      case 'completado':
-        return 'Completado';
+      case 'pending':
+        return 'Pending';
+      case 'ok':
+        return 'Ok';
+      case 'cao':
+        return 'Cao';
+      case 'hold':
+        return 'Hold';
+      case 'control':
+        return 'Control';
       default:
         return status;
     }
@@ -337,11 +343,13 @@ class CustomDimensions {
   bool get hasAnyDimension => width != null || height != null || depth != null;
 }
 
-/// Estados posibles de un producto en proyecto
+/// Estados posibles de un producto en proyecto (ACTUALIZADO)
 enum ProjectProductStatus {
-  pending('pendiente', 'Pendiente'),
-  inProduction('en_produccion', 'En Producción'),
-  completed('completado', 'Completado');
+  pending('pending', 'Pending'),
+  ok('ok', 'Ok'),
+  cao('cao', 'Cao'),
+  hold('hold', 'Hold'),
+  control('control', 'Control');
 
   final String value;
   final String displayName;

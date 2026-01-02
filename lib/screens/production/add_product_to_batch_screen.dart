@@ -296,54 +296,57 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
           );
         }
 
-        return Column(
+return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DropdownButtonFormField<ProductCatalogModel>(
+            // CAMBIO AQUÍ: El tipo ahora es String, no ProductCatalogModel
+            DropdownButtonFormField<String>( 
               decoration: const InputDecoration(
                 labelText: 'Producto del catálogo',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.shopping_bag),
               ),
-              value: _selectedProduct,
+              // USAMOS EL ID COMO VALOR
+              value: _selectedProduct?.id, 
+              isExpanded: true,
+              itemHeight: null,
               items: products.map((product) {
                 return DropdownMenuItem(
-                  value: product,
+                  value: product.id, // AQUÍ TAMBIÉN USAMOS EL ID
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        product.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        product.name,style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        overflow: TextOverflow.ellipsis // Corta con "..." si es muy largo
+                      ), 
+                      maxLines: 1,
                       ),
                       if (product.reference != null)
                         Text(
                           'Ref: ${product.reference}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
+                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                         ),
                     ],
                   ),
                 );
               }).toList(),
-              onChanged: (product) {
+              // AL CAMBIAR, BUSCAMOS EL OBJETO REAL USANDO EL ID
+              onChanged: (productId) {
+                if (productId == null) return;
+                // Buscamos el objeto completo en la lista usando el ID
+                final product = products.firstWhere((p) => p.id == productId);
+                
                 setState(() {
                   _selectedProduct = product;
-                  // Pre-rellenar precio si existe
-                  if (product?.basePrice != null) {
-                    _unitPriceController.text = product!.basePrice!.toStringAsFixed(2);
+                  if (product.basePrice != null) {
+                    _unitPriceController.text = product.basePrice!.toStringAsFixed(2);
                   }
                 });
               },
-              validator: (value) {
-                if (value == null) {
-                  return 'Debes seleccionar un producto';
-                }
-                return null;
-              },
+              validator: (value) => value == null ? 'Debes seleccionar un producto' : null,
             ),
 
             // Mostrar detalles del producto seleccionado

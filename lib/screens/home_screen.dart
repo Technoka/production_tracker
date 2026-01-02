@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/organization_service.dart';
+import '../services/production_batch_service.dart';
 import '../utils/role_utils.dart';
+import '../widgets/production_summary_widget.dart';
 import 'profile/profile_screen.dart';
 import 'organization/organization_home_screen.dart';
 import 'clients/clients_list_screen.dart';
 import 'projects/projects_list_screen.dart';
 import 'catalog/product_catalog_screen.dart';
+import 'production/production_batches_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -101,6 +104,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
             ),
             const SizedBox(height: 32),
+
+            // Resumen de Producción (NUEVO)
+            if (user.canManageProduction && user.organizationId != null) ...[
+              ProductionSummaryWidget(
+                organizationId: user.organizationId!,
+              ),
+              const SizedBox(height: 24),
+            ],
+
             _buildFeatureCards(user),
           ],
         ),
@@ -108,11 +120,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-Widget _buildFeatureCards(user) {
+  Widget _buildFeatureCards(user) {
     final features = <Map<String, dynamic>>[];
 
     if (user.canManageProduction) {
       features.addAll([
+        // NUEVO: Producción como primera opción
+        {
+          'icon': Icons.precision_manufacturing,
+          'title': 'Producción',
+          'subtitle': 'Lotes y productos',
+          'color': Colors.orange,
+          'onTap': () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProductionBatchesListScreen(),
+              ),
+            );
+          },
+        },
         {
           'icon': Icons.folder_outlined,
           'title': 'Proyectos',
@@ -143,7 +170,6 @@ Widget _buildFeatureCards(user) {
           'subtitle': 'Ver y editar catálogo',
           'color': Colors.green,
           'onTap': () {
-            // FUNCIONALIDAD AÑADIDA: Navegación al catálogo
             if (user.organizationId != null) {
               Navigator.push(
                 context,
@@ -169,7 +195,7 @@ Widget _buildFeatureCards(user) {
         'icon': Icons.analytics_outlined,
         'title': 'Reportes',
         'subtitle': 'Ver análisis financiero',
-        'color': Colors.purple,
+        'color': Colors.indigo,
         'onTap': () {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Función en desarrollo')),
@@ -179,17 +205,34 @@ Widget _buildFeatureCards(user) {
     }
 
     if (user.isClient) {
-      features.add({
-        'icon': Icons.track_changes_outlined,
-        'title': 'Productos',
-        'subtitle': 'Seguimiento de estado',
-        'color': Colors.teal,
-        'onTap': () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Función en desarrollo')),
-          );
+      features.addAll([
+        {
+          'icon': Icons.folder_outlined,
+          'title': 'Mis Proyectos',
+          'subtitle': 'Ver proyectos',
+          'color': Colors.blue,
+          'onTap': () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProjectsListScreen()),
+            );
+          },
         },
-      });
+        {
+          'icon': Icons.precision_manufacturing,
+          'title': 'Producción',
+          'subtitle': 'Estado de lotes',
+          'color': Colors.orange,
+          'onTap': () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProductionBatchesListScreen(),
+              ),
+            );
+          },
+        },
+      ]);
     }
 
     return Wrap(
@@ -254,7 +297,7 @@ Widget _buildFeatureCards(user) {
     );
   }
 
-Widget _buildDrawer(BuildContext context, user, AuthService authService, OrganizationService organizationService) {
+  Widget _buildDrawer(BuildContext context, user, AuthService authService, OrganizationService organizationService) {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -286,6 +329,20 @@ Widget _buildDrawer(BuildContext context, user, AuthService authService, Organiz
             },
           ),
           if (user.canManageProduction) ...[
+            // NUEVO: Producción en el drawer
+            ListTile(
+              leading: const Icon(Icons.precision_manufacturing),
+              title: const Text('Producción'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProductionBatchesListScreen(),
+                  ),
+                );
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.folder_outlined),
               title: const Text('Proyectos'),
@@ -316,7 +373,7 @@ Widget _buildDrawer(BuildContext context, user, AuthService authService, Organiz
               leading: const Icon(Icons.inventory_2_outlined),
               title: const Text('Productos'),
               onTap: () {
-                Navigator.pop(context); // Cerrar drawer
+                Navigator.pop(context);
                 if (user.organizationId != null) {
                   Navigator.push(
                     context,
@@ -343,42 +400,43 @@ Widget _buildDrawer(BuildContext context, user, AuthService authService, Organiz
                 );
               },
             ),
-                      ListTile(
-              leading: const Icon(Icons.business),
-              title: const Text('Mi Organización'),
-  trailing: StreamBuilder<List<dynamic>>(
-    stream: organizationService.getPendingInvitations(user.email),
-    builder: (context, snapshot) {
-      final count = snapshot.data?.length ?? 0;
-      if (count == 0) return const Icon(Icons.chevron_right);
+          
+          ListTile(
+            leading: const Icon(Icons.business),
+            title: const Text('Mi Organización'),
+            trailing: StreamBuilder<List<dynamic>>(
+              stream: organizationService.getPendingInvitations(user.email),
+              builder: (context, snapshot) {
+                final count = snapshot.data?.length ?? 0;
+                if (count == 0) return const Icon(Icons.chevron_right);
 
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.red,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          '$count',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-    },
-  ),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const OrganizationHomeScreen(),
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 );
               },
             ),
-            const Divider(),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const OrganizationHomeScreen(),
+                ),
+              );
+            },
+          ),
+          const Divider(),
           ListTile(
             leading: const Icon(Icons.person),
             title: const Text('Mi Perfil'),
@@ -419,80 +477,92 @@ Widget _buildDrawer(BuildContext context, user, AuthService authService, Organiz
     );
   }
 
-Widget? _buildBottomNavigationBar(user) {
-  final items = <BottomNavigationBarItem>[];
+  Widget? _buildBottomNavigationBar(user) {
+    final items = <BottomNavigationBarItem>[];
 
-  items.add(
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.home),
-      label: 'Inicio',
-    ),
-  );
-
-  if (user.canManageProduction) {
     items.add(
       const BottomNavigationBarItem(
-        icon: Icon(Icons.folder_outlined),
-        label: 'Proyectos',
+        icon: Icon(Icons.home),
+        label: 'Inicio',
       ),
     );
-  }
 
-  if (user.canViewFinancials) {
+    if (user.canManageProduction) {
+      // NUEVO: Producción en el bottom nav
+      items.add(
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.precision_manufacturing),
+          label: 'Producción',
+        ),
+      );
+      items.add(
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.folder_outlined),
+          label: 'Proyectos',
+        ),
+      );
+    }
+
+    if (user.canViewFinancials) {
+      items.add(
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.analytics_outlined),
+          label: 'Reportes',
+        ),
+      );
+    }
+
     items.add(
       const BottomNavigationBarItem(
-        icon: Icon(Icons.analytics_outlined),
-        label: 'Reportes',
+        icon: Icon(Icons.person),
+        label: 'Perfil',
       ),
     );
+
+    if (items.length <= 2) return null;
+
+    return BottomNavigationBar(
+      currentIndex: _selectedIndex,
+      onTap: (index) {
+        setState(() {
+          _selectedIndex = index;
+        });
+
+        final label = items[index].label;
+
+        if (label == 'Perfil') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ProfileScreen(),
+            ),
+          );
+        } else if (label == 'Producción') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ProductionBatchesListScreen(),
+            ),
+          );
+        } else if (label == 'Proyectos') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ProjectsListScreen(),
+            ),
+          );
+        } else if (label == 'Inicio') {
+          // Ya estamos en Inicio
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Función en desarrollo')),
+          );
+        }
+      },
+      items: items,
+      type: BottomNavigationBarType.fixed,
+    );
   }
-
-  items.add(
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.person),
-      label: 'Perfil',
-    ),
-  );
-
-  if (items.length <= 2) return null;
-
-  return BottomNavigationBar(
-    currentIndex: _selectedIndex,
-    onTap: (index) {
-      setState(() {
-        _selectedIndex = index;
-      });
-
-      // 1. Obtener la etiqueta (label) del ítem pulsado para saber qué acción tomar
-      final label = items[index].label;
-
-      if (label == 'Perfil') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ProfileScreen(),
-          ),
-        );
-      } else if (label == 'Proyectos') {
-        // 2. Navegar a la pantalla de lista de proyectos
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ProjectsListScreen(),
-          ),
-        );
-      } else if (label == 'Inicio') {
-        // Ya estamos en Inicio, no hace falta navegar, el setState ya actualiza la UI
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Función en desarrollo')),
-        );
-      }
-    },
-    items: items,
-    type: BottomNavigationBarType.fixed,
-  );
-}
 
   void _showLogoutDialog(AuthService authService) {
     showDialog(
