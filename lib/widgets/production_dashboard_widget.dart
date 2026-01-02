@@ -97,7 +97,7 @@ class ProductionDashboardWidget extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      const Divider(height: 1),
+                      const Divider(height: 1, thickness: 3),
                       const SizedBox(height: 16),
 
                       // Dos columnas: Fases y Estados
@@ -138,6 +138,15 @@ class ProductionDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildPhasesSection(Map<String, int> stats) {
+    // 1. Calcular el total de productos en fases
+    int totalPhases = (stats['phase_planned'] ?? 0) +
+        (stats['phase_cutting'] ?? 0) +
+        (stats['phase_skiving'] ?? 0) +
+        (stats['phase_assembly'] ?? 0) +
+        (stats['phase_studio'] ?? 0);
+
+    // 2. Determinar si todos están en Studio (y hay al menos 1 producto)
+    bool isAllStudio = totalPhases > 0 && (stats['phase_studio'] ?? 0) == totalPhases;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -145,16 +154,26 @@ class ProductionDashboardWidget extends StatelessWidget {
           children: [
             Icon(Icons.precision_manufacturing, size: 20),
             SizedBox(width: 8),
-            Text(
-              'Fases de Producción',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                'Fases de Producción',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
+        _buildTotalItem(
+          'TOTAL', 
+          totalPhases, 
+          isAllStudio ? Colors.green[700]! : Colors.black87, // Verde si todo es Studio
+        ),
+        const SizedBox(height: 8),
+        const Divider(height: 1, thickness: 3),
+        const SizedBox(height: 8),
 
         _buildPhaseItem(
           'Planned',
@@ -199,6 +218,16 @@ class ProductionDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildStatusSection(Map<String, int> stats) {
+    // 1. Calcular el total de productos en estados
+    int totalStatus = (stats['status_pending'] ?? 0) +
+        (stats['status_cao'] ?? 0) +
+        (stats['status_hold'] ?? 0) +
+        (stats['status_control'] ?? 0) +
+        (stats['status_ok'] ?? 0);
+
+    // 2. Determinar si todos están OK (y hay al menos 1 producto)
+    bool isAllOk = totalStatus > 0 && (stats['status_ok'] ?? 0) == totalStatus;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -206,16 +235,26 @@ class ProductionDashboardWidget extends StatelessWidget {
           children: [
             Icon(Icons.info_outline, size: 20),
             SizedBox(width: 8),
-            Text(
-              'Estados',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                'Estados',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
+        _buildTotalItem(
+          'TOTAL', 
+          totalStatus, 
+          isAllOk ? Colors.green[700]! : Colors.black87, // Verde si todo es OK
+        ),
+        const SizedBox(height: 8),
+        const Divider(height: 1, thickness: 3),
+        const SizedBox(height: 8),
 
         _buildStatusItem(
           'Pending',
@@ -256,6 +295,46 @@ class ProductionDashboardWidget extends StatelessWidget {
           Icons.check_circle,
         ),
       ],
+    );
+  }
+
+  // Widget específico para el Total
+  Widget _buildTotalItem(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.5), width: 2), // Borde más grueso
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              count.toString(),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -309,52 +388,7 @@ class ProductionDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildStatusItem(String label, int count, Color color, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              count.toString(),
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    return _buildPhaseItem(label, count, color, icon);
   }
 
   Future<Map<String, int>> _getProductStatistics(
