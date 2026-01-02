@@ -57,6 +57,8 @@ class ProjectModel {
   final DateTime? startedAt;
   final DateTime? actualCompletionDate;
   final double? leadTimeHours;
+  
+  final int batchCount; // Contador de lotes asociados
 
   ProjectModel({
     required this.id,
@@ -88,6 +90,7 @@ class ProjectModel {
     this.startedAt,
     this.actualCompletionDate,
     this.leadTimeHours,
+    this.batchCount = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -121,6 +124,7 @@ class ProjectModel {
       'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
       'actualCompletionDate': actualCompletionDate != null ? Timestamp.fromDate(actualCompletionDate!) : null,
       'leadTimeHours': leadTimeHours,
+      'batchCount': batchCount,
     };
   }
 
@@ -167,6 +171,7 @@ class ProjectModel {
       leadTimeHours: map['leadTimeHours'] != null 
           ? (map['leadTimeHours'] as num).toDouble()
           : null,
+      batchCount: map['batchCount'] as int? ?? 0,
     );
   }
 
