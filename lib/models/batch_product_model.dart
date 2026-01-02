@@ -301,7 +301,10 @@ class BatchProductModel {
   }
 
   /// Progreso total del producto (0.0 a 1.0)
-  double get totalProgress {
+double get totalProgress {
+    // CAMBIO: Si está en Studio, es 100% automáticamente
+    if (currentPhase == 'studio') return 1.0;
+
     if (phaseProgress.isEmpty) return 0.0;
     
     int completedPhases = phaseProgress.values
