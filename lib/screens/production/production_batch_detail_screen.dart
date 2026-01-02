@@ -270,6 +270,7 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
       ),
     );
   }
+  
 Widget _buildProgressCard(ProductionBatchModel batch) {
   return FutureBuilder<Map<String, double>>(
     future: _calculateProgressStats(batch),
@@ -289,11 +290,11 @@ Widget _buildProgressCard(ProductionBatchModel batch) {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              const Row(
                 children: [
-                  const Icon(Icons.analytics_outlined),
-                  const SizedBox(width: 8),
-                  const Text(
+                  Icon(Icons.analytics_outlined),
+                  SizedBox(width: 8),
+                  Text(
                     'Progreso General',
                     style: TextStyle(
                       fontSize: 18,
@@ -419,33 +420,6 @@ Widget _buildProgressCard(ProductionBatchModel batch) {
                   ),
                 ],
               ),
-
-              // Resumen textual
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Producción: Todos en Studio (${((stats['phaseProgress'] ?? 0) * 100).toInt()}%) | '
-                        'Aprobación: Todos OK (${((stats['statusProgress'] ?? 0) * 100).toInt()}%)',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),
@@ -502,100 +476,238 @@ Future<Map<String, double>> _calculateProgressStats(ProductionBatchModel batch) 
   }
 }
 
-  Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user) {
+  return StreamBuilder<List<BatchProductModel>>(
+    stream: Provider.of<ProductionBatchService>(context, listen: false)
+        .watchBatchProducts(widget.organizationId, widget.batchId),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Card(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        );
+      }
+
+      if (snapshot.hasError) {
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('Error: ${snapshot.error}'),
+          ),
+        );
+      }
+
+      final products = snapshot.data ?? [];
+
+      if (products.isEmpty) {
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
               children: [
-                const Icon(Icons.inventory_2_outlined),
-                const SizedBox(width: 8),
-                const Text(
-                  'Productos',
+                Icon(
+                  Icons.inventory_2_outlined,
+                  size: 48,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No hay productos en este lote',
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Añade productos usando el botón +',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[500],
                   ),
                 ),
               ],
             ),
-            const Divider(height: 24),
+          ),
+        );
+      }
 
-            StreamBuilder<List<BatchProductModel>>(
-              stream: Provider.of<ProductionBatchService>(context, listen: false)
-                  .watchBatchProducts(widget.organizationId, widget.batchId),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
+      // Calcular estadísticas por fase y estado
+      final phaseStats = _calculatePhaseStats(products);
+      final statusStats = _calculateStatusStats(products);
 
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
-                }
+      return Column(
+        children: [
+          const SizedBox(height: 16),
 
-                final products = snapshot.data ?? [];
-
-                if (products.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.inventory_2_outlined,
-                            size: 48,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No hay productos en este lote',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Añade productos usando el botón +',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                        ],
+          // Lista de productos (código existente)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.inventory_2_outlined),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Productos (${products.length})',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  );
-                }
-
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: products.length,
-                  separatorBuilder: (context, index) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final product = products[index];
-                    return _buildProductTile(product, user);
-                  },
-                );
-              },
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: products.length,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final product = products[index];
+                      return _buildProductTile(product, user);
+                    },
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
-    );
+          ),
+        ],
+      );
+    },
+  );
+}
+
+// AÑADIR métodos helper:
+
+Map<String, int> _calculatePhaseStats(List<BatchProductModel> products) {
+  final stats = <String, int>{
+    'planned': 0,
+    'cutting': 0,
+    'skiving': 0,
+    'assembly': 0,
+    'studio': 0,
+  };
+
+  for (final product in products) {
+    final phase = product.currentPhase;
+    if (stats.containsKey(phase)) {
+      stats[phase] = (stats[phase] ?? 0) + 1;
+    }
   }
 
+  return stats;
+}
+
+Map<String, int> _calculateStatusStats(List<BatchProductModel> products) {
+  final stats = <String, int>{
+    'pending': 0,
+    'cao': 0,
+    'hold': 0,
+    'control': 0,
+    'ok': 0,
+  };
+
+  for (final product in products) {
+    final status = product.productStatus;
+    if (stats.containsKey(status)) {
+      stats[status] = (stats[status] ?? 0) + 1;
+    }
+  }
+
+  return stats;
+}
+
+Widget _buildPhaseStatItem(String label, int count, Color color, int total) {
+  final percentage = total > 0 ? (count / total * 100).round() : 0;
+  
+  return Container(
+    padding: const EdgeInsets.all(10),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: color.withOpacity(0.3)),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
+            ),
+          ),
+        ),
+        Text(
+          '$count',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '($percentage%)',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildStatusStatItem(String label, int count, Color color, int total) {
+  final percentage = total > 0 ? (count / total * 100).round() : 0;
+  
+  return Container(
+    padding: const EdgeInsets.all(10),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: color.withOpacity(0.3)),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
+            ),
+          ),
+        ),
+        Text(
+          '$count',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '($percentage%)',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    ),
+  );
+}
   Widget _buildProductTile(BatchProductModel product, UserModel? user) {
     return ListTile(
       contentPadding: EdgeInsets.zero,

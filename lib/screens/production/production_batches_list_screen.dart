@@ -169,185 +169,297 @@ class _ProductionBatchesListScreenState extends State<ProductionBatchesListScree
     );
   }
 
-  Widget _buildBatchCard(
-    BuildContext context,
-    ProductionBatchModel batch,
-    UserModel user,
-  ) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProductionBatchDetailScreen(
-                organizationId: user.organizationId!,
-                batchId: batch.id,
-              ),
+// REEMPLAZAR el método _buildBatchCard para incluir las barras dobles:
+
+Widget _buildBatchCard(
+  BuildContext context,
+  ProductionBatchModel batch,
+  UserModel user,
+) {
+  return Card(
+    margin: const EdgeInsets.only(bottom: 12),
+    child: InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductionBatchDetailScreen(
+              organizationId: user.organizationId!,
+              batchId: batch.id,
             ),
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header: Número de lote + Estado
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      batch.batchNumber,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header: Número de lote + Estado
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    batch.batchNumber,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  _buildStatusChip(batch.status),
-                ],
-              ),
-              const SizedBox(height: 8),
+                ),
+                _buildStatusChip(batch.status),
+              ],
+            ),
+            const SizedBox(height: 8),
 
-              // Proyecto y Cliente
-              Row(
-                children: [
-                  const Icon(Icons.folder_outlined, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      batch.projectName,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                      ),
+            // Proyecto y Cliente
+            Row(
+              children: [
+                const Icon(Icons.folder_outlined, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    batch.projectName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(Icons.person_outline, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      batch.clientName,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.person_outline, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    batch.clientName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
 
-              const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-              // Progreso
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            // NUEVO: Progreso Doble
+            FutureBuilder<Map<String, double>>(
+              future: _calculateProgressStats(user.organizationId!, batch),
+              builder: (context, statsSnapshot) {
+                final stats = statsSnapshot.data ?? {
+                  'phaseProgress': 0.0,
+                  'statusProgress': 0.0,
+                  'phaseCompleted': 0,
+                  'phaseTotal': 0,
+                  'statusCompleted': 0,
+                  'statusTotal': 0,
+                };
+
+                return Column(
+                  children: [
+                    // Barra 1: Fases
+                    Row(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Progreso',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            Text(
-                              '${batch.completedProducts}/${batch.totalProducts} productos',
-                              style: TextStyle(
-                                fontSize: 12,
+                        Icon(Icons.precision_manufacturing, size: 14, color: Colors.blue[700]),
+                        const SizedBox(width: 6),
+                        Text(
+                              'Producción: ${stats['phaseCompleted']?.toInt() ?? 0} / ${stats['phaseTotal']?.toInt() ?? 0} en Studio',
+                              style: const TextStyle(
+                                fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.grey[700],
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        LinearProgressIndicator(
-                          value: batch.progress,
-                          backgroundColor: Colors.grey[200],
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            batch.isComplete
-                                ? Colors.green
-                                : Theme.of(context).colorScheme.primary,
+                        const Spacer(),
+                        Text(
+                          '${(stats['phaseProgress']! * 100).toInt()}%',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '${batch.progressPercentage}%',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-
-              // Fecha de creación
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.calendar_today, size: 12, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Creado: ${_formatDate(batch.createdAt)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-
-              // Indicadores adicionales
-              if (batch.isDelayed || batch.priority <= 2) ...[
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    if (batch.isDelayed)
-                      Chip(
-                        label: const Text('Retrasado'),
-                        avatar: const Icon(Icons.warning, size: 16),
-                        backgroundColor: Colors.orange[100],
-                        labelStyle: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange[900],
-                        ),
+                    const SizedBox(height: 4),
+                    LinearProgressIndicator(
+                      value: stats['phaseProgress'],
+                      minHeight: 6,
+                      backgroundColor: Colors.grey[200],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        stats['phaseProgress'] == 1.0 ? Colors.green : Colors.blue,
                       ),
-                    if (batch.priority <= 2)
-                      Chip(
-                        label: const Text('Alta Prioridad'),
-                        avatar: const Icon(Icons.priority_high, size: 16),
-                        backgroundColor: Colors.red[100],
-                        labelStyle: TextStyle(
-                          fontSize: 12,
-                          color: Colors.red[900],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Barra 2: Estados
+                    Row(
+                      children: [
+                        Icon(Icons.check_circle, size: 14, color: Colors.green[700]),
+                        const SizedBox(width: 6),
+                            Text(
+                              'Estado: ${stats['statusCompleted']?.toInt() ?? 0} / ${stats['statusTotal']?.toInt() ?? 0} en OK',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                        const Spacer(),
+                        Text(
+                          '${(stats['statusProgress']! * 100).toInt()}%',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    LinearProgressIndicator(
+                      value: stats['statusProgress'],
+                      minHeight: 6,
+                      backgroundColor: Colors.grey[200],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        stats['statusProgress'] == 1.0 ? Colors.green : Colors.orange,
                       ),
+                    ),
                   ],
+                );
+              },
+            ),
+
+            // Fecha de creación
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 12, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  'Creado: ${_formatDate(batch.createdAt)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
                 ),
               ],
+            ),
+
+            // Indicadores adicionales
+            if (batch.isDelayed || batch.priority <= 2) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  if (batch.isDelayed)
+                    Chip(
+                      label: const Text('Retrasado'),
+                      avatar: const Icon(Icons.warning, size: 16),
+                      backgroundColor: Colors.orange[100],
+                      labelStyle: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange[900],
+                      ),
+                    ),
+                  if (batch.priority <= 2)
+                    Chip(
+                      label: const Text('Alta Prioridad'),
+                      avatar: const Icon(Icons.priority_high, size: 16),
+                      backgroundColor: Colors.red[100],
+                      labelStyle: TextStyle(
+                        fontSize: 12,
+                        color: Colors.red[900],
+                      ),
+                    ),
+                ],
+              ),
             ],
-          ),
+          ],
         ),
       ),
-    );
+    ),
+  );
+}
+
+// AÑADIR método helper para calcular progreso del lote:
+Future<Map<String, double>> _calculateBatchProgress(
+  ProductionBatchModel batch,
+  String organizationId,
+) async {
+  final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+
+  try {
+    final products = await batchService
+        .watchBatchProducts(organizationId, batch.id)
+        .first
+        .timeout(const Duration(seconds: 2));
+
+    if (products.isEmpty) {
+      return {'phaseProgress': 0.0, 'statusProgress': 0.0};
+    }
+
+    final inStudio = products.where((p) => p.isInStudio).length;
+    final okStatus = products.where((p) => p.isOK).length;
+
+    return {
+      'phaseProgress': inStudio / products.length,
+      'statusProgress': okStatus / products.length,
+    };
+  } catch (e) {
+    return {'phaseProgress': 0.0, 'statusProgress': 0.0};
   }
+}
+
+// AÑADIR este método helper para calcular estadísticas:
+Future<Map<String, double>> _calculateProgressStats(String organizationId, ProductionBatchModel batch) async {
+  final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+  
+  try {
+    final products = await batchService
+        .watchBatchProducts(organizationId, batch.id)
+        .first;
+
+    if (products.isEmpty) {
+      return {
+        'phaseProgress': 0.0,
+        'statusProgress': 0.0,
+        'phaseCompleted': 0.0,
+        'phaseTotal': 0.0,
+        'statusCompleted': 0.0,
+        'statusTotal': 0.0,
+      };
+    }
+
+    // Contar productos en Studio (fase completada)
+    final inStudio = products.where((p) => p.isInStudio).length;
+    final phaseProgress = inStudio / products.length;
+
+    // Contar productos en estado OK
+    final okStatus = products.where((p) => p.isOK).length;
+    final statusProgress = okStatus / products.length;
+
+    return {
+      'phaseProgress': phaseProgress,
+      'statusProgress': statusProgress,
+      'phaseCompleted': inStudio.toDouble(),
+      'phaseTotal': products.length.toDouble(),
+      'statusCompleted': okStatus.toDouble(),
+      'statusTotal': products.length.toDouble(),
+    };
+  } catch (e) {
+    return {
+      'phaseProgress': 0.0,
+      'statusProgress': 0.0,
+      'phaseCompleted': 0.0,
+      'phaseTotal': 0.0,
+      'statusCompleted': 0.0,
+      'statusTotal': 0.0,
+    };
+  }
+}
 
   Widget _buildStatusChip(String status) {
     Color backgroundColor;
