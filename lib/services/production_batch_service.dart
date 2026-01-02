@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../models/production_batch_model.dart';
 import '../models/batch_product_model.dart';
 import '../models/phase_model.dart';
+import '../../services/phase_service.dart';
 
 class ProductionBatchService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -34,7 +35,7 @@ Future<bool> updateProductPhaseWithRollback({
   required String newPhaseName,
   required String userId,
   required String userName,
-  required bool isRollback, // Si es retroceso
+  required bool isRollback,
   String? notes,
 }) async {
   try {
@@ -43,23 +44,41 @@ Future<bool> updateProductPhaseWithRollback({
 
     final updatedProgress = Map<String, PhaseProgressData>.from(product.phaseProgress);
 
+    String newStatus = product.productStatus;
+
     if (isRollback) {
-      // Retroceso: marcar fase actual como pendiente, nueva fase como en progreso
-      if (updatedProgress.containsKey(product.currentPhase)) {
-        updatedProgress[product.currentPhase] = PhaseProgressData(
-          status: 'pending',
-        );
-      }
+
+      // NUEVO: Al retroceder, marcar como pendiente la fase objetivo Y todas las posteriores
+      // Obtener todas las fases ordenadas
+      newStatus = 'pending';
+      final phaseService = PhaseService();
+      final allPhases = await phaseService.getOrganizationPhases(organizationId);
+      allPhases.sort((a, b) => a.order.compareTo(b.order));
       
-      if (updatedProgress.containsKey(newPhaseId)) {
-        updatedProgress[newPhaseId] = updatedProgress[newPhaseId]!.copyWith(
+      // Encontrar el índice de la fase objetivo
+      final targetIndex = allPhases.indexWhere((p) => p.id == newPhaseId);
+      
+      if (targetIndex != -1) {
+        // Marcar como pendiente desde la fase objetivo hacia adelante
+        for (int i = targetIndex; i < allPhases.length; i++) {
+          final phaseId = allPhases[i].id;
+          if (updatedProgress.containsKey(phaseId)) {
+            updatedProgress[phaseId] = PhaseProgressData(
+              status: 'pending',
+              notes: i == targetIndex ? notes : null,
+            );
+          }
+        }
+        
+        // Marcar la fase objetivo como en progreso
+        updatedProgress[newPhaseId] = PhaseProgressData(
           status: 'in_progress',
           startedAt: DateTime.now(),
-          notes: notes, // Guardar motivo del retroceso
+          notes: notes,
         );
       }
     } else {
-      // Avance normal
+      // Avance normal (código existente)
       if (updatedProgress.containsKey(product.currentPhase)) {
         updatedProgress[product.currentPhase] = updatedProgress[product.currentPhase]!.copyWith(
           status: 'completed',
@@ -78,19 +97,16 @@ Future<bool> updateProductPhaseWithRollback({
       }
     }
 
-    // Si llega a Studio, marcar como 100% completado automáticamente
-    String newStatus = product.productStatus;
+    // Si llega a Studio, completar automáticamente
     if (newPhaseId == 'studio' && !isRollback) {
-      // Completar Studio automáticamente
       updatedProgress['studio'] = updatedProgress['studio']!.copyWith(
         status: 'completed',
         completedAt: DateTime.now(),
         completedBy: userId,
         completedByName: userName,
       );
-      // El estado sigue siendo 'pending' hasta que se envíe
     }
-
+    
     await _firestore
         .collection('organizations')
         .doc(organizationId)
@@ -108,7 +124,6 @@ Future<bool> updateProductPhaseWithRollback({
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    // Verificar si completó todas las fases (incluyendo Studio)
     final allCompleted = updatedProgress.values.every((p) => p.status == 'completed');
     if (allCompleted && !isRollback) {
       await _incrementCompletedProducts(organizationId, batchId);
@@ -122,15 +137,32 @@ Future<bool> updateProductPhaseWithRollback({
   }
 }
 
+// AÑADIR validación antes de cambiar estado:
+Future<bool> _canChangeStatus(String organizationId, String batchId, String productId) async {
+  final product = await getBatchProduct(organizationId, batchId, productId);
+  if (product == null) return false;
+  
+  // Solo puede cambiar de estado si está en Studio
+  return product.isInStudio;
+}
+
+
 // AÑADIR métodos para gestionar estados del producto:
 
-/// Enviar producto al cliente (pasa a Hold)
+// ACTUALIZAR sendProductToClient con validación:
 Future<bool> sendProductToClient({
   required String organizationId,
   required String batchId,
   required String productId,
 }) async {
   try {
+    // Validar que esté en Studio
+    if (!await _canChangeStatus(organizationId, batchId, productId)) {
+      _error = 'El producto debe estar en fase Studio para cambiar de estado';
+      notifyListeners();
+      return false;
+    }
+    
     await _firestore
         .collection('organizations')
         .doc(organizationId)
@@ -151,6 +183,80 @@ Future<bool> sendProductToClient({
   }
 }
 
+// NUEVO: Método para aprobar directamente desde Studio
+Future<bool> approveProductDirectly({
+  required String organizationId,
+  required String batchId,
+  required String productId,
+}) async {
+  try {
+    if (!await _canChangeStatus(organizationId, batchId, productId)) {
+      _error = 'El producto debe estar en fase Studio';
+      notifyListeners();
+      return false;
+    }
+    
+    await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('production_batches')
+        .doc(batchId)
+        .collection('batch_products')
+        .doc(productId)
+        .update({
+      'productStatus': 'ok',
+      'sentToClientAt': FieldValue.serverTimestamp(),
+      'evaluatedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    return true;
+  } catch (e) {
+    _error = 'Error al aprobar producto: $e';
+    notifyListeners();
+    return false;
+  }
+}
+
+// NUEVO: Rechazar directamente desde Studio
+Future<bool> rejectProductDirectly({
+  required String organizationId,
+  required String batchId,
+  required String productId,
+  required int returnedCount,
+  required String returnReason,
+}) async {
+  try {
+    if (!await _canChangeStatus(organizationId, batchId, productId)) {
+      _error = 'El producto debe estar en fase Studio';
+      notifyListeners();
+      return false;
+    }
+    
+    await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('production_batches')
+        .doc(batchId)
+        .collection('batch_products')
+        .doc(productId)
+        .update({
+      'productStatus': 'cao',
+      'sentToClientAt': FieldValue.serverTimestamp(),
+      'evaluatedAt': FieldValue.serverTimestamp(),
+      'returnedCount': returnedCount,
+      'returnReason': returnReason,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    return true;
+  } catch (e) {
+    _error = 'Error al rechazar producto: $e';
+    notifyListeners();
+    return false;
+  }
+}
+
+
+
 /// Aprobar producto (Hold -> OK)
 Future<bool> approveProduct({
   required String organizationId,
@@ -158,6 +264,16 @@ Future<bool> approveProduct({
   required String productId,
 }) async {
   try {
+    final product = await getBatchProduct(organizationId, batchId, productId);
+    if (product == null) return false;
+    
+    // Puede aprobar desde Hold o Control
+    if (!product.isHold && !product.isControl) {
+      _error = 'El producto debe estar en Hold o Control';
+      notifyListeners();
+      return false;
+    }
+    
     await _firestore
         .collection('organizations')
         .doc(organizationId)
@@ -177,7 +293,6 @@ Future<bool> approveProduct({
     return false;
   }
 }
-
 /// Rechazar producto (Hold -> CAO)
 Future<bool> rejectProduct({
   required String organizationId,
@@ -255,6 +370,20 @@ Future<bool> moveToControl({
   required String productId,
 }) async {
   try {
+    final product = await getBatchProduct(organizationId, batchId, productId);
+    if (product == null || !product.isCAO) {
+      _error = 'El producto debe estar en estado CAO';
+      notifyListeners();
+      return false;
+    }
+    
+    // Validar que esté clasificado
+    if (!product.isReturnBalanced) {
+      _error = 'Primero debes clasificar las devoluciones';
+      notifyListeners();
+      return false;
+    }
+    
     await _firestore
         .collection('organizations')
         .doc(organizationId)
@@ -273,7 +402,6 @@ Future<bool> moveToControl({
     return false;
   }
 }
-
   // ==================== CREAR LOTE DE PRODUCCIÓN ====================
 
 // ACTUALIZAR el método createProductionBatch:
@@ -421,6 +549,26 @@ Future<String?> createProductionBatch({
       notifyListeners();
       return null;
     }
+  }
+
+  /// Stream de un producto específico (para tiempo real)
+  Stream<BatchProductModel?> watchBatchProduct(
+    String organizationId,
+    String batchId,
+    String productId,
+  ) {
+    return _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('production_batches')
+        .doc(batchId)
+        .collection('batch_products')
+        .doc(productId)
+        .snapshots()
+        .map((doc) {
+      if (!doc.exists || doc.data() == null) return null;
+      return BatchProductModel.fromMap(doc.data()!);
+    });
   }
 
   // ==================== ACTUALIZAR LOTE ====================
