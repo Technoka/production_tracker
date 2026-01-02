@@ -29,39 +29,44 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserData;
 
-    return FutureBuilder<BatchProductModel?>(
-      future: Provider.of<ProductionBatchService>(context, listen: false)
-          .getBatchProduct(widget.organizationId, widget.batchId, widget.productId),
-      builder: (context, productSnapshot) {
-        if (productSnapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Cargando...')),
-            body: const Center(child: CircularProgressIndicator()),
-          );
-        }
+    return StreamBuilder<List<BatchProductModel>>(
+  stream: Provider.of<ProductionBatchService>(context, listen: false)
+      .watchBatchProducts(widget.organizationId, widget.batchId),
+  builder: (context, productSnapshot) {
+    if (productSnapshot.connectionState == ConnectionState.waiting) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Cargando...')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
-        if (productSnapshot.hasError || productSnapshot.data == null) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Error')),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('Error al cargar el producto: ${productSnapshot.error}'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Volver'),
-                  ),
-                ],
+    if (productSnapshot.hasError || !productSnapshot.hasData) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error al cargar el producto: ${productSnapshot.error}'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Volver'),
               ),
-            ),
-          );
-        }
+            ],
+          ),
+        ),
+      );
+    }
 
-        final product = productSnapshot.data!;
+    // Buscar el producto específico en la lista
+    final products = productSnapshot.data!;
+    final product = products.firstWhere(
+      (p) => p.id == widget.productId,
+      orElse: () => products.first, // Fallback si no se encuentra
+    );
 
         return Scaffold(
           appBar: AppBar(
@@ -70,69 +75,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   if (user?.canManageProduction ?? false)
     PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert),
-      onSelected: (value) => _handleAction(value, product, user!),
+      onSelected: (value) => _handleAction(value, product),
       itemBuilder: (context) => [
-        // Gestión de estados
-        if (product.isInStudio && product.isPending)
-          const PopupMenuItem(
-            value: 'send_to_client',
-            child: Row(
-              children: [
-                Icon(Icons.send, size: 20),
-                SizedBox(width: 8),
-                Text('Enviar al Cliente (→ Hold)'),
-              ],
-            ),
-          ),
-        
-        if (product.isHold)
-          const PopupMenuItem(
-            value: 'approve',
-            child: Row(
-              children: [
-                Icon(Icons.check_circle, size: 20, color: Colors.green),
-                SizedBox(width: 8),
-                Text('Aprobar (→ OK)', style: TextStyle(color: Colors.green)),
-              ],
-            ),
-          ),
-        
-        if (product.isHold)
-          const PopupMenuItem(
-            value: 'reject',
-            child: Row(
-              children: [
-                Icon(Icons.cancel, size: 20, color: Colors.red),
-                SizedBox(width: 8),
-                Text('Rechazar (→ CAO)', style: TextStyle(color: Colors.red)),
-              ],
-            ),
-          ),
-        
-        if (product.isCAO && !product.isReturnBalanced)
-          const PopupMenuItem(
-            value: 'classify_returns',
-            child: Row(
-              children: [
-                Icon(Icons.category, size: 20),
-                SizedBox(width: 8),
-                Text('Clasificar Devoluciones'),
-              ],
-            ),
-          ),
-        
-        if (product.isPending && !product.isInStudio)
-          const PopupMenuItem(
-            value: 'move_to_control',
-            child: Row(
-              children: [
-                Icon(Icons.verified, size: 20),
-                SizedBox(width: 8),
-                Text('Mover a Control'),
-              ],
-            ),
-          ),
-        
         const PopupMenuDivider(),
         
         const PopupMenuItem(
@@ -151,7 +95,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
           ),
           body: RefreshIndicator(
             onRefresh: () async {
-              setState(() {});
             },
             child: ListView(
               padding: const EdgeInsets.all(16),
@@ -160,7 +103,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 _buildProductInfoCard(product, user),
                 const SizedBox(height: 16),
                 
-                _buildProductStatusCard(product),
+                _buildProductStatusCard(product, user),
                 const SizedBox(height: 16),
 
                 // Progreso por fases
@@ -349,7 +292,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }
 
 // ================= NUEVO CÓDIGO PARA ESTADOS DEL PRODUCTO =================
-  Widget _buildProductStatusCard(BatchProductModel product) {
+  Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
   return Card(
     child: Padding(
       padding: const EdgeInsets.all(16),
@@ -503,12 +446,134 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               ),
             ],
           ],
+          const SizedBox(height: 8),
+          const Divider(height: 1),
+          const SizedBox(height: 8),
+          _buildProductStatusActions(product, user),
+          const SizedBox(height: 8),
         ],
       ),
     ),
   );
 }
 
+Widget _buildProductStatusActions(BatchProductModel product, UserModel? user) {
+    // Si no tiene permisos, no mostramos nada (ni siquiera el título)
+    if (user?.canManageProduction != true) return const SizedBox.shrink();
+
+    // 1. Preparamos la lista de acciones disponibles
+    final List<Widget> actions = [];
+
+    // Enviar al cliente
+    if (product.isInStudio && product.isPending) {
+      actions.add(_buildActionButton(
+        icon: Icons.send,
+        label: 'Enviar al Cliente',
+        color: Colors.blue,
+        onPressed: () => _handleAction('send_to_client', product),
+      ));
+    }
+
+    // Aprobar / Rechazar (Hold)
+    if (product.isHold) {
+      actions.add(_buildActionButton(
+        icon: Icons.check_circle,
+        label: 'Aprobar',
+        color: Colors.green,
+        onPressed: () => _handleAction('approve', product),
+      ));
+      // Añadimos un pequeño espacio entre botones si hay varios
+      if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
+      
+      actions.add(_buildActionButton(
+        icon: Icons.cancel,
+        label: 'Rechazar',
+        color: Colors.red,
+        onPressed: () => _handleAction('reject', product),
+      ));
+    }
+
+    // Clasificar devoluciones (CAO)
+    if (product.isCAO && !product.isReturnBalanced) {
+      actions.add(_buildActionButton(
+        icon: Icons.category,
+        label: 'Clasificar Devoluciones',
+        color: Colors.orange,
+        onPressed: () => _handleAction('classify_returns', product),
+      ));
+    }
+
+    // Mover a Control
+    if (product.isPending && !product.isInStudio) {
+      actions.add(_buildActionButton(
+        icon: Icons.verified,
+        label: 'Mover a Control',
+        color: Colors.blue,
+        onPressed: () => _handleAction('move_to_control', product),
+      ));
+    }
+
+    // 2. Construimos la UI
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Acciones',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        
+        // 3. Lógica para mostrar acciones o el mensaje de vacío
+        if (actions.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0),
+            child: Text(
+              'No hay acciones disponibles',
+              style: TextStyle(
+                color: Colors.grey,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          )
+        else
+          ...actions,
+      ],
+    );
+  }
+
+  // Helper para crear los botones de la lista con estilo uniforme
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: SizedBox(
+        width: double.infinity, // Ocupa todo el ancho disponible
+        child: OutlinedButton.icon(
+          onPressed: onPressed,
+          icon: Icon(icon, color: color),
+          label: Text(
+            label,
+            style: TextStyle(color: color, fontWeight: FontWeight.bold),
+          ),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            side: BorderSide(color: color.withOpacity(0.5)),
+            alignment: Alignment.centerLeft, // Alinea contenido a la izquierda como una lista
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildPhasesCard(BatchProductModel product, UserModel? user) {
     return Card(
@@ -817,7 +882,6 @@ Widget _buildPhaseItem(
                   backgroundColor: Colors.orange,
                 ),
               );
-              setState(() {});
             }
           },
           style: FilledButton.styleFrom(backgroundColor: Colors.orange),
@@ -961,7 +1025,6 @@ Widget _buildPhaseItem(
                     backgroundColor: Colors.green,
                   ),
                 );
-                setState(() {}); // Refrescar pantalla
               } else if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -981,7 +1044,6 @@ Widget _buildPhaseItem(
 Future<void> _handleAction(
   String action,
   BatchProductModel product,
-  UserModel user,
 ) async {
   final batchService = Provider.of<ProductionBatchService>(context, listen: false);
 
@@ -1001,7 +1063,6 @@ Future<void> _handleAction(
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Producto enviado al cliente')),
           );
-          setState(() {});
         }
       }
       break;
@@ -1024,7 +1085,6 @@ Future<void> _handleAction(
               backgroundColor: Colors.green,
             ),
           );
-          setState(() {});
         }
       }
       break;
@@ -1052,7 +1112,6 @@ Future<void> _handleAction(
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Movido a Control')),
           );
-          setState(() {});
         }
       }
       break;
@@ -1064,96 +1123,100 @@ Future<void> _handleAction(
 }
 
 void _showRejectDialog(BatchProductModel product) {
-  final returnedController = TextEditingController(text: product.quantity.toString());
+  final returnedController = TextEditingController();
   final reasonController = TextEditingController();
 
   showDialog(
     context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Rechazar Producto'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('El producto será marcado como CAO (no conforme).'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: returnedController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Unidades devueltas *',
-                border: OutlineInputBorder(),
-                helperText: 'Cantidad de productos devueltos',
-              ),
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) {
+        final returned = int.tryParse(returnedController.text) ?? 0;
+        final isValidQuantity = returned >= 1 && returned <= product.quantity;
+
+        return AlertDialog(
+          title: const Text('Rechazar Producto'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Total de productos: ${product.quantity}'),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: returnedController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Unidades devueltas *',
+                    border: const OutlineInputBorder(),
+                    helperText: 'Entre 1 y ${product.quantity}',
+                    errorText: returned > 0 && !isValidQuantity
+                        ? 'Debe ser entre 1 y ${product.quantity}'
+                        : null,
+                    suffixIcon: returned > 0
+                        ? Icon(
+                            isValidQuantity ? Icons.check_circle : Icons.error,
+                            color: isValidQuantity ? Colors.green : Colors.red,
+                          )
+                        : null,
+                  ),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Motivo del rechazo *',
+                    border: OutlineInputBorder(),
+                    hintText: 'Describe los defectos encontrados...',
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Motivo del rechazo *',
-                border: OutlineInputBorder(),
-                hintText: 'Describe los defectos encontrados...',
-              ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: !isValidQuantity || reasonController.text.trim().isEmpty
+                  ? null
+                  : () async {
+                      final batchService = Provider.of<ProductionBatchService>(
+                        context,
+                        listen: false,
+                      );
+
+                      Navigator.pop(context);
+
+                      final success = await batchService.rejectProduct(
+                        organizationId: widget.organizationId,
+                        batchId: widget.batchId,
+                        productId: widget.productId,
+                        returnedCount: returned,
+                        returnReason: reasonController.text.trim(),
+                      );
+
+                      if (success && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Producto rechazado (CAO)'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        // No hace falta setState, el Stream se actualiza automáticamente
+                      }
+                    },
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Rechazar'),
             ),
           ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () async {
-            final returned = int.tryParse(returnedController.text);
-            if (returned == null || returned <= 0) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Cantidad inválida')),
-              );
-              return;
-            }
-            if (reasonController.text.trim().isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Debes indicar el motivo')),
-              );
-              return;
-            }
-
-            final batchService = Provider.of<ProductionBatchService>(
-              context,
-              listen: false,
-            );
-
-            Navigator.pop(context);
-
-            final success = await batchService.rejectProduct(
-              organizationId: widget.organizationId,
-              batchId: widget.batchId,
-              productId: widget.productId,
-              returnedCount: returned,
-              returnReason: reasonController.text.trim(),
-            );
-
-            if (success && mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Producto rechazado (CAO)'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              setState(() {});
-            }
-          },
-          style: FilledButton.styleFrom(backgroundColor: Colors.red),
-          child: const Text('Rechazar'),
-        ),
-      ],
+        );
+      },
     ),
   );
 }
-
 // AÑADIR diálogo para clasificar devoluciones:
 
 void _showClassifyReturnsDialog(BatchProductModel product) {
@@ -1260,7 +1323,6 @@ void _showClassifyReturnsDialog(BatchProductModel product) {
                             backgroundColor: Colors.green,
                           ),
                         );
-                        setState(() {});
                       }
                     },
               child: const Text('Guardar'),
