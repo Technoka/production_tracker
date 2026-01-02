@@ -11,6 +11,7 @@ class OrganizationModel {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final bool isActive;
+  final String? logoUrl;
 
   OrganizationModel({
     required this.id,
@@ -23,6 +24,7 @@ class OrganizationModel {
     required this.createdAt,
     this.updatedAt,
     this.isActive = true,
+    this.logoUrl,
   });
 
   Map<String, dynamic> toMap() {
@@ -37,6 +39,7 @@ class OrganizationModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'isActive': isActive,
+      'logoUrl': logoUrl,
     };
   }
 
@@ -54,6 +57,7 @@ class OrganizationModel {
           ? (map['updatedAt'] as Timestamp).toDate()
           : null,
       isActive: map['isActive'] as bool? ?? true,
+      logoUrl: map['logoUrl'],
     );
   }
 
@@ -68,6 +72,7 @@ class OrganizationModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isActive,
+    String? logoUrl,
   }) {
     return OrganizationModel(
       id: id ?? this.id,
@@ -80,6 +85,7 @@ class OrganizationModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,
+      logoUrl: logoUrl ?? this.logoUrl,
     );
   }
 

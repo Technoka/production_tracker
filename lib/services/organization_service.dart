@@ -1,15 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:math';
 import '../models/organization_model.dart';
 import '../models/user_model.dart';
-
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart'; // Importar storage
+import 'package:flutter_image_compress/flutter_image_compress.dart'; // Importar compresor
 
 class OrganizationService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
   final _uuid = const Uuid();
 
   OrganizationModel? _currentOrganization;
@@ -122,6 +124,38 @@ class OrganizationService extends ChangeNotifier {
       }
       return null;
     });
+  }
+
+  // ==================== LOGO DE LA ORGANIZACIÓN ====================
+  Future<String?> uploadOrganizationLogo(String orgId, File imageFile) async {
+    try {
+      // 1. Definir la ruta en Storage
+      final ref = _storage.ref().child('organizations/$orgId/logo.jpg');
+
+      // 2. Comprimir y redimensionar la imagen antes de subir
+      // Esto asegura un tamaño fijo y optimizado.
+      final Uint8List? compressedBytes = await FlutterImageCompress.compressWithFile(
+        imageFile.absolute.path,
+        minWidth: 512, // Ancho fijo objetivo
+        minHeight: 512, // Alto fijo objetivo
+        quality: 85, // Calidad JPEG (0-100)
+        format: CompressFormat.jpeg,
+      );
+
+      if (compressedBytes == null) throw Exception("Error al comprimir imagen");
+
+      // 3. Subir los bytes comprimidos
+      final uploadTask = ref.putData(compressedBytes, SettableMetadata(contentType: 'image/jpeg'));
+      await uploadTask.whenComplete(() => null);
+
+      // 4. Obtener la URL de descarga
+      final String downloadUrl = await ref.getDownloadURL();
+      return downloadUrl;
+    } catch (e) {
+      print('Error uploading logo: $e');
+      // En un caso real, quizás quieras relanzar el error para manejarlo en la UI
+      return null;
+    }
   }
 
   // ==================== INVITACIONES POR EMAIL ====================
@@ -574,6 +608,7 @@ Future<bool> acceptInvitation({
     required String organizationId,
     String? name,
     String? description,
+    String? logoUrl,
   }) async {
     try {
       _isLoading = true;
@@ -585,6 +620,11 @@ Future<bool> acceptInvitation({
 
       if (name != null) updates['name'] = name;
       if (description != null) updates['description'] = description;
+      
+      // Solo actualizamos el logoUrl si se provee uno nuevo (o null para borrarlo si fuera necesario)
+      if (logoUrl != null) {
+        updates['logoUrl'] = logoUrl;
+      }
 
       await _firestore
           .collection('organizations')
