@@ -5,19 +5,22 @@ import '../models/production_batch_model.dart';
 import '../services/production_batch_service.dart';
 import '../screens/production/production_batches_list_screen.dart';
 
-class ProductionDashboardWidget extends StatelessWidget {
+class ProductionDashboardWidget extends StatefulWidget { // Cambiar a StatefulWidget
   final String organizationId;
+  const ProductionDashboardWidget({super.key, required this.organizationId});
 
-  const ProductionDashboardWidget({
-    super.key,
-    required this.organizationId,
-  });
+  @override
+  State<ProductionDashboardWidget> createState() => _ProductionDashboardWidgetState();
+}
+
+class _ProductionDashboardWidgetState extends State<ProductionDashboardWidget> {
+  bool _isExpanded = false; // Estado para controlar el despliegue
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<ProductionBatchModel>>(
       stream: Provider.of<ProductionBatchService>(context, listen: false)
-          .watchBatches(organizationId),
+          .watchBatches(widget.organizationId),
       builder: (context, batchSnapshot) {
         if (batchSnapshot.connectionState == ConnectionState.waiting) {
           return const Card(
@@ -54,86 +57,81 @@ class ProductionDashboardWidget extends StatelessWidget {
 
             final stats = statsSnapshot.data ?? {};
 
-            return Card(
+return Card(
               elevation: 4,
-              child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ProductionBatchesListScreen(),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header
-                      Row(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding: const EdgeInsets.all(12), // Padding reducido
+                child: Column(
+                  children: [
+                    // CABECERA: Siempre visible con los TOTALES
+                    InkWell(
+                      onTap: () => setState(() => _isExpanded = !_isExpanded),
+                      child: Row(
                         children: [
-                          Icon(
-                            Icons.dashboard,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 28,
-                          ),
+                          Icon(Icons.dashboard, color: Theme.of(context).colorScheme.primary, size: 24),
                           const SizedBox(width: 12),
                           const Expanded(
-                            child: Text(
-                              'Dashboard de Producción',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: Text('Dashboard de Producción', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           ),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            size: 16,
-                            color: Colors.grey[600],
-                          ),
+                          // Mostrar resumen rápido cuando está cerrado
+                          if (!_isExpanded) ...[
+                            _buildMiniBadge(stats['phase_studio'] ?? 0, Colors.green, Icons.brush),
+                            const SizedBox(width: 8),
+                            _buildMiniBadge(stats['status_ok'] ?? 0, Colors.green, Icons.check_circle),
+                            const SizedBox(width: 12),
+                          ],
+                          Icon(_isExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.grey),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      const Divider(height: 1, thickness: 3),
-                      const SizedBox(height: 16),
+                    ),
 
-                      // Dos columnas: Fases y Estados
+                    // CUERPO DESPLEGABLE
+                    if (_isExpanded) ...[
+                      const Divider(height: 24),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // COLUMNA 1: FASES DE PRODUCCIÓN
-                          Expanded(
-                            child: _buildPhasesSection(stats),
-                          ),
-                          
-                          const SizedBox(width: 16),
-                          
-                          // Divisor vertical
-                          Container(
-                            width: 1,
-                            height: 280,
-                            color: Colors.grey[300],
-                          ),
-                          
-                          const SizedBox(width: 16),
-                          
-                          // COLUMNA 2: ESTADOS
-                          Expanded(
-                            child: _buildStatusSection(stats),
-                          ),
+                          Expanded(child: _buildPhasesSection(stats)),
+                          const SizedBox(width: 12),
+                          Container(width: 1, height: 260, color: Colors.grey[300]),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildStatusSection(stats)),
                         ],
                       ),
-                    ],
-                  ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () {
+                             Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductionBatchesListScreen()));
+                          },
+                          child: const Text("Ver todos los lotes"),
+                        ),
+                      )
+                    ]
+                  ],
                 ),
               ),
             );
           },
         );
       },
+    );
+  }
+
+// Helper nuevo para badges pequeños en estado colapsado
+  Widget _buildMiniBadge(int count, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text('$count', style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 14)),
+        ],
+      ),
     );
   }
 
@@ -354,14 +352,14 @@ class ProductionDashboardWidget extends StatelessWidget {
               color: color.withOpacity(0.2),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(icon, color: color, size: 18),
+            child: Icon(icon, color: color, size: 12),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: Colors.grey[800],
               ),
@@ -376,7 +374,7 @@ class ProductionDashboardWidget extends StatelessWidget {
             child: Text(
               count.toString(),
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -416,7 +414,7 @@ class ProductionDashboardWidget extends StatelessWidget {
     for (final batch in batches) {
       try {
         final products = await batchService
-            .watchBatchProducts(organizationId, batch.id)
+            .watchBatchProducts(widget.organizationId, batch.id)
             .first;
 
         for (final product in products) {
