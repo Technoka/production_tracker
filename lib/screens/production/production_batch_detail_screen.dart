@@ -692,51 +692,52 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
     );
   }
 
-  void _showDeleteConfirmation(ProductionBatchModel batch) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar Lote'),
-        content: Text(
-          '¿Estás seguro de eliminar el lote ${batch.batchNumber}?\n\n'
-          'Esta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final batchService = Provider.of<ProductionBatchService>(
-                context,
-                listen: false,
-              );
-
-              Navigator.pop(context); // Cerrar diálogo
-
-              final success = await batchService.deleteBatch(
-                widget.organizationId,
-                widget.batchId,
-              );
-
-              if (success && mounted) {
-                Navigator.pop(context); // Volver a lista
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Lote eliminado'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text('Eliminar'),
-          ),
-        ],
+void _showDeleteConfirmation(ProductionBatchModel batch) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Eliminar Lote'),
+      content: Text(
+        '¿Estás seguro de eliminar el lote ${batch.batchNumber}?\n\n'
+        'Esta acción no se puede deshacer.',
       ),
-    );
-  }
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () async {
+            final batchService = Provider.of<ProductionBatchService>(
+              context,
+              listen: false,
+            );
+
+            Navigator.pop(context); // Cerrar diálogo
+            Navigator.pop(context); // Volver a lista ANTES de eliminar
+
+            final success = await batchService.deleteBatch(
+              widget.organizationId,
+              widget.batchId,
+            );
+
+            if (success && mounted) {
+              // Mostrar mensaje en la pantalla anterior
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Lote eliminado'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.red,
+          ),
+          child: const Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
+}
 }
