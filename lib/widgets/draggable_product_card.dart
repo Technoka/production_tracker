@@ -7,8 +7,10 @@ class DraggableProductCard extends StatelessWidget {
   final BatchProductModel product;
   final List<ProductionPhase> allPhases;
   final String batchNumber;
-  final ProductionBatchModel batch; // AÑADIR: Necesitamos el batch completo
+  final ProductionBatchModel batch;
   final VoidCallback? onTap;
+  final VoidCallback? onDragStarted;
+  final VoidCallback? onDragEnd;
 
   const DraggableProductCard({
     Key? key,
@@ -17,6 +19,8 @@ class DraggableProductCard extends StatelessWidget {
     required this.batchNumber,
     required this.batch, // AÑADIR: Parámetro requerido
     this.onTap,
+    this.onDragStarted,
+    this.onDragEnd,
   }) : super(key: key);
 
   @override
@@ -27,6 +31,13 @@ class DraggableProductCard extends StatelessWidget {
         'batch': batch, // CORRECCIÓN: Incluir el batch completo
         'fromPhase': product.currentPhase,
       },
+
+      // ASIGNAR CALLBACKS AQUÍ PARA EVITAR ERROR DE BUILD
+      onDragStarted: onDragStarted,
+      onDraggableCanceled: (_, __) => onDragEnd?.call(),
+      onDragEnd: (_) => onDragEnd?.call(),
+      onDragCompleted: onDragEnd,
+
       feedback: Material(
         elevation: 8,
         borderRadius: BorderRadius.circular(8),
@@ -47,7 +58,7 @@ class DraggableProductCard extends StatelessWidget {
   }
 
   Widget _buildCard(BuildContext context) {
-    final totalProgress = product.totalProgress;
+final totalProgress = product.totalProgress;
     
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -351,6 +351,10 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
               }
               
               final productData = data['product'] as BatchProductModel;
+
+              // Si la fase es la misma, rechazamos el drop inmediatamente
+              if (productData.currentPhase == phase.id) return false;
+
               if (productData.currentPhase != phase.id && isAtWipLimit) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -364,20 +368,10 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
               return true;
             },
             onAccept: (data) {
-              // NUEVO: Detener auto-scroll al soltar
-              setState(() {
-                _isDragging = false;
-                _scrollSpeed = 0;
-              });
               _showMoveConfirmationDialog(data, phase);
             },
             builder: (context, candidateData, rejectedData) {
               final isHovering = candidateData.isNotEmpty;
-              
-              // NUEVO: Activar flag de dragging
-              if (isHovering && !_isDragging) {
-                setState(() => _isDragging = true);
-              }
               
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -606,6 +600,8 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
                         batchNumber: batch.batchNumber,
                         batch: batch,
                         onTap: () => _handleProductTap(product, batch),
+                                    onDragStarted: () { _isDragging = true; },
+                                    onDragEnd: () { _isDragging = false; _scrollSpeed = 0; },
                       );
                     },
                   ),
