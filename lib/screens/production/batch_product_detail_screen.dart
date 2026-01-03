@@ -292,7 +292,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }
 
 // ================= NUEVO CÓDIGO PARA ESTADOS DEL PRODUCTO =================
-  Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
+Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
   return Card(
     child: Padding(
       padding: const EdgeInsets.all(16),
@@ -301,13 +301,18 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.color_lens, color: product.statusColor),
+              Icon(
+                _getStatusIcon(product.productStatus),
+                color: product.statusColor,
+              ),
               const SizedBox(width: 8),
-              const Text(
-                'Estado del Producto',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              const Expanded(
+                child: Text(
+                  'Estado del Producto',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -377,7 +382,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             const SizedBox(height: 8),
           ],
 
-          if (product.isCAO) ...[
+          if (product.isCAO || product.isControl) ...[
             const Divider(),
             const SizedBox(height: 8),
             Text(
@@ -403,41 +408,106 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               ),
             ],
             
-            if (product.isReturnBalanced) ...[
-              const SizedBox(height: 8),
+            // NUEVO: Mostrar estado de clasificación en Control
+            if (product.isControl) ...[
+              const SizedBox(height: 12),
               const Divider(),
               const SizedBox(height: 8),
-              _buildInfoRow(
-                Icons.build,
-                'Reparados',
-                '${product.repairedCount} unidades',
+              Text(
+                'Clasificación',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue[700],
+                ),
               ),
-              const SizedBox(height: 4),
-              _buildInfoRow(
-                Icons.delete_forever,
-                'Descartados',
-                '${product.discardedCount} unidades',
-              ),
-            ] else if (product.returnedCount > 0) ...[
+              const SizedBox(height: 8),
+              
+              if (product.isReturnBalanced) ...[
+                // Ya está clasificado
+                _buildInfoRow(
+                  Icons.build,
+                  'Reparados',
+                  '${product.repairedCount} unidades',
+                ),
+                const SizedBox(height: 4),
+                _buildInfoRow(
+                  Icons.delete_forever,
+                  'Descartados',
+                  '${product.discardedCount} unidades',
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green[300]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green[700]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Clasificación completa. Listo para aprobar.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.green[900],
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                // Pendiente de clasificar
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange[300]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning, color: Colors.orange[700]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Pendiente de clasificar (Reparados/Basura)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.orange[900],
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ] else if (product.isCAO) ...[
+              // En CAO, aún no está en Control
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange[50],
+                  color: Colors.blue[50],
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange[300]!),
+                  border: Border.all(color: Colors.blue[300]!),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.warning, color: Colors.orange[700]),
+                    Icon(Icons.info_outline, color: Colors.blue[700]),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Pendiente clasificar devoluciones',
+                        'Esperando recepción de productos devueltos',
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.orange[900],
-                          fontWeight: FontWeight.bold,
+                          color: Colors.blue[900],
                         ),
                       ),
                     ),
@@ -485,8 +555,20 @@ Widget _buildProductStatusActions(BatchProductModel product, UserModel? user) {
     // Añadimos un pequeño espacio entre botones si hay varios
     if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
 
-      // FLUJO: CAO sin clasificar → Clasificar
-    if (product.isCAO && !product.isReturnBalanced) {
+    // FLUJO: CAO → Control (sin clasificar)
+    if (product.isCAO && !product.isControl) {
+      actions.add(_buildActionButton(
+        icon: Icons.verified,
+        label: 'Recibir y Evaluar (→ Control)',
+        color: Colors.blue,
+        onPressed: () => _handleAction('move_to_control', product),
+      ));
+    }
+    // Añadimos un pequeño espacio entre botones si hay varios
+    if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
+    
+    // FLUJO: Control sin clasificar → Clasificar
+    if (product.isControl && !product.isReturnBalanced) {
       actions.add(_buildActionButton(
         icon: Icons.category,
         label: 'Clasificar Devoluciones',
@@ -495,15 +577,15 @@ Widget _buildProductStatusActions(BatchProductModel product, UserModel? user) {
       ));
     }
     // Añadimos un pequeño espacio entre botones si hay varios
-    if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
-
-      // FLUJO: CAO clasificado → Control
-    if (product.isCAO && product.isReturnBalanced && !product.isControl) {
+    if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
+    
+    // FLUJO: Control clasificado → OK
+    if (product.isControl && product.isReturnBalanced) {
       actions.add(_buildActionButton(
-        icon: Icons.verified,
-        label: 'Analizar (→ Control)',
-        color: Colors.blue,
-        onPressed: () => _handleAction('move_to_control', product),
+        icon: Icons.check_circle,
+        label: 'Finalizar (→ OK)',
+        color: Colors.green,
+        onPressed: () => _handleAction('approve', product),
       ));
     }
     // Añadimos un pequeño espacio entre botones si hay varios
@@ -529,16 +611,6 @@ Widget _buildProductStatusActions(BatchProductModel product, UserModel? user) {
     }
     // Añadimos un pequeño espacio entre botones si hay varios
     if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
-    
-      // FLUJO: Control → OK
-    if (product.isCAO && product.isReturnBalanced && !product.isControl) {
-      actions.add(_buildActionButton(
-        icon: Icons.check_circle,
-        label: 'Finalizar (→ OK)',
-        color: Colors.green,
-        onPressed: () => _handleAction('approve', product),
-      ));
-    }
 
     // 2. Construimos la UI
     return Column(
@@ -1107,20 +1179,23 @@ Future<void> _handleAction(
       _showRejectDirectlyDialog(product);
       break;
 
-    case 'send_to_client':
+    case 'move_to_control':
       final confirm = await _showConfirmDialog(
-        'Enviar al Cliente',
-        '¿Enviar este producto al cliente?\n\nEl estado cambiará a Hold.',
+        'Mover a Control',
+        '¿Confirmar que se han recibido los productos devueltos?\n\nSe moverán a Control para evaluación.',
       );
       if (confirm == true) {
-        final success = await batchService.sendProductToClient(
+        final success = await batchService.moveToControl(
           organizationId: widget.organizationId,
           batchId: widget.batchId,
           productId: widget.productId,
         );
         if (success && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Producto enviado al cliente')),
+            const SnackBar(
+              content: Text('Movido a Control'),
+              backgroundColor: Colors.blue,
+            ),
           );
         } else if (mounted && batchService.error != null) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1131,6 +1206,10 @@ Future<void> _handleAction(
           );
         }
       }
+      break;
+
+    case 'classify_returns':
+      _showClassifyReturnsDialog(product);
       break;
 
     case 'approve':
@@ -1164,36 +1243,6 @@ Future<void> _handleAction(
 
     case 'reject':
       _showRejectDialog(product);
-      break;
-
-    case 'classify_returns':
-      _showClassifyReturnsDialog(product);
-      break;
-
-    case 'move_to_control':
-      final confirm = await _showConfirmDialog(
-        'Mover a Control',
-        '¿Mover los productos devueltos a Control para análisis?',
-      );
-      if (confirm == true) {
-        final success = await batchService.moveToControl(
-          organizationId: widget.organizationId,
-          batchId: widget.batchId,
-          productId: widget.productId,
-        );
-        if (success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Movido a Control')),
-          );
-        } else if (mounted && batchService.error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(batchService.error!),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
       break;
 
     case 'delete':
@@ -1551,7 +1600,7 @@ String _getStatusDescription(String status) {
     case 'hold':
       return 'Enviado - Pendiente de evaluación del cliente';
     case 'control':
-      return 'En control de calidad';
+      return 'En evaluación - Clasificando devoluciones';
     case 'ok':
       return 'Aprobado por el cliente';
     default:
