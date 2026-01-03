@@ -148,57 +148,7 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Personalización (opcional)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Personalización (opcional)',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _colorController,
-                      decoration: const InputDecoration(
-                        labelText: 'Color',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.palette),
-                        hintText: 'Ej: Negro, Marrón, Rojo...',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _materialController,
-                      decoration: const InputDecoration(
-                        labelText: 'Material',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.texture),
-                        hintText: 'Ej: Cuero, Sintético...',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _specialDetailsController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'Detalles especiales',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.notes),
-                        hintText: 'Especificaciones adicionales...',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            
             const SizedBox(height: 16),
 
             // Precio (opcional, solo para roles autorizados)
