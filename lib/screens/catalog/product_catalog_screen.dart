@@ -268,6 +268,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                                     builder: (context) => EditProductCatalogScreen(
                                       product: product,
                                       currentUser: widget.currentUser,
+                                      organizationId: widget.organizationId,
                                     ),
                                   ),
                                 );

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../models/product_catalog_model.dart';
 import '../../models/user_model.dart';
 import '../../services/product_catalog_service.dart';
 import '../../utils/role_utils.dart';
 import 'edit_product_catalog_screen.dart';
+import '../../models/client_model.dart';
+import '../../services/client_service.dart';
+import 'package:provider/provider.dart';
 
 class ProductCatalogDetailScreen extends StatefulWidget {
   final String productId;
@@ -107,6 +109,7 @@ class _ProductCatalogDetailScreenState
                     builder: (context) => EditProductCatalogScreen(
                       product: product,
                       currentUser: widget.currentUser,
+                      organizationId: widget.organizationId,
                     ),
                   ),
                 );
@@ -240,9 +243,31 @@ class _ProductCatalogDetailScreenState
             _buildInfoCard(context, [
               _buildInfoRow('Nombre', product.name),
               _buildInfoRow('Referencia', product.reference, monospace: true),
-              _buildInfoRow('Descripción', product.description),
-              if (product.category != null)
-                _buildInfoRow('Categoría', product.category!),
+              if (!product.isPublic) ...[
+  FutureBuilder<ClientModel?>(
+    // Buscamos el cliente por su ID
+    future: Provider.of<ClientService>(context, listen: false)
+        .getClient(widget.organizationId, product.clientId!),
+    builder: (context, snapshot) {
+      String displayValue = 'Cargando...';
+      
+      // Si ya tenemos datos, mostramos el nombre
+      if (snapshot.hasData && snapshot.data != null) {
+        displayValue = snapshot.data!.name;
+      } 
+      // Si falla, mostramos "Error" o el ID original como respaldo
+      else if (snapshot.hasError) {
+        displayValue = 'Error';
+      }
+
+      // Retornamos tu fila de información con el nombre
+      return _buildInfoRow('Cliente', displayValue);
+    },
+  ),
+],
+              if (product.isPublic) _buildInfoRow('Cliente', 'Producto público'),
+               _buildInfoRow('Descripción', product.description),
+              if (product.category != null) _buildInfoRow('Categoría', product.category!),
             ]),
             const SizedBox(height: 16),
 
