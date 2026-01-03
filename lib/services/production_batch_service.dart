@@ -257,7 +257,7 @@ Future<bool> rejectProductDirectly({
 
 
 
-/// Aprobar producto (Hold -> OK)
+/// Aprobar producto (Hold → OK o Control → OK)
 Future<bool> approveProduct({
   required String organizationId,
   required String batchId,
@@ -270,6 +270,13 @@ Future<bool> approveProduct({
     // Puede aprobar desde Hold o Control
     if (!product.isHold && !product.isControl) {
       _error = 'El producto debe estar en Hold o Control';
+      notifyListeners();
+      return false;
+    }
+    
+    // Si está en Control, DEBE tener clasificación
+    if (product.isControl && !product.isReturnBalanced) {
+      _error = 'Debes clasificar las devoluciones primero';
       notifyListeners();
       return false;
     }
@@ -324,7 +331,8 @@ Future<bool> rejectProduct({
   }
 }
 
-/// Clasificar productos devueltos
+// MANTENER classifyReturns pero SOLO funciona en Control:
+/// Clasificar productos devueltos (solo en Control)
 Future<bool> classifyReturns({
   required String organizationId,
   required String batchId,
@@ -333,10 +341,17 @@ Future<bool> classifyReturns({
   required int discardedCount,
 }) async {
   try {
-    // Validar que sumen correctamente
     final product = await getBatchProduct(organizationId, batchId, productId);
     if (product == null) return false;
     
+    // CAMBIO: Solo permitir clasificar en Control
+    if (!product.isControl) {
+      _error = 'El producto debe estar en Control para clasificar';
+      notifyListeners();
+      return false;
+    }
+    
+    // Validar que sumen correctamente
     if ((repairedCount + discardedCount) != product.returnedCount) {
       _error = 'La suma de reparados y descartados debe ser igual a devueltos';
       notifyListeners();
@@ -363,7 +378,7 @@ Future<bool> classifyReturns({
   }
 }
 
-/// Pasar producto a Control
+/// Pasar producto a Control (desde CAO)
 Future<bool> moveToControl({
   required String organizationId,
   required String batchId,
@@ -377,12 +392,8 @@ Future<bool> moveToControl({
       return false;
     }
     
-    // Validar que esté clasificado
-    if (!product.isReturnBalanced) {
-      _error = 'Primero debes clasificar las devoluciones';
-      notifyListeners();
-      return false;
-    }
+    // YA NO se requiere clasificación previa
+    // Se clasifica DESPUÉS de estar en Control
     
     await _firestore
         .collection('organizations')
