@@ -349,7 +349,7 @@ Widget _buildBatchCard(
             ),
 
             // Indicadores adicionales
-            if (batch.isDelayed || batch.priority <= 2) ...[
+            if (batch.isDelayed || batch.urgencyNumericValue <= 2) ...[
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -364,7 +364,7 @@ Widget _buildBatchCard(
                         color: Colors.orange[900],
                       ),
                     ),
-                  if (batch.priority <= 2)
+                  if (batch.urgencyNumericValue <= 2)
                     Chip(
                       label: const Text('Alta Prioridad'),
                       avatar: const Icon(Icons.priority_high, size: 16),

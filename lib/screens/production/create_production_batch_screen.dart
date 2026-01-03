@@ -234,52 +234,6 @@ ValueListenableBuilder<String>(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Prioridad',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Nivel: $_priority',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                              Slider(
-                                value: _priority.toDouble(),
-                                min: 1,
-                                max: 5,
-                                divisions: 4,
-                                label: _priority.toString(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _priority = value.toInt();
-                                  });
-                                },
-                              ),
-                              Text(
-                                '1 = Máxima, 5 = Baja',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
                       'Urgencia',
                       style: TextStyle(
                         fontSize: 16,
@@ -579,7 +533,6 @@ Future<void> _createBatch() async {
       notes: _notesController.text.trim().isEmpty
           ? null
           : _notesController.text.trim(),
-      priority: _priority,
       urgencyLevel: _urgencyLevel,
       expectedCompletionDate: _expectedCompletionDate,
     );
