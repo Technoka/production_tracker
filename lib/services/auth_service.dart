@@ -473,5 +473,22 @@ Future<void> loadUserData() async {
           return UserModel.fromMap(snapshot.data()!);
         });
   }
-}
 
+    /// Obtener cliente por ID (one-time)
+  Future<UserModel?> getUserById(
+    String userId,
+  ) async {
+    try {
+      final doc = await _firestore
+          .collection('users')
+            .doc(userId)
+          .get();
+
+      if (!doc.exists) return null;
+      return UserModel.fromMap(doc.data()!);
+    } catch (e) {
+      print('Error getting user: $e');
+      return null;
+    }
+  }
+}
