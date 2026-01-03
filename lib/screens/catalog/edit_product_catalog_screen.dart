@@ -96,6 +96,9 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
     _tags = List.from(widget.product.tags);
     _imageUrls = List.from(widget.product.imageUrls);
 
+    _isPublic = widget.product.isPublic;
+    _selectedClientId = widget.product.clientId;
+
     // Detectar cambios
     _nameController.addListener(_markAsChanged);
     _referenceController.addListener(_markAsChanged);
