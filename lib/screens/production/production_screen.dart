@@ -11,6 +11,7 @@ import '../../services/client_service.dart';
 import 'create_production_batch_screen.dart';
 import 'production_batch_detail_screen.dart';
 import 'batch_product_detail_screen.dart';
+import '../../utils/filter_utils.dart';
 
 enum ProductionView { batches, products }
 
@@ -44,8 +45,40 @@ class _ProductionScreenState extends State<ProductionScreen> {
   String? _productPhaseFilter;
   String? _productClientFilter;
   String? _productBatchFilter;
-  ProductStatus? _productStatusFilter; 
+  String? _productStatusFilter; 
   String _productSearchQuery = '';
+
+  // Verificar si hay filtros activos
+  bool get _hasActiveFilters {
+    if (_currentView == ProductionView.batches) {
+      return _batchSearchQuery.isNotEmpty || 
+             _batchClientFilter != null || 
+             _batchUrgencyFilter != null;
+    } else {
+      return _productSearchQuery.isNotEmpty ||
+             _productStatusFilter != null ||
+             _productPhaseFilter != null ||
+             _productClientFilter != null ||
+             _productBatchFilter != null;
+    }
+  }
+  
+  // Limpiar filtros según vista actual
+  void _clearAllFilters() {
+    setState(() {
+      if (_currentView == ProductionView.batches) {
+        _batchSearchQuery = '';
+        _batchClientFilter = null;
+        _batchUrgencyFilter = null;
+      } else {
+        _productSearchQuery = '';
+        _productStatusFilter = null;
+        _productPhaseFilter = null;
+        _productClientFilter = null;
+        _productBatchFilter = null;
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -60,7 +93,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
       _currentView = ProductionView.products;
     }
     if (widget.initialStatusFilter != null) {
-      // Para estado de lote
+      _productStatusFilter = widget.initialStatusFilter;
       _currentView = ProductionView.products;
     }
   }
@@ -188,18 +221,17 @@ Widget _buildFilterOption<T>({
         surfaceTintColor: Colors.white,
       ),
     ),
-    child: PopupMenuButton<T>(
+    child: PopupMenuButton<T?>(  // CAMBIO: Añadir ? al tipo genérico
       initialValue: value,
       tooltip: 'Filtrar por $label',
       offset: const Offset(0, 35),
       onSelected: (T? newValue) {
-        // CORRECCIÓN: Llamamos a onChanged con el valor, incluso si es null
         onChanged(newValue);
       },
       itemBuilder: (BuildContext context) {
         return [
-          // Opción "Todos" explícita
-          PopupMenuItem<T>(
+          // Opción "Todos" - el valor null se pasa correctamente ahora
+          PopupMenuItem<T?>(
             value: null,
             // CORRECCIÓN: Usamos un valor especial para detectar cuando se selecciona "Todos"
             onTap: () {
@@ -229,7 +261,7 @@ Widget _buildFilterOption<T>({
           const PopupMenuDivider(height: 1),
           ...items.map((item) {
             final isItemActive = item.value == value;
-            return PopupMenuItem<T>(
+            return PopupMenuItem<T?>(
               value: item.value,
               height: 36,
               child: DefaultTextStyle(
@@ -413,13 +445,13 @@ Widget _buildFilterOption<T>({
               alignment: WrapAlignment.start,
               children: [
                 // Filtro de Estado
-                _buildFilterOption<ProductStatus>(
+                _buildFilterOption<String>(
                   label: 'Estado',
                   value: _productStatusFilter,
                   icon: Icons.flag_outlined,
                   allLabel: 'Todos',
                   items: ProductStatus.values.map((status) => DropdownMenuItem(
-                    value: status,
+                    value: status.value,
                     child: Row(
                       children: [
                         Container(
@@ -470,7 +502,7 @@ Widget _buildFilterOption<T>({
                   value: _productBatchFilter,
                   icon: Icons.inventory_2_outlined,
                   allLabel: 'Todos',
-                  items: batches.map((b) => DropdownMenuItem(  // QUITA el primer item "Todos" duplicado
+                  items: batches.map((b) => DropdownMenuItem(
                     value: b.id,
                     child: Text(b.batchNumber, overflow: TextOverflow.ellipsis),
                   )).toList(),
@@ -511,7 +543,7 @@ Widget _buildFilterOption<T>({
         }
 
         if (batches.isEmpty) {
-          return const Center(child: Text('No hay lotes'));
+          return const Center(child: Text('No hay lotes para los filtros seleccionados'));
         }
 
         return ListView.builder(
@@ -542,14 +574,14 @@ Widget _buildFilterOption<T>({
             }
 
             var products = productsSnapshot.data ?? [];
-print('product status filter: $_productStatusFilter');
+            
             // --- CORRECCIÓN DE FILTRO DE ESTADO ---
             if (_productStatusFilter != null) {
               // El enum tiene un campo 'id' (el primer string en tu ejemplo: 'pending', 'cao', etc)
               // Comparamos el string del modelo (status) con el id del enum seleccionado.
               products = products.where((p) {
                 final prod = p['product'] as BatchProductModel;
-                return prod.productStatus == _productStatusFilter!.value; 
+                return prod.productStatus == _productStatusFilter!; 
               }).toList();
             }
 
