@@ -414,7 +414,7 @@ Widget _buildFilterOption<T>({
                 DropdownMenuItem(value: 'low', child: Text('Baja')),
                 DropdownMenuItem(value: 'medium', child: Text('Media')),
                 DropdownMenuItem(value: 'high', child: Text('Alta')),
-                DropdownMenuItem(value: 'critical', child: Text('Crítica')),
+                DropdownMenuItem(value: 'critical', child: Text('Urgente')),
               ],
               onChanged: (val) => setState(() => _batchUrgencyFilter = val),
             ),
