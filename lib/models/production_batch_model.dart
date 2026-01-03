@@ -18,6 +18,27 @@ enum BatchStatus {
   }
 }
 
+/// Nivel de urgencia del lote
+enum UrgencyLevel {
+  low('low', 'Baja', 1),
+  medium('medium', 'Media', 2),
+  high('high', 'Alta', 3),
+  critical('critical', 'Crítica', 4);
+
+  final String value;
+  final String displayName;
+  final int numericValue;
+  
+  const UrgencyLevel(this.value, this.displayName, this.numericValue);
+
+  static UrgencyLevel fromString(String value) {
+    return UrgencyLevel.values.firstWhere(
+      (level) => level.value == value.toLowerCase(),
+      orElse: () => UrgencyLevel.medium,
+    );
+  }
+}
+
 /// Modelo de Lote de Producción (Orden de Fabricación)
 class ProductionBatchModel {
   final String id;
@@ -36,14 +57,18 @@ class ProductionBatchModel {
   final DateTime createdAt;
   final DateTime updatedAt;
   
-  // Campos para futuras fases (SLA, Kanban)
-  final int priority; // 1-5 (1=máxima)
+  // CAMBIO: Se elimina priority, solo urgencyLevel
   final String urgencyLevel; // "low", "medium", "high", "critical"
+  
+  // Campos para futuras fases (SLA)
   final bool isDelayed;
   final double delayHours;
   final DateTime? expectedCompletionDate;
   final DateTime? startedAt; // Cuándo empezó producción real
   final DateTime? actualCompletionDate;
+  
+  // NUEVO: Contador de productos para generar números secuenciales
+  final int productSequenceCounter; // Último número usado
 
   ProductionBatchModel({
     required this.id,
@@ -61,13 +86,13 @@ class ProductionBatchModel {
     required this.createdBy,
     required this.createdAt,
     required this.updatedAt,
-    this.priority = 3,
     this.urgencyLevel = 'medium',
     this.isDelayed = false,
     this.delayHours = 0,
     this.expectedCompletionDate,
     this.startedAt,
     this.actualCompletionDate,
+    this.productSequenceCounter = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -87,7 +112,6 @@ class ProductionBatchModel {
       'createdBy': createdBy,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
-      'priority': priority,
       'urgencyLevel': urgencyLevel,
       'isDelayed': isDelayed,
       'delayHours': delayHours,
@@ -98,6 +122,7 @@ class ProductionBatchModel {
       'actualCompletionDate': actualCompletionDate != null 
           ? Timestamp.fromDate(actualCompletionDate!) 
           : null,
+      'productSequenceCounter': productSequenceCounter,
     };
   }
 
@@ -118,7 +143,6 @@ class ProductionBatchModel {
       createdBy: map['createdBy'] as String,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
-      priority: map['priority'] as int? ?? 3,
       urgencyLevel: map['urgencyLevel'] as String? ?? 'medium',
       isDelayed: map['isDelayed'] as bool? ?? false,
       delayHours: (map['delayHours'] as num?)?.toDouble() ?? 0,
@@ -131,6 +155,7 @@ class ProductionBatchModel {
       actualCompletionDate: map['actualCompletionDate'] != null
           ? (map['actualCompletionDate'] as Timestamp).toDate()
           : null,
+      productSequenceCounter: map['productSequenceCounter'] as int? ?? 0,
     );
   }
 
@@ -150,13 +175,13 @@ class ProductionBatchModel {
     String? createdBy,
     DateTime? createdAt,
     DateTime? updatedAt,
-    int? priority,
     String? urgencyLevel,
     bool? isDelayed,
     double? delayHours,
     DateTime? expectedCompletionDate,
     DateTime? startedAt,
     DateTime? actualCompletionDate,
+    int? productSequenceCounter,
   }) {
     return ProductionBatchModel(
       id: id ?? this.id,
@@ -174,19 +199,23 @@ class ProductionBatchModel {
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      priority: priority ?? this.priority,
       urgencyLevel: urgencyLevel ?? this.urgencyLevel,
       isDelayed: isDelayed ?? this.isDelayed,
       delayHours: delayHours ?? this.delayHours,
       expectedCompletionDate: expectedCompletionDate ?? this.expectedCompletionDate,
       startedAt: startedAt ?? this.startedAt,
       actualCompletionDate: actualCompletionDate ?? this.actualCompletionDate,
+      productSequenceCounter: productSequenceCounter ?? this.productSequenceCounter,
     );
   }
 
   // Getters útiles
   BatchStatus get statusEnum => BatchStatus.fromString(status);
   String get statusDisplayName => statusEnum.displayName;
+  
+  UrgencyLevel get urgencyEnum => UrgencyLevel.fromString(urgencyLevel);
+  String get urgencyDisplayName => urgencyEnum.displayName;
+  int get urgencyNumericValue => urgencyEnum.numericValue;
 
   /// Progreso del lote (0.0 a 1.0)
   double get progress {
@@ -207,9 +236,12 @@ class ProductionBatchModel {
   bool get isPending => status == BatchStatus.pending.value;
   bool get isInProgress => status == BatchStatus.inProgress.value;
   bool get isCompleted => status == BatchStatus.completed.value;
+  
+  /// Verificar si se puede añadir más productos (límite 10)
+  bool get canAddMoreProducts => totalProducts < 10;
 }
 
-// AÑADIR función helper para generar el número de lote
+// Mantener helper para generar el número de lote
 class BatchNumberHelper {
   /// Genera el número de lote basado en el prefijo
   /// Formato: XXXYYWW

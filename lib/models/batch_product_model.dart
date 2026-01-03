@@ -29,12 +29,18 @@ class BatchProductModel {
   final String batchId;
   final String productCatalogId; // Referencia al catálogo de productos
   final String productName;
-  final String? productReference; // Referencia del catálogo
+  final String? productReference; // Referencia del catálogo (SKU)
   final String? description;
   final int quantity;
   final String currentPhase; // Fase actual (phaseId)
   final String currentPhaseName;
   final Map<String, PhaseProgressData> phaseProgress; // phaseId -> progress
+  
+  // NUEVO: Número secuencial del producto dentro del lote
+  final int productNumber; // 1, 2, 3, ... hasta 10
+  
+  // NUEVO: Código único del producto (batchNumber-productNumber)
+  final String productCode; // Ej: "FL12601-3"
   
   // Personalización
   final String? color;
@@ -45,9 +51,7 @@ class BatchProductModel {
   final double? unitPrice;
   final double? totalPrice;
   
-  // Estado y bloqueo
-  final bool isBlocked;
-  final String? blockReason;
+  // CAMBIO: Se elimina isBlocked y blockReason
   
   // Control de calidad (para futuras fases)
   final String qualityStatus; // "pending", "approved", "rejected"
@@ -69,7 +73,7 @@ class BatchProductModel {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  // NUEVOS CAMPOS para estados
+  // Campos de estados
   final String productStatus; // "pending", "cao", "hold", "control", "ok"
   final DateTime? sentToClientAt; // Cuándo se envió al cliente
   final DateTime? evaluatedAt; // Cuándo el cliente lo evaluó
@@ -89,13 +93,13 @@ class BatchProductModel {
     required this.currentPhase,
     required this.currentPhaseName,
     required this.phaseProgress,
+    required this.productNumber,
+    required this.productCode,
     this.color,
     this.material,
     this.specialDetails,
     this.unitPrice,
     this.totalPrice,
-    this.isBlocked = false,
-    this.blockReason,
     this.qualityStatus = 'pending',
     this.qualityNotes,
     this.qualityCheckedBy,
@@ -131,13 +135,13 @@ class BatchProductModel {
       'phaseProgress': phaseProgress.map(
         (key, value) => MapEntry(key, value.toMap()),
       ),
+      'productNumber': productNumber,
+      'productCode': productCode,
       'color': color,
       'material': material,
       'specialDetails': specialDetails,
       'unitPrice': unitPrice,
       'totalPrice': totalPrice,
-      'isBlocked': isBlocked,
-      'blockReason': blockReason,
       'qualityStatus': qualityStatus,
       'qualityNotes': qualityNotes,
       'qualityCheckedBy': qualityCheckedBy,
@@ -183,13 +187,13 @@ class BatchProductModel {
           PhaseProgressData.fromMap(value as Map<String, dynamic>),
         ),
       ),
+      productNumber: map['productNumber'] as int? ?? 1,
+      productCode: map['productCode'] as String? ?? '',
       color: map['color'] as String?,
       material: map['material'] as String?,
       specialDetails: map['specialDetails'] as String?,
       unitPrice: map['unitPrice'] != null ? (map['unitPrice'] as num).toDouble() : null,
       totalPrice: map['totalPrice'] != null ? (map['totalPrice'] as num).toDouble() : null,
-      isBlocked: map['isBlocked'] as bool? ?? false,
-      blockReason: map['blockReason'] as String?,
       qualityStatus: map['qualityStatus'] as String? ?? 'pending',
       qualityNotes: map['qualityNotes'] as String?,
       qualityCheckedBy: map['qualityCheckedBy'] as String?,
@@ -233,13 +237,13 @@ class BatchProductModel {
     String? currentPhase,
     String? currentPhaseName,
     Map<String, PhaseProgressData>? phaseProgress,
+    int? productNumber,
+    String? productCode,
     String? color,
     String? material,
     String? specialDetails,
     double? unitPrice,
     double? totalPrice,
-    bool? isBlocked,
-    String? blockReason,
     String? qualityStatus,
     String? qualityNotes,
     String? qualityCheckedBy,
@@ -271,13 +275,13 @@ class BatchProductModel {
       currentPhase: currentPhase ?? this.currentPhase,
       currentPhaseName: currentPhaseName ?? this.currentPhaseName,
       phaseProgress: phaseProgress ?? this.phaseProgress,
+      productNumber: productNumber ?? this.productNumber,
+      productCode: productCode ?? this.productCode,
       color: color ?? this.color,
       material: material ?? this.material,
       specialDetails: specialDetails ?? this.specialDetails,
       unitPrice: unitPrice ?? this.unitPrice,
       totalPrice: totalPrice ?? this.totalPrice,
-      isBlocked: isBlocked ?? this.isBlocked,
-      blockReason: blockReason ?? this.blockReason,
       qualityStatus: qualityStatus ?? this.qualityStatus,
       qualityNotes: qualityNotes ?? this.qualityNotes,
       qualityCheckedBy: qualityCheckedBy ?? this.qualityCheckedBy,
@@ -301,8 +305,8 @@ class BatchProductModel {
   }
 
   /// Progreso total del producto (0.0 a 1.0)
-double get totalProgress {
-    // CAMBIO: Si está en Studio, es 100% automáticamente
+  double get totalProgress {
+    // Si está en Studio, es 100% automáticamente
     if (currentPhase == 'studio') return 1.0;
 
     if (phaseProgress.isEmpty) return 0.0;
@@ -358,8 +362,6 @@ double get totalProgress {
   bool get isReturnBalanced => (repairedCount + discardedCount) == returnedCount;
 }
 
-
-
 /// Datos de progreso por fase
 class PhaseProgressData {
   final String status; // "pending", "in_progress", "completed"
@@ -378,35 +380,35 @@ class PhaseProgressData {
     this.notes,
   });
 
-Map<String, dynamic> toMap() {
-  return {
-    'status': status,
-    'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
-    'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
-    'completedBy': completedBy,
-    'completedByName': completedByName,
-    'notes': notes,
-  };
-}
+  Map<String, dynamic> toMap() {
+    return {
+      'status': status,
+      'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
+      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+      'completedBy': completedBy,
+      'completedByName': completedByName,
+      'notes': notes,
+    };
+  }
 
-factory PhaseProgressData.fromMap(Map<String, dynamic> map) {
-  return PhaseProgressData(
-    status: map['status'] as String? ?? 'pending',
-    startedAt: map['startedAt'] != null 
-        ? (map['startedAt'] is Timestamp 
-            ? (map['startedAt'] as Timestamp).toDate() 
-            : null)
-        : null,
-    completedAt: map['completedAt'] != null 
-        ? (map['completedAt'] is Timestamp 
-            ? (map['completedAt'] as Timestamp).toDate() 
-            : null)
-        : null,
-    completedBy: map['completedBy'] as String?,
-    completedByName: map['completedByName'] as String?,
-    notes: map['notes'] as String?,
-  );
-}
+  factory PhaseProgressData.fromMap(Map<String, dynamic> map) {
+    return PhaseProgressData(
+      status: map['status'] as String? ?? 'pending',
+      startedAt: map['startedAt'] != null 
+          ? (map['startedAt'] is Timestamp 
+              ? (map['startedAt'] as Timestamp).toDate() 
+              : null)
+          : null,
+      completedAt: map['completedAt'] != null 
+          ? (map['completedAt'] is Timestamp 
+              ? (map['completedAt'] as Timestamp).toDate() 
+              : null)
+          : null,
+      completedBy: map['completedBy'] as String?,
+      completedByName: map['completedByName'] as String?,
+      notes: map['notes'] as String?,
+    );
+  }
 
   PhaseProgressData copyWith({
     String? status,

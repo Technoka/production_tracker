@@ -138,8 +138,17 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
               ],
             ),
           ),
-          floatingActionButton: (user?.canManageProduction ?? false)
-              ? FloatingActionButton.extended(
+          // Sustituye tu bloque floatingActionButton actual por este:
+          floatingActionButton: Column(
+            mainAxisSize: MainAxisSize.min, // Ocupa solo el espacio necesario
+            crossAxisAlignment: CrossAxisAlignment.end, // Alinea a la derecha
+            children: [
+
+              // --- BOTÓN AÑADIR (Condicional) ---
+              if (user?.canManageProduction ?? false) ...[
+                const SizedBox(height: 16), // Espacio entre botones
+                FloatingActionButton.extended(
+                  heroTag: 'add_product_btn', // <--- IMPORTANTE: Tag único
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -153,8 +162,10 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
                   },
                   icon: const Icon(Icons.add),
                   label: const Text('Añadir Producto'),
-                )
-              : null,
+                ),
+              ],
+            ],
+          ),
         );
       },
     );
@@ -167,11 +178,11 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.info_outline),
-                const SizedBox(width: 8),
-                const Text(
+                Icon(Icons.info_outline),
+                SizedBox(width: 8),
+                Text(
                   'Información del Lote',
                   style: TextStyle(
                     fontSize: 18,
@@ -235,10 +246,6 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
             const SizedBox(height: 12),
             Row(
               children: [
-                Chip(
-                  label: Text('Prioridad: ${batch.priority}'),
-                  avatar: const Icon(Icons.flag, size: 16),
-                ),
                 const SizedBox(width: 8),
                 Chip(
                   label: Text(_getUrgencyLabel(batch.urgencyLevel)),
