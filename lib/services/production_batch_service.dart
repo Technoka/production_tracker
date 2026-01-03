@@ -895,8 +895,121 @@ class ProductionBatchService extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Actualizar fase desde Kanban con actualización de fases posteriores
+Future<bool> updateProductPhaseFromKanban({
+  required String organizationId,
+  required String batchId,
+  required String productId,
+  required String newPhaseId,
+  required String newPhaseName,
+  required String userId,
+  required String userName,
+  required List<ProductionPhase> allPhases,
+}) async {
+  try {
+    final product = await getBatchProduct(organizationId, batchId, productId);
+    if (product == null) return false;
+
+    final updatedProgress = Map<String, PhaseProgressData>.from(product.phaseProgress);
+
+    // Ordenar fases por orden
+    final sortedPhases = List<ProductionPhase>.from(allPhases)
+      ..sort((a, b) => a.order.compareTo(b.order));
+
+    // Encontrar índices de fase actual y nueva
+    final currentPhaseIndex = sortedPhases.indexWhere((p) => p.id == product.currentPhase);
+    final newPhaseIndex = sortedPhases.indexWhere((p) => p.id == newPhaseId);
+
+    if (currentPhaseIndex == -1 || newPhaseIndex == -1) return false;
+
+    // Determinar si es avance o retroceso
+    final isForward = newPhaseIndex > currentPhaseIndex;
+
+    if (isForward) {
+      // AVANCE: Completar fase actual y todas las intermedias
+      for (int i = currentPhaseIndex; i < newPhaseIndex; i++) {
+        final phaseId = sortedPhases[i].id;
+        if (updatedProgress.containsKey(phaseId)) {
+          updatedProgress[phaseId] = PhaseProgressData(
+            status: 'completed',
+            completedAt: DateTime.now(),
+            completedBy: userId,
+            completedByName: userName,
+          );
+        }
+      }
+
+      // Marcar nueva fase como en progreso
+      if (updatedProgress.containsKey(newPhaseId)) {
+        updatedProgress[newPhaseId] = PhaseProgressData(
+          status: 'in_progress',
+          startedAt: DateTime.now(),
+        );
+      }
+
+      // Si es Studio, completarla automáticamente
+      if (newPhaseId == 'studio') {
+        updatedProgress['studio'] = PhaseProgressData(
+          status: 'completed',
+          completedAt: DateTime.now(),
+          completedBy: userId,
+          completedByName: userName,
+        );
+      }
+    } else {
+      // RETROCESO: Marcar como pendiente la nueva fase y todas las posteriores
+      for (int i = newPhaseIndex; i < sortedPhases.length; i++) {
+        final phaseId = sortedPhases[i].id;
+        if (updatedProgress.containsKey(phaseId)) {
+          updatedProgress[phaseId] = PhaseProgressData(
+            status: 'pending',
+          );
+        }
+      }
+
+      // Marcar nueva fase como en progreso
+      if (updatedProgress.containsKey(newPhaseId)) {
+        updatedProgress[newPhaseId] = PhaseProgressData(
+          status: 'in_progress',
+          startedAt: DateTime.now(),
+        );
+      }
+    }
+
+    // Actualizar producto
+    await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('production_batches')
+        .doc(batchId)
+        .collection('batch_products')
+        .doc(productId)
+        .update({
+      'currentPhase': newPhaseId,
+      'currentPhaseName': newPhaseName,
+      'phaseProgress': updatedProgress.map(
+        (key, value) => MapEntry(key, value.toMap()),
+      ),
+      'productStatus': isForward ? product.productStatus : 'pending',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    // Si todas las fases están completadas, incrementar contador
+    final allCompleted = updatedProgress.values.every((p) => p.status == 'completed');
+    if (allCompleted && isForward) {
+      await _incrementCompletedProducts(organizationId, batchId);
+    }
+
+    return true;
+  } catch (e) {
+    _error = 'Error al actualizar fase: $e';
+    notifyListeners();
+    return false;
+  }
+}
     
-  /// NUEVO: Stream de TODOS los productos de la organización (para vista global)
+  /// Stream de TODOS los productos de la organización (para vista global)
   Stream<List<BatchProductModel>> watchAllProducts(String organizationId) {
     return _firestore
         .collectionGroup('batch_products')

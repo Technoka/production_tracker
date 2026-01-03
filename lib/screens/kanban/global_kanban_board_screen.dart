@@ -10,6 +10,7 @@ import '../../services/phase_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/production_batch_service.dart';
 import '../../widgets/draggable_product_card.dart';
+import '../../utils/filter_utils.dart'; // NUEVO: Import de utilidades
 import '../production/batch_product_detail_screen.dart';
 
 class GlobalKanbanBoardScreen extends StatefulWidget {
@@ -24,10 +25,12 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
   final PhaseService _phaseService = PhaseService();
   final AuthService _authService = AuthService();
 
-  String? _searchQuery;
+  String _searchQuery = '';
   String? _batchFilter;
-  String? _productFilter;
   UserModel? _currentUser;
+
+  Map<String, List<Map<String, dynamic>>> _cachedProductsByPhase = {};
+  List<ProductionPhase> _cachedPhases = [];
 
   @override
   void initState() {
@@ -47,6 +50,19 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
     } catch (e) {
       print('Error cargando usuario: $e');
     }
+  }
+
+  // NUEVO: Verificar si hay filtros activos
+  bool get _hasActiveFilters {
+    return _searchQuery.isNotEmpty || _batchFilter != null;
+  }
+
+  // NUEVO: Limpiar todos los filtros
+  void _clearAllFilters() {
+    setState(() {
+      _searchQuery = '';
+      _batchFilter = null;
+    });
   }
 
   @override
@@ -89,7 +105,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
       ),
       body: Column(
         children: [
-          _buildFiltersBar(user!),
+          _buildFiltersBar(user),
           Expanded(
             child: StreamBuilder<List<ProductionPhase>>(
               stream: _phaseService.getOrganizationPhasesStream(user.organizationId!),
@@ -107,6 +123,8 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
                     .toList()
                   ..sort((a, b) => a.order.compareTo(b.order));
                 
+                _cachedPhases = phases;
+                
                 return FutureBuilder<Map<String, List<Map<String, dynamic>>>>(
                   future: _getAllProductsGroupedByPhase(user.organizationId!, phases),
                   builder: (context, productsSnapshot) {
@@ -115,6 +133,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
                     }
 
                     final productsByPhase = productsSnapshot.data ?? {};
+                    _cachedProductsByPhase = productsByPhase;
                     
                     return _buildKanbanBoard(phases, productsByPhase, user);
                   },
@@ -129,69 +148,74 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
 
   Widget _buildFiltersBar(UserModel user) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              // Búsqueda por nombre/referencia
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    labelText: 'Buscar por nombre o referencia',
-                    border: const OutlineInputBorder(),
-                    isDense: true,
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchQuery != null && _searchQuery!.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () => setState(() => _searchQuery = null),
-                          )
-                        : null,
-                  ),
-                  onChanged: (value) => setState(() => _searchQuery = value.isEmpty ? null : value),
-                ),
-              ),
-            ],
+          // Búsqueda
+          FilterUtils.buildSearchField(
+            hintText: 'Buscar por nombre o referencia...',
+            searchQuery: _searchQuery,
+            onChanged: (value) => setState(() => _searchQuery = value),
           ),
-          const SizedBox(height: 8),
+          
+          const SizedBox(height: 10),
+          
+          // Filtros y botón de limpiar
           Row(
             children: [
-              // Filtro por lote
               Expanded(
-                child: StreamBuilder<List<ProductionBatchModel>>(
-                  stream: Provider.of<ProductionBatchService>(context, listen: false)
-                      .watchBatches(user.organizationId!),
-                  builder: (context, snapshot) {
-                    final batches = snapshot.data ?? [];
-                    return DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Lote',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      value: _batchFilter,
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('Todos')),
-                        ...batches.map((b) => DropdownMenuItem(
-                          value: b.id,
-                          child: Text(b.batchNumber, overflow: TextOverflow.ellipsis),
-                        )),
-                      ],
-                      onChanged: (value) => setState(() => _batchFilter = value),
-                    );
-                  },
-                ),
+                child: _buildFilterChips(user),
+              ),
+              FilterUtils.buildClearFiltersButton(
+                context: context,
+                onPressed: _clearAllFilters,
+                hasActiveFilters: _hasActiveFilters,
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFilterChips(UserModel user) {
+    return StreamBuilder<List<ProductionBatchModel>>(
+      stream: Provider.of<ProductionBatchService>(context, listen: false)
+          .watchBatches(user.organizationId!),
+      builder: (context, snapshot) {
+        final batches = snapshot.data ?? [];
+        
+        return Wrap(
+          spacing: 6.0,
+          runSpacing: 6.0,
+          alignment: WrapAlignment.start,
+          children: [
+            FilterUtils.buildFilterOption<String>(
+              context: context,
+              label: 'Lote',
+              value: _batchFilter,
+              icon: Icons.inventory_2_outlined,
+              allLabel: 'Todos',
+              items: batches.map((b) => DropdownMenuItem(
+                value: b.id,
+                child: Text(b.batchNumber, overflow: TextOverflow.ellipsis),
+              )).toList(),
+              onChanged: (val) => setState(() => _batchFilter = val),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -202,7 +226,6 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
     final batchService = Provider.of<ProductionBatchService>(context, listen: false);
     final Map<String, List<Map<String, dynamic>>> groupedProducts = {};
 
-    // Inicializar con fases vacías
     for (final phase in phases) {
       groupedProducts[phase.id] = [];
     }
@@ -216,11 +239,10 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
             .first;
 
         for (final product in products) {
-          // Aplicar filtros
           bool passesFilter = true;
 
-          if (_searchQuery != null && _searchQuery!.isNotEmpty) {
-            final query = _searchQuery!.toLowerCase();
+          if (_searchQuery.isNotEmpty) {
+            final query = _searchQuery.toLowerCase();
             passesFilter = product.productName.toLowerCase().contains(query) ||
                           (product.productReference?.toLowerCase().contains(query) ?? false);
           }
@@ -285,7 +307,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
             
             return true;
           },
-          onAccept: (data) => _handleProductDrop(data, phase),
+          onAccept: (data) => _showMoveConfirmationDialog(data, phase),
           builder: (context, candidateData, rejectedData) {
             final isHovering = candidateData.isNotEmpty;
             
@@ -303,6 +325,175 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
         );
       },
     );
+  }
+
+  Future<void> _showMoveConfirmationDialog(
+    Map<String, dynamic> data,
+    ProductionPhase toPhase,
+  ) async {
+    final product = data['product'] as BatchProductModel;
+    final batch = data['batch'] as ProductionBatchModel;
+    
+    final currentPhaseIndex = _cachedPhases.indexWhere((p) => p.id == product.currentPhase);
+    final newPhaseIndex = _cachedPhases.indexWhere((p) => p.id == toPhase.id);
+    final isForward = newPhaseIndex > currentPhaseIndex;
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              isForward ? Icons.arrow_forward : Icons.arrow_back,
+              color: isForward ? Colors.green : Colors.orange,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                isForward ? 'Avanzar producto' : 'Retroceder producto',
+                style: const TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              product.productName,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Lote: ${batch.batchNumber}',
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            ),
+            Text(
+              'SKU: ${product.productReference}',
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'De: ${product.currentPhaseName}',
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'A: ${toPhase.name}',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            if (!isForward) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Se marcarán como pendientes todas las fases posteriores a ${toPhase.name}',
+                        style: TextStyle(
+                          color: Colors.orange.shade700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isForward ? Colors.green : Colors.orange,
+            ),
+            child: Text(isForward ? 'Avanzar' : 'Retroceder'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await _handleProductMove(data, toPhase);
+    }
+  }
+
+  Future<void> _handleProductMove(
+    Map<String, dynamic> data,
+    ProductionPhase toPhase,
+  ) async {
+    try {
+      final product = data['product'] as BatchProductModel;
+      final batch = data['batch'] as ProductionBatchModel;
+      final fromPhaseId = product.currentPhase;
+      
+      if (fromPhaseId == toPhase.id) return;
+      
+      final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+      
+      final success = await batchService.updateProductPhaseFromKanban(
+        organizationId: _currentUser!.organizationId!,
+        batchId: product.batchId,
+        productId: product.id,
+        newPhaseId: toPhase.id,
+        newPhaseName: toPhase.name,
+        userId: _currentUser!.uid,
+        userName: _currentUser!.name,
+        allPhases: _cachedPhases,
+      );
+      
+      if (!mounted) return;
+      
+      if (success) {
+        setState(() {
+          _cachedProductsByPhase[fromPhaseId]?.removeWhere(
+            (item) => (item['product'] as BatchProductModel).id == product.id
+          );
+          
+          final updatedProduct = product.copyWith(
+            currentPhase: toPhase.id,
+            currentPhaseName: toPhase.name,
+          );
+          
+          _cachedProductsByPhase[toPhase.id]?.add({
+            'product': updatedProduct,
+            'batch': batch,
+          });
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Producto movido a ${toPhase.name}'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        throw Exception('Error al actualizar fase');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _buildKanbanColumn(
@@ -344,6 +535,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
                         product: product,
                         allPhases: allPhases,
                         batchNumber: batch.batchNumber,
+                        batch: batch, // CORRECCIÓN: Pasar el batch completo
                         onTap: () => _handleProductTap(product, batch),
                       );
                     },
@@ -419,7 +611,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      'Límite de productos para esta fase alcanzado.',
+                      'Límite alcanzado',
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.orange.shade700,
@@ -443,18 +635,11 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.inbox_outlined,
-              size: 48,
-              color: Colors.grey.shade400,
-            ),
+            Icon(Icons.inbox_outlined, size: 48, color: Colors.grey.shade400),
             const SizedBox(height: 8),
             Text(
               'Sin productos',
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
             ),
           ],
         ),
@@ -469,25 +654,15 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
         children: [
           Icon(Icons.view_kanban, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
-          Text(
-            'No hay fases configuradas',
-            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
-          ),
+          Text('No hay fases configuradas', style: TextStyle(fontSize: 18, color: Colors.grey.shade600)),
           const SizedBox(height: 8),
-          Text(
-            'Configura las fases de producción primero',
-            style: TextStyle(color: Colors.grey.shade500),
-          ),
+          Text('Configura las fases de producción primero', style: TextStyle(color: Colors.grey.shade500)),
         ],
       ),
     );
   }
 
-  Widget _buildStatChip({
-    required IconData icon,
-    required String value,
-    required Color color,
-  }) {
+  Widget _buildStatChip({required IconData icon, required String value, required Color color}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -499,14 +674,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
         children: [
           Icon(icon, size: 16, color: color),
           const SizedBox(width: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: color,
-              fontSize: 14,
-            ),
-          ),
+          Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 14)),
         ],
       ),
     );
@@ -521,73 +689,15 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
         int totalProducts = 0;
 
         for (final batch in batches) {
-          final products = await batchService
-              .watchBatchProducts(organizationId, batch.id)
-              .first;
+          final products = await batchService.watchBatchProducts(organizationId, batch.id).first;
           totalProducts += products.length;
         }
 
-        return {
-          'totalProducts': totalProducts,
-        };
+        return {'totalProducts': totalProducts};
       } catch (e) {
-        return {
-          'totalProducts': 0,
-        };
+        return {'totalProducts': 0};
       }
     });
-  }
-
-  Future<void> _handleProductDrop(
-    Map<String, dynamic> data,
-    ProductionPhase toPhase,
-  ) async {
-    try {
-      final product = data['product'] as BatchProductModel;
-      final fromPhaseId = product.currentPhase;
-      
-      if (fromPhaseId == toPhase.id) return;
-      
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Moviendo producto...'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-      
-      final batchService = Provider.of<ProductionBatchService>(context, listen: false);
-      
-      await batchService.updateProductPhase(
-        organizationId: _currentUser!.organizationId!,
-        batchId: product.batchId,
-        productId: product.id,
-        newPhaseId: toPhase.id,
-        newPhaseName: toPhase.name,
-        userId: _currentUser!.uid,
-        userName: _currentUser!.name,
-      );
-      
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Producto movido a ${toPhase.name}'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      
-      setState(() {}); // Recargar datos
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 
   void _handleProductTap(BatchProductModel product, ProductionBatchModel batch) {
@@ -613,18 +723,12 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
 
   IconData _getPhaseIcon(String iconName) {
     switch (iconName.toLowerCase()) {
-      case 'planned':
-        return Icons.calendar_today;
-      case 'cutting':
-        return Icons.content_cut;
-      case 'skiving':
-        return Icons.layers;
-      case 'assembly':
-        return Icons.construction;
-      case 'studio':
-        return Icons.brush;
-      default:
-        return Icons.work;
+      case 'planned': return Icons.calendar_today;
+      case 'cutting': return Icons.content_cut;
+      case 'skiving': return Icons.layers;
+      case 'assembly': return Icons.construction;
+      case 'studio': return Icons.brush;
+      default: return Icons.work;
     }
   }
 }

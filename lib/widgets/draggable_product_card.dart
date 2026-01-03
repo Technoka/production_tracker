@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../models/batch_product_model.dart';
 import '../models/phase_model.dart';
+import '../models/production_batch_model.dart';
 
 class DraggableProductCard extends StatelessWidget {
   final BatchProductModel product;
   final List<ProductionPhase> allPhases;
   final String batchNumber;
+  final ProductionBatchModel batch; // AÑADIR: Necesitamos el batch completo
   final VoidCallback? onTap;
 
   const DraggableProductCard({
@@ -13,6 +15,7 @@ class DraggableProductCard extends StatelessWidget {
     required this.product,
     required this.allPhases,
     required this.batchNumber,
+    required this.batch, // AÑADIR: Parámetro requerido
     this.onTap,
   }) : super(key: key);
 
@@ -21,6 +24,7 @@ class DraggableProductCard extends StatelessWidget {
     return LongPressDraggable<Map<String, dynamic>>(
       data: {
         'product': product,
+        'batch': batch, // CORRECCIÓN: Incluir el batch completo
         'fromPhase': product.currentPhase,
       },
       feedback: Material(
@@ -56,7 +60,6 @@ class DraggableProductCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // NUEVO: Número de lote arriba
               Row(
                 children: [
                   Container(
@@ -82,7 +85,6 @@ class DraggableProductCard extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  // Estado del producto
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
@@ -103,7 +105,6 @@ class DraggableProductCard extends StatelessWidget {
               
               const SizedBox(height: 8),
               
-              // Nombre del producto
               Text(
                 product.productName,
                 style: const TextStyle(
@@ -116,7 +117,6 @@ class DraggableProductCard extends StatelessWidget {
               
               const SizedBox(height: 8),
               
-              // Referencia si existe
               if (product.productReference != null) ...[
                 Row(
                   children: [
@@ -139,7 +139,6 @@ class DraggableProductCard extends StatelessWidget {
                 const SizedBox(height: 4),
               ],
               
-              // Cantidad
               Row(
                 children: [
                   const Icon(Icons.shopping_cart, size: 12, color: Colors.grey),
@@ -151,7 +150,6 @@ class DraggableProductCard extends StatelessWidget {
                 ],
               ),
               
-              // Personalización si existe
               if (product.color != null || product.material != null) ...[
                 const SizedBox(height: 4),
                 Row(
@@ -183,12 +181,5 @@ class DraggableProductCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Color _getProgressColor(double progress) {
-    if (progress >= 0.8) return Colors.green.shade600;
-    if (progress >= 0.5) return Colors.blue.shade600;
-    if (progress >= 0.3) return Colors.orange.shade600;
-    return Colors.red.shade600;
   }
 }
