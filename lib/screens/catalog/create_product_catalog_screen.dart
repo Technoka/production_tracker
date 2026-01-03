@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import '../../models/product_catalog_model.dart';
 import '../../models/user_model.dart';
 import '../../services/product_catalog_service.dart';
+import '../../models/client_model.dart';
+import '../../services/client_service.dart';
 
 class CreateProductCatalogScreen extends StatefulWidget {
   final String organizationId;
@@ -50,6 +52,10 @@ class _CreateProductCatalogScreenState
 
   bool _isLoading = false;
   List<String> _availableCategories = [];
+  
+  String? _selectedClientId;
+  String? _selectedClientName;
+  bool _isPublic = true; // Por defecto, el producto es público
 
   @override
   void initState() {
@@ -85,100 +91,107 @@ class _CreateProductCatalogScreenState
     }
   }
 
-  Future<void> _saveProduct() async {
-    if (!_formKey.currentState!.validate()) return;
+Future<void> _saveProduct() async {
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    try {
-      // Construir MaterialInfo si hay datos
-      MaterialInfo? materialInfo;
-      if (_primaryMaterialController.text.isNotEmpty) {
-        materialInfo = MaterialInfo(
-          primaryMaterial: _primaryMaterialController.text.trim(),
-          secondaryMaterials: _secondaryMaterials,
-          finish: _finishController.text.trim().isNotEmpty
-              ? _finishController.text.trim()
-              : null,
-          color: _colorController.text.trim().isNotEmpty
-              ? _colorController.text.trim()
-              : null,
-        );
-      }
-
-      // Construir DimensionsInfo si hay datos
-      DimensionsInfo? dimensions;
-      final width = double.tryParse(_widthController.text);
-      final height = double.tryParse(_heightController.text);
-      final depth = double.tryParse(_depthController.text);
-
-      if (width != null || height != null || depth != null) {
-        dimensions = DimensionsInfo(
-          width: width,
-          height: height,
-          depth: depth,
-          unit: 'cm',
-        );
-      }
-
-      final productId = await _catalogService.createProduct(
-        organizationId: widget.organizationId,
-        name: _nameController.text.trim(),
-        reference: _referenceController.text.trim(),
-        description: _descriptionController.text.trim(),
-        createdBy: widget.currentUser.uid,
-        category: _categoryController.text.trim().isNotEmpty
-            ? _categoryController.text.trim()
+  try {
+    // Construir MaterialInfo si hay datos
+    MaterialInfo? materialInfo;
+    if (_primaryMaterialController.text.isNotEmpty) {
+      materialInfo = MaterialInfo(
+        primaryMaterial: _primaryMaterialController.text.trim(),
+        secondaryMaterials: _secondaryMaterials,
+        finish: _finishController.text.trim().isNotEmpty
+            ? _finishController.text.trim()
             : null,
-        imageUrls: _imageUrls,
-        specifications: _specifications,
-        tags: _tags,
-        materialInfo: materialInfo,
-        dimensions: dimensions,
-        estimatedWeight: double.tryParse(_weightController.text),
-        basePrice: double.tryParse(_basePriceController.text),
-        notes: _notesController.text.trim().isNotEmpty
-            ? _notesController.text.trim()
+        color: _colorController.text.trim().isNotEmpty
+            ? _colorController.text.trim()
             : null,
       );
+    }
 
-      if (mounted) {
-        if (productId != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Producto creado exitosamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pop(context, true);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error al crear el producto'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
+    // Construir DimensionsInfo si hay datos
+    DimensionsInfo? dimensions;
+    final width = double.tryParse(_widthController.text);
+    final height = double.tryParse(_heightController.text);
+    final depth = double.tryParse(_depthController.text);
+
+    if (width != null || height != null || depth != null) {
+      dimensions = DimensionsInfo(
+        width: width,
+        height: height,
+        depth: depth,
+        unit: 'cm',
+      );
+    }
+
+    final productId = await _catalogService.createProduct(
+      organizationId: widget.organizationId,
+      name: _nameController.text.trim(),
+      reference: _referenceController.text.trim(),
+      description: _descriptionController.text.trim(),
+      createdBy: widget.currentUser.uid,
+      category: _categoryController.text.trim().isNotEmpty
+          ? _categoryController.text.trim()
+          : null,
+      imageUrls: _imageUrls,
+      specifications: _specifications,
+      tags: _tags,
+      materialInfo: materialInfo,
+      dimensions: dimensions,
+      estimatedWeight: double.tryParse(_weightController.text),
+      basePrice: double.tryParse(_basePriceController.text),
+      notes: _notesController.text.trim().isNotEmpty
+          ? _notesController.text.trim()
+          : null,
+      // NUEVOS PARÁMETROS:
+      clientId: _isPublic ? null : _selectedClientId,
+      isPublic: _isPublic,
+    );
+
+    if (mounted) {
+      if (productId != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(
+              _isPublic 
+                  ? 'Producto público creado exitosamente'
+                  : 'Producto creado para $_selectedClientName',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al crear el producto'),
             backgroundColor: Colors.red,
           ),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -277,6 +290,142 @@ class _CreateProductCatalogScreenState
               },
             ),
             const SizedBox(height: 24),
+// Cliente asociado
+_buildSectionTitle('Disponibilidad'),
+Row(
+  children: [
+    Expanded(
+      child: SwitchListTile(
+        title: Text(
+          _isPublic 
+              ? 'Producto público' 
+              : 'Producto privado'),
+        subtitle: Text(
+          _isPublic 
+              ? 'Disponible para todos los clientes' 
+              : 'Solo para cliente específico',
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        ),
+        value: _isPublic,
+        onChanged: (value) {
+          setState(() {
+            _isPublic = value;
+            if (value) {
+              // Si se hace público, limpiar cliente seleccionado
+              _selectedClientId = null;
+              _selectedClientName = null;
+            }
+          });
+        },
+      ),
+    ),
+  ],
+),
+const SizedBox(height: 12),
+
+// Selector de cliente (solo si no es público)
+if (!_isPublic) ...[
+  StreamBuilder<List<ClientModel>>(
+    stream: ClientService().watchClients(widget.organizationId),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const LinearProgressIndicator();
+      }
+
+      if (snapshot.hasError) {
+        return Text('Error: ${snapshot.error}');
+      }
+
+      final clients = snapshot.data ?? [];
+
+      if (clients.isEmpty) {
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange[200]!),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.orange[700]),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'No hay clientes disponibles. Crea un cliente primero.',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return DropdownButtonFormField<String>(
+        decoration: const InputDecoration(
+          labelText: 'Cliente específico *',
+          border: OutlineInputBorder(),
+          prefixIcon: Icon(Icons.person),
+          helperText: 'Este producto solo estará disponible para este cliente',
+        ),
+        value: _selectedClientId,
+        isExpanded: true,
+        items: clients.map((client) {
+          return DropdownMenuItem(
+            value: client.id,
+            child: Text(
+              client.name,
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        }).toList(),
+        onChanged: (clientId) {
+          setState(() {
+            _selectedClientId = clientId;
+            // Guardar el nombre del cliente también
+            _selectedClientName = clients
+                .firstWhere((c) => c.id == clientId)
+                .name;
+          });
+        },
+        validator: (value) {
+          if (!_isPublic && (value == null || value.isEmpty)) {
+            return 'Debes seleccionar un cliente';
+          }
+          return null;
+        },
+      );
+    },
+  ),
+  const SizedBox(height: 16),
+  
+  // Información adicional
+  Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.blue[50],
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.blue[200]!),
+    ),
+    child: Row(
+      children: [
+        Icon(Icons.info_outline, size: 18, color: Colors.blue[700]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'Solo este cliente podrá añadir este producto a sus lotes de producción.',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.blue[900],
+            ),
+          ),
+        ),
+      ],
+    ),
+  ),
+],
+
+const SizedBox(height: 24),
 
             // Dimensiones
             _buildSectionTitle('Dimensiones (cm)'),
