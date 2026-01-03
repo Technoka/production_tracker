@@ -4,6 +4,7 @@ import '../../models/production_batch_model.dart';
 import '../../models/batch_product_model.dart';
 import '../../models/user_model.dart';
 import '../../models/client_model.dart';
+import '../../models/phase_model.dart'; 
 import '../../services/auth_service.dart';
 import '../../services/production_batch_service.dart';
 import '../../services/client_service.dart';
@@ -33,24 +34,24 @@ class ProductionScreen extends StatefulWidget {
 
 class _ProductionScreenState extends State<ProductionScreen> {
   late ProductionView _currentView;
-  
+
   // Filtros para Vista de Lotes
   String? _batchClientFilter;
   String? _batchUrgencyFilter;
   String _batchSearchQuery = '';
-  
+
   // Filtros para Vista de Productos
   String? _productPhaseFilter;
   String? _productClientFilter;
   String? _productBatchFilter;
+  ProductStatus? _productStatusFilter; 
   String _productSearchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _currentView = widget.initialView ?? ProductionView.batches;
-    
-    // Aplicar filtros iniciales
+
     if (widget.initialBatchFilter != null) {
       _productBatchFilter = widget.initialBatchFilter;
     }
@@ -60,7 +61,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
     }
     if (widget.initialStatusFilter != null) {
       // Para estado de lote
-      _currentView = ProductionView.batches;
+      _currentView = ProductionView.products;
     }
   }
 
@@ -94,22 +95,23 @@ class _ProductionScreenState extends State<ProductionScreen> {
           ),
         ],
       ),
-      floatingActionButton: user.canManageProduction && _currentView == ProductionView.batches
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CreateProductionBatchScreen(
-                      organizationId: user.organizationId!,
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Nuevo Lote'),
-            )
-          : null,
+      floatingActionButton:
+          user.canManageProduction && _currentView == ProductionView.batches
+              ? FloatingActionButton.extended(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CreateProductionBatchScreen(
+                          organizationId: user.organizationId!,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Nuevo Lote'),
+                )
+              : null,
     );
   }
 
@@ -145,217 +147,344 @@ class _ProductionScreenState extends State<ProductionScreen> {
     );
   }
 
-  Widget _buildFilters(UserModel user) {
-    if (_currentView == ProductionView.batches) {
-      return _buildBatchFilters(user);
-    } else {
-      return _buildProductFilters(user);
+  // --- WIDGET DE FILTRADO REDUCIDO ---
+
+Widget _buildFilterOption<T>({
+  required String label,
+  required T? value,
+  required List<DropdownMenuItem<T>> items,
+  required Function(T?) onChanged,
+  IconData? icon,
+  String allLabel = 'Todos',
+}) {
+  final isSelected = value != null;
+  
+  String displayValue = label;
+  if (isSelected) {
+    try {
+      final selectedItem = items.firstWhere((item) => item.value == value);
+      if (selectedItem.child is Text) {
+        displayValue = (selectedItem.child as Text).data ?? label;
+      } else if (selectedItem.child is Row) {
+        final children = (selectedItem.child as Row).children;
+        for (var child in children) {
+          if (child is Text) {
+            displayValue = child.data ?? label;
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      displayValue = label;
     }
   }
 
-  Widget _buildBatchFilters(UserModel user) {
+  return Theme(
+    data: Theme.of(context).copyWith(
+      popupMenuTheme: PopupMenuThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 4,
+        color: Colors.white,
+        surfaceTintColor: Colors.white,
+      ),
+    ),
+    child: PopupMenuButton<T>(
+      initialValue: value,
+      tooltip: 'Filtrar por $label',
+      offset: const Offset(0, 35),
+      onSelected: (T? newValue) {
+        // CORRECCIÓN: Llamamos a onChanged con el valor, incluso si es null
+        onChanged(newValue);
+      },
+      itemBuilder: (BuildContext context) {
+        return [
+          // Opción "Todos" explícita
+          PopupMenuItem<T>(
+            value: null,
+            // CORRECCIÓN: Usamos un valor especial para detectar cuando se selecciona "Todos"
+            onTap: () {
+              // Esto se ejecuta DESPUÉS de que se cierra el popup
+              Future.delayed(Duration.zero, () => onChanged(null));
+            },
+            height: 36,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.restart_alt,
+                  color: isSelected ? Colors.grey : Theme.of(context).primaryColor,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  allLabel,
+                  style: TextStyle(
+                    fontWeight: !isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: !isSelected ? Theme.of(context).primaryColor : Colors.black87,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuDivider(height: 1),
+          ...items.map((item) {
+            final isItemActive = item.value == value;
+            return PopupMenuItem<T>(
+              value: item.value,
+              height: 36,
+              child: DefaultTextStyle(
+                style: TextStyle(
+                  color: isItemActive ? Theme.of(context).primaryColor : Colors.black87,
+                  fontWeight: isItemActive ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 13,
+                ),
+                child: item.child,
+              ),
+            );
+          }).toList(),
+        ];
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.08) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade300,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 14,
+                color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade600,
+              ),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              isSelected ? displayValue : label,
+              style: TextStyle(
+                color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade700,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 16,
+              color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade400,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+  Widget _buildFilters(UserModel user) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      // Padding del contenedor reducido
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              // Cliente
-              Expanded(
-                child: StreamBuilder<List<ClientModel>>(
-                  stream: Provider.of<ClientService>(context, listen: false)
-                      .watchClients(user.organizationId!),
-                  builder: (context, snapshot) {
-                    final clients = snapshot.data ?? [];
-                    return DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Cliente',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      value: _batchClientFilter,
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('Todos')),
-                        ...clients.map((c) => DropdownMenuItem(
-                          value: c.id,
-                          child: Text(c.name, overflow: TextOverflow.ellipsis),
-                        )),
-                      ],
-                      onChanged: (value) => setState(() => _batchClientFilter = value),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              
-              // Urgencia
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: 'Urgencia',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                  value: _batchUrgencyFilter,
-                  items: const [
-                    DropdownMenuItem(value: null, child: Text('Todas')),
-                    DropdownMenuItem(value: 'low', child: Text('Baja')),
-                    DropdownMenuItem(value: 'medium', child: Text('Media')),
-                    DropdownMenuItem(value: 'high', child: Text('Alta')),
-                    DropdownMenuItem(value: 'critical', child: Text('Crítica')),
-                  ],
-                  onChanged: (value) => setState(() => _batchUrgencyFilter = value),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          
-          // Búsqueda
           TextField(
             decoration: InputDecoration(
-              labelText: 'Buscar por nombre de lote',
-              border: const OutlineInputBorder(),
+              hintText: _currentView == ProductionView.batches 
+                  ? 'Buscar lote o proyecto...' 
+                  : 'Buscar producto o SKU...',
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+              prefixIcon: Icon(Icons.search, color: Colors.grey.shade400, size: 20),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+              // Input más compacto
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade200),
+              ),
               isDense: true,
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _batchSearchQuery.isNotEmpty
+              suffixIcon: (_currentView == ProductionView.batches ? _batchSearchQuery : _productSearchQuery).isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () => setState(() => _batchSearchQuery = ''),
+                      icon: const Icon(Icons.cancel, size: 16, color: Colors.grey),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => setState(() => _currentView == ProductionView.batches 
+                          ? _batchSearchQuery = '' 
+                          : _productSearchQuery = ''),
                     )
                   : null,
             ),
-            onChanged: (value) => setState(() => _batchSearchQuery = value),
+            style: const TextStyle(fontSize: 13),
+            onChanged: (value) => setState(() => _currentView == ProductionView.batches 
+                ? _batchSearchQuery = value 
+                : _productSearchQuery = value),
+          ),
+          
+          const SizedBox(height: 10),
+          
+          SizedBox(
+            width: double.infinity,
+            child: _currentView == ProductionView.batches
+                ? _buildBatchFilterChips(user)
+                : _buildProductFilterChips(user),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProductFilters(UserModel user) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              // Fase
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: 'Fase',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                  value: _productPhaseFilter,
-                  items: const [
-                    DropdownMenuItem(value: null, child: Text('Todas')),
-                    DropdownMenuItem(value: 'planned', child: Text('Planned')),
-                    DropdownMenuItem(value: 'cutting', child: Text('Cutting')),
-                    DropdownMenuItem(value: 'skiving', child: Text('Skiving')),
-                    DropdownMenuItem(value: 'assembly', child: Text('Assembly')),
-                    DropdownMenuItem(value: 'studio', child: Text('Studio')),
-                  ],
-                  onChanged: (value) => setState(() => _productPhaseFilter = value),
-                ),
-              ),
-              const SizedBox(width: 8),
-              
-              // Cliente
-              Expanded(
-                child: StreamBuilder<List<ClientModel>>(
-                  stream: Provider.of<ClientService>(context, listen: false)
-                      .watchClients(user.organizationId!),
-                  builder: (context, snapshot) {
-                    final clients = snapshot.data ?? [];
-                    return DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Cliente',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      value: _productClientFilter,
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('Todos')),
-                        ...clients.map((c) => DropdownMenuItem(
-                          value: c.id,
-                          child: Text(c.name, overflow: TextOverflow.ellipsis),
-                        )),
-                      ],
-                      onChanged: (value) => setState(() => _productClientFilter = value),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          
-          Row(
-            children: [
-              // Lote (con búsqueda)
-              Expanded(
-                child: StreamBuilder<List<ProductionBatchModel>>(
-                  stream: Provider.of<ProductionBatchService>(context, listen: false)
-                      .watchBatches(user.organizationId!),
-                  builder: (context, snapshot) {
-                    final batches = snapshot.data ?? [];
-                    return DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Lote',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      value: _productBatchFilter,
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('Todos')),
-                        ...batches.map((b) => DropdownMenuItem(
-                          value: b.id,
-                          child: Text(b.batchNumber, overflow: TextOverflow.ellipsis),
-                        )),
-                      ],
-                      onChanged: (value) => setState(() => _productBatchFilter = value),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          
-          // Búsqueda
-          TextField(
-            decoration: InputDecoration(
-              labelText: 'Buscar por nombre o SKU',
-              border: const OutlineInputBorder(),
-              isDense: true,
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _productSearchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () => setState(() => _productSearchQuery = ''),
-                    )
-                  : null,
+  Widget _buildBatchFilterChips(UserModel user) {
+    return StreamBuilder<List<ClientModel>>(
+      stream: Provider.of<ClientService>(context, listen: false)
+          .watchClients(user.organizationId!),
+      builder: (context, snapshot) {
+        final clients = snapshot.data ?? [];
+        
+        return Wrap(
+          spacing: 6.0, // Espaciado reducido
+          runSpacing: 6.0,
+          alignment: WrapAlignment.start,
+          children: [
+            _buildFilterOption<String>(
+              label: 'Cliente',
+              value: _batchClientFilter,
+              icon: Icons.storefront_outlined,
+              allLabel: 'Todos',
+              items: clients.map((c) => DropdownMenuItem(
+                value: c.id,
+                child: Text(c.name, overflow: TextOverflow.ellipsis),
+              )).toList(),
+              onChanged: (val) => setState(() => _batchClientFilter = val),
             ),
-            onChanged: (value) => setState(() => _productSearchQuery = value),
-          ),
-        ],
-      ),
+
+            _buildFilterOption<String>(
+              label: 'Urgencia',
+              value: _batchUrgencyFilter,
+              icon: Icons.priority_high_rounded,
+              allLabel: 'Todas',
+              items: const [
+                DropdownMenuItem(value: 'low', child: Text('Baja')),
+                DropdownMenuItem(value: 'medium', child: Text('Media')),
+                DropdownMenuItem(value: 'high', child: Text('Alta')),
+                DropdownMenuItem(value: 'critical', child: Text('Crítica')),
+              ],
+              onChanged: (val) => setState(() => _batchUrgencyFilter = val),
+            ),
+          ],
+        );
+      },
     );
   }
+
+  Widget _buildProductFilterChips(UserModel user) {
+    return StreamBuilder<List<ClientModel>>(
+      stream: Provider.of<ClientService>(context, listen: false).watchClients(user.organizationId!),
+      builder: (context, clientSnapshot) {
+        final clients = clientSnapshot.data ?? [];
+
+        return StreamBuilder<List<ProductionBatchModel>>(
+          stream: Provider.of<ProductionBatchService>(context, listen: false).watchBatches(user.organizationId!),
+          builder: (context, batchSnapshot) {
+            final batches = batchSnapshot.data ?? [];
+            final phases = ProductionPhase.getDefaultPhases();
+
+            return Wrap(
+              spacing: 6.0, // Espaciado reducido
+              runSpacing: 6.0,
+              alignment: WrapAlignment.start,
+              children: [
+                // Filtro de Estado
+                _buildFilterOption<ProductStatus>(
+                  label: 'Estado',
+                  value: _productStatusFilter,
+                  icon: Icons.flag_outlined,
+                  allLabel: 'Todos',
+                  items: ProductStatus.values.map((status) => DropdownMenuItem(
+                    value: status,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: status.color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(status.displayName),
+                      ],
+                    ),
+                  )).toList(),
+                  onChanged: (val) => setState(() => _productStatusFilter = val),
+                ),
+
+                // Filtro de Fase
+                _buildFilterOption<String>(
+                  label: 'Fase',
+                  value: _productPhaseFilter,
+                  icon: Icons.layers_outlined,
+                  allLabel: 'Todas',
+                  items: phases.map((phase) => DropdownMenuItem(
+                    value: phase.id,
+                    child: Text(phase.name),
+                  )).toList(),
+                  onChanged: (val) => setState(() => _productPhaseFilter = val),
+                ),
+
+                // Filtro de Cliente
+                _buildFilterOption<String>(
+                  label: 'Cliente',
+                  value: _productClientFilter,
+                  icon: Icons.storefront_outlined,
+                  allLabel: 'Todos',
+                  items: clients.map((c) => DropdownMenuItem(
+                    value: c.id,
+                    child: Text(c.name, overflow: TextOverflow.ellipsis),
+                  )).toList(),
+                  onChanged: (val) => setState(() => _productClientFilter = val),
+                ),
+
+                // Filtro de Lote
+                _buildFilterOption<String>(
+                  label: 'Lote',
+                  value: _productBatchFilter,
+                  icon: Icons.inventory_2_outlined,
+                  allLabel: 'Todos',
+                  items: batches.map((b) => DropdownMenuItem(  // QUITA el primer item "Todos" duplicado
+                    value: b.id,
+                    child: Text(b.batchNumber, overflow: TextOverflow.ellipsis),
+                  )).toList(),
+                  onChanged: (val) => setState(() => _productBatchFilter = val),
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
+  }
+
+  // --- LOGICA DE VISTA Y FILTRADO ---
 
   Widget _buildBatchesView(UserModel user) {
     return StreamBuilder<List<ProductionBatchModel>>(
@@ -366,28 +495,23 @@ class _ProductionScreenState extends State<ProductionScreen> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-
         var batches = snapshot.data ?? [];
 
-        // Aplicar filtros
         if (_batchClientFilter != null) {
           batches = batches.where((b) => b.clientId == _batchClientFilter).toList();
         }
         if (_batchUrgencyFilter != null) {
           batches = batches.where((b) => b.urgencyLevel == _batchUrgencyFilter).toList();
         }
+        
         if (_batchSearchQuery.isNotEmpty) {
-          batches = batches.where((b) => 
-            b.batchNumber.toLowerCase().contains(_batchSearchQuery.toLowerCase()) ||
-            b.projectName.toLowerCase().contains(_batchSearchQuery.toLowerCase())
-          ).toList();
+          batches = batches.where((b) =>
+              b.batchNumber.toLowerCase().contains(_batchSearchQuery.toLowerCase()) ||
+              b.projectName.toLowerCase().contains(_batchSearchQuery.toLowerCase())).toList();
         }
 
         if (batches.isEmpty) {
-          return const Center(child: Text('No hay lotes que coincidan con los filtros'));
+          return const Center(child: Text('No hay lotes'));
         }
 
         return ListView.builder(
@@ -409,8 +533,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
         }
 
         final batches = batchSnapshot.data ?? [];
-            print('Total batches: ${batches.length} =========================================');
-
+        
         return FutureBuilder<List<Map<String, dynamic>>>(
           future: _getAllProducts(user.organizationId!, batches),
           builder: (context, productsSnapshot) {
@@ -419,9 +542,17 @@ class _ProductionScreenState extends State<ProductionScreen> {
             }
 
             var products = productsSnapshot.data ?? [];
-            print('Total products before filtering: ${products.length} =========================================');
+print('product status filter: $_productStatusFilter');
+            // --- CORRECCIÓN DE FILTRO DE ESTADO ---
+            if (_productStatusFilter != null) {
+              // El enum tiene un campo 'id' (el primer string en tu ejemplo: 'pending', 'cao', etc)
+              // Comparamos el string del modelo (status) con el id del enum seleccionado.
+              products = products.where((p) {
+                final prod = p['product'] as BatchProductModel;
+                return prod.productStatus == _productStatusFilter!.value; 
+              }).toList();
+            }
 
-            // Aplicar filtros
             if (_productPhaseFilter != null) {
               products = products.where((p) => 
                 (p['product'] as BatchProductModel).currentPhase == _productPhaseFilter
@@ -465,6 +596,8 @@ class _ProductionScreenState extends State<ProductionScreen> {
     );
   }
 
+  // --- MÉTODOS AUXILIARES ---
+
   Future<List<Map<String, dynamic>>> _getAllProducts(
     String organizationId,
     List<ProductionBatchModel> batches,
@@ -477,7 +610,6 @@ class _ProductionScreenState extends State<ProductionScreen> {
         final products = await batchService
             .watchBatchProducts(organizationId, batch.id)
             .first;
-print('Batch ${batch.batchNumber} has ${products.length} products =========================================');
         for (final product in products) {
           allProducts.add({
             'product': product,
@@ -485,7 +617,7 @@ print('Batch ${batch.batchNumber} has ${products.length} products ==============
           });
         }
       } catch (e) {
-        // Continuar con el siguiente lote
+        continue;
       }
     }
 
@@ -494,8 +626,14 @@ print('Batch ${batch.batchNumber} has ${products.length} products ==============
 
   Widget _buildBatchCard(ProductionBatchModel batch, UserModel user) {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
+        borderRadius: BorderRadius.circular(12),
         onTap: () {
           Navigator.push(
             context,
@@ -518,7 +656,7 @@ print('Batch ${batch.batchNumber} has ${products.length} products ==============
                     child: Text(
                       batch.batchNumber,
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -527,12 +665,13 @@ print('Batch ${batch.batchNumber} has ${products.length} products ==============
                 ],
               ),
               const SizedBox(height: 8),
-              Text('Proyecto: ${batch.projectName}'),
-              Text('Cliente: ${batch.clientName}'),
+              Text('Proyecto: ${batch.projectName}', style: const TextStyle(fontSize: 14)),
+              const SizedBox(height: 4),
+              Text('Cliente: ${batch.clientName}', style: TextStyle(fontSize: 14, color: Colors.grey[700])),
               const SizedBox(height: 8),
               Text(
                 '${batch.totalProducts} productos',
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(color: Colors.grey[600], fontSize: 13),
               ),
             ],
           ),
@@ -547,8 +686,14 @@ print('Batch ${batch.batchNumber} has ${products.length} products ==============
     UserModel user,
   ) {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
+        borderRadius: BorderRadius.circular(12),
         onTap: () {
           Navigator.push(
             context,
@@ -572,7 +717,7 @@ print('Batch ${batch.batchNumber} has ${products.length} products ==============
                     child: Text(
                       product.productName,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -580,50 +725,79 @@ print('Batch ${batch.batchNumber} has ${products.length} products ==============
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: product.statusColor.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
+                      color: product.statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: product.statusColor.withOpacity(0.3)),
                     ),
                     child: Text(
                       product.statusDisplayName,
                       style: TextStyle(
                         color: product.statusColor,
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 11,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.inventory_2, size: 14, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text('Cantidad: ${product.quantity}'),
-                  const SizedBox(width: 16),
-                  const Icon(Icons.tag, size: 14, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text('Lote: ${batch.batchNumber}'),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.tag, size: 14, color: Colors.grey[500]),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                'Lote: ${batch.batchNumber}', 
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: Colors.grey[700], fontSize: 13)
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (product.productReference != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.qr_code, size: 14, color: Colors.grey[500]),
+                              const SizedBox(width: 4),
+                              Text(
+                                'SKU: ${product.productReference!}', 
+                                style: TextStyle(color: Colors.grey[700], fontSize: 13)
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${product.quantity} uds',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        Text(
+                          product.currentPhaseName,
+                          style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  )
                 ],
               ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(Icons.precision_manufacturing, size: 14, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text('Fase: ${product.currentPhaseName}'),
-                ],
-              ),
-              if (product.productReference != null) ...[
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.qr_code, size: 14, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text('SKU: ${product.productReference}'),
-                  ],
-                ),
-              ],
             ],
           ),
         ),
@@ -653,15 +827,15 @@ print('Batch ${batch.batchNumber} has ${products.length} products ==============
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(4),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         urgencyEnum.displayName,
         style: TextStyle(
           color: color,
           fontWeight: FontWeight.bold,
-          fontSize: 12,
+          fontSize: 11,
         ),
       ),
     );
