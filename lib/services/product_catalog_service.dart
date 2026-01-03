@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_catalog_model.dart';
+import 'package:rxdart/rxdart.dart';
 
 class ProductCatalogService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -218,6 +219,60 @@ class ProductCatalogService {
       print('Error getting client products: $e');
       return [];
     }
+  }
+
+/// Obtener productos de un cliente específico (Versión Stream en tiempo real)
+  Stream<List<ProductCatalogModel>> getClientProductsStream(
+    String organizationId,
+    String clientId,
+  ) {
+    // 1. Stream de productos públicos
+    final publicStream = _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('product_catalog')
+        .where('isPublic', isEqualTo: true)
+        .where('approvalStatus', isEqualTo: 'approved')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ProductCatalogModel.fromMap(doc.data()))
+            .toList());
+
+    // 2. Stream de productos específicos del cliente
+    final clientStream = _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('product_catalog')
+        .where('clientId', isEqualTo: clientId)
+        .where('approvalStatus', isEqualTo: 'approved')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ProductCatalogModel.fromMap(doc.data()))
+            .toList());
+
+    // 3. Combinar ambos streams usando Rx.combineLatest2
+    // Esto se ejecutará cada vez que CUALQUIERA de las dos listas cambie en Firebase
+    return Rx.combineLatest2<List<ProductCatalogModel>,
+        List<ProductCatalogModel>, List<ProductCatalogModel>>(
+      publicStream,
+      clientStream,
+      (publicProducts, clientProducts) {
+        // Combinar ambas listas
+        final allProducts = [...publicProducts, ...clientProducts];
+        
+        // Eliminar duplicados usando un Map por ID
+        final uniqueProducts = <String, ProductCatalogModel>{};
+        for (final product in allProducts) {
+          uniqueProducts[product.id] = product;
+        }
+
+        // Convertir a lista y ordenar por nombre
+        final sortedList = uniqueProducts.values.toList();
+        sortedList.sort((a, b) => a.name.compareTo(b.name));
+
+        return sortedList;
+      },
+    );
   }
 
   /// Obtener producto por ID (stream)
