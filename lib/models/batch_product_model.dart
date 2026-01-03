@@ -314,6 +314,12 @@ double get totalProgress {
     return completedPhases / phaseProgress.length;
   }
 
+  /// Devuelve la diferencia de días entre la fecha de creación y hoy
+  int getDaysInCurrentPhase() {
+    final now = DateTime.now();
+    return now.difference(createdAt).inDays;
+  }
+
   /// Porcentaje de progreso (0 a 100)
   int get progressPercentage => (totalProgress * 100).round();
 
