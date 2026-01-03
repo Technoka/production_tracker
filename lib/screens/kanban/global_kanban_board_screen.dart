@@ -10,7 +10,7 @@ import '../../services/phase_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/production_batch_service.dart';
 import '../../widgets/draggable_product_card.dart';
-import '../../utils/filter_utils.dart'; // NUEVO: Import de utilidades
+import '../../utils/filter_utils.dart';
 import '../production/batch_product_detail_screen.dart';
 
 class GlobalKanbanBoardScreen extends StatefulWidget {
@@ -24,6 +24,11 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
   final KanbanService _kanbanService = KanbanService();
   final PhaseService _phaseService = PhaseService();
   final AuthService _authService = AuthService();
+  
+  // NUEVO: Controlador para el scroll horizontal
+  final ScrollController _scrollController = ScrollController();
+  bool _isDragging = false;
+  double _scrollSpeed = 0;
 
   String _searchQuery = '';
   String? _batchFilter;
@@ -36,6 +41,13 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
   void initState() {
     super.initState();
     _loadCurrentUser();
+    _startAutoScroll();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCurrentUser() async {
@@ -52,12 +64,50 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
     }
   }
 
-  // NUEVO: Verificar si hay filtros activos
+  // NUEVO: Auto-scroll cuando se arrastra cerca de los bordes
+  void _startAutoScroll() {
+    // Ejecutar cada 50ms para scroll suave
+    Stream.periodic(const Duration(milliseconds: 50)).listen((_) {
+      if (_isDragging && _scrollSpeed != 0 && mounted) {
+        final newOffset = _scrollController.offset + _scrollSpeed;
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        
+        if (newOffset >= 0 && newOffset <= maxScroll) {
+          _scrollController.jumpTo(newOffset);
+        }
+      }
+    });
+  }
+
+  // NUEVO: Detectar posición del drag para activar auto-scroll
+  void _updateAutoScroll(Offset globalPosition) {
+    if (!_isDragging) return;
+
+    final RenderBox box = context.findRenderObject() as RenderBox;
+    final localPosition = box.globalToLocal(globalPosition);
+    final screenWidth = box.size.width;
+
+    const edgeThreshold = 100.0; // Píxeles desde el borde para activar
+    const maxScrollSpeed = 15.0; // Velocidad máxima de scroll
+
+    if (localPosition.dx < edgeThreshold) {
+      // Cerca del borde izquierdo - scroll a la izquierda
+      final distance = edgeThreshold - localPosition.dx;
+      _scrollSpeed = -(distance / edgeThreshold * maxScrollSpeed);
+    } else if (localPosition.dx > screenWidth - edgeThreshold) {
+      // Cerca del borde derecho - scroll a la derecha
+      final distance = localPosition.dx - (screenWidth - edgeThreshold);
+      _scrollSpeed = distance / edgeThreshold * maxScrollSpeed;
+    } else {
+      // En el centro - sin scroll
+      _scrollSpeed = 0;
+    }
+  }
+
   bool get _hasActiveFilters {
     return _searchQuery.isNotEmpty || _batchFilter != null;
   }
 
-  // NUEVO: Limpiar todos los filtros
   void _clearAllFilters() {
     setState(() {
       _searchQuery = '';
@@ -162,7 +212,6 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Búsqueda
           FilterUtils.buildSearchField(
             hintText: 'Buscar por nombre o referencia...',
             searchQuery: _searchQuery,
@@ -171,7 +220,6 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
           
           const SizedBox(height: 10),
           
-          // Filtros y botón de limpiar
           Row(
             children: [
               Expanded(
@@ -274,56 +322,77 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
     Map<String, List<Map<String, dynamic>>> productsByPhase,
     UserModel user,
   ) {
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.all(16),
-      itemCount: phases.length,
-      itemBuilder: (context, index) {
-        final phase = phases[index];
-        final productsData = productsByPhase[phase.id] ?? [];
-        final isAtWipLimit = productsData.length >= phase.wipLimit;
-        
-        return DragTarget<Map<String, dynamic>>(
-          onWillAccept: (data) {
-            if (data == null || _currentUser == null) return false;
-            
-            if (!_kanbanService.canUserMoveToPhase(
-              user: _currentUser!,
-              phaseId: phase.id,
-            )) {
-              return false;
-            }
-            
-            final productData = data['product'] as BatchProductModel;
-            if (productData.currentPhase != phase.id && isAtWipLimit) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Límite WIP alcanzado en ${phase.name}'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-              return false;
-            }
-            
-            return true;
-          },
-          onAccept: (data) => _showMoveConfirmationDialog(data, phase),
-          builder: (context, candidateData, rejectedData) {
-            final isHovering = candidateData.isNotEmpty;
-            
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              decoration: BoxDecoration(
-                border: isHovering
-                    ? Border.all(color: Colors.blue, width: 2)
-                    : null,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: _buildKanbanColumn(phase, productsData, phases, isAtWipLimit),
-            );
-          },
-        );
+    return Listener(
+      // NUEVO: Listener para detectar movimiento del drag
+      onPointerMove: (details) {
+        if (_isDragging) {
+          _updateAutoScroll(details.position);
+        }
       },
+      child: ListView.builder(
+        controller: _scrollController, // NUEVO: Añadir controlador
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.all(16),
+        itemCount: phases.length,
+        itemBuilder: (context, index) {
+          final phase = phases[index];
+          final productsData = productsByPhase[phase.id] ?? [];
+          final isAtWipLimit = productsData.length >= phase.wipLimit;
+          
+          return DragTarget<Map<String, dynamic>>(
+            onWillAccept: (data) {
+              if (data == null || _currentUser == null) return false;
+              
+              if (!_kanbanService.canUserMoveToPhase(
+                user: _currentUser!,
+                phaseId: phase.id,
+              )) {
+                return false;
+              }
+              
+              final productData = data['product'] as BatchProductModel;
+              if (productData.currentPhase != phase.id && isAtWipLimit) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Límite WIP alcanzado en ${phase.name}'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return false;
+              }
+              
+              return true;
+            },
+            onAccept: (data) {
+              // NUEVO: Detener auto-scroll al soltar
+              setState(() {
+                _isDragging = false;
+                _scrollSpeed = 0;
+              });
+              _showMoveConfirmationDialog(data, phase);
+            },
+            builder: (context, candidateData, rejectedData) {
+              final isHovering = candidateData.isNotEmpty;
+              
+              // NUEVO: Activar flag de dragging
+              if (isHovering && !_isDragging) {
+                setState(() => _isDragging = true);
+              }
+              
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  border: isHovering
+                      ? Border.all(color: Colors.blue, width: 2)
+                      : null,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: _buildKanbanColumn(phase, productsData, phases, isAtWipLimit),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -535,7 +604,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
                         product: product,
                         allPhases: allPhases,
                         batchNumber: batch.batchNumber,
-                        batch: batch, // CORRECCIÓN: Pasar el batch completo
+                        batch: batch,
                         onTap: () => _handleProductTap(product, batch),
                       );
                     },
@@ -637,10 +706,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
           children: [
             Icon(Icons.inbox_outlined, size: 48, color: Colors.grey.shade400),
             const SizedBox(height: 8),
-            Text(
-              'Sin productos',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-            ),
+            Text('Sin productos', style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
           ],
         ),
       ),
