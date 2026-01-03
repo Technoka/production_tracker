@@ -391,11 +391,8 @@ Widget _buildFilterOption<T>({
       builder: (context, snapshot) {
         final clients = snapshot.data ?? [];
         
-        return Wrap(
-          spacing: 6.0, // Espaciado reducido
-          runSpacing: 6.0,
-          alignment: WrapAlignment.start,
-          children: [
+        // Creamos la lista de widgets (chips)
+        final List<Widget> filterWidgets = [
             _buildFilterOption<String>(
               label: 'Cliente',
               value: _batchClientFilter,
@@ -421,7 +418,26 @@ Widget _buildFilterOption<T>({
               ],
               onChanged: (val) => setState(() => _batchUrgencyFilter = val),
             ),
-          ],
+          ];
+          
+// CAMBIO: Añadimos el botón de borrar filtros AL FINAL de la lista
+        if (_hasActiveFilters) {
+          filterWidgets.add(
+             FilterUtils.buildClearFiltersButton(
+                context: context,
+                onPressed: _clearAllFilters,
+                hasActiveFilters: true,
+             ),
+          );
+        }
+
+        // Retornamos el Wrap con todos los hijos juntos
+        return Wrap(
+          spacing: 6.0,
+          runSpacing: 6.0,
+          alignment: WrapAlignment.start,
+          crossAxisAlignment: WrapCrossAlignment.center, // Alinea verticalmente el botón con los chips
+          children: filterWidgets,
         );
       },
     );
@@ -439,11 +455,8 @@ Widget _buildFilterOption<T>({
             final batches = batchSnapshot.data ?? [];
             final phases = ProductionPhase.getDefaultPhases();
 
-            return Wrap(
-              spacing: 6.0, // Espaciado reducido
-              runSpacing: 6.0,
-              alignment: WrapAlignment.start,
-              children: [
+            // Creamos la lista de widgets
+            final List<Widget> filterWidgets = [
                 // Filtro de Estado
                 _buildFilterOption<String>(
                   label: 'Estado',
@@ -508,7 +521,25 @@ Widget _buildFilterOption<T>({
                   )).toList(),
                   onChanged: (val) => setState(() => _productBatchFilter = val),
                 ),
-              ],
+              ];
+
+// CAMBIO: Añadimos el botón al final si hay filtros
+            if (_hasActiveFilters) {
+              filterWidgets.add(
+                 FilterUtils.buildClearFiltersButton(
+                    context: context,
+                    onPressed: _clearAllFilters,
+                    hasActiveFilters: true,
+                 ),
+              );
+            }
+
+            return Wrap(
+              spacing: 6.0,
+              runSpacing: 6.0,
+              alignment: WrapAlignment.start,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: filterWidgets,
             );
           }
         );
