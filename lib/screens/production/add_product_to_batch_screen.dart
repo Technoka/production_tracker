@@ -483,7 +483,7 @@ Widget _buildProductSelector() {
                     const SizedBox(height: 8),
                   if (_selectedProduct!.reference != null) ...[
                     Text(
-                      'Ref: ${_selectedProduct!.reference}',
+                      'SKU: ${_selectedProduct!.reference}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,

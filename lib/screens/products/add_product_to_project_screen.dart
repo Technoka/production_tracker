@@ -222,7 +222,7 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
                   ),
                 ),
                 subtitle: _selectedProduct != null
-                    ? Text('Ref: ${_selectedProduct!.reference}')
+                    ? Text('SKU: ${_selectedProduct!.reference}')
                     : const Text('Toca para seleccionar'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () async {
@@ -569,7 +569,7 @@ class _ProductSelectorSheetState extends State<_ProductSelectorSheet> {
                             product.name,
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          subtitle: Text('Ref: ${product.reference}'),
+                          subtitle: Text('SKU: ${product.reference}'),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => Navigator.pop(context, product),
                         ),

@@ -476,7 +476,7 @@ class _ProductCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Ref: ${product.reference}',
+                          'SKU: ${product.reference}',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
