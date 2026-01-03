@@ -3,9 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:gestion_produccion/services/product_catalog_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/product_catalog_model.dart';
-import '../../models/phase_model.dart';
 import '../../services/production_batch_service.dart';
 import '../../services/phase_service.dart';
+import '../../services/client_service.dart';
+import '../../models/client_model.dart';
 
 class AddProductToBatchScreen extends StatefulWidget {
   final String organizationId;
@@ -31,6 +32,28 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
 
   ProductCatalogModel? _selectedProduct;
   bool _isLoading = false;
+  
+  String? _batchClientId;
+  String? _batchProjectId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBatchInfo();
+  }
+
+  // AÑADIR método para cargar info del lote:
+  Future<void> _loadBatchInfo() async {
+    final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+    final batch = await batchService.getBatch(widget.organizationId, widget.batchId);
+    
+    if (batch != null && mounted) {
+      setState(() {
+        _batchClientId = batch.clientId;
+        _batchProjectId = batch.projectId;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -225,8 +248,8 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                       ],
                       validator: (value) {
                         if (value != null && value.isNotEmpty) {
-                          final price = double.tryParse(value);
-                          if (price == null || price < 0) {
+                          final basePrice = double.tryParse(value);
+                          if (basePrice == null || basePrice < 0) {
                             return 'Precio inválido';
                           }
                         }
@@ -263,57 +286,85 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
     );
   }
 
-  Widget _buildProductSelector() {
-    return StreamBuilder<List<ProductCatalogModel>>(
-      stream: Provider.of<ProductCatalogService>(context, listen: false)
-          .getOrganizationProductsStream(widget.organizationId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+Widget _buildProductSelector() {
+  if (_batchClientId == null) {
+    return const Center(child: CircularProgressIndicator());
+  }
+
+  return StreamBuilder<List<ProductCatalogModel>>(
+    stream: Provider.of<ProductCatalogService>(context, listen: false)
+        .getClientProductsStream(widget.organizationId, _batchClientId!),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      if (snapshot.hasError) {
+        return Text('Error: ${snapshot.error}');
+      }
+
+      final allProducts = snapshot.data ?? [];
+
+      // FILTRAR: Solo productos del cliente del lote o públicos
+      final products = allProducts.where((product) {
+        // Si el producto es público, incluirlo
+        if (product.isPublic) return true;
+        // Si tiene clientId específico, solo incluir si coincide
+        if (product.clientId != null) {
+          return product.clientId == _batchClientId;
         }
+        return true;
+      }).toList();
 
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
-
-        final products = snapshot.data ?? [];
-
-        if (products.isEmpty) {
-          return Column(
-            children: [
-              Text(
-                'No hay productos en el catálogo',
-                style: TextStyle(color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('Ir al catálogo'),
-              ),
-            ],
-          );
-        }
-
-return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      if (products.isEmpty) {
+        return Column(
           children: [
+            Text(
+              'No hay productos disponibles para este cliente',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Volver'),
+            ),
+          ],
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             // CAMBIO AQUÍ: El tipo ahora es String, no ProductCatalogModel
             DropdownButtonFormField<String>( 
-              decoration: const InputDecoration(
-                labelText: 'Producto del catálogo',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.shopping_bag),
-              ),
+            decoration: const InputDecoration(
+              labelText: 'Producto del catálogo',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.shopping_bag),
+            ),
               // USAMOS EL ID COMO VALOR
               value: _selectedProduct?.id, 
               isExpanded: true,
               itemHeight: null,
-              items: products.map((product) {
-                return DropdownMenuItem(
-                  value: product.id, // AQUÍ TAMBIÉN USAMOS EL ID
-                  child: Column(
+              // --- 1. CAMBIO: selectedItemBuilder para mostrar SOLO TEXTO al seleccionar ---
+              selectedItemBuilder: (BuildContext context) {
+                return products.map<Widget>((ProductCatalogModel product) {
+                  return Text(
+                    product.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      overflow: TextOverflow.ellipsis
+                    ),
+                    maxLines: 1,
+                  );
+                }).toList();
+              },
+            items: products.map((product) {
+              return DropdownMenuItem(
+                value: product.id,
+                child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -323,71 +374,152 @@ return Column(
                         overflow: TextOverflow.ellipsis // Corta con "..." si es muy largo
                       ), 
                       maxLines: 1,
-                      ),
-                      if (product.reference != null)
-                        Text(
-                          'Ref: ${product.reference}',
-                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                        ),
-                    ],
-                  ),
-                );
-              }).toList(),
+                ),
+                if (product.clientId != null)
+                          FutureBuilder<ClientModel?>(
+                            future: Provider.of<ClientService>(context, listen: false)
+                                .getClient(widget.organizationId, product.clientId!),
+                            builder: (context, snapshot) {
+                              String clientText = 'Cliente: Cargando...';
+                              
+                              if (snapshot.hasData && snapshot.data != null) {
+                                clientText = 'Cliente: ${snapshot.data!.name}';
+                              } else if (snapshot.hasError) {
+                                clientText = 'Cliente: Error';
+                              }
+                              
+                              return Text(
+                                clientText,
+                                style: TextStyle(
+                                  fontSize: 12, 
+                                  color: Colors.grey[600]
+                                ),
+                              );
+                            },
+                          )
+                          else // SI NO TIENE CLIENTE
+                          Text(
+                            'Público',
+                            style: TextStyle(
+                              fontSize: 12, 
+                              color: Colors.green[700], // Color verde para destacar que es público
+                              fontStyle: FontStyle.italic
+                            ),
+                          ),
+        ]),
+              );
+            }).toList(),
               // AL CAMBIAR, BUSCAMOS EL OBJETO REAL USANDO EL ID
               onChanged: (productId) {
                 if (productId == null) return;
                 // Buscamos el objeto completo en la lista usando el ID
                 final product = products.firstWhere((p) => p.id == productId);
                 
-                setState(() {
-                  _selectedProduct = product;
-                  if (product.basePrice != null) {
-                    _unitPriceController.text = product.basePrice!.toStringAsFixed(2);
-                  }
-                });
-              },
-              validator: (value) => value == null ? 'Debes seleccionar un producto' : null,
-            ),
+              setState(() {
+                _selectedProduct = product;
+                if (product.basePrice != null) {
+                  _unitPriceController.text = product.basePrice!.toStringAsFixed(2);
+                }
+              });
+            },
+            validator: (value) {
+              if (value == null) {
+                return 'Debes seleccionar un producto';
+              }
+              return null;
+            },
+          ),
 
-            // Mostrar detalles del producto seleccionado
-            if (_selectedProduct != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_selectedProduct!.description != null) ...[
-                      Text(
-                        _selectedProduct!.description!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    if (_selectedProduct!.basePrice != null)
-                      Text(
-                        'Precio catálogo: ${_selectedProduct!.basePrice!.toStringAsFixed(2)} €',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                  ],
-                ),
+          // CAMBIAR el Container de detalles para evitar overflow:
+          if (_selectedProduct != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity, // FIX OVERFLOW
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
               ),
-            ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [// CLIENTE (Movido aquí)
+                    Row(
+                      children: [
+                        Icon(Icons.person_outline, size: 16, color: Colors.grey[700]),
+                        const SizedBox(width: 4),
+                        if (_selectedProduct!.clientId != null)
+                          Expanded(
+                            child: FutureBuilder<ClientModel?>(
+                              future: Provider.of<ClientService>(context, listen: false)
+                                  .getClient(widget.organizationId, _selectedProduct!.clientId!),
+                              builder: (context, snapshot) {
+                                String clientText = 'Cargando...';
+                                if (snapshot.hasData && snapshot.data != null) {
+                                  clientText = snapshot.data!.name;
+                                } else if (snapshot.hasError) {
+                                  clientText = 'Error';
+                                }
+                                return Text(
+                                  'Cliente: ${clientText}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                );
+                              },
+                            ),
+                          )
+                        else
+                          Text(
+                            'Público',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.bold,
+                              fontStyle: FontStyle.italic
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                  if (_selectedProduct!.reference != null) ...[
+                    Text(
+                      'Ref: ${_selectedProduct!.reference}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                  if (_selectedProduct!.description != null) ...[
+                    Text(
+                      _selectedProduct!.description!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[700],
+                      ),
+                      maxLines: 3, // FIX OVERFLOW
+                      overflow: TextOverflow.ellipsis, // FIX OVERFLOW
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (_selectedProduct!.basePrice != null)
+                    Text(
+                      'Precio catálogo: ${_selectedProduct!.basePrice!.toStringAsFixed(2)} €',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ],
-        );
-      },
-    );
-  }
+        ],
+      );
+    },
+  );
+}
 
   Future<void> _addProduct() async {
     if (!_formKey.currentState!.validate()) return;
