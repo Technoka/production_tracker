@@ -22,13 +22,11 @@ class ProductKanbanCard extends StatelessWidget {
     final totalProgress = product.totalProgress;
     
     return Card(
-      elevation: product.isBlocked ? 4 : 2,
+      elevation: 2,
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: product.isBlocked
-            ? BorderSide(color: Colors.red.shade700, width: 2)
-            : BorderSide.none,
+        side: BorderSide.none,
       ),
       child: InkWell(
         onTap: onTap,
@@ -53,25 +51,6 @@ class ProductKanbanCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (product.isBlocked)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade700,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        'BLOQUEADO',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
                 ],
               ),
               
@@ -148,34 +127,6 @@ class ProductKanbanCard extends StatelessWidget {
                   ),
                 ],
               ),
-              
-              // Botones de acción
-              if (onBlock != null) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton.icon(
-                        onPressed: onBlock,
-                        icon: Icon(
-                          product.isBlocked ? Icons.lock_open : Icons.block,
-                          size: 14,
-                        ),
-                        label: Text(
-                          product.isBlocked ? 'Desbloquear' : 'Bloquear',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ],
           ),
         ),

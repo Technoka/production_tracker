@@ -156,7 +156,7 @@ class BatchCardWidget extends StatelessWidget {
               ),
 
               // Indicadores
-              if (batch.isDelayed || batch.priority <= 2) ...[
+              if (batch.isDelayed || batch.urgencyNumericValue <= 2) ...[
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -168,7 +168,7 @@ class BatchCardWidget extends StatelessWidget {
                         Colors.orange[100]!,
                         Colors.orange[900]!,
                       ),
-                    if (batch.priority <= 2)
+                    if (batch.urgencyNumericValue <= 2)
                       _buildChip(
                         'Prioridad Alta',
                         Icons.priority_high,

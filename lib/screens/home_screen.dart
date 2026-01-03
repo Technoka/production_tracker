@@ -8,7 +8,8 @@ import 'organization/organization_home_screen.dart';
 import 'clients/clients_list_screen.dart';
 import 'projects/projects_list_screen.dart';
 import 'catalog/product_catalog_screen.dart';
-import 'production/production_batches_list_screen.dart';
+import 'production/production_screen.dart'; // CAMBIADO
+import 'kanban/global_kanban_board_screen.dart'; // NUEVO
 import '../widgets/production_dashboard_widget.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -29,9 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (user == null) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -39,30 +38,23 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Gestión de Producción'),
         actions: [
-          // Badge de rol
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: RoleUtils.buildRoleBadge(user.role, compact: true),
           ),
-          // Botón de perfil
           IconButton(
             icon: CircleAvatar(
               radius: 16,
               backgroundColor: Theme.of(context).colorScheme.primary,
               child: Text(
                 user.name[0].toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.white,
-                ),
+                style: const TextStyle(fontSize: 14, color: Colors.white),
               ),
             ),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const ProfileScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
               );
             },
             tooltip: 'Mi perfil',
@@ -104,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 32),
 
-            // Resumen de Producción (NUEVO)
+            // Resumen de Producción
             if (user.canManageProduction && user.organizationId != null) ...[
               ProductionDashboardWidget(
                 organizationId: user.organizationId!,
@@ -124,7 +116,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (user.canManageProduction) {
       features.addAll([
-        // NUEVO: Producción como primera opción
         {
           'icon': Icons.precision_manufacturing,
           'title': 'Producción',
@@ -134,7 +125,22 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const ProductionBatchesListScreen(),
+                builder: (context) => const ProductionScreen(), // CAMBIADO
+              ),
+            );
+          },
+        },
+        // NUEVO: Kanban Global
+        {
+          'icon': Icons.view_kanban,
+          'title': 'Kanban',
+          'subtitle': 'Tablero visual global',
+          'color': Colors.blue,
+          'onTap': () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const GlobalKanbanBoardScreen(),
               ),
             );
           },
@@ -226,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const ProductionBatchesListScreen(),
+                builder: (context) => const ProductionScreen(), // CAMBIADO
               ),
             );
           },
@@ -328,7 +334,6 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           if (user.canManageProduction) ...[
-            // NUEVO: Producción en el drawer
             ListTile(
               leading: const Icon(Icons.precision_manufacturing),
               title: const Text('Producción'),
@@ -337,7 +342,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ProductionBatchesListScreen(),
+                    builder: (context) => const ProductionScreen(), // CAMBIADO
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.view_kanban),
+              title: const Text('Kanban'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const GlobalKanbanBoardScreen(),
                   ),
                 );
               },
@@ -471,6 +489,18 @@ class _HomeScreenState extends State<HomeScreen> {
               _showLogoutDialog(authService);
             },
           ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24.0),
+            child: Center(
+              child: Text(
+                'Versión 0.6.0',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -487,7 +517,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (user.canManageProduction) {
-      // NUEVO: Producción en el bottom nav
       items.add(
         const BottomNavigationBarItem(
           icon: Icon(Icons.precision_manufacturing),
@@ -523,9 +552,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return BottomNavigationBar(
       currentIndex: _selectedIndex,
       onTap: (index) {
-        setState(() {
-          _selectedIndex = index;
-        });
+        setState(() => _selectedIndex = index);
 
         final label = items[index].label;
 
@@ -540,7 +567,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const ProductionBatchesListScreen(),
+              builder: (context) => const ProductionScreen(),
             ),
           );
         } else if (label == 'Proyectos') {

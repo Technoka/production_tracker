@@ -35,10 +35,6 @@ class KanbanService {
             p.productName.toLowerCase().contains(searchQuery.toLowerCase())).toList();
       }
 
-      if (onlyBlocked) {
-        filteredProducts = filteredProducts.where((p) => p.isBlocked).toList();
-      }
-
       // Agrupar por fase actual
       final Map<String, List<BatchProductModel>> groupedByPhase = {};
       
@@ -345,10 +341,6 @@ class KanbanService {
           .where((p) => !p.isCompleted)
           .toList();
 
-      final blockedProducts = activeProducts
-          .where((p) => p.isBlocked)
-          .length;
-
       final completedProducts = allProducts
           .where((p) => p.isCompleted)
           .length;
@@ -357,7 +349,6 @@ class KanbanService {
         'totalProducts': allProducts.length,
         'activeProducts': activeProducts.length,
         'completedProducts': completedProducts,
-        'blockedProducts': blockedProducts,
       };
     } catch (e) {
       return {
