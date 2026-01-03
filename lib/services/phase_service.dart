@@ -72,7 +72,7 @@ class PhaseService {
             .collection('phases')
             .doc(phase.id);
         
-        batch.set(docRef, phase.toFirestore());
+        batch.set(docRef, phase.toMap());
       }
       
       await batch.commit();
@@ -127,7 +127,7 @@ class PhaseService {
           .collection('organizations')
           .doc(organizationId)
           .collection('phases')
-          .add(phase.toFirestore());
+          .add(phase.toMap());
       
       return docRef.id;
     } catch (e) {
@@ -155,7 +155,7 @@ class PhaseService {
         .orderBy('phaseOrder')
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => ProductPhaseProgress.fromFirestore(doc))
+            .map((doc) => ProductPhaseProgress.fromMap(doc))
             .toList());
   }
 
@@ -178,7 +178,7 @@ class PhaseService {
           .get();
 
       return snapshot.docs
-          .map((doc) => ProductPhaseProgress.fromFirestore(doc))
+          .map((doc) => ProductPhaseProgress.fromMap(doc))
           .toList();
     } catch (e) {
       print('Error getting product phase progress: $e');
@@ -218,7 +218,7 @@ class PhaseService {
             .collection('phaseProgress')
             .doc(phase.id);
         
-        batch.set(docRef, progress.toFirestore());
+        batch.set(docRef, progress.toMap());
       }
       
       await batch.commit();
@@ -241,7 +241,7 @@ class PhaseService {
     try {
       final now = DateTime.now();
       final updates = <String, dynamic>{
-        'status': newStatus.toFirestore(),
+        'status': newStatus.toMap(),
       };
 
       // Update timestamps and user info based on status

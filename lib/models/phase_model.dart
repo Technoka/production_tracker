@@ -30,7 +30,7 @@ enum PhaseStatus {
     }
   }
 
-  String toFirestore() {
+  String toMap() {
     return toString().split('.').last;
   }
 }
@@ -38,20 +38,44 @@ enum PhaseStatus {
 class ProductionPhase {
   final String id;
   final String name;
+  final String description;
   final int order;
   final bool isActive;
-  final String? description;
+  final String? createdBy;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  
+  // Campos Kanban (FASE 6)
+  final String color;
+  final String icon;
+  final int wipLimit;
+  final int kanbanPosition;
+  
+  // Campos para SLA (FASE 5 - futuro)
+  final int? maxDurationHours;
+  final int? warningThresholdPercent;
+  final double? averageDurationHours;
+  final int? minDurationHours;
+  final int? maxDurationHistoryHours;
 
   ProductionPhase({
     required this.id,
     required this.name,
-    required this.order,
+    required this.description,
     this.isActive = true,
-    this.description,
+    required this.order,
+    this.createdBy,
     required this.createdAt,
     this.updatedAt,
+    this.color = '#2196F3',
+    this.icon = 'work',
+    this.wipLimit = 10,
+    this.kanbanPosition = 0,
+    this.maxDurationHours,
+    this.warningThresholdPercent,
+    this.averageDurationHours,
+    this.minDurationHours,
+    this.maxDurationHistoryHours,
   });
 
   factory ProductionPhase.fromFirestore(DocumentSnapshot doc) {
@@ -59,45 +83,85 @@ class ProductionPhase {
     return ProductionPhase(
       id: doc.id,
       name: data['name'] ?? '',
+      description: data['description'] ?? '',
       order: data['order'] ?? 0,
       isActive: data['isActive'] ?? true,
-      description: data['description'],
+      createdBy: data['createdBy'] ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
+      color: data['color'] ?? '#2196F3',
+      icon: data['icon'] ?? 'work',
+      wipLimit: data['wipLimit'] ?? 10,
+      kanbanPosition: data['kanbanPosition'] ?? 0,
+      maxDurationHours: data['maxDurationHours'],
+      warningThresholdPercent: data['warningThresholdPercent'],
+      averageDurationHours: data['averageDurationHours']?.toDouble(),
+      minDurationHours: data['minDurationHours'],
+      maxDurationHistoryHours: data['maxDurationHistoryHours'],
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toMap() {
     return {
       'name': name,
-      'order': order,
       'isActive': isActive,
       'description': description,
+      'order': order,
+      'createdBy': createdBy,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      'color': color,
+      'icon': icon,
+      'wipLimit': wipLimit,
+      'kanbanPosition': kanbanPosition,
+      'maxDurationHours': maxDurationHours,
+      'warningThresholdPercent': warningThresholdPercent,
+      'averageDurationHours': averageDurationHours,
+      'minDurationHours': minDurationHours,
+      'maxDurationHistoryHours': maxDurationHistoryHours,
     };
   }
 
   ProductionPhase copyWith({
     String? id,
     String? name,
-    int? order,
     bool? isActive,
     String? description,
+    int? order,
+    String? createdBy,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? color,
+    String? icon,
+    int? wipLimit,
+    int? kanbanPosition,
+    int? maxDurationHours,
+    int? warningThresholdPercent,
+    double? averageDurationHours,
+    int? minDurationHours,
+    int? maxDurationHistoryHours,
   }) {
     return ProductionPhase(
       id: id ?? this.id,
       name: name ?? this.name,
-      order: order ?? this.order,
       isActive: isActive ?? this.isActive,
       description: description ?? this.description,
+      order: order ?? this.order,
+      createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      color: color ?? this.color,
+      icon: icon ?? this.icon,
+      wipLimit: wipLimit ?? this.wipLimit,
+      kanbanPosition: kanbanPosition ?? this.kanbanPosition,
+      maxDurationHours: maxDurationHours ?? this.maxDurationHours,
+      warningThresholdPercent: warningThresholdPercent ?? this.warningThresholdPercent,
+      averageDurationHours: averageDurationHours ?? this.averageDurationHours,
+      minDurationHours: minDurationHours ?? this.minDurationHours,
+      maxDurationHistoryHours: maxDurationHistoryHours ?? this.maxDurationHistoryHours,
     );
   }
-
+  
   static List<ProductionPhase> getDefaultPhases() {
     final now = DateTime.now();
     return [
@@ -178,7 +242,7 @@ class ProductPhaseProgress {
     this.notes,
   });
 
-  factory ProductPhaseProgress.fromFirestore(DocumentSnapshot doc) {
+  factory ProductPhaseProgress.fromMap(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return ProductPhaseProgress(
       id: doc.id,
@@ -198,13 +262,13 @@ class ProductPhaseProgress {
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toMap() {
     return {
       'productId': productId,
       'phaseId': phaseId,
       'phaseName': phaseName,
       'phaseOrder': phaseOrder,
-      'status': status.toFirestore(),
+      'status': status.toMap(),
       'createdAt': Timestamp.fromDate(createdAt),
       'startedAt': startedAt != null ? Timestamp.fromDate(startedAt!) : null,
       'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
