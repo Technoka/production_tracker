@@ -844,7 +844,7 @@ Widget _buildStatusStatItem(String label, int count, Color color, int total) {
       case 'high':
         return 'Alta';
       case 'critical':
-        return 'Crítica';
+        return 'Urgente';
       default:
         return urgency;
     }

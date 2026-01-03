@@ -23,7 +23,7 @@ enum UrgencyLevel {
   low('low', 'Baja', 1),
   medium('medium', 'Media', 2),
   high('high', 'Alta', 3),
-  critical('critical', 'Crítica', 4);
+  critical('critical', 'Urgente', 4);
 
   final String value;
   final String displayName;
