@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
 import '../../services/client_service.dart';
 import 'package:country_picker/country_picker.dart';
@@ -22,7 +23,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
   final _postalCodeController = TextEditingController();
   final _countryController = TextEditingController();
   final _notesController = TextEditingController();
-  String _selectedCountryCode = "+34"; // Valor por defecto
+  String _selectedCountryCode = "+34";
 
   @override
   void dispose() {
@@ -38,7 +39,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
     super.dispose();
   }
 
-  Future<void> _handleCreate() async {
+  Future<void> _handleCreate(AppLocalizations l10n) async {
     if (!_formKey.currentState!.validate()) return;
 
     final authService = Provider.of<AuthService>(context, listen: false);
@@ -47,8 +48,8 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
     final user = authService.currentUserData;
     if (user == null || user.organizationId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes pertenecer a una organización'),
+        SnackBar(
+          content: Text(l10n.mustBelongToOrganization), // Usando clave existente
           backgroundColor: Colors.red,
         ),
       );
@@ -84,8 +85,8 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
       if (clientId != null) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cliente creado exitosamente'),
+          SnackBar(
+            content: Text(l10n.clientCreatedSuccess),
             backgroundColor: Colors.green,
           ),
         );
@@ -93,7 +94,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:
-                Text(clientService.error ?? 'Error al crear cliente'),
+                Text(clientService.error ?? l10n.createClientError),
             backgroundColor: Colors.red,
           ),
         );
@@ -104,10 +105,11 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
   @override
   Widget build(BuildContext context) {
     final clientService = Provider.of<ClientService>(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nuevo Cliente'),
+        title: Text(l10n.newClientTitle),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -119,7 +121,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
               children: [
                 // Información básica
                 Text(
-                  'Información Básica',
+                  l10n.basicInfoSection,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -129,17 +131,17 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                 TextFormField(
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre del contacto *',
-                    prefixIcon: Icon(Icons.person_outline),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.contactNameLabel,
+                    prefixIcon: const Icon(Icons.person_outline),
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa el nombre';
+                      return l10n.enterNameError;
                     }
                     if (value.length < 2) {
-                      return 'El nombre debe tener al menos 2 caracteres';
+                      return l10n.nameLengthError;
                     }
                     return null;
                   },
@@ -149,14 +151,14 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                 TextFormField(
                   controller: _companyController,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Empresa *',
-                    prefixIcon: Icon(Icons.business),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.companyLabel,
+                    prefixIcon: const Icon(Icons.business),
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa la empresa';
+                      return l10n.enterCompanyError;
                     }
                     return null;
                   },
@@ -166,17 +168,17 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Correo electrónico *',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.emailLabel,
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa el correo';
+                      return l10n.enterEmailError;
                     }
                     if (!value.contains('@')) {
-                      return 'Ingresa un correo válido';
+                      return l10n.enterValidEmailError;
                     }
                     return null;
                   },
@@ -186,10 +188,9 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
-                    labelText: 'Teléfono',
+                    labelText: l10n.phoneLabel,
                     hintText: '123 456 789',
                     border: const OutlineInputBorder(),
-                    // Usamos prefixIcon para meter el selector dentro del campo
                     prefixIcon: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       margin: const EdgeInsets.only(right: 8),
@@ -198,7 +199,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                           showCountryPicker(
                             context: context,
                             favorite: <String>['ES'],
-                            showPhoneCode: true, // Esto es clave para que muestre el +34, +52, etc.
+                            showPhoneCode: true,
                             onSelect: (Country country) {
                               setState(() {
                                 _selectedCountryCode = "+${country.phoneCode}";
@@ -229,7 +230,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
 
                 // Dirección
                 Text(
-                  'Dirección',
+                  l10n.addressLabel,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -239,11 +240,11 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                 TextFormField(
                   controller: _addressController,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Dirección',
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                    border: OutlineInputBorder(),
-                    helperText: 'Calle, número, etc.',
+                  decoration: InputDecoration(
+                    labelText: l10n.addressLabel,
+                    prefixIcon: const Icon(Icons.location_on_outlined),
+                    border: const OutlineInputBorder(),
+                    helperText: l10n.addressHelper,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -255,10 +256,10 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                       child: TextFormField(
                         controller: _cityController,
                         textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(
-                          labelText: 'Ciudad',
-                          prefixIcon: Icon(Icons.location_city),
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.cityLabel,
+                          prefixIcon: const Icon(Icons.location_city),
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                     ),
@@ -267,9 +268,9 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                       child: TextFormField(
                         controller: _postalCodeController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'C.P.',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.zipCodeLabel,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                     ),
@@ -278,7 +279,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _countryController,
-                  readOnly: true, // Evita que salga el teclado
+                  readOnly: true,
                   onTap: () {
                     showCountryPicker(
                       context: context,
@@ -286,31 +287,30 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                       showPhoneCode: false,
                       onSelect: (Country country) {
                         setState(() {
-                          // Guardamos el nombre y la bandera en el controller
                           _countryController.text = "${country.flagEmoji} ${country.nameLocalized ?? country.name}";
                         });
                       },
                       countryListTheme: CountryListThemeData(
                         borderRadius: BorderRadius.circular(15),
-                        inputDecoration: const InputDecoration(
-                          labelText: 'Buscar país',
-                          prefixIcon: Icon(Icons.search),
+                        inputDecoration: InputDecoration(
+                          labelText: l10n.searchCountryHint,
+                          prefixIcon: const Icon(Icons.search),
                         ),
                       ),
                     );
                   },
-                  decoration: const InputDecoration(
-                    labelText: 'País',
-                    prefixIcon: Icon(Icons.public),
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.arrow_drop_down),
+                  decoration: InputDecoration(
+                    labelText: l10n.countryLabel,
+                    prefixIcon: const Icon(Icons.public),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: const Icon(Icons.arrow_drop_down),
                   ),
                 ),
                 const SizedBox(height: 24),
 
                 // Notas
                 Text(
-                  'Notas Adicionales',
+                  l10n.additionalNotesSection,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -320,11 +320,11 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                 TextFormField(
                   controller: _notesController,
                   maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Notas',
-                    prefixIcon: Icon(Icons.note_outlined),
-                    border: OutlineInputBorder(),
-                    helperText: 'Información adicional sobre el cliente',
+                  decoration: InputDecoration(
+                    labelText: l10n.notesSection,
+                    prefixIcon: const Icon(Icons.note_outlined),
+                    border: const OutlineInputBorder(),
+                    helperText: l10n.additionalNotesHelper,
                     alignLabelWithHint: true,
                   ),
                 ),
@@ -332,7 +332,7 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
 
                 // Botones
                 FilledButton(
-                  onPressed: clientService.isLoading ? null : _handleCreate,
+                  onPressed: clientService.isLoading ? null : () => _handleCreate(l10n),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                     child: clientService.isLoading
@@ -344,20 +344,20 @@ class _CreateClientScreenState extends State<CreateClientScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text(
-                            'Crear Cliente',
-                            style: TextStyle(fontSize: 16),
+                        : Text(
+                            l10n.createClientButton,
+                            style: const TextStyle(fontSize: 16),
                           ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16.0),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
                     child: Text(
-                      'Cancelar',
-                      style: TextStyle(fontSize: 16),
+                      l10n.cancel,
+                      style: const TextStyle(fontSize: 16),
                     ),
                   ),
                 ),

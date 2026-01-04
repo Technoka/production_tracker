@@ -940,6 +940,360 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invalid color format'**
   String get invalidColor;
+
+  /// No description provided for @createdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Created: {date}'**
+  String createdLabel(Object date);
+
+  /// No description provided for @updatedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated: {date}'**
+  String updatedLabel(Object date);
+
+  /// No description provided for @noProductsInProject.
+  ///
+  /// In en, this message translates to:
+  /// **'No products in this project'**
+  String get noProductsInProject;
+
+  /// No description provided for @batchLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch: {batch}'**
+  String batchLabel(Object batch);
+
+  /// No description provided for @quantityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity: {quantity} units'**
+  String quantityLabel(Object quantity);
+
+  /// No description provided for @clientDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Client Detail'**
+  String get clientDetailTitle;
+
+  /// No description provided for @contactInfoSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Information'**
+  String get contactInfoSection;
+
+  /// No description provided for @cityZipLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'City / Zip Code'**
+  String get cityZipLabel;
+
+  /// No description provided for @countryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Country'**
+  String get countryLabel;
+
+  /// No description provided for @notesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notesSection;
+
+  /// No description provided for @registrationInfoSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration Information'**
+  String get registrationInfoSection;
+
+  /// No description provided for @creationDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Creation Date'**
+  String get creationDateLabel;
+
+  /// No description provided for @lastUpdateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Update'**
+  String get lastUpdateLabel;
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get copiedToClipboard;
+
+  /// No description provided for @cantDeleteClientError.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot delete client. Organization not found.'**
+  String get cantDeleteClientError;
+
+  /// No description provided for @deleteClientTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Client'**
+  String get deleteClientTitle;
+
+  /// No description provided for @deleteClientConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete {name}? This action cannot be undone.'**
+  String deleteClientConfirm(Object name);
+
+  /// No description provided for @clientDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Client deleted'**
+  String get clientDeleted;
+
+  /// No description provided for @deleteClientError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error deleting client'**
+  String get deleteClientError;
+
+  /// No description provided for @newClientTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Client'**
+  String get newClientTitle;
+
+  /// No description provided for @basicInfoSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Information'**
+  String get basicInfoSection;
+
+  /// No description provided for @contactNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Name *'**
+  String get contactNameLabel;
+
+  /// No description provided for @enterNameError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter name'**
+  String get enterNameError;
+
+  /// No description provided for @nameLengthError.
+  ///
+  /// In en, this message translates to:
+  /// **'Name must be at least 2 characters'**
+  String get nameLengthError;
+
+  /// No description provided for @companyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Company *'**
+  String get companyLabel;
+
+  /// No description provided for @enterCompanyError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter company'**
+  String get enterCompanyError;
+
+  /// No description provided for @emailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email *'**
+  String get emailLabel;
+
+  /// No description provided for @enterEmailError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter email'**
+  String get enterEmailError;
+
+  /// No description provided for @enterValidEmailError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email'**
+  String get enterValidEmailError;
+
+  /// No description provided for @phoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get phoneLabel;
+
+  /// No description provided for @addressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get addressLabel;
+
+  /// No description provided for @addressHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Street, number, etc.'**
+  String get addressHelper;
+
+  /// No description provided for @cityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get cityLabel;
+
+  /// No description provided for @zipCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Zip Code'**
+  String get zipCodeLabel;
+
+  /// No description provided for @searchCountryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search country'**
+  String get searchCountryHint;
+
+  /// No description provided for @additionalNotesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional Notes'**
+  String get additionalNotesSection;
+
+  /// No description provided for @additionalNotesHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional info about client'**
+  String get additionalNotesHelper;
+
+  /// No description provided for @createClientButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Client'**
+  String get createClientButton;
+
+  /// No description provided for @clientCreatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Client created successfully'**
+  String get clientCreatedSuccess;
+
+  /// No description provided for @createClientError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error creating client'**
+  String get createClientError;
+
+  /// No description provided for @editClientTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Client'**
+  String get editClientTitle;
+
+  /// No description provided for @saveChangesButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Changes'**
+  String get saveChangesButton;
+
+  /// No description provided for @clientUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Client updated successfully'**
+  String get clientUpdatedSuccess;
+
+  /// No description provided for @updateClientError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating client'**
+  String get updateClientError;
+
+  /// No description provided for @myProjectsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Projects'**
+  String get myProjectsTitle;
+
+  /// No description provided for @logoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Logout'**
+  String get logoutTitle;
+
+  /// No description provided for @logoutConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to exit?'**
+  String get logoutConfirmMessage;
+
+  /// No description provided for @exitButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit'**
+  String get exitButton;
+
+  /// No description provided for @welcomeUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello, {name}'**
+  String welcomeUser(Object name);
+
+  /// No description provided for @clientDashboardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Here you can see the status of your products in real time'**
+  String get clientDashboardSubtitle;
+
+  /// No description provided for @noAssignedProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no assigned projects'**
+  String get noAssignedProjects;
+
+  /// No description provided for @noAssignedProjectsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Projects will appear when a manufacturer\nassigns you as a client'**
+  String get noAssignedProjectsSubtitle;
+
+  /// No description provided for @currentStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Status'**
+  String get currentStatusLabel;
+
+  /// No description provided for @lastUpdateDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last update: {date}'**
+  String lastUpdateDateLabel(Object date);
+
+  /// No description provided for @productionProgressSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Production Progress'**
+  String get productionProgressSection;
+
+  /// No description provided for @stagesHistorySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Stage History'**
+  String get stagesHistorySection;
+
+  /// No description provided for @stageStartLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Start: {date}'**
+  String stageStartLabel(Object date);
+
+  /// No description provided for @stageEndLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'End: {date}'**
+  String stageEndLabel(Object date);
+
+  /// No description provided for @stagesProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{completed} of {total} stages completed'**
+  String stagesProgress(Object completed, Object total);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

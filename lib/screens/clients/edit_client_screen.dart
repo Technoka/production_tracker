@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/client_service.dart';
 import '../../models/client_model.dart';
 import 'package:country_picker/country_picker.dart';
@@ -24,7 +25,7 @@ class _EditClientScreenState extends State<EditClientScreen> {
   late final TextEditingController _postalCodeController;
   late final TextEditingController _countryController;
   late final TextEditingController _notesController;
-  String _selectedCountryCode = "+34"; // Valor por defecto
+  String _selectedCountryCode = "+34";
 
   @override
   void initState() {
@@ -54,7 +55,7 @@ class _EditClientScreenState extends State<EditClientScreen> {
     super.dispose();
   }
 
-  Future<void> _handleUpdate() async {
+  Future<void> _handleUpdate(AppLocalizations l10n) async {
     if (!_formKey.currentState!.validate()) return;
 
     final clientService = Provider.of<ClientService>(context, listen: false);
@@ -77,8 +78,8 @@ class _EditClientScreenState extends State<EditClientScreen> {
       if (success) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cliente actualizado exitosamente'),
+          SnackBar(
+            content: Text(l10n.clientUpdatedSuccess),
             backgroundColor: Colors.green,
           ),
         );
@@ -86,7 +87,7 @@ class _EditClientScreenState extends State<EditClientScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(clientService.error ?? 'Error al actualizar cliente'),
+            content: Text(clientService.error ?? l10n.updateClientError),
             backgroundColor: Colors.red,
           ),
         );
@@ -97,10 +98,11 @@ class _EditClientScreenState extends State<EditClientScreen> {
   @override
   Widget build(BuildContext context) {
     final clientService = Provider.of<ClientService>(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Editar Cliente'),
+        title: Text(l10n.editClientTitle),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -110,19 +112,19 @@ class _EditClientScreenState extends State<EditClientScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Información Básica', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                Text(l10n.basicInfoSection, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre del contacto *',
-                    prefixIcon: Icon(Icons.person_outline),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.contactNameLabel,
+                    prefixIcon: const Icon(Icons.person_outline),
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Por favor ingresa el nombre';
-                    if (value.length < 2) return 'El nombre debe tener al menos 2 caracteres';
+                    if (value == null || value.isEmpty) return l10n.enterNameError;
+                    if (value.length < 2) return l10n.nameLengthError;
                     return null;
                   },
                 ),
@@ -130,25 +132,25 @@ class _EditClientScreenState extends State<EditClientScreen> {
                 TextFormField(
                   controller: _companyController,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Empresa *',
-                    prefixIcon: Icon(Icons.business),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.companyLabel,
+                    prefixIcon: const Icon(Icons.business),
+                    border: const OutlineInputBorder(),
                   ),
-                  validator: (value) => (value == null || value.isEmpty) ? 'Por favor ingresa la empresa' : null,
+                  validator: (value) => (value == null || value.isEmpty) ? l10n.enterCompanyError : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Correo electrónico *',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.emailLabel,
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Por favor ingresa el correo';
-                    if (!value.contains('@')) return 'Ingresa un correo válido';
+                    if (value == null || value.isEmpty) return l10n.enterEmailError;
+                    if (!value.contains('@')) return l10n.enterValidEmailError;
                     return null;
                   },
                 ),
@@ -157,10 +159,9 @@ class _EditClientScreenState extends State<EditClientScreen> {
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
-                    labelText: 'Teléfono',
+                    labelText: l10n.phoneLabel,
                     hintText: '123 456 789',
                     border: const OutlineInputBorder(),
-                    // Usamos prefixIcon para meter el selector dentro del campo
                     prefixIcon: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       margin: const EdgeInsets.only(right: 8),
@@ -169,7 +170,7 @@ class _EditClientScreenState extends State<EditClientScreen> {
                           showCountryPicker(
                             context: context,
                             favorite: <String>['ES'],
-                            showPhoneCode: true, // Esto es clave para que muestre el +34, +52, etc.
+                            showPhoneCode: true,
                             onSelect: (Country country) {
                               setState(() {
                                 _selectedCountryCode = "+${country.phoneCode}";
@@ -197,15 +198,15 @@ class _EditClientScreenState extends State<EditClientScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Text('Dirección', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                Text(l10n.addressLabel, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _addressController,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Dirección',
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.addressLabel,
+                    prefixIcon: const Icon(Icons.location_on_outlined),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -216,10 +217,10 @@ class _EditClientScreenState extends State<EditClientScreen> {
                       child: TextFormField(
                         controller: _cityController,
                         textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(
-                          labelText: 'Ciudad',
-                          prefixIcon: Icon(Icons.location_city),
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.cityLabel,
+                          prefixIcon: const Icon(Icons.location_city),
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                     ),
@@ -228,9 +229,9 @@ class _EditClientScreenState extends State<EditClientScreen> {
                       child: TextFormField(
                         controller: _postalCodeController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'C.P.',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.zipCodeLabel,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                     ),
@@ -239,7 +240,7 @@ class _EditClientScreenState extends State<EditClientScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _countryController,
-                  readOnly: true, // Evita que salga el teclado
+                  readOnly: true,
                   onTap: () {
                     showCountryPicker(
                       context: context,
@@ -247,55 +248,54 @@ class _EditClientScreenState extends State<EditClientScreen> {
                       showPhoneCode: false,
                       onSelect: (Country country) {
                         setState(() {
-                          // Guardamos el nombre y la bandera en el controller
                           _countryController.text = "${country.flagEmoji} ${country.nameLocalized ?? country.name}";
                         });
                       },
                       countryListTheme: CountryListThemeData(
                         borderRadius: BorderRadius.circular(15),
-                        inputDecoration: const InputDecoration(
-                          labelText: 'Buscar país',
-                          prefixIcon: Icon(Icons.search),
+                        inputDecoration: InputDecoration(
+                          labelText: l10n.searchCountryHint,
+                          prefixIcon: const Icon(Icons.search),
                         ),
                       ),
                     );
                   },
-                  decoration: const InputDecoration(
-                    labelText: 'País',
-                    prefixIcon: Icon(Icons.public),
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.arrow_drop_down),
+                  decoration: InputDecoration(
+                    labelText: l10n.countryLabel,
+                    prefixIcon: const Icon(Icons.public),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: const Icon(Icons.arrow_drop_down),
                   ),
                 ),
                 const SizedBox(height: 24),
-                Text('Notas Adicionales', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                Text(l10n.additionalNotesSection, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _notesController,
                   maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Notas',
-                    prefixIcon: Icon(Icons.note_outlined),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.notesSection,
+                    prefixIcon: const Icon(Icons.note_outlined),
+                    border: const OutlineInputBorder(),
                     alignLabelWithHint: true,
                   ),
                 ),
                 const SizedBox(height: 32),
                 FilledButton(
-                  onPressed: clientService.isLoading ? null : _handleUpdate,
+                  onPressed: clientService.isLoading ? null : () => _handleUpdate(l10n),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                     child: clientService.isLoading
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Guardar Cambios', style: TextStyle(fontSize: 16)),
+                        : Text(l10n.saveChangesButton, style: const TextStyle(fontSize: 16)),
                   ),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16.0),
-                    child: Text('Cancelar', style: TextStyle(fontSize: 16)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: Text(l10n.cancel, style: const TextStyle(fontSize: 16)),
                   ),
                 ),
               ],

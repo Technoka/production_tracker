@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+// Asegúrate de que esta importación coincida con la configuración de tu proyecto
+import '../../l10n/app_localizations.dart'; 
+
 import '../../services/auth_service.dart';
 import '../../services/client_service.dart';
 import '../../models/client_model.dart';
@@ -24,15 +27,18 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 1. Inicializar el objeto de localización
+    final l10n = AppLocalizations.of(context)!;
+    
     final authService = Provider.of<AuthService>(context);
     final clientService = Provider.of<ClientService>(context);
     final user = authService.currentUserData;
 
     if (user == null || user.organizationId == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Clientes')),
-        body: const Center(
-          child: Text('Debes pertenecer a una organización'),
+        appBar: AppBar(title: Text(l10n.clients)), // Usando l10n.clients existente
+        body: Center(
+          child: Text(l10n.mustBelongToOrganization),
         ),
       );
     }
@@ -43,7 +49,7 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Clientes'),
+        title: Text(l10n.clients),
         actions: [
           if (canCreate)
             IconButton(
@@ -56,7 +62,7 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                   ),
                 );
               },
-              tooltip: 'Nuevo cliente',
+              tooltip: l10n.newClient,
             ),
         ],
       ),
@@ -68,7 +74,7 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Buscar clientes...',
+                hintText: l10n.searchClientsHint,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: clientService.searchQuery.isNotEmpty
                     ? IconButton(
@@ -97,31 +103,33 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                print("Snapshot data: ${snapshot.data}");
+                
+                // Debug log (opcional, mantenido por robustez durante desarrollo)
+                // print("Snapshot data: ${snapshot.data}");
 
                 if (!snapshot.hasData || snapshot.data == null) {
                   return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                    Icon(Icons.people_outline,
-                      size: 64, color: Colors.grey[400]),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No hay clientes registrados',
-                      style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(color: Colors.grey[600]),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.people_outline,
+                          size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          l10n.noClientsRegistered,
+                          style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(color: Colors.grey[600]),
+                        ),
+                      ],
                     ),
-                    ],
-                  ),
                   );
                 }
 
                 if (snapshot.hasError) {
+                  // Mantenemos logs de error para el desarrollador
                   print("🔥🔥 ERROR CRÍTICO EN CLIENTES: ${snapshot.error}");
-                  print("StackTrace: ${snapshot.stackTrace}");
                   
                   return Center(
                     child: Column(
@@ -131,7 +139,7 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                             size: 64, color: Colors.red[300]),
                         const SizedBox(height: 16),
                         Text(
-                          'Error al cargar clientes',
+                          l10n.errorLoadingClients,
                           style: TextStyle(color: Colors.grey[600]),
                         ),
                       ],
@@ -140,24 +148,22 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                 }
 
                 final allClients = snapshot.data ?? [];
-                // final clients = clientService.searchClients(user.organizationId, clientService.searchQuery);
                 final query = clientService.searchQuery.toLowerCase().trim();
               
-              List<ClientModel> clients;
-              
-              if (query.isEmpty) {
-                clients = allClients;
-              } else {
-                // Filtramos localmente (es mucho más rápido y fluido)
-                clients = allClients.where((client) {
-                  final nameMatch = client.name.toLowerCase().contains(query);
-                  // Asegúrate de que tu modelo tenga estos campos o ajustalos
-                  final emailMatch = client.email?.toLowerCase().contains(query) ?? false;
-                  final companyMatch = client.company?.toLowerCase().contains(query) ?? false;
-                  
-                  return nameMatch || emailMatch || companyMatch;
-                }).toList();
-              }
+                List<ClientModel> clients;
+                
+                if (query.isEmpty) {
+                  clients = allClients;
+                } else {
+                  // Filtrado local optimizado
+                  clients = allClients.where((client) {
+                    final nameMatch = client.name.toLowerCase().contains(query);
+                    final emailMatch = client.email?.toLowerCase().contains(query) ?? false;
+                    final companyMatch = client.company?.toLowerCase().contains(query) ?? false;
+                    
+                    return nameMatch || emailMatch || companyMatch;
+                  }).toList();
+                }
 
                 if (allClients.isEmpty) {
                   return Center(
@@ -168,7 +174,7 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                             size: 64, color: Colors.grey[400]),
                         const SizedBox(height: 16),
                         Text(
-                          'No hay clientes registrados',
+                          l10n.noClientsRegistered,
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
@@ -177,7 +183,7 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                         if (canCreate) ...[
                           const SizedBox(height: 8),
                           Text(
-                            'Toca el botón + para agregar uno',
+                            l10n.tapToAddClient,
                             style: TextStyle(color: Colors.grey[600]),
                           ),
                         ],
@@ -195,7 +201,7 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                             size: 64, color: Colors.grey[400]),
                         const SizedBox(height: 16),
                         Text(
-                          'No se encontraron resultados',
+                          l10n.noResultsFound,
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
@@ -203,7 +209,7 @@ class _ClientsListScreenState extends State<ClientsListScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'para "${clientService.searchQuery}"',
+                          '${l10n.forSearch} "${clientService.searchQuery}"',
                           style: TextStyle(color: Colors.grey[600]),
                         ),
                       ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/product_model.dart';
 
 class ClientProductDetail extends StatelessWidget {
@@ -9,6 +10,8 @@ class ClientProductDetail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(product.name),
@@ -36,11 +39,11 @@ class ClientProductDetail extends StatelessWidget {
                     children: [
                       Chip(
                         avatar: const Icon(Icons.tag, size: 16),
-                        label: Text('Lote: ${product.batchNumber}'),
+                        label: Text(l10n.batchLabel(product.batchNumber)),
                       ),
                       Chip(
                         avatar: const Icon(Icons.inventory_2, size: 16),
-                        label: Text('${product.quantity} unidades'),
+                        label: Text(l10n.quantityLabel(product.quantity)),
                       ),
                     ],
                   ),
@@ -55,7 +58,7 @@ class ClientProductDetail extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        'Estado actual',
+                        l10n.currentStatusLabel,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const Spacer(),
@@ -81,7 +84,7 @@ class ClientProductDetail extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Última actualización: ${DateFormat('dd/MM/yyyy HH:mm').format(product.updatedAt)}',
+                    l10n.lastUpdateDateLabel(DateFormat('dd/MM/yyyy HH:mm').format(product.updatedAt)),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -89,14 +92,14 @@ class ClientProductDetail extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Progreso de producción',
+                    l10n.productionProgressSection,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 16),
-                  _buildProgressIndicator(),
+                  _buildProgressIndicator(l10n),
                   const SizedBox(height: 24),
                   Text(
-                    'Historial de etapas',
+                    l10n.stagesHistorySection,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 16),
@@ -166,7 +169,7 @@ class ClientProductDetail extends StatelessWidget {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Inicio: ${DateFormat('dd/MM/yyyy HH:mm').format(stage.startedAt)}',
+                                        l10n.stageStartLabel(DateFormat('dd/MM/yyyy HH:mm').format(stage.startedAt)),
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey[600],
@@ -185,7 +188,7 @@ class ClientProductDetail extends StatelessWidget {
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'Fin: ${DateFormat('dd/MM/yyyy HH:mm').format(stage.completedAt!)}',
+                                          l10n.stageEndLabel(DateFormat('dd/MM/yyyy HH:mm').format(stage.completedAt!)),
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey[600],
@@ -234,7 +237,7 @@ class ClientProductDetail extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressIndicator() {
+  Widget _buildProgressIndicator(AppLocalizations l10n) {
     final totalStages = product.stages.length;
     final completedStages =
         product.stages.where((s) => s.status == 'Completado').length;
@@ -246,7 +249,7 @@ class ClientProductDetail extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '$completedStages de $totalStages etapas completadas',
+              l10n.stagesProgress(completedStages, totalStages),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             Text(

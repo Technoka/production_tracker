@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/user_model.dart';
 import '../../models/project_model.dart';
 import '../../services/auth_service.dart';
@@ -14,10 +15,11 @@ class ClientDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final clientService = Provider.of<ClientService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mis Proyectos'),
+        title: Text(l10n.myProjectsTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -25,12 +27,12 @@ class ClientDashboard extends StatelessWidget {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Cerrar sesión'),
-                  content: const Text('¿Estás seguro de que quieres salir?'),
+                  title: Text(l10n.logoutTitle),
+                  content: Text(l10n.logoutConfirmMessage),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancelar'),
+                      child: Text(l10n.cancel),
                     ),
                     FilledButton(
                       onPressed: () {
@@ -38,7 +40,7 @@ class ClientDashboard extends StatelessWidget {
                         Provider.of<AuthService>(context, listen: false)
                             .signOut();
                       },
-                      child: const Text('Salir'),
+                      child: Text(l10n.exitButton),
                     ),
                   ],
                 ),
@@ -59,14 +61,14 @@ class ClientDashboard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Hola, ${userData.name}',
+                  l10n.welcomeUser(userData.name),
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Aquí puedes ver el estado de tus productos en tiempo real',
+                  l10n.clientDashboardSubtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.grey[700],
                       ),
@@ -89,7 +91,7 @@ class ClientDashboard extends StatelessWidget {
                       children: [
                         const Icon(Icons.error, size: 64, color: Colors.red),
                         const SizedBox(height: 16),
-                        Text('Error: ${snapshot.error}'),
+                        Text('${l10n.error}: ${snapshot.error}'),
                       ],
                     ),
                   );
@@ -109,12 +111,12 @@ class ClientDashboard extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No tienes proyectos asignados',
+                          l10n.noAssignedProjects,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Los proyectos aparecerán cuando un fabricante\nte asigne como cliente',
+                          l10n.noAssignedProjectsSubtitle,
                           style: TextStyle(color: Colors.grey[600]),
                           textAlign: TextAlign.center,
                         ),

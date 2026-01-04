@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// import 'package:gestion_produccion/widgets/common_refresh.dart';
+import 'package:intl/intl.dart'; // Importante para las fechas
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
 import '../../services/client_service.dart';
 import '../../models/client_model.dart';
@@ -20,6 +21,7 @@ class ClientDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final clientService = context.watch<ClientService>();
+    final l10n = AppLocalizations.of(context)!;
     
     final user = authService.currentUserData;
     final organizationId = authService.currentUserData?.organizationId;
@@ -33,9 +35,7 @@ class ClientDetailScreen extends StatelessWidget {
     final canEdit = user.canManageProduction;
     final canDelete = user.hasAdminAccess;
 
-      // Función para recargar los datos del perfil
     Future<void> handleRefresh() async {
-      // Usamos listen: false porque estamos dentro de una función asíncrona
       if (user.organizationId != null) {
         await clientService.getOrganizationClients(user.organizationId!);
       }
@@ -43,7 +43,7 @@ class ClientDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detalle del Cliente'),
+        title: Text(l10n.clientDetailTitle),
         actions: [
           if (canEdit)
             IconButton(
@@ -56,20 +56,19 @@ class ClientDetailScreen extends StatelessWidget {
                   ),
                 );
               },
-              tooltip: 'Editar',
+              tooltip: l10n.edit,
             ),
           if (canDelete)
             IconButton(
               icon: const Icon(Icons.delete),
-              onPressed: () => _showDeleteDialog(context, clientService, organizationId),
-              tooltip: 'Eliminar',
+              onPressed: () => _showDeleteDialog(context, clientService, organizationId, l10n),
+              tooltip: l10n.delete,
             ),
         ],
       ),
       body: CommonRefresh(
         onRefresh: handleRefresh,
         child: SingleChildScrollView(
-        // IMPORTANTE: Esto permite hacer scroll (y refresh) aunque el contenido sea corto
         physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
           children: [
@@ -128,24 +127,24 @@ class ClientDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle(context, 'Información de Contacto'),
+                  _buildSectionTitle(context, l10n.contactInfoSection),
                   const SizedBox(height: 8),
                   _buildInfoCard(
                     context,
                     children: [
                       _buildInfoTile(
                         icon: Icons.email_outlined,
-                        label: 'Correo electrónico',
+                        label: l10n.email,
                         value: client.email,
-                        onTap: () => _copyToClipboard(context, client.email),
+                        onTap: () => _copyToClipboard(context, client.email, l10n),
                       ),
                       if (client.hasPhone) ...[
                         const Divider(),
                         _buildInfoTile(
                           icon: Icons.phone_outlined,
-                          label: 'Teléfono',
+                          label: l10n.phoneLabel,
                           value: client.phone!,
-                          onTap: () => _copyToClipboard(context, client.phone!),
+                          onTap: () => _copyToClipboard(context, client.phone!, l10n),
                         ),
                       ],
                     ],
@@ -153,7 +152,7 @@ class ClientDetailScreen extends StatelessWidget {
 
                   if (client.hasAddress || client.hasCity || client.hasPostalCode || client.hasCountry) ...[
                     const SizedBox(height: 24),
-                    _buildSectionTitle(context, 'Dirección'),
+                    _buildSectionTitle(context, l10n.addressLabel),
                     const SizedBox(height: 8),
                     _buildInfoCard(
                       context,
@@ -161,14 +160,14 @@ class ClientDetailScreen extends StatelessWidget {
                         if (client.address != null)
                           _buildInfoTile(
                             icon: Icons.location_on_outlined,
-                            label: 'Dirección',
+                            label: l10n.addressLabel,
                             value: client.address!,
                           ),
                         if (client.city != null || client.postalCode != null) ...[
                           const Divider(),
                           _buildInfoTile(
                             icon: Icons.location_city,
-                            label: 'Ciudad / C.P.',
+                            label: l10n.cityZipLabel,
                             value:
                                 '${client.city ?? ', '} ${client.postalCode ?? ''}'
                                     .trim(),
@@ -178,7 +177,7 @@ class ClientDetailScreen extends StatelessWidget {
                           const Divider(),
                           _buildInfoTile(
                             icon: Icons.public,
-                            label: 'País',
+                            label: l10n.countryLabel,
                             value: client.country!,
                           ),
                         ],
@@ -188,7 +187,7 @@ class ClientDetailScreen extends StatelessWidget {
 
                   if (client.hasNotes) ...[
                     const SizedBox(height: 24),
-                    _buildSectionTitle(context, 'Notas'),
+                    _buildSectionTitle(context, l10n.notesSection),
                     const SizedBox(height: 8),
                     Card(
                       child: Padding(
@@ -202,22 +201,22 @@ class ClientDetailScreen extends StatelessWidget {
                   ],
 
                   const SizedBox(height: 24),
-                  _buildSectionTitle(context, 'Información del Registro'),
+                  _buildSectionTitle(context, l10n.registrationInfoSection),
                   const SizedBox(height: 8),
                   _buildInfoCard(
                     context,
                     children: [
                       _buildInfoTile(
                         icon: Icons.calendar_today,
-                        label: 'Fecha de creación',
-                        value: _formatDate(client.createdAt),
+                        label: l10n.creationDateLabel,
+                        value: _formatDate(client.createdAt, l10n.localeName),
                       ),
                       if (client.updatedAt != null) ...[
                         const Divider(),
                         _buildInfoTile(
                           icon: Icons.update,
-                          label: 'Última actualización',
-                          value: _formatDate(client.updatedAt!),
+                          label: l10n.lastUpdateLabel,
+                          value: _formatDate(client.updatedAt!, l10n.localeName),
                         ),
                       ],
                     ],
@@ -282,31 +281,28 @@ class ClientDetailScreen extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
-    final months = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-    return '${date.day} de ${months[date.month - 1]} de ${date.year}';
+  String _formatDate(DateTime date, String locale) {
+    // Usa DateFormat.yMMMMd para obtener "5 de enero de 2024" o "January 5, 2024"
+    return DateFormat.yMMMMd(locale).format(date);
   }
 
-  void _copyToClipboard(BuildContext context, String text) {
+  void _copyToClipboard(BuildContext context, String text, AppLocalizations l10n) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Copiado al portapapeles'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(l10n.copiedToClipboard),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  void _showDeleteDialog(BuildContext context, ClientService clientService, String? organizationId) {
+  void _showDeleteDialog(BuildContext context, ClientService clientService, String? organizationId, AppLocalizations l10n) {
     if (organizationId == null) {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Error'),
-          content: const Text('No se puede eliminar el cliente. Organización no encontrada.'),
+          title: Text(l10n.error),
+          content: Text(l10n.cantDeleteClientError),
           actions: [
             FilledButton(
               onPressed: () => Navigator.pop(context),
@@ -321,14 +317,12 @@ class ClientDetailScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar Cliente'),
-        content: Text(
-          '¿Estás seguro de que deseas eliminar a ${client.name}? Esta acción no se puede deshacer.',
-        ),
+        title: Text(l10n.deleteClientTitle),
+        content: Text(l10n.deleteClientConfirm(client.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -338,8 +332,8 @@ class ClientDetailScreen extends StatelessWidget {
                 if (success) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Cliente eliminado'),
+                    SnackBar(
+                      content: Text(l10n.clientDeleted),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -347,7 +341,7 @@ class ClientDetailScreen extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        clientService.error ?? 'Error al eliminar cliente',
+                        clientService.error ?? l10n.deleteClientError,
                       ),
                       backgroundColor: Colors.red,
                     ),
@@ -356,7 +350,7 @@ class ClientDetailScreen extends StatelessWidget {
               }
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Eliminar'),
+            child: Text(l10n.delete),
           ),
         ],
       ),

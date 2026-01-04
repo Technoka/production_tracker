@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gestion_produccion/services/product_catalog_service.dart';
 import 'package:intl/intl.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/project_model.dart';
 import '../../models/product_model.dart';
 import '../../services/project_service.dart';
@@ -15,6 +15,7 @@ class ClientProjectDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final projectService = ProjectService();
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
@@ -58,7 +59,7 @@ class ClientProjectDetail extends StatelessWidget {
                     ),
                     const Spacer(),
                     Text(
-                      'Creado: ${DateFormat('dd/MM/yyyy').format(project.createdAt)}',
+                      l10n.createdLabel(DateFormat('dd/MM/yyyy').format(project.createdAt)),
                       style: TextStyle(
                         color: Colors.grey[700],
                         fontSize: 12,
@@ -74,7 +75,7 @@ class ClientProjectDetail extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  'Productos',
+                  l10n.products, // Usando clave existente 'products'
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ],
@@ -90,7 +91,7 @@ class ClientProjectDetail extends StatelessWidget {
 
                 if (snapshot.hasError) {
                   return Center(
-                    child: Text('Error: ${snapshot.error}'),
+                    child: Text('${l10n.error}: ${snapshot.error}'),
                   );
                 }
 
@@ -108,7 +109,7 @@ class ClientProjectDetail extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No hay productos en este proyecto',
+                          l10n.noProductsInProject,
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey[600],
@@ -144,9 +145,9 @@ class ClientProjectDetail extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 4),
-                            Text('Lote: ${product.batchNumber}'),
+                            Text(l10n.batchLabel(product.batchNumber)),
                             const SizedBox(height: 4),
-                            Text('Cantidad: ${product.quantity} unidades'),
+                            Text(l10n.quantityLabel(product.quantity)),
                             const SizedBox(height: 8),
                             Row(
                               children: [
@@ -176,7 +177,7 @@ class ClientProjectDetail extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Actualizado: ${DateFormat('dd/MM').format(product.updatedAt)}',
+                                  l10n.updatedLabel(DateFormat('dd/MM').format(product.updatedAt)),
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: Colors.grey[600],

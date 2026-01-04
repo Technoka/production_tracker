@@ -430,4 +430,201 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invalidColor => 'Invalid color format';
+
+  @override
+  String createdLabel(Object date) {
+    return 'Created: $date';
+  }
+
+  @override
+  String updatedLabel(Object date) {
+    return 'Updated: $date';
+  }
+
+  @override
+  String get noProductsInProject => 'No products in this project';
+
+  @override
+  String batchLabel(Object batch) {
+    return 'Batch: $batch';
+  }
+
+  @override
+  String quantityLabel(Object quantity) {
+    return 'Quantity: $quantity units';
+  }
+
+  @override
+  String get clientDetailTitle => 'Client Detail';
+
+  @override
+  String get contactInfoSection => 'Contact Information';
+
+  @override
+  String get cityZipLabel => 'City / Zip Code';
+
+  @override
+  String get countryLabel => 'Country';
+
+  @override
+  String get notesSection => 'Notes';
+
+  @override
+  String get registrationInfoSection => 'Registration Information';
+
+  @override
+  String get creationDateLabel => 'Creation Date';
+
+  @override
+  String get lastUpdateLabel => 'Last Update';
+
+  @override
+  String get copiedToClipboard => 'Copied to clipboard';
+
+  @override
+  String get cantDeleteClientError => 'Cannot delete client. Organization not found.';
+
+  @override
+  String get deleteClientTitle => 'Delete Client';
+
+  @override
+  String deleteClientConfirm(Object name) {
+    return 'Are you sure you want to delete $name? This action cannot be undone.';
+  }
+
+  @override
+  String get clientDeleted => 'Client deleted';
+
+  @override
+  String get deleteClientError => 'Error deleting client';
+
+  @override
+  String get newClientTitle => 'New Client';
+
+  @override
+  String get basicInfoSection => 'Basic Information';
+
+  @override
+  String get contactNameLabel => 'Contact Name *';
+
+  @override
+  String get enterNameError => 'Please enter name';
+
+  @override
+  String get nameLengthError => 'Name must be at least 2 characters';
+
+  @override
+  String get companyLabel => 'Company *';
+
+  @override
+  String get enterCompanyError => 'Please enter company';
+
+  @override
+  String get emailLabel => 'Email *';
+
+  @override
+  String get enterEmailError => 'Please enter email';
+
+  @override
+  String get enterValidEmailError => 'Enter a valid email';
+
+  @override
+  String get phoneLabel => 'Phone';
+
+  @override
+  String get addressLabel => 'Address';
+
+  @override
+  String get addressHelper => 'Street, number, etc.';
+
+  @override
+  String get cityLabel => 'City';
+
+  @override
+  String get zipCodeLabel => 'Zip Code';
+
+  @override
+  String get searchCountryHint => 'Search country';
+
+  @override
+  String get additionalNotesSection => 'Additional Notes';
+
+  @override
+  String get additionalNotesHelper => 'Additional info about client';
+
+  @override
+  String get createClientButton => 'Create Client';
+
+  @override
+  String get clientCreatedSuccess => 'Client created successfully';
+
+  @override
+  String get createClientError => 'Error creating client';
+
+  @override
+  String get editClientTitle => 'Edit Client';
+
+  @override
+  String get saveChangesButton => 'Save Changes';
+
+  @override
+  String get clientUpdatedSuccess => 'Client updated successfully';
+
+  @override
+  String get updateClientError => 'Error updating client';
+
+  @override
+  String get myProjectsTitle => 'My Projects';
+
+  @override
+  String get logoutTitle => 'Logout';
+
+  @override
+  String get logoutConfirmMessage => 'Are you sure you want to exit?';
+
+  @override
+  String get exitButton => 'Exit';
+
+  @override
+  String welcomeUser(Object name) {
+    return 'Hello, $name';
+  }
+
+  @override
+  String get clientDashboardSubtitle => 'Here you can see the status of your products in real time';
+
+  @override
+  String get noAssignedProjects => 'You have no assigned projects';
+
+  @override
+  String get noAssignedProjectsSubtitle => 'Projects will appear when a manufacturer\nassigns you as a client';
+
+  @override
+  String get currentStatusLabel => 'Current Status';
+
+  @override
+  String lastUpdateDateLabel(Object date) {
+    return 'Last update: $date';
+  }
+
+  @override
+  String get productionProgressSection => 'Production Progress';
+
+  @override
+  String get stagesHistorySection => 'Stage History';
+
+  @override
+  String stageStartLabel(Object date) {
+    return 'Start: $date';
+  }
+
+  @override
+  String stageEndLabel(Object date) {
+    return 'End: $date';
+  }
+
+  @override
+  String stagesProgress(Object completed, Object total) {
+    return '$completed of $total stages completed';
+  }
 }

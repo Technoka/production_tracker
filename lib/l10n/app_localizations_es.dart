@@ -430,4 +430,201 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get invalidColor => 'Formato de color inválido';
+
+  @override
+  String createdLabel(Object date) {
+    return 'Creado: $date';
+  }
+
+  @override
+  String updatedLabel(Object date) {
+    return 'Actualizado: $date';
+  }
+
+  @override
+  String get noProductsInProject => 'No hay productos en este proyecto';
+
+  @override
+  String batchLabel(Object batch) {
+    return 'Lote: $batch';
+  }
+
+  @override
+  String quantityLabel(Object quantity) {
+    return 'Cantidad: $quantity unidades';
+  }
+
+  @override
+  String get clientDetailTitle => 'Detalle del Cliente';
+
+  @override
+  String get contactInfoSection => 'Información de Contacto';
+
+  @override
+  String get cityZipLabel => 'Ciudad / C.P.';
+
+  @override
+  String get countryLabel => 'País';
+
+  @override
+  String get notesSection => 'Notas';
+
+  @override
+  String get registrationInfoSection => 'Información del Registro';
+
+  @override
+  String get creationDateLabel => 'Fecha de creación';
+
+  @override
+  String get lastUpdateLabel => 'Última actualización';
+
+  @override
+  String get copiedToClipboard => 'Copiado al portapapeles';
+
+  @override
+  String get cantDeleteClientError => 'No se puede eliminar el cliente. Organización no encontrada.';
+
+  @override
+  String get deleteClientTitle => 'Eliminar Cliente';
+
+  @override
+  String deleteClientConfirm(Object name) {
+    return '¿Estás seguro de que deseas eliminar a $name? Esta acción no se puede deshacer.';
+  }
+
+  @override
+  String get clientDeleted => 'Cliente eliminado';
+
+  @override
+  String get deleteClientError => 'Error al eliminar cliente';
+
+  @override
+  String get newClientTitle => 'Nuevo Cliente';
+
+  @override
+  String get basicInfoSection => 'Información Básica';
+
+  @override
+  String get contactNameLabel => 'Nombre del contacto *';
+
+  @override
+  String get enterNameError => 'Por favor ingresa el nombre';
+
+  @override
+  String get nameLengthError => 'El nombre debe tener al menos 2 caracteres';
+
+  @override
+  String get companyLabel => 'Empresa *';
+
+  @override
+  String get enterCompanyError => 'Por favor ingresa la empresa';
+
+  @override
+  String get emailLabel => 'Correo electrónico *';
+
+  @override
+  String get enterEmailError => 'Por favor ingresa el correo';
+
+  @override
+  String get enterValidEmailError => 'Ingresa un correo válido';
+
+  @override
+  String get phoneLabel => 'Teléfono';
+
+  @override
+  String get addressLabel => 'Dirección';
+
+  @override
+  String get addressHelper => 'Calle, número, etc.';
+
+  @override
+  String get cityLabel => 'Ciudad';
+
+  @override
+  String get zipCodeLabel => 'C.P.';
+
+  @override
+  String get searchCountryHint => 'Buscar país';
+
+  @override
+  String get additionalNotesSection => 'Notas Adicionales';
+
+  @override
+  String get additionalNotesHelper => 'Información adicional sobre el cliente';
+
+  @override
+  String get createClientButton => 'Crear Cliente';
+
+  @override
+  String get clientCreatedSuccess => 'Cliente creado exitosamente';
+
+  @override
+  String get createClientError => 'Error al crear cliente';
+
+  @override
+  String get editClientTitle => 'Editar Cliente';
+
+  @override
+  String get saveChangesButton => 'Guardar Cambios';
+
+  @override
+  String get clientUpdatedSuccess => 'Cliente actualizado exitosamente';
+
+  @override
+  String get updateClientError => 'Error al actualizar cliente';
+
+  @override
+  String get myProjectsTitle => 'Mis Proyectos';
+
+  @override
+  String get logoutTitle => 'Cerrar sesión';
+
+  @override
+  String get logoutConfirmMessage => '¿Estás seguro de que quieres salir?';
+
+  @override
+  String get exitButton => 'Salir';
+
+  @override
+  String welcomeUser(Object name) {
+    return 'Hola, $name';
+  }
+
+  @override
+  String get clientDashboardSubtitle => 'Aquí puedes ver el estado de tus productos en tiempo real';
+
+  @override
+  String get noAssignedProjects => 'No tienes proyectos asignados';
+
+  @override
+  String get noAssignedProjectsSubtitle => 'Los proyectos aparecerán cuando un fabricante\nte asigne como cliente';
+
+  @override
+  String get currentStatusLabel => 'Estado actual';
+
+  @override
+  String lastUpdateDateLabel(Object date) {
+    return 'Última actualización: $date';
+  }
+
+  @override
+  String get productionProgressSection => 'Progreso de producción';
+
+  @override
+  String get stagesHistorySection => 'Historial de etapas';
+
+  @override
+  String stageStartLabel(Object date) {
+    return 'Inicio: $date';
+  }
+
+  @override
+  String stageEndLabel(Object date) {
+    return 'Fin: $date';
+  }
+
+  @override
+  String stagesProgress(Object completed, Object total) {
+    return '$completed de $total etapas completadas';
+  }
 }
