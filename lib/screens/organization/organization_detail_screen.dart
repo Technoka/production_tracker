@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../screens/organization/organization_settings_screen.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/organization_service.dart';
@@ -33,21 +34,6 @@ class OrganizationDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mi Organización'),
-        actions: [
-          if (isAdmin)
-            IconButton(
-              icon: const Icon(Icons.person_add),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const InviteMemberScreen(),
-                  ),
-                );
-              },
-              tooltip: 'Invitar miembro',
-            ),
-        ],
       ),
       body: StreamBuilder<OrganizationModel?>(
         stream: organizationService.watchOrganization(organization.id),
@@ -356,6 +342,21 @@ class OrganizationDetailScreen extends StatelessWidget {
                                     MaterialPageRoute(
                                       builder: (context) =>
                                           const InviteMemberScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              const Divider(height: 1),
+                              ListTile(
+                                leading: const Icon(Icons.settings),
+                                title: const Text('Configuracion de la Organización'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          OrganizationSettingsScreen(organizationId: org.id),
                                     ),
                                   );
                                 },
