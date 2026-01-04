@@ -721,7 +721,20 @@ Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user) {
                       urgencyLabel = 'Media';
                   }
 
-                  return Container(
+                  return InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BatchProductDetailScreen(
+                            organizationId: widget.organizationId,
+                            batchId: widget.batchId,
+                            productId: product.id,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -775,7 +788,7 @@ Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user) {
                                 ),
                               ],
                               // Notas (si tu modelo BatchProductModel las tiene)
-                              /* if (product.notes != null && product.notes!.isNotEmpty) ...[
+                               if (product.productNotes != null && product.productNotes!.isNotEmpty) ...[
                                 const SizedBox(height: 4),
                                 Container(
                                   padding: const EdgeInsets.all(6),
@@ -784,12 +797,12 @@ Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user) {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    'Notas: ${product.notes}',
+                                    'Notas: ${product.productNotes}',
                                     style: TextStyle(fontSize: 11, color: Colors.blue[800], fontStyle: FontStyle.italic),
                                   ),
                                 ),
                               ],
-                              */
+                              
                             ],
                           ),
                         ),
@@ -839,6 +852,7 @@ Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user) {
                         ),
                       ],
                     ),
+                  ),
                   );
                 },
               ),
