@@ -231,7 +231,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   );
                 },
               ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
             // Descripción
             if (product.description != null) ...[
@@ -242,7 +242,29 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   color: Colors.grey[700],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+            ],
+            
+            // Urgencia
+              Text(
+                'Urgencia: ${product.urgencyLevel}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+            // Notas
+            if (product.productNotes != null) ...[
+              Text(
+                'Notas: ${product.productNotes!}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 8),
             ],
 
             const Divider(),
