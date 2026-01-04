@@ -20,20 +20,25 @@ dependencies:
   
   # UI
   cupertino_icons: ^1.0.2
-  google_fonts: ^6.1.0
+  google_fonts: ^6.3.3
   
   # State Management
-  provider: ^6.1.1
+  provider: ^6.1.5+1
   
   # Utils
   intl: ^0.20.2
   uuid: ^4.2.2
-  # image_picker: ^1.2.1
-  # firebase_storage: ^12.4.10
   country_picker: ^2.0.24
   
   flutter_localizations:
     sdk: flutter
+  firebase_storage: ^12.4.10
+  image_picker: ^1.2.1
+  flutter_image_compress: ^2.4.0
+  cached_network_image: ^3.4.1
+  path_provider: ^2.1.5
+  rxdart: ^0.28.0
+  flex_color_picker: ^3.8.0
 
 dev_dependencies:
   flutter_test:
@@ -43,11 +48,13 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
   
   # Configuración del icono de la app
   assets:
     - assets/icon/
     - assets/
+    # - assets/images/
 
 # Configuración de flutter_launcher_icons
 flutter_launcher_icons:
