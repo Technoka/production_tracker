@@ -51,8 +51,6 @@ class BatchProductModel {
   final double? unitPrice;
   final double? totalPrice;
   
-  // CAMBIO: Se elimina isBlocked y blockReason
-  
   // Control de calidad (para futuras fases)
   final String qualityStatus; // "pending", "approved", "rejected"
   final String? qualityNotes;
@@ -81,6 +79,9 @@ class BatchProductModel {
   final int repairedCount; // De los devueltos, cuántos se repararon
   final int discardedCount; // De los devueltos, cuántos son basura
   final String? returnReason; // Motivo de devolución
+
+  // NUEVO CAMPO: Fecha de entrega estimada
+  final DateTime? expectedDeliveryDate;
 
   BatchProductModel({
     required this.id,
@@ -119,6 +120,7 @@ class BatchProductModel {
     this.repairedCount = 0,
     this.discardedCount = 0,
     this.returnReason,
+    this.expectedDeliveryDate,
   });
 
   Map<String, dynamic> toMap() {
@@ -167,6 +169,9 @@ class BatchProductModel {
       'repairedCount': repairedCount,
       'discardedCount': discardedCount,
       'returnReason': returnReason,
+      'expectedDeliveryDate': expectedDeliveryDate != null
+          ? Timestamp.fromDate(expectedDeliveryDate!)
+          : null,
     };
   }
 
@@ -223,6 +228,9 @@ class BatchProductModel {
       repairedCount: map['repairedCount'] as int? ?? 0,
       discardedCount: map['discardedCount'] as int? ?? 0,
       returnReason: map['returnReason'] as String?,
+      expectedDeliveryDate: map['expectedDeliveryDate'] != null
+          ? (map['expectedDeliveryDate'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -263,6 +271,7 @@ class BatchProductModel {
     int? repairedCount,
     int? discardedCount,
     String? returnReason,
+    DateTime? expectedDeliveryDate,
   }) {
     return BatchProductModel(
       id: id ?? this.id,
@@ -301,6 +310,7 @@ class BatchProductModel {
       repairedCount: repairedCount ?? this.repairedCount,
       discardedCount: discardedCount ?? this.discardedCount,
       returnReason: returnReason ?? this.returnReason,
+      expectedDeliveryDate: expectedDeliveryDate ?? this.expectedDeliveryDate,
     );
   }
 
