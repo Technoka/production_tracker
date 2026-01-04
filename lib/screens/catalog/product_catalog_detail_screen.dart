@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/product_catalog_model.dart';
 import '../../models/user_model.dart';
 import '../../services/product_catalog_service.dart';
@@ -31,7 +32,6 @@ class _ProductCatalogDetailScreenState
   final ProductCatalogService _catalogService = ProductCatalogService();
   ProductCatalogModel? _product;
   bool _isLoading = true;
-  late String organizationId;
 
   @override
   void initState() {
@@ -60,10 +60,12 @@ class _ProductCatalogDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Detalle del Producto'),
+          title: Text(l10n.productDetailTitle),
         ),
         body: const Center(child: CircularProgressIndicator()),
       );
@@ -72,7 +74,7 @@ class _ProductCatalogDetailScreenState
     if (_product == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Detalle del Producto'),
+          title: Text(l10n.productDetailTitle),
         ),
         body: Center(
           child: Column(
@@ -80,11 +82,11 @@ class _ProductCatalogDetailScreenState
             children: [
               const Icon(Icons.error, size: 64, color: Colors.red),
               const SizedBox(height: 16),
-              const Text('Producto no encontrado'),
+              Text(l10n.productNotFound),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Volver'),
+                child: Text(l10n.back),
               ),
             ],
           ),
@@ -97,7 +99,7 @@ class _ProductCatalogDetailScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detalle del Producto'),
+        title: Text(l10n.productDetailTitle),
         actions: [
           if (_canManageProducts())
             IconButton(
@@ -127,7 +129,7 @@ class _ProductCatalogDetailScreenState
                     children: [
                       const Icon(Icons.content_copy, size: 20),
                       const SizedBox(width: 8),
-                      const Text('Duplicar'),
+                      Text(l10n.duplicate),
                     ],
                   ),
                 ),
@@ -142,29 +144,29 @@ class _ProductCatalogDetailScreenState
                         size: 20,
                       ),
                       const SizedBox(width: 8),
-                      Text(product.isActive ? 'Desactivar' : 'Reactivar'),
+                      Text(product.isActive ? l10n.deactivateProductTitle : l10n.reactivateProductTitle),
                     ],
                   ),
                 ),
                 if (!product.isActive)
-                  const PopupMenuItem(
+                   PopupMenuItem(
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_forever, size: 20, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Eliminar', style: TextStyle(color: Colors.red)),
+                        const Icon(Icons.delete_forever, size: 20, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Text(l10n.delete, style: const TextStyle(color: Colors.red)),
                       ],
                     ),
                   ),
               ],
               onSelected: (value) async {
                 if (value == 'duplicate') {
-                  await _duplicateProduct();
+                  await _duplicateProduct(l10n);
                 } else if (value == 'toggle') {
-                  await _toggleActive();
+                  await _toggleActive(l10n);
                 } else if (value == 'delete') {
-                  await _deleteProduct();
+                  await _deleteProduct(l10n);
                 }
               },
             ),
@@ -189,7 +191,7 @@ class _ProductCatalogDetailScreenState
                     Icon(Icons.visibility_off, color: Colors.grey[700]),
                     const SizedBox(width: 8),
                     Text(
-                      'Este producto está desactivado',
+                      l10n.productIsInactiveMessage,
                       style: TextStyle(
                         color: Colors.grey[700],
                         fontWeight: FontWeight.bold,
@@ -239,85 +241,78 @@ class _ProductCatalogDetailScreenState
             const SizedBox(height: 24),
 
             // Información básica
-            _buildSectionTitle(context, 'Información Básica'),
+            _buildSectionTitle(context, l10n.basicInfo),
             _buildInfoCard(context, [
-              _buildInfoRow('Nombre', product.name),
-              _buildInfoRow('Referencia', product.reference, monospace: true),
+              _buildInfoRow(l10n.productNameLabel.replaceAll(' *', ''), product.name),
+              _buildInfoRow(l10n.referenceLabel.replaceAll(' *', ''), product.reference, monospace: true),
               if (!product.isPublic) ...[
-  FutureBuilder<ClientModel?>(
-    // Buscamos el cliente por su ID
-    future: Provider.of<ClientService>(context, listen: false)
-        .getClient(widget.organizationId, product.clientId!),
-    builder: (context, snapshot) {
-      String displayValue = 'Cargando...';
-      
-      // Si ya tenemos datos, mostramos el nombre
-      if (snapshot.hasData && snapshot.data != null) {
-        displayValue = snapshot.data!.name;
-      } 
-      // Si falla, mostramos "Error" o el ID original como respaldo
-      else if (snapshot.hasError) {
-        displayValue = 'Error';
-      }
-
-      // Retornamos tu fila de información con el nombre
-      return _buildInfoRow('Cliente', displayValue);
-    },
-  ),
-],
-              if (product.isPublic) _buildInfoRow('Cliente', 'Producto público'),
-               _buildInfoRow('Descripción', product.description),
-              if (product.category != null) _buildInfoRow('Categoría', product.category!),
+                FutureBuilder<ClientModel?>(
+                  future: Provider.of<ClientService>(context, listen: false)
+                      .getClient(widget.organizationId, product.clientId!),
+                  builder: (context, snapshot) {
+                    String displayValue = l10n.loading;
+                    if (snapshot.hasData && snapshot.data != null) {
+                      displayValue = snapshot.data!.name;
+                    } else if (snapshot.hasError) {
+                      displayValue = l10n.error;
+                    }
+                    return _buildInfoRow(l10n.client, displayValue);
+                  },
+                ),
+              ],
+              if (product.isPublic) _buildInfoRow(l10n.client, l10n.publicProduct),
+               _buildInfoRow(l10n.descriptionLabel.replaceAll(' *', ''), product.description),
+              if (product.category != null) _buildInfoRow(l10n.categoryLabel, product.category!),
             ]),
             const SizedBox(height: 16),
 
             // Dimensiones
             if (product.dimensions != null && product.dimensions!.hasAnyDimension) ...[
-              _buildSectionTitle(context, 'Dimensiones'),
+              _buildSectionTitle(context, l10n.dimensionsLabel('cm')),
               _buildInfoCard(context, [
                 if (product.dimensions!.width != null)
-                  _buildInfoRow('Ancho', '${product.dimensions!.width} cm'),
+                  _buildInfoRow(l10n.widthLabel, '${product.dimensions!.width} cm'),
                 if (product.dimensions!.height != null)
-                  _buildInfoRow('Alto', '${product.dimensions!.height} cm'),
+                  _buildInfoRow(l10n.heightLabel, '${product.dimensions!.height} cm'),
                 if (product.dimensions!.depth != null)
-                  _buildInfoRow('Fondo', '${product.dimensions!.depth} cm'),
+                  _buildInfoRow(l10n.depthLabel, '${product.dimensions!.depth} cm'),
               ]),
               const SizedBox(height: 16),
             ],
 
             // Material
             if (product.materialInfo != null) ...[
-              _buildSectionTitle(context, 'Material'),
+              _buildSectionTitle(context, l10n.materialTitle),
               _buildInfoCard(context, [
-                _buildInfoRow('Material principal',
+                _buildInfoRow(l10n.primaryMaterialLabel,
                     product.materialInfo!.primaryMaterial),
                 if (product.materialInfo!.secondaryMaterials.isNotEmpty)
-                  _buildInfoRow('Materiales secundarios',
+                  _buildInfoRow(l10n.secondaryMaterialsLabel,
                       product.materialInfo!.secondaryMaterials.join(', ')),
                 if (product.materialInfo!.finish != null)
-                  _buildInfoRow('Acabado', product.materialInfo!.finish!),
+                  _buildInfoRow(l10n.finishLabel, product.materialInfo!.finish!),
                 if (product.materialInfo!.color != null)
-                  _buildInfoRow('Color', product.materialInfo!.color!),
+                  _buildInfoRow(l10n.colorLabel, product.materialInfo!.color!),
               ]),
               const SizedBox(height: 16),
             ],
 
             // Datos adicionales
-            _buildSectionTitle(context, 'Datos Adicionales'),
+            _buildSectionTitle(context, l10n.additionalDataTitle),
             _buildInfoCard(context, [
               if (product.estimatedWeight != null)
-                _buildInfoRow('Peso estimado', '${product.estimatedWeight} kg'),
+                _buildInfoRow(l10n.estimatedWeightLabel, '${product.estimatedWeight} kg'),
               if (product.basePrice != null)
-                _buildInfoRow('Precio base',
+                _buildInfoRow(l10n.basePriceLabel,
                     '€ ${product.basePrice!.toStringAsFixed(2)}'),
-              _buildInfoRow('Veces usado',
-                  '${product.usageCount} ${product.usageCount == 1 ? "vez" : "veces"}'),
+              _buildInfoRow(l10n.usedLabel, // "Actualizado" / "Used" (contextual, but using placeholder)
+                  '${product.usageCount} ${product.usageCount == 1 ? l10n.timeUsageSingle : l10n.timeUsageMultiple}'),
             ]),
             const SizedBox(height: 16),
 
             // Etiquetas
             if (product.tags.isNotEmpty) ...[
-              _buildSectionTitle(context, 'Etiquetas'),
+              _buildSectionTitle(context, l10n.tagsLabel),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -334,7 +329,7 @@ class _ProductCatalogDetailScreenState
 
             // Notas
             if (product.notes != null && product.notes!.isNotEmpty) ...[
-              _buildSectionTitle(context, 'Notas'),
+              _buildSectionTitle(context, l10n.notesLabel),
               _buildInfoCard(context, [
                 Padding(
                   padding: const EdgeInsets.all(12),
@@ -349,7 +344,7 @@ class _ProductCatalogDetailScreenState
 
             // Especificaciones (si hay)
             if (product.specifications.isNotEmpty) ...[
-              _buildSectionTitle(context, 'Especificaciones'),
+              _buildSectionTitle(context, l10n.specifications),
               _buildInfoCard(context,
                   product.specifications.entries.map((entry) {
                 return _buildInfoRow(entry.key, entry.value.toString());
@@ -358,11 +353,10 @@ class _ProductCatalogDetailScreenState
             ],
 
             // Información de sistema
-            _buildSectionTitle(context, 'Información del Sistema'),
+            _buildSectionTitle(context, l10n.systemInfoTitle),
             _buildInfoCard(context, [
-              _buildInfoRow('Creado', dateFormat.format(product.createdAt)),
-              _buildInfoRow(
-                  'Última actualización', dateFormat.format(product.updatedAt)),
+              _buildInfoRow(l10n.createdLabel, dateFormat.format(product.createdAt)),
+              _buildInfoRow(l10n.updatedLabel, dateFormat.format(product.updatedAt)),
             ]),
             const SizedBox(height: 32),
           ],
@@ -426,21 +420,20 @@ class _ProductCatalogDetailScreenState
     );
   }
 
-  Future<void> _duplicateProduct() async {
+  Future<void> _duplicateProduct(AppLocalizations l10n) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Duplicar producto'),
-        content: Text(
-            '¿Deseas crear una copia de "${_product!.name}"? Se generará automáticamente una nueva referencia.'),
+        title: Text(l10n.duplicateTitle),
+        content: Text(l10n.duplicateConfirmMessage(_product!.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Duplicar'),
+            child: Text(l10n.duplicate),
           ),
         ],
       ),
@@ -457,12 +450,11 @@ class _ProductCatalogDetailScreenState
     if (mounted) {
       if (newId != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Producto duplicado correctamente'),
+          SnackBar(
+            content: Text(l10n.productDuplicatedSuccess),
             backgroundColor: Colors.green,
           ),
         );
-        // Navegar al nuevo producto
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -475,8 +467,8 @@ class _ProductCatalogDetailScreenState
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al duplicar el producto'),
+          SnackBar(
+            content: Text(l10n.duplicateError),
             backgroundColor: Colors.red,
           ),
         );
@@ -484,25 +476,25 @@ class _ProductCatalogDetailScreenState
     }
   }
 
-  Future<void> _toggleActive() async {
+  Future<void> _toggleActive(AppLocalizations l10n) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-            _product!.isActive ? 'Desactivar producto' : 'Reactivar producto'),
+            _product!.isActive ? l10n.deactivateProductTitle : l10n.reactivateProductTitle),
         content: Text(
           _product!.isActive
-              ? '¿Deseas desactivar "${_product!.name}"? No se eliminará, solo quedará oculto.'
-              : '¿Deseas reactivar "${_product!.name}"?',
+              ? l10n.deactivateProductMessage(_product!.name)
+              : l10n.reactivateProductMessage(_product!.name),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(_product!.isActive ? 'Desactivar' : 'Reactivar'),
+            child: Text(_product!.isActive ? l10n.deactivateProductTitle : l10n.reactivateProductTitle),
           ),
         ],
       ),
@@ -528,8 +520,8 @@ class _ProductCatalogDetailScreenState
           SnackBar(
             content: Text(
               _product!.isActive
-                  ? 'Producto desactivado correctamente'
-                  : 'Producto reactivado correctamente',
+                  ? l10n.productDeactivatedSuccess
+                  : l10n.productReactivatedSuccess,
             ),
             backgroundColor: Colors.green,
           ),
@@ -537,8 +529,8 @@ class _ProductCatalogDetailScreenState
         _loadProduct();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al actualizar el producto'),
+          SnackBar(
+            content: Text(l10n.productUpdateError),
             backgroundColor: Colors.red,
           ),
         );
@@ -546,24 +538,23 @@ class _ProductCatalogDetailScreenState
     }
   }
 
-  Future<void> _deleteProduct() async {
+  Future<void> _deleteProduct(AppLocalizations l10n) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar producto'),
-        content: Text(
-            '¿Estás seguro de que deseas eliminar permanentemente "${_product!.name}"? Esta acción no se puede deshacer.'),
+        title: Text(l10n.deleteTitle),
+        content: Text(l10n.deleteConfirmMessage(_product!.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
               backgroundColor: Colors.red,
             ),
-            child: const Text('Eliminar'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -576,16 +567,16 @@ class _ProductCatalogDetailScreenState
     if (mounted) {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Producto eliminado correctamente'),
+          SnackBar(
+            content: Text(l10n.productDeletedSuccess),
             backgroundColor: Colors.green,
           ),
         );
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al eliminar el producto'),
+          SnackBar(
+            content: Text(l10n.deleteError),
             backgroundColor: Colors.red,
           ),
         );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
 
 class PasswordResetScreen extends StatefulWidget {
@@ -20,7 +21,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
     super.dispose();
   }
 
-  Future<void> _handleResetPassword() async {
+  Future<void> _handleResetPassword(AppLocalizations l10n) async {
     if (!_formKey.currentState!.validate()) return;
 
     final authService = Provider.of<AuthService>(context, listen: false);
@@ -37,7 +38,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              authService.error ?? 'Error al enviar correo de recuperación',
+              authService.error ?? l10n.recoveryEmailSentError,
             ),
             backgroundColor: Colors.red,
           ),
@@ -49,23 +50,24 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Recuperar contraseña'),
+        title: Text(l10n.recoverPasswordTitle),
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
-            child: _emailSent ? _buildSuccessView() : _buildFormView(authService),
+            child: _emailSent ? _buildSuccessView(l10n) : _buildFormView(authService, l10n),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFormView(AuthService authService) {
+  Widget _buildFormView(AuthService authService, AppLocalizations l10n) {
     return Form(
       key: _formKey,
       child: Column(
@@ -79,7 +81,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Recuperar contraseña',
+            l10n.recoverPasswordTitle,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -87,7 +89,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña',
+            l10n.recoverPasswordSubtitle,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.grey[600],
                 ),
@@ -97,25 +99,25 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: 'Correo electrónico',
-              prefixIcon: Icon(Icons.email_outlined),
-              border: OutlineInputBorder(),
-              helperText: 'Ingresa el correo asociado a tu cuenta',
+            decoration: InputDecoration(
+              labelText: l10n.emailLabel,
+              prefixIcon: const Icon(Icons.email_outlined),
+              border: const OutlineInputBorder(),
+              helperText: l10n.emailAssociatedHelper,
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Por favor ingresa tu correo';
+                return l10n.enterEmailError;
               }
               if (!value.contains('@')) {
-                return 'Ingresa un correo válido';
+                return l10n.enterValidEmailError;
               }
               return null;
             },
           ),
           const SizedBox(height: 24),
           FilledButton(
-            onPressed: authService.isLoading ? null : _handleResetPassword,
+            onPressed: authService.isLoading ? null : () => _handleResetPassword(l10n),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 16.0),
               child: authService.isLoading
@@ -127,23 +129,23 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text(
-                      'Enviar enlace de recuperación',
-                      style: TextStyle(fontSize: 16),
+                  : Text(
+                      l10n.sendRecoveryLinkButton,
+                      style: const TextStyle(fontSize: 16),
                     ),
             ),
           ),
           const SizedBox(height: 16),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Volver al inicio de sesión'),
+            child: Text(l10n.backToLoginButton),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSuccessView() {
+  Widget _buildSuccessView(AppLocalizations l10n) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -161,7 +163,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
         ),
         const SizedBox(height: 32),
         Text(
-          '¡Correo enviado!',
+          l10n.emailSentTitle,
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -169,7 +171,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Hemos enviado un enlace de recuperación a:',
+          l10n.emailSentSubtitle,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Colors.grey[600],
               ),
@@ -203,7 +205,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Revisa tu bandeja de entrada y sigue las instrucciones del correo para restablecer tu contraseña.',
+                l10n.checkInboxMessage,
                 style: TextStyle(
                   color: Colors.blue[900],
                   fontSize: 14,
@@ -212,7 +214,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Si no recibes el correo en unos minutos, revisa tu carpeta de spam.',
+                l10n.checkSpamMessage,
                 style: TextStyle(
                   color: Colors.blue[700],
                   fontSize: 12,
@@ -226,11 +228,11 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
         const SizedBox(height: 32),
         FilledButton(
           onPressed: () => Navigator.pop(context),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16.0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
             child: Text(
-              'Volver al inicio de sesión',
-              style: TextStyle(fontSize: 16),
+              l10n.backToLoginButton,
+              style: const TextStyle(fontSize: 16),
             ),
           ),
         ),
@@ -242,7 +244,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
               _emailController.clear();
             });
           },
-          child: const Text('Enviar a otro correo'),
+          child: Text(l10n.sendToAnotherEmailButton),
         ),
       ],
     );

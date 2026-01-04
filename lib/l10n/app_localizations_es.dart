@@ -432,22 +432,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get invalidColor => 'Formato de color inválido';
 
   @override
-  String createdLabel(Object date) {
-    return 'Creado: $date';
-  }
+  String get createdLabel => 'Creado:';
 
   @override
-  String updatedLabel(Object date) {
-    return 'Actualizado: $date';
-  }
+  String get updatedLabel => 'Actualizado:';
 
   @override
   String get noProductsInProject => 'No hay productos en este proyecto';
 
   @override
-  String batchLabel(Object batch) {
-    return 'Lote: $batch';
-  }
+  String get batchLabel => 'Lote:';
 
   @override
   String quantityLabel(Object quantity) {
@@ -508,7 +502,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get contactNameLabel => 'Nombre del contacto *';
 
   @override
-  String get enterNameError => 'Por favor ingresa el nombre';
+  String get enterNameError => 'Por favor ingresa tu nombre';
 
   @override
   String get nameLengthError => 'El nombre debe tener al menos 2 caracteres';
@@ -597,7 +591,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noAssignedProjects => 'No tienes proyectos asignados';
 
   @override
-  String get noAssignedProjectsSubtitle => 'Los proyectos aparecerán cuando un fabricante\nte asigne como cliente';
+  String get noAssignedProjectsSubtitle => 'Los proyectos aparecerán cuando un fabricante\n te asigne como cliente';
 
   @override
   String get currentStatusLabel => 'Estado actual';
@@ -627,4 +621,433 @@ class AppLocalizationsEs extends AppLocalizations {
   String stagesProgress(Object completed, Object total) {
     return '$completed de $total etapas completadas';
   }
+
+  @override
+  String get registerTitle => 'Crear cuenta';
+
+  @override
+  String get completeDetails => 'Completa tus datos';
+
+  @override
+  String get fullNameLabel => 'Nombre completo';
+
+  @override
+  String get nameMinLengthError => 'El nombre debe tener al menos 3 caracteres';
+
+  @override
+  String get passwordMinLengthHelper => 'Mínimo 6 caracteres';
+
+  @override
+  String get enterPasswordError => 'Por favor ingresa una contraseña';
+
+  @override
+  String get passwordMinLengthError => 'La contraseña debe tener al menos 6 caracteres';
+
+  @override
+  String get confirmPasswordLabel => 'Confirmar contraseña';
+
+  @override
+  String get passwordsDoNotMatchError => 'Las contraseñas no coinciden';
+
+  @override
+  String get hideOptionalFields => 'Ocultar campos opcionales';
+
+  @override
+  String get showOptionalFields => 'Agregar información adicional (opcional)';
+
+  @override
+  String get phoneOptionalLabel => 'Teléfono (opcional)';
+
+  @override
+  String get phoneHelper => 'Ej: +34 123 456 789';
+
+  @override
+  String get accountCreatedSuccess => 'Cuenta creada exitosamente';
+
+  @override
+  String get registerError => 'Error al registrar usuario';
+
+  @override
+  String get termsAndConditions => 'Al crear una cuenta, aceptas nuestros Términos y Condiciones y Política de Privacidad';
+
+  @override
+  String get loginError => 'Error al iniciar sesión';
+
+  @override
+  String get accountTypeTitle => 'Tipo de cuenta';
+
+  @override
+  String get selectAccountTypeMessage => 'Selecciona el tipo de cuenta que deseas crear:';
+
+  @override
+  String get roleClient => 'Cliente';
+
+  @override
+  String get roleClientSubtitle => 'Ver productos';
+
+  @override
+  String get roleManufacturer => 'Fabricante';
+
+  @override
+  String get roleManufacturerSubtitle => 'Gestionar producción';
+
+  @override
+  String get roleOperator => 'Operario';
+
+  @override
+  String get roleOperatorSubtitle => 'Operar procesos';
+
+  @override
+  String get roleAccountant => 'Contable';
+
+  @override
+  String get roleAccountantSubtitle => 'Gestión financiera';
+
+  @override
+  String get googleLoginError => 'Error al iniciar sesión con Google';
+
+  @override
+  String get appTitle => 'Gestión de Producción';
+
+  @override
+  String get loginSubtitle => 'Inicia sesión para continuar';
+
+  @override
+  String get forgotPasswordLink => '¿Olvidaste tu contraseña?';
+
+  @override
+  String get loginButton => 'Iniciar Sesión';
+
+  @override
+  String get orContinueWith => 'O continuar con';
+
+  @override
+  String get continueWithGoogle => 'Continuar con Google';
+
+  @override
+  String get recoverPasswordTitle => 'Recuperar contraseña';
+
+  @override
+  String get recoverPasswordSubtitle => 'Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña';
+
+  @override
+  String get emailAssociatedHelper => 'Ingresa el correo asociado a tu cuenta';
+
+  @override
+  String get sendRecoveryLinkButton => 'Enviar enlace de recuperación';
+
+  @override
+  String get backToLoginButton => 'Volver al inicio de sesión';
+
+  @override
+  String get recoveryEmailSentError => 'Error al enviar correo de recuperación';
+
+  @override
+  String get emailSentTitle => '¡Correo enviado!';
+
+  @override
+  String get emailSentSubtitle => 'Hemos enviado un enlace de recuperación a:';
+
+  @override
+  String get checkInboxMessage => 'Revisa tu bandeja de entrada y sigue las instrucciones del correo para restablecer tu contraseña.';
+
+  @override
+  String get checkSpamMessage => 'Si no recibes el correo en unos minutos, revisa tu carpeta de spam.';
+
+  @override
+  String get sendToAnotherEmailButton => 'Enviar a otro correo';
+
+  @override
+  String get catalogTitle => 'Catálogo de Productos';
+
+  @override
+  String get filterByCategory => 'Filtrar por categoría';
+
+  @override
+  String get allCategories => 'Todas las categorías';
+
+  @override
+  String get showInactive => 'Mostrar inactivos';
+
+  @override
+  String get hideInactive => 'Ocultar inactivos';
+
+  @override
+  String get searchCatalogHint => 'Buscar por nombre, referencia o descripción...';
+
+  @override
+  String get noProductsFound => 'No se encontraron productos';
+
+  @override
+  String get noProductsInCatalog => 'No hay productos en el catálogo';
+
+  @override
+  String get tryOtherSearchTerms => 'Intenta con otros términos de búsqueda';
+
+  @override
+  String get createFirstProduct => 'Crea tu primer producto';
+
+  @override
+  String get newProduct => 'Nuevo Producto';
+
+  @override
+  String get deactivateProductTitle => 'Desactivar producto';
+
+  @override
+  String get reactivateProductTitle => 'Reactivar producto';
+
+  @override
+  String deactivateProductMessage(Object name) {
+    return '¿Deseas desactivar \"$name\"? No se eliminará, solo quedará oculto.';
+  }
+
+  @override
+  String reactivateProductMessage(Object name) {
+    return '¿Deseas reactivar \"$name\"?';
+  }
+
+  @override
+  String get productDeactivatedSuccess => 'Producto desactivado correctamente';
+
+  @override
+  String get productReactivatedSuccess => 'Producto reactivado correctamente';
+
+  @override
+  String get productUpdateError => 'Error al actualizar el producto';
+
+  @override
+  String get inactiveStatus => 'Inactivo';
+
+  @override
+  String skuLabel(Object sku) {
+    return 'SKU: $sku';
+  }
+
+  @override
+  String usedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count veces',
+      one: '1 vez',
+    );
+    return 'Usado $_temp0';
+  }
+
+  @override
+  String get usedLabel => 'Usado';
+
+  @override
+  String get timeUsageSingle => 'vez';
+
+  @override
+  String get timeUsageMultiple => 'veces';
+
+  @override
+  String get editProductTitle => 'Editar Producto';
+
+  @override
+  String get basicInfo => 'Información Básica';
+
+  @override
+  String get productNameLabel => 'Nombre del producto *';
+
+  @override
+  String get productNameHint => 'Ej: Mesa de comedor rústica';
+
+  @override
+  String get nameRequired => 'El nombre es obligatorio';
+
+  @override
+  String get referenceLabel => 'Referencia/SKU *';
+
+  @override
+  String get referenceHint => 'Ej: MESA-001';
+
+  @override
+  String get referenceRequired => 'La referencia es obligatoria';
+
+  @override
+  String get descriptionLabel => 'Descripción *';
+
+  @override
+  String get descriptionHint => 'Describe el producto...';
+
+  @override
+  String get descriptionRequired => 'La descripción es obligatoria';
+
+  @override
+  String get categoryLabel => 'Categoría';
+
+  @override
+  String get categoryHint => 'Ej: Muebles';
+
+  @override
+  String get availabilityTitle => 'Disponibilidad';
+
+  @override
+  String get publicProduct => 'Producto público';
+
+  @override
+  String get privateProduct => 'Producto privado';
+
+  @override
+  String get publicProductSubtitle => 'Disponible para todos los clientes';
+
+  @override
+  String get privateProductSubtitle => 'Solo para cliente específico';
+
+  @override
+  String get specificClientLabel => 'Cliente específico *';
+
+  @override
+  String get specificClientHelper => 'Este producto solo estará disponible para este cliente';
+
+  @override
+  String get noClientsAvailable => 'No hay clientes disponibles. Crea un cliente primero.';
+
+  @override
+  String get privateProductInfo => 'Solo este cliente podrá añadir este producto a sus lotes de producción.';
+
+  @override
+  String get selectClientError => 'Debes seleccionar un cliente';
+
+  @override
+  String get productCreatedPublicSuccess => 'Producto público creado exitosamente';
+
+  @override
+  String productCreatedPrivateSuccess(Object client) {
+    return 'Producto creado para $client';
+  }
+
+  @override
+  String productEditedSuccess(Object client) {
+    return 'Producto editado para $client';
+  }
+
+  @override
+  String get createProductError => 'Error al crear el producto';
+
+  @override
+  String dimensionsLabel(Object unit) {
+    return 'Dimensiones ($unit)';
+  }
+
+  @override
+  String get widthLabel => 'Ancho';
+
+  @override
+  String get heightLabel => 'Alto';
+
+  @override
+  String get depthLabel => 'Fondo';
+
+  @override
+  String get materialTitle => 'Material';
+
+  @override
+  String get primaryMaterialLabel => 'Material principal';
+
+  @override
+  String get primaryMaterialHint => 'Ej: Madera de roble';
+
+  @override
+  String get secondaryMaterialsLabel => 'Materiales secundarios';
+
+  @override
+  String get secondaryMaterialsHint => 'Ej: Acero inoxidable';
+
+  @override
+  String get finishLabel => 'Acabado';
+
+  @override
+  String get finishHint => 'Ej: Barnizado';
+
+  @override
+  String get colorLabel => 'Color';
+
+  @override
+  String get colorHint => 'Ej: Nogal';
+
+  @override
+  String get additionalDataTitle => 'Datos Adicionales';
+
+  @override
+  String get estimatedWeightLabel => 'Peso estimado';
+
+  @override
+  String get basePriceLabel => 'Precio base';
+
+  @override
+  String get tagsLabel => 'Etiquetas';
+
+  @override
+  String get tagsHint => 'Ej: Premium, Moderno';
+
+  @override
+  String get notesLabel => 'Notas';
+
+  @override
+  String get notesHint => 'Información adicional...';
+
+  @override
+  String get unsavedChanges => 'Sin guardar';
+
+  @override
+  String get unsavedChangesTitle => 'Cambios sin guardar';
+
+  @override
+  String get unsavedChangesMessage => '¿Deseas descartar los cambios realizados?';
+
+  @override
+  String get discard => 'Descartar';
+
+  @override
+  String get productDetailTitle => 'Detalle del Producto';
+
+  @override
+  String get productNotFound => 'Producto no encontrado';
+
+  @override
+  String get duplicate => 'Duplicar';
+
+  @override
+  String get duplicateTitle => 'Duplicar producto';
+
+  @override
+  String duplicateConfirmMessage(Object name) {
+    return '¿Deseas crear una copia de \"$name\"? Se generará automáticamente una nueva referencia.';
+  }
+
+  @override
+  String get productDuplicatedSuccess => 'Producto duplicado correctamente';
+
+  @override
+  String get duplicateError => 'Error al duplicar el producto';
+
+  @override
+  String get deleteTitle => 'Eliminar producto';
+
+  @override
+  String deleteConfirmMessage(Object name) {
+    return '¿Estás seguro de que deseas eliminar permanentemente \"$name\"? Esta acción no se puede deshacer.';
+  }
+
+  @override
+  String get productDeletedSuccess => 'Producto eliminado correctamente';
+
+  @override
+  String get deleteError => 'Error al eliminar el producto';
+
+  @override
+  String get productIsInactiveMessage => 'Este producto está desactivado';
+
+  @override
+  String get specifications => 'Especificaciones';
+
+  @override
+  String get systemInfoTitle => 'Información del Sistema';
+
+  @override
+  String get createProductBtn => 'Crear producto';
 }

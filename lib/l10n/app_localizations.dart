@@ -944,14 +944,14 @@ abstract class AppLocalizations {
   /// No description provided for @createdLabel.
   ///
   /// In en, this message translates to:
-  /// **'Created: {date}'**
-  String createdLabel(Object date);
+  /// **'Created:'**
+  String get createdLabel;
 
   /// No description provided for @updatedLabel.
   ///
   /// In en, this message translates to:
-  /// **'Updated: {date}'**
-  String updatedLabel(Object date);
+  /// **'Updated:'**
+  String get updatedLabel;
 
   /// No description provided for @noProductsInProject.
   ///
@@ -962,8 +962,8 @@ abstract class AppLocalizations {
   /// No description provided for @batchLabel.
   ///
   /// In en, this message translates to:
-  /// **'Batch: {batch}'**
-  String batchLabel(Object batch);
+  /// **'Batch:'**
+  String get batchLabel;
 
   /// No description provided for @quantityLabel.
   ///
@@ -1076,7 +1076,7 @@ abstract class AppLocalizations {
   /// No description provided for @enterNameError.
   ///
   /// In en, this message translates to:
-  /// **'Please enter name'**
+  /// **'Please enter your name'**
   String get enterNameError;
 
   /// No description provided for @nameLengthError.
@@ -1294,6 +1294,816 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{completed} of {total} stages completed'**
   String stagesProgress(Object completed, Object total);
+
+  /// No description provided for @registerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get registerTitle;
+
+  /// No description provided for @completeDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete your details'**
+  String get completeDetails;
+
+  /// No description provided for @fullNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Name'**
+  String get fullNameLabel;
+
+  /// No description provided for @nameMinLengthError.
+  ///
+  /// In en, this message translates to:
+  /// **'Name must be at least 3 characters'**
+  String get nameMinLengthError;
+
+  /// No description provided for @passwordMinLengthHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum 6 characters'**
+  String get passwordMinLengthHelper;
+
+  /// No description provided for @enterPasswordError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a password'**
+  String get enterPasswordError;
+
+  /// No description provided for @passwordMinLengthError.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 6 characters'**
+  String get passwordMinLengthError;
+
+  /// No description provided for @confirmPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Password'**
+  String get confirmPasswordLabel;
+
+  /// No description provided for @passwordsDoNotMatchError.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get passwordsDoNotMatchError;
+
+  /// No description provided for @hideOptionalFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide optional fields'**
+  String get hideOptionalFields;
+
+  /// No description provided for @showOptionalFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Add additional info (optional)'**
+  String get showOptionalFields;
+
+  /// No description provided for @phoneOptionalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone (optional)'**
+  String get phoneOptionalLabel;
+
+  /// No description provided for @phoneHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: +34 123 456 789'**
+  String get phoneHelper;
+
+  /// No description provided for @accountCreatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Account created successfully'**
+  String get accountCreatedSuccess;
+
+  /// No description provided for @registerError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error registering user'**
+  String get registerError;
+
+  /// No description provided for @termsAndConditions.
+  ///
+  /// In en, this message translates to:
+  /// **'By creating an account, you agree to our Terms and Conditions and Privacy Policy'**
+  String get termsAndConditions;
+
+  /// No description provided for @loginError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error logging in'**
+  String get loginError;
+
+  /// No description provided for @accountTypeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Type'**
+  String get accountTypeTitle;
+
+  /// No description provided for @selectAccountTypeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select the type of account you want to create:'**
+  String get selectAccountTypeMessage;
+
+  /// No description provided for @roleClient.
+  ///
+  /// In en, this message translates to:
+  /// **'Client'**
+  String get roleClient;
+
+  /// No description provided for @roleClientSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'View products'**
+  String get roleClientSubtitle;
+
+  /// No description provided for @roleManufacturer.
+  ///
+  /// In en, this message translates to:
+  /// **'Manufacturer'**
+  String get roleManufacturer;
+
+  /// No description provided for @roleManufacturerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage production'**
+  String get roleManufacturerSubtitle;
+
+  /// No description provided for @roleOperator.
+  ///
+  /// In en, this message translates to:
+  /// **'Operator'**
+  String get roleOperator;
+
+  /// No description provided for @roleOperatorSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Operate processes'**
+  String get roleOperatorSubtitle;
+
+  /// No description provided for @roleAccountant.
+  ///
+  /// In en, this message translates to:
+  /// **'Accountant'**
+  String get roleAccountant;
+
+  /// No description provided for @roleAccountantSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Financial management'**
+  String get roleAccountantSubtitle;
+
+  /// No description provided for @googleLoginError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error logging in with Google'**
+  String get googleLoginError;
+
+  /// No description provided for @appTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Production Management'**
+  String get appTitle;
+
+  /// No description provided for @loginSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to continue'**
+  String get loginSubtitle;
+
+  /// No description provided for @forgotPasswordLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get forgotPasswordLink;
+
+  /// No description provided for @loginButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get loginButton;
+
+  /// No description provided for @orContinueWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Or continue with'**
+  String get orContinueWith;
+
+  /// No description provided for @continueWithGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get continueWithGoogle;
+
+  /// No description provided for @recoverPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recover Password'**
+  String get recoverPasswordTitle;
+
+  /// No description provided for @recoverPasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email and we will send you a link to reset your password'**
+  String get recoverPasswordSubtitle;
+
+  /// No description provided for @emailAssociatedHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the email associated with your account'**
+  String get emailAssociatedHelper;
+
+  /// No description provided for @sendRecoveryLinkButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Send recovery link'**
+  String get sendRecoveryLinkButton;
+
+  /// No description provided for @backToLoginButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to login'**
+  String get backToLoginButton;
+
+  /// No description provided for @recoveryEmailSentError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error sending recovery email'**
+  String get recoveryEmailSentError;
+
+  /// No description provided for @emailSentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Email sent!'**
+  String get emailSentTitle;
+
+  /// No description provided for @emailSentSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We have sent a recovery link to:'**
+  String get emailSentSubtitle;
+
+  /// No description provided for @checkInboxMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your inbox and follow the instructions to reset your password.'**
+  String get checkInboxMessage;
+
+  /// No description provided for @checkSpamMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'If you don\'t receive the email in a few minutes, check your spam folder.'**
+  String get checkSpamMessage;
+
+  /// No description provided for @sendToAnotherEmailButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to another email'**
+  String get sendToAnotherEmailButton;
+
+  /// No description provided for @catalogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Product Catalog'**
+  String get catalogTitle;
+
+  /// No description provided for @filterByCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by category'**
+  String get filterByCategory;
+
+  /// No description provided for @allCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'All categories'**
+  String get allCategories;
+
+  /// No description provided for @showInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Show inactive'**
+  String get showInactive;
+
+  /// No description provided for @hideInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide inactive'**
+  String get hideInactive;
+
+  /// No description provided for @searchCatalogHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name, reference or description...'**
+  String get searchCatalogHint;
+
+  /// No description provided for @noProductsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No products found'**
+  String get noProductsFound;
+
+  /// No description provided for @noProductsInCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'No products in the catalog'**
+  String get noProductsInCatalog;
+
+  /// No description provided for @tryOtherSearchTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Try with other search terms'**
+  String get tryOtherSearchTerms;
+
+  /// No description provided for @createFirstProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your first product'**
+  String get createFirstProduct;
+
+  /// No description provided for @newProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'New Product'**
+  String get newProduct;
+
+  /// No description provided for @deactivateProductTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate product'**
+  String get deactivateProductTitle;
+
+  /// No description provided for @reactivateProductTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reactivate product'**
+  String get reactivateProductTitle;
+
+  /// No description provided for @deactivateProductMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to deactivate \"{name}\"? It will not be deleted, just hidden.'**
+  String deactivateProductMessage(Object name);
+
+  /// No description provided for @reactivateProductMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to reactivate \"{name}\"?'**
+  String reactivateProductMessage(Object name);
+
+  /// No description provided for @productDeactivatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Product deactivated successfully'**
+  String get productDeactivatedSuccess;
+
+  /// No description provided for @productReactivatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Product reactivated successfully'**
+  String get productReactivatedSuccess;
+
+  /// No description provided for @productUpdateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating product'**
+  String get productUpdateError;
+
+  /// No description provided for @inactiveStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get inactiveStatus;
+
+  /// No description provided for @skuLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SKU: {sku}'**
+  String skuLabel(Object sku);
+
+  /// No description provided for @usedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Used {count, plural, =1{1 time} other{{count} times}}'**
+  String usedCount(num count);
+
+  /// No description provided for @usedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Used'**
+  String get usedLabel;
+
+  /// No description provided for @timeUsageSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'time'**
+  String get timeUsageSingle;
+
+  /// No description provided for @timeUsageMultiple.
+  ///
+  /// In en, this message translates to:
+  /// **'times'**
+  String get timeUsageMultiple;
+
+  /// No description provided for @editProductTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Product'**
+  String get editProductTitle;
+
+  /// No description provided for @basicInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Information'**
+  String get basicInfo;
+
+  /// No description provided for @productNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Product Name *'**
+  String get productNameLabel;
+
+  /// No description provided for @productNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: Rustic dining table'**
+  String get productNameHint;
+
+  /// No description provided for @nameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required'**
+  String get nameRequired;
+
+  /// No description provided for @referenceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference/SKU *'**
+  String get referenceLabel;
+
+  /// No description provided for @referenceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: TABLE-001'**
+  String get referenceHint;
+
+  /// No description provided for @referenceRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference is required'**
+  String get referenceRequired;
+
+  /// No description provided for @descriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description *'**
+  String get descriptionLabel;
+
+  /// No description provided for @descriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the product...'**
+  String get descriptionHint;
+
+  /// No description provided for @descriptionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Description is required'**
+  String get descriptionRequired;
+
+  /// No description provided for @categoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get categoryLabel;
+
+  /// No description provided for @categoryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: Furniture'**
+  String get categoryHint;
+
+  /// No description provided for @availabilityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Availability'**
+  String get availabilityTitle;
+
+  /// No description provided for @publicProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Public Product'**
+  String get publicProduct;
+
+  /// No description provided for @privateProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Private Product'**
+  String get privateProduct;
+
+  /// No description provided for @publicProductSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Available to all clients'**
+  String get publicProductSubtitle;
+
+  /// No description provided for @privateProductSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for specific client'**
+  String get privateProductSubtitle;
+
+  /// No description provided for @specificClientLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Specific Client *'**
+  String get specificClientLabel;
+
+  /// No description provided for @specificClientHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'This product will only be available to this client'**
+  String get specificClientHelper;
+
+  /// No description provided for @noClientsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No clients available. Create a client first.'**
+  String get noClientsAvailable;
+
+  /// No description provided for @privateProductInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Only this client will be able to add this product to their production batches.'**
+  String get privateProductInfo;
+
+  /// No description provided for @selectClientError.
+  ///
+  /// In en, this message translates to:
+  /// **'You must select a client'**
+  String get selectClientError;
+
+  /// No description provided for @productCreatedPublicSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Public product created successfully'**
+  String get productCreatedPublicSuccess;
+
+  /// No description provided for @productCreatedPrivateSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Product created for {client}'**
+  String productCreatedPrivateSuccess(Object client);
+
+  /// No description provided for @productEditedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Product edited for {client}'**
+  String productEditedSuccess(Object client);
+
+  /// No description provided for @createProductError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error creating product'**
+  String get createProductError;
+
+  /// No description provided for @dimensionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Dimensions ({unit})'**
+  String dimensionsLabel(Object unit);
+
+  /// No description provided for @widthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Width'**
+  String get widthLabel;
+
+  /// No description provided for @heightLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Height'**
+  String get heightLabel;
+
+  /// No description provided for @depthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Depth'**
+  String get depthLabel;
+
+  /// No description provided for @materialTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Material'**
+  String get materialTitle;
+
+  /// No description provided for @primaryMaterialLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary Material'**
+  String get primaryMaterialLabel;
+
+  /// No description provided for @primaryMaterialHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: Oak wood'**
+  String get primaryMaterialHint;
+
+  /// No description provided for @secondaryMaterialsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary Materials'**
+  String get secondaryMaterialsLabel;
+
+  /// No description provided for @secondaryMaterialsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: Stainless steel'**
+  String get secondaryMaterialsHint;
+
+  /// No description provided for @finishLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get finishLabel;
+
+  /// No description provided for @finishHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: Varnished'**
+  String get finishHint;
+
+  /// No description provided for @colorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get colorLabel;
+
+  /// No description provided for @colorHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: Walnut'**
+  String get colorHint;
+
+  /// No description provided for @additionalDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional Data'**
+  String get additionalDataTitle;
+
+  /// No description provided for @estimatedWeightLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated Weight'**
+  String get estimatedWeightLabel;
+
+  /// No description provided for @basePriceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Base Price'**
+  String get basePriceLabel;
+
+  /// No description provided for @tagsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get tagsLabel;
+
+  /// No description provided for @tagsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: Premium, Modern'**
+  String get tagsHint;
+
+  /// No description provided for @notesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notesLabel;
+
+  /// No description provided for @notesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional information...'**
+  String get notesHint;
+
+  /// No description provided for @unsavedChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaved'**
+  String get unsavedChanges;
+
+  /// No description provided for @unsavedChangesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaved changes'**
+  String get unsavedChangesTitle;
+
+  /// No description provided for @unsavedChangesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to discard changes?'**
+  String get unsavedChangesMessage;
+
+  /// No description provided for @discard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get discard;
+
+  /// No description provided for @productDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Product Detail'**
+  String get productDetailTitle;
+
+  /// No description provided for @productNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Product not found'**
+  String get productNotFound;
+
+  /// No description provided for @duplicate.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate'**
+  String get duplicate;
+
+  /// No description provided for @duplicateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate product'**
+  String get duplicateTitle;
+
+  /// No description provided for @duplicateConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to create a copy of \"{name}\"? A new reference will be generated automatically.'**
+  String duplicateConfirmMessage(Object name);
+
+  /// No description provided for @productDuplicatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Product duplicated successfully'**
+  String get productDuplicatedSuccess;
+
+  /// No description provided for @duplicateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error duplicating product'**
+  String get duplicateError;
+
+  /// No description provided for @deleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete product'**
+  String get deleteTitle;
+
+  /// No description provided for @deleteConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to permanently delete \"{name}\"? This action cannot be undone.'**
+  String deleteConfirmMessage(Object name);
+
+  /// No description provided for @productDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Product deleted successfully'**
+  String get productDeletedSuccess;
+
+  /// No description provided for @deleteError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error deleting product'**
+  String get deleteError;
+
+  /// No description provided for @productIsInactiveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This product is deactivated'**
+  String get productIsInactiveMessage;
+
+  /// No description provided for @specifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Specifications'**
+  String get specifications;
+
+  /// No description provided for @systemInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'System Information'**
+  String get systemInfoTitle;
+
+  /// No description provided for @createProductBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Create product'**
+  String get createProductBtn;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

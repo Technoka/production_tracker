@@ -59,7 +59,7 @@ class ClientProjectDetail extends StatelessWidget {
                     ),
                     const Spacer(),
                     Text(
-                      l10n.createdLabel(DateFormat('dd/MM/yyyy').format(project.createdAt)),
+                      '${l10n.createdLabel}: ${DateFormat('dd/MM/yyyy').format(project.createdAt)}',
                       style: TextStyle(
                         color: Colors.grey[700],
                         fontSize: 12,
@@ -145,9 +145,9 @@ class ClientProjectDetail extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 4),
-                            Text(l10n.batchLabel(product.batchNumber)),
+                            Text('${l10n.batchLabel}: ${product.batchNumber}'),
                             const SizedBox(height: 4),
-                            Text(l10n.quantityLabel(product.quantity)),
+                            Text('${l10n.quantityLabel}: ${product.quantity}'),
                             const SizedBox(height: 8),
                             Row(
                               children: [
@@ -177,7 +177,7 @@ class ClientProjectDetail extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  l10n.updatedLabel(DateFormat('dd/MM').format(product.updatedAt)),
+                                  '${l10n.updatedLabel}: ${DateFormat('dd/MM').format(product.updatedAt)}',
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: Colors.grey[600],

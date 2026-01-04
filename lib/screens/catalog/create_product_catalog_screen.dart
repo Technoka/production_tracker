@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/product_catalog_model.dart';
 import '../../models/user_model.dart';
 import '../../services/product_catalog_service.dart';
@@ -55,7 +56,7 @@ class _CreateProductCatalogScreenState
   
   String? _selectedClientId;
   String? _selectedClientName;
-  bool _isPublic = true; // Por defecto, el producto es público
+  bool _isPublic = true;
 
   @override
   void initState() {
@@ -91,113 +92,112 @@ class _CreateProductCatalogScreenState
     }
   }
 
-Future<void> _saveProduct() async {
-  if (!_formKey.currentState!.validate()) return;
+  Future<void> _saveProduct(AppLocalizations l10n) async {
+    if (!_formKey.currentState!.validate()) return;
 
-  setState(() {
-    _isLoading = true;
-  });
+    setState(() {
+      _isLoading = true;
+    });
 
-  try {
-    // Construir MaterialInfo si hay datos
-    MaterialInfo? materialInfo;
-    if (_primaryMaterialController.text.isNotEmpty) {
-      materialInfo = MaterialInfo(
-        primaryMaterial: _primaryMaterialController.text.trim(),
-        secondaryMaterials: _secondaryMaterials,
-        finish: _finishController.text.trim().isNotEmpty
-            ? _finishController.text.trim()
+    try {
+      MaterialInfo? materialInfo;
+      if (_primaryMaterialController.text.isNotEmpty) {
+        materialInfo = MaterialInfo(
+          primaryMaterial: _primaryMaterialController.text.trim(),
+          secondaryMaterials: _secondaryMaterials,
+          finish: _finishController.text.trim().isNotEmpty
+              ? _finishController.text.trim()
+              : null,
+          color: _colorController.text.trim().isNotEmpty
+              ? _colorController.text.trim()
+              : null,
+        );
+      }
+
+      DimensionsInfo? dimensions;
+      final width = double.tryParse(_widthController.text);
+      final height = double.tryParse(_heightController.text);
+      final depth = double.tryParse(_depthController.text);
+
+      if (width != null || height != null || depth != null) {
+        dimensions = DimensionsInfo(
+          width: width,
+          height: height,
+          depth: depth,
+          unit: 'cm',
+        );
+      }
+
+      final productId = await _catalogService.createProduct(
+        organizationId: widget.organizationId,
+        name: _nameController.text.trim(),
+        reference: _referenceController.text.trim(),
+        description: _descriptionController.text.trim(),
+        createdBy: widget.currentUser.uid,
+        category: _categoryController.text.trim().isNotEmpty
+            ? _categoryController.text.trim()
             : null,
-        color: _colorController.text.trim().isNotEmpty
-            ? _colorController.text.trim()
+        imageUrls: _imageUrls,
+        specifications: _specifications,
+        tags: _tags,
+        materialInfo: materialInfo,
+        dimensions: dimensions,
+        estimatedWeight: double.tryParse(_weightController.text),
+        basePrice: double.tryParse(_basePriceController.text),
+        notes: _notesController.text.trim().isNotEmpty
+            ? _notesController.text.trim()
             : null,
+        clientId: _isPublic ? null : _selectedClientId,
+        isPublic: _isPublic,
       );
-    }
 
-    // Construir DimensionsInfo si hay datos
-    DimensionsInfo? dimensions;
-    final width = double.tryParse(_widthController.text);
-    final height = double.tryParse(_heightController.text);
-    final depth = double.tryParse(_depthController.text);
-
-    if (width != null || height != null || depth != null) {
-      dimensions = DimensionsInfo(
-        width: width,
-        height: height,
-        depth: depth,
-        unit: 'cm',
-      );
-    }
-
-    final productId = await _catalogService.createProduct(
-      organizationId: widget.organizationId,
-      name: _nameController.text.trim(),
-      reference: _referenceController.text.trim(),
-      description: _descriptionController.text.trim(),
-      createdBy: widget.currentUser.uid,
-      category: _categoryController.text.trim().isNotEmpty
-          ? _categoryController.text.trim()
-          : null,
-      imageUrls: _imageUrls,
-      specifications: _specifications,
-      tags: _tags,
-      materialInfo: materialInfo,
-      dimensions: dimensions,
-      estimatedWeight: double.tryParse(_weightController.text),
-      basePrice: double.tryParse(_basePriceController.text),
-      notes: _notesController.text.trim().isNotEmpty
-          ? _notesController.text.trim()
-          : null,
-      // NUEVOS PARÁMETROS:
-      clientId: _isPublic ? null : _selectedClientId,
-      isPublic: _isPublic,
-    );
-
-    if (mounted) {
-      if (productId != null) {
+      if (mounted) {
+        if (productId != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _isPublic 
+                    ? l10n.productCreatedPublicSuccess
+                    : l10n.productCreatedPrivateSuccess(_selectedClientName ?? ''),
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.createProductError),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              _isPublic 
-                  ? 'Producto público creado exitosamente'
-                  : 'Producto creado para $_selectedClientName',
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al crear el producto'),
+            content: Text('${l10n.error}: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
       }
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  } finally {
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nuevo Producto'),
+        title: Text(l10n.newProduct),
       ),
       body: Form(
         key: _formKey,
@@ -205,17 +205,17 @@ Future<void> _saveProduct() async {
           padding: const EdgeInsets.all(16),
           children: [
             // Información básica
-            _buildSectionTitle('Información Básica'),
+            _buildSectionTitle(l10n.basicInfo),
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Nombre del producto *',
-                hintText: 'Ej: Mesa de comedor rústica',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.productNameLabel,
+                hintText: l10n.productNameHint,
+                border: const OutlineInputBorder(),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'El nombre es obligatorio';
+                  return l10n.nameRequired;
                 }
                 return null;
               },
@@ -224,14 +224,14 @@ Future<void> _saveProduct() async {
             const SizedBox(height: 16),
             TextFormField(
               controller: _referenceController,
-              decoration: const InputDecoration(
-                labelText: 'Referencia/SKU *',
-                hintText: 'Ej: MESA-001',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.referenceLabel,
+                hintText: l10n.referenceHint,
+                border: const OutlineInputBorder(),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'La referencia es obligatoria';
+                  return l10n.referenceRequired;
                 }
                 return null;
               },
@@ -240,15 +240,15 @@ Future<void> _saveProduct() async {
             const SizedBox(height: 16),
             TextFormField(
               controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Descripción *',
-                hintText: 'Describe el producto...',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.descriptionLabel,
+                hintText: l10n.descriptionHint,
+                border: const OutlineInputBorder(),
               ),
               maxLines: 3,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'La descripción es obligatoria';
+                  return l10n.descriptionRequired;
                 }
                 return null;
               },
@@ -269,18 +269,17 @@ Future<void> _saveProduct() async {
                 _categoryController.text = selection;
               },
               fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                // Sincronizar con nuestro controlador
                 if (controller.text != _categoryController.text) {
                   controller.text = _categoryController.text;
                 }
                 return TextFormField(
                   controller: controller,
                   focusNode: focusNode,
-                  decoration: const InputDecoration(
-                    labelText: 'Categoría',
-                    hintText: 'Ej: Muebles',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.arrow_drop_down),
+                  decoration: InputDecoration(
+                    labelText: l10n.categoryLabel,
+                    hintText: l10n.categoryHint,
+                    border: const OutlineInputBorder(),
+                    suffixIcon: const Icon(Icons.arrow_drop_down),
                   ),
                   onChanged: (value) {
                     _categoryController.text = value;
@@ -290,153 +289,152 @@ Future<void> _saveProduct() async {
               },
             ),
             const SizedBox(height: 24),
-// Cliente asociado
-_buildSectionTitle('Disponibilidad'),
-Row(
-  children: [
-    Expanded(
-      child: SwitchListTile(
-        title: Text(
-          _isPublic 
-              ? 'Producto público' 
-              : 'Producto privado'),
-        subtitle: Text(
-          _isPublic 
-              ? 'Disponible para todos los clientes' 
-              : 'Solo para cliente específico',
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-        ),
-        value: _isPublic,
-        onChanged: (value) {
-          setState(() {
-            _isPublic = value;
-            if (value) {
-              // Si se hace público, limpiar cliente seleccionado
-              _selectedClientId = null;
-              _selectedClientName = null;
-            }
-          });
-        },
-      ),
-    ),
-  ],
-),
-const SizedBox(height: 12),
+            
+            // Cliente asociado
+            _buildSectionTitle(l10n.availabilityTitle),
+            Row(
+              children: [
+                Expanded(
+                  child: SwitchListTile(
+                    title: Text(
+                      _isPublic 
+                          ? l10n.publicProduct
+                          : l10n.privateProduct),
+                    subtitle: Text(
+                      _isPublic 
+                          ? l10n.publicProductSubtitle 
+                          : l10n.privateProductSubtitle,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                    value: _isPublic,
+                    onChanged: (value) {
+                      setState(() {
+                        _isPublic = value;
+                        if (value) {
+                          _selectedClientId = null;
+                          _selectedClientName = null;
+                        }
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
 
-// Selector de cliente (solo si no es público)
-if (!_isPublic) ...[
-  StreamBuilder<List<ClientModel>>(
-    stream: ClientService().watchClients(widget.organizationId),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const LinearProgressIndicator();
-      }
+            // Selector de cliente
+            if (!_isPublic) ...[
+              StreamBuilder<List<ClientModel>>(
+                stream: ClientService().watchClients(widget.organizationId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const LinearProgressIndicator();
+                  }
 
-      if (snapshot.hasError) {
-        return Text('Error: ${snapshot.error}');
-      }
+                  if (snapshot.hasError) {
+                    return Text('${l10n.error}: ${snapshot.error}');
+                  }
 
-      final clients = snapshot.data ?? [];
+                  final clients = snapshot.data ?? [];
 
-      if (clients.isEmpty) {
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.orange[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.orange[200]!),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.info_outline, color: Colors.orange[700]),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'No hay clientes disponibles. Crea un cliente primero.',
-                  style: TextStyle(fontSize: 13),
+                  if (clients.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.orange[700]),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.noClientsAvailable,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      labelText: l10n.specificClientLabel,
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.person),
+                      helperText: l10n.specificClientHelper,
+                    ),
+                    value: _selectedClientId,
+                    isExpanded: true,
+                    items: clients.map((client) {
+                      return DropdownMenuItem(
+                        value: client.id,
+                        child: Text(
+                          client.name,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (clientId) {
+                      setState(() {
+                        _selectedClientId = clientId;
+                        _selectedClientName = clients
+                            .firstWhere((c) => c.id == clientId)
+                            .name;
+                      });
+                    },
+                    validator: (value) {
+                      if (!_isPublic && (value == null || value.isEmpty)) {
+                        return l10n.selectClientError;
+                      }
+                      return null;
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              // Información adicional
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 18, color: Colors.blue[700]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.privateProductInfo,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue[900],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-        );
-      }
 
-      return DropdownButtonFormField<String>(
-        decoration: const InputDecoration(
-          labelText: 'Cliente específico *',
-          border: OutlineInputBorder(),
-          prefixIcon: Icon(Icons.person),
-          helperText: 'Este producto solo estará disponible para este cliente',
-        ),
-        value: _selectedClientId,
-        isExpanded: true,
-        items: clients.map((client) {
-          return DropdownMenuItem(
-            value: client.id,
-            child: Text(
-              client.name,
-              overflow: TextOverflow.ellipsis,
-            ),
-          );
-        }).toList(),
-        onChanged: (clientId) {
-          setState(() {
-            _selectedClientId = clientId;
-            // Guardar el nombre del cliente también
-            _selectedClientName = clients
-                .firstWhere((c) => c.id == clientId)
-                .name;
-          });
-        },
-        validator: (value) {
-          if (!_isPublic && (value == null || value.isEmpty)) {
-            return 'Debes seleccionar un cliente';
-          }
-          return null;
-        },
-      );
-    },
-  ),
-  const SizedBox(height: 16),
-  
-  // Información adicional
-  Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Colors.blue[50],
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Colors.blue[200]!),
-    ),
-    child: Row(
-      children: [
-        Icon(Icons.info_outline, size: 18, color: Colors.blue[700]),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            'Solo este cliente podrá añadir este producto a sus lotes de producción.',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.blue[900],
-            ),
-          ),
-        ),
-      ],
-    ),
-  ),
-],
-
-const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
             // Dimensiones
-            _buildSectionTitle('Dimensiones (cm)'),
+            _buildSectionTitle(l10n.dimensionsLabel('cm')),
             Row(
               children: [
                 Expanded(
                   child: TextFormField(
                     controller: _widthController,
-                    decoration: const InputDecoration(
-                      labelText: 'Ancho',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.widthLabel,
+                      border: const OutlineInputBorder(),
                       suffixText: 'cm',
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -449,9 +447,9 @@ const SizedBox(height: 24),
                 Expanded(
                   child: TextFormField(
                     controller: _heightController,
-                    decoration: const InputDecoration(
-                      labelText: 'Alto',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.heightLabel,
+                      border: const OutlineInputBorder(),
                       suffixText: 'cm',
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -464,9 +462,9 @@ const SizedBox(height: 24),
                 Expanded(
                   child: TextFormField(
                     controller: _depthController,
-                    decoration: const InputDecoration(
-                      labelText: 'Fondo',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.depthLabel,
+                      border: const OutlineInputBorder(),
                       suffixText: 'cm',
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -480,21 +478,21 @@ const SizedBox(height: 24),
             const SizedBox(height: 24),
 
             // Material
-            _buildSectionTitle('Material'),
+            _buildSectionTitle(l10n.materialTitle),
             TextFormField(
               controller: _primaryMaterialController,
-              decoration: const InputDecoration(
-                labelText: 'Material principal',
-                hintText: 'Ej: Madera de roble',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.primaryMaterialLabel,
+                hintText: l10n.primaryMaterialHint,
+                border: const OutlineInputBorder(),
               ),
               textCapitalization: TextCapitalization.words,
             ),
             const SizedBox(height: 16),
             _buildListField(
-              title: 'Materiales secundarios',
+              title: l10n.secondaryMaterialsLabel,
               items: _secondaryMaterials,
-              hintText: 'Ej: Acero inoxidable',
+              hintText: l10n.secondaryMaterialsHint,
               onAdd: (value) {
                 setState(() {
                   _secondaryMaterials.add(value);
@@ -512,10 +510,10 @@ const SizedBox(height: 24),
                 Expanded(
                   child: TextFormField(
                     controller: _finishController,
-                    decoration: const InputDecoration(
-                      labelText: 'Acabado',
-                      hintText: 'Ej: Barnizado',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.finishLabel,
+                      hintText: l10n.finishHint,
+                      border: const OutlineInputBorder(),
                     ),
                     textCapitalization: TextCapitalization.words,
                   ),
@@ -524,10 +522,10 @@ const SizedBox(height: 24),
                 Expanded(
                   child: TextFormField(
                     controller: _colorController,
-                    decoration: const InputDecoration(
-                      labelText: 'Color',
-                      hintText: 'Ej: Nogal',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.colorLabel,
+                      hintText: l10n.colorHint,
+                      border: const OutlineInputBorder(),
                     ),
                     textCapitalization: TextCapitalization.words,
                   ),
@@ -537,15 +535,15 @@ const SizedBox(height: 24),
             const SizedBox(height: 24),
 
             // Datos adicionales
-            _buildSectionTitle('Datos Adicionales'),
+            _buildSectionTitle(l10n.additionalDataTitle),
             Row(
               children: [
                 Expanded(
                   child: TextFormField(
                     controller: _weightController,
-                    decoration: const InputDecoration(
-                      labelText: 'Peso estimado',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.estimatedWeightLabel,
+                      border: const OutlineInputBorder(),
                       suffixText: 'kg',
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -558,9 +556,9 @@ const SizedBox(height: 24),
                 Expanded(
                   child: TextFormField(
                     controller: _basePriceController,
-                    decoration: const InputDecoration(
-                      labelText: 'Precio base',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.basePriceLabel,
+                      border: const OutlineInputBorder(),
                       prefixText: '€ ',
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -573,9 +571,9 @@ const SizedBox(height: 24),
             ),
             const SizedBox(height: 16),
             _buildListField(
-              title: 'Etiquetas',
+              title: l10n.tagsLabel,
               items: _tags,
-              hintText: 'Ej: Premium, Moderno',
+              hintText: l10n.tagsHint,
               onAdd: (value) {
                 setState(() {
                   _tags.add(value);
@@ -590,10 +588,10 @@ const SizedBox(height: 24),
             const SizedBox(height: 16),
             TextFormField(
               controller: _notesController,
-              decoration: const InputDecoration(
-                labelText: 'Notas',
-                hintText: 'Información adicional...',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.notesLabel,
+                hintText: l10n.notesHint,
+                border: const OutlineInputBorder(),
               ),
               maxLines: 3,
               textCapitalization: TextCapitalization.sentences,
@@ -602,14 +600,14 @@ const SizedBox(height: 24),
 
             // Botón guardar
             FilledButton(
-              onPressed: _isLoading ? null : _saveProduct,
+              onPressed: _isLoading ? null : () => _saveProduct(l10n),
               child: _isLoading
                   ? const SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Crear Producto'),
+                  : Text(l10n.createProductBtn), // Asegurar que exista o usar genérico
             ),
             const SizedBox(height: 16),
           ],

@@ -432,22 +432,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invalidColor => 'Invalid color format';
 
   @override
-  String createdLabel(Object date) {
-    return 'Created: $date';
-  }
+  String get createdLabel => 'Created:';
 
   @override
-  String updatedLabel(Object date) {
-    return 'Updated: $date';
-  }
+  String get updatedLabel => 'Updated:';
 
   @override
   String get noProductsInProject => 'No products in this project';
 
   @override
-  String batchLabel(Object batch) {
-    return 'Batch: $batch';
-  }
+  String get batchLabel => 'Batch:';
 
   @override
   String quantityLabel(Object quantity) {
@@ -508,7 +502,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactNameLabel => 'Contact Name *';
 
   @override
-  String get enterNameError => 'Please enter name';
+  String get enterNameError => 'Please enter your name';
 
   @override
   String get nameLengthError => 'Name must be at least 2 characters';
@@ -627,4 +621,433 @@ class AppLocalizationsEn extends AppLocalizations {
   String stagesProgress(Object completed, Object total) {
     return '$completed of $total stages completed';
   }
+
+  @override
+  String get registerTitle => 'Create Account';
+
+  @override
+  String get completeDetails => 'Complete your details';
+
+  @override
+  String get fullNameLabel => 'Full Name';
+
+  @override
+  String get nameMinLengthError => 'Name must be at least 3 characters';
+
+  @override
+  String get passwordMinLengthHelper => 'Minimum 6 characters';
+
+  @override
+  String get enterPasswordError => 'Please enter a password';
+
+  @override
+  String get passwordMinLengthError => 'Password must be at least 6 characters';
+
+  @override
+  String get confirmPasswordLabel => 'Confirm Password';
+
+  @override
+  String get passwordsDoNotMatchError => 'Passwords do not match';
+
+  @override
+  String get hideOptionalFields => 'Hide optional fields';
+
+  @override
+  String get showOptionalFields => 'Add additional info (optional)';
+
+  @override
+  String get phoneOptionalLabel => 'Phone (optional)';
+
+  @override
+  String get phoneHelper => 'Ex: +34 123 456 789';
+
+  @override
+  String get accountCreatedSuccess => 'Account created successfully';
+
+  @override
+  String get registerError => 'Error registering user';
+
+  @override
+  String get termsAndConditions => 'By creating an account, you agree to our Terms and Conditions and Privacy Policy';
+
+  @override
+  String get loginError => 'Error logging in';
+
+  @override
+  String get accountTypeTitle => 'Account Type';
+
+  @override
+  String get selectAccountTypeMessage => 'Select the type of account you want to create:';
+
+  @override
+  String get roleClient => 'Client';
+
+  @override
+  String get roleClientSubtitle => 'View products';
+
+  @override
+  String get roleManufacturer => 'Manufacturer';
+
+  @override
+  String get roleManufacturerSubtitle => 'Manage production';
+
+  @override
+  String get roleOperator => 'Operator';
+
+  @override
+  String get roleOperatorSubtitle => 'Operate processes';
+
+  @override
+  String get roleAccountant => 'Accountant';
+
+  @override
+  String get roleAccountantSubtitle => 'Financial management';
+
+  @override
+  String get googleLoginError => 'Error logging in with Google';
+
+  @override
+  String get appTitle => 'Production Management';
+
+  @override
+  String get loginSubtitle => 'Sign in to continue';
+
+  @override
+  String get forgotPasswordLink => 'Forgot password?';
+
+  @override
+  String get loginButton => 'Login';
+
+  @override
+  String get orContinueWith => 'Or continue with';
+
+  @override
+  String get continueWithGoogle => 'Continue with Google';
+
+  @override
+  String get recoverPasswordTitle => 'Recover Password';
+
+  @override
+  String get recoverPasswordSubtitle => 'Enter your email and we will send you a link to reset your password';
+
+  @override
+  String get emailAssociatedHelper => 'Enter the email associated with your account';
+
+  @override
+  String get sendRecoveryLinkButton => 'Send recovery link';
+
+  @override
+  String get backToLoginButton => 'Back to login';
+
+  @override
+  String get recoveryEmailSentError => 'Error sending recovery email';
+
+  @override
+  String get emailSentTitle => 'Email sent!';
+
+  @override
+  String get emailSentSubtitle => 'We have sent a recovery link to:';
+
+  @override
+  String get checkInboxMessage => 'Check your inbox and follow the instructions to reset your password.';
+
+  @override
+  String get checkSpamMessage => 'If you don\'t receive the email in a few minutes, check your spam folder.';
+
+  @override
+  String get sendToAnotherEmailButton => 'Send to another email';
+
+  @override
+  String get catalogTitle => 'Product Catalog';
+
+  @override
+  String get filterByCategory => 'Filter by category';
+
+  @override
+  String get allCategories => 'All categories';
+
+  @override
+  String get showInactive => 'Show inactive';
+
+  @override
+  String get hideInactive => 'Hide inactive';
+
+  @override
+  String get searchCatalogHint => 'Search by name, reference or description...';
+
+  @override
+  String get noProductsFound => 'No products found';
+
+  @override
+  String get noProductsInCatalog => 'No products in the catalog';
+
+  @override
+  String get tryOtherSearchTerms => 'Try with other search terms';
+
+  @override
+  String get createFirstProduct => 'Create your first product';
+
+  @override
+  String get newProduct => 'New Product';
+
+  @override
+  String get deactivateProductTitle => 'Deactivate product';
+
+  @override
+  String get reactivateProductTitle => 'Reactivate product';
+
+  @override
+  String deactivateProductMessage(Object name) {
+    return 'Do you want to deactivate \"$name\"? It will not be deleted, just hidden.';
+  }
+
+  @override
+  String reactivateProductMessage(Object name) {
+    return 'Do you want to reactivate \"$name\"?';
+  }
+
+  @override
+  String get productDeactivatedSuccess => 'Product deactivated successfully';
+
+  @override
+  String get productReactivatedSuccess => 'Product reactivated successfully';
+
+  @override
+  String get productUpdateError => 'Error updating product';
+
+  @override
+  String get inactiveStatus => 'Inactive';
+
+  @override
+  String skuLabel(Object sku) {
+    return 'SKU: $sku';
+  }
+
+  @override
+  String usedCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count times',
+      one: '1 time',
+    );
+    return 'Used $_temp0';
+  }
+
+  @override
+  String get usedLabel => 'Used';
+
+  @override
+  String get timeUsageSingle => 'time';
+
+  @override
+  String get timeUsageMultiple => 'times';
+
+  @override
+  String get editProductTitle => 'Edit Product';
+
+  @override
+  String get basicInfo => 'Basic Information';
+
+  @override
+  String get productNameLabel => 'Product Name *';
+
+  @override
+  String get productNameHint => 'Ex: Rustic dining table';
+
+  @override
+  String get nameRequired => 'Name is required';
+
+  @override
+  String get referenceLabel => 'Reference/SKU *';
+
+  @override
+  String get referenceHint => 'Ex: TABLE-001';
+
+  @override
+  String get referenceRequired => 'Reference is required';
+
+  @override
+  String get descriptionLabel => 'Description *';
+
+  @override
+  String get descriptionHint => 'Describe the product...';
+
+  @override
+  String get descriptionRequired => 'Description is required';
+
+  @override
+  String get categoryLabel => 'Category';
+
+  @override
+  String get categoryHint => 'Ex: Furniture';
+
+  @override
+  String get availabilityTitle => 'Availability';
+
+  @override
+  String get publicProduct => 'Public Product';
+
+  @override
+  String get privateProduct => 'Private Product';
+
+  @override
+  String get publicProductSubtitle => 'Available to all clients';
+
+  @override
+  String get privateProductSubtitle => 'Only for specific client';
+
+  @override
+  String get specificClientLabel => 'Specific Client *';
+
+  @override
+  String get specificClientHelper => 'This product will only be available to this client';
+
+  @override
+  String get noClientsAvailable => 'No clients available. Create a client first.';
+
+  @override
+  String get privateProductInfo => 'Only this client will be able to add this product to their production batches.';
+
+  @override
+  String get selectClientError => 'You must select a client';
+
+  @override
+  String get productCreatedPublicSuccess => 'Public product created successfully';
+
+  @override
+  String productCreatedPrivateSuccess(Object client) {
+    return 'Product created for $client';
+  }
+
+  @override
+  String productEditedSuccess(Object client) {
+    return 'Product edited for $client';
+  }
+
+  @override
+  String get createProductError => 'Error creating product';
+
+  @override
+  String dimensionsLabel(Object unit) {
+    return 'Dimensions ($unit)';
+  }
+
+  @override
+  String get widthLabel => 'Width';
+
+  @override
+  String get heightLabel => 'Height';
+
+  @override
+  String get depthLabel => 'Depth';
+
+  @override
+  String get materialTitle => 'Material';
+
+  @override
+  String get primaryMaterialLabel => 'Primary Material';
+
+  @override
+  String get primaryMaterialHint => 'Ex: Oak wood';
+
+  @override
+  String get secondaryMaterialsLabel => 'Secondary Materials';
+
+  @override
+  String get secondaryMaterialsHint => 'Ex: Stainless steel';
+
+  @override
+  String get finishLabel => 'Finish';
+
+  @override
+  String get finishHint => 'Ex: Varnished';
+
+  @override
+  String get colorLabel => 'Color';
+
+  @override
+  String get colorHint => 'Ex: Walnut';
+
+  @override
+  String get additionalDataTitle => 'Additional Data';
+
+  @override
+  String get estimatedWeightLabel => 'Estimated Weight';
+
+  @override
+  String get basePriceLabel => 'Base Price';
+
+  @override
+  String get tagsLabel => 'Tags';
+
+  @override
+  String get tagsHint => 'Ex: Premium, Modern';
+
+  @override
+  String get notesLabel => 'Notes';
+
+  @override
+  String get notesHint => 'Additional information...';
+
+  @override
+  String get unsavedChanges => 'Unsaved';
+
+  @override
+  String get unsavedChangesTitle => 'Unsaved changes';
+
+  @override
+  String get unsavedChangesMessage => 'Do you want to discard changes?';
+
+  @override
+  String get discard => 'Discard';
+
+  @override
+  String get productDetailTitle => 'Product Detail';
+
+  @override
+  String get productNotFound => 'Product not found';
+
+  @override
+  String get duplicate => 'Duplicate';
+
+  @override
+  String get duplicateTitle => 'Duplicate product';
+
+  @override
+  String duplicateConfirmMessage(Object name) {
+    return 'Do you want to create a copy of \"$name\"? A new reference will be generated automatically.';
+  }
+
+  @override
+  String get productDuplicatedSuccess => 'Product duplicated successfully';
+
+  @override
+  String get duplicateError => 'Error duplicating product';
+
+  @override
+  String get deleteTitle => 'Delete product';
+
+  @override
+  String deleteConfirmMessage(Object name) {
+    return 'Are you sure you want to permanently delete \"$name\"? This action cannot be undone.';
+  }
+
+  @override
+  String get productDeletedSuccess => 'Product deleted successfully';
+
+  @override
+  String get deleteError => 'Error deleting product';
+
+  @override
+  String get productIsInactiveMessage => 'This product is deactivated';
+
+  @override
+  String get specifications => 'Specifications';
+
+  @override
+  String get systemInfoTitle => 'System Information';
+
+  @override
+  String get createProductBtn => 'Create product';
 }

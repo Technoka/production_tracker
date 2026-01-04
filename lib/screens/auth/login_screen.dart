@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
 import 'register_screen.dart';
 import 'password_reset_screen.dart';
@@ -24,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleLogin(AppLocalizations l10n) async {
     if (!_formKey.currentState!.validate()) return;
 
     final authService = Provider.of<AuthService>(context, listen: false);
@@ -36,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authService.error ?? 'Error al iniciar sesión'),
+          content: Text(authService.error ?? l10n.loginError),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 2),
         ),
@@ -44,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _handleGoogleSignIn() async {
+  Future<void> _handleGoogleSignIn(AppLocalizations l10n) async {
     final authService = Provider.of<AuthService>(context, listen: false);
 
     // Primero, intentar iniciar sesión con Google
@@ -62,34 +63,34 @@ class _LoginScreenState extends State<LoginScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: const Text('Tipo de cuenta'),
+          title: Text(l10n.accountTypeTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Selecciona el tipo de cuenta que deseas crear:'),
+              Text(l10n.selectAccountTypeMessage),
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.person),
-                title: const Text('Cliente'),
-                subtitle: const Text('Ver productos'),
+                title: Text(l10n.roleClient),
+                subtitle: Text(l10n.roleClientSubtitle),
                 onTap: () => Navigator.pop(context, 'client'),
               ),
               ListTile(
                 leading: const Icon(Icons.factory),
-                title: const Text('Fabricante'),
-                subtitle: const Text('Gestionar producción'),
+                title: Text(l10n.roleManufacturer),
+                subtitle: Text(l10n.roleManufacturerSubtitle),
                 onTap: () => Navigator.pop(context, 'manufacturer'),
               ),
               ListTile(
                 leading: const Icon(Icons.precision_manufacturing),
-                title: const Text('Operario'),
-                subtitle: const Text('Operar procesos'),
+                title: Text(l10n.roleOperator),
+                subtitle: Text(l10n.roleOperatorSubtitle),
                 onTap: () => Navigator.pop(context, 'operator'),
               ),
               ListTile(
                 leading: const Icon(Icons.account_balance),
-                title: const Text('Contable'),
-                subtitle: const Text('Gestión financiera'),
+                title: Text(l10n.roleAccountant),
+                subtitle: Text(l10n.roleAccountantSubtitle),
                 onTap: () => Navigator.pop(context, 'accountant'),
               ),
             ],
@@ -97,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
+              child: Text(l10n.cancel),
             ),
           ],
         ),
@@ -112,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:
-                Text(authService.error ?? 'Error al iniciar sesión con Google'),
+                Text(authService.error ?? l10n.googleLoginError),
             backgroundColor: Colors.red,
           duration: const Duration(seconds: 2),
           ),
@@ -132,6 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: SafeArea(
@@ -151,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Gestión de Producción',
+                    l10n.appTitle,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -159,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Inicia sesión para continuar',
+                    l10n.loginSubtitle,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: Colors.grey[600],
                         ),
@@ -169,17 +171,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Correo electrónico',
-                      prefixIcon: Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.emailLabel,
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Por favor ingresa tu correo';
+                        return l10n.enterEmailError;
                       }
                       if (!value.contains('@')) {
-                        return 'Ingresa un correo válido';
+                        return l10n.enterValidEmailError;
                       }
                       return null;
                     },
@@ -189,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
-                      labelText: 'Contraseña',
+                      labelText: l10n.password,
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -207,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Por favor ingresa tu contraseña';
+                        return l10n.enterPasswordError;
                       }
                       return null;
                     },
@@ -224,12 +226,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         );
                       },
-                      child: const Text('¿Olvidaste tu contraseña?'),
+                      child: Text(l10n.forgotPasswordLink),
                     ),
                   ),
                   const SizedBox(height: 16),
                   FilledButton(
-                    onPressed: authService.isLoading ? null : _handleLogin,
+                    onPressed: authService.isLoading ? null : () => _handleLogin(l10n),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16.0),
                       child: authService.isLoading
@@ -238,9 +240,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               width: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text(
-                              'Iniciar Sesión',
-                              style: TextStyle(fontSize: 16),
+                          : Text(
+                              l10n.loginButton,
+                              style: const TextStyle(fontSize: 16),
                             ),
                     ),
                   ),
@@ -256,11 +258,11 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             );
                           },
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16.0),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
                       child: Text(
-                        'Crear cuenta',
-                        style: TextStyle(fontSize: 16),
+                        l10n.registerTitle,
+                        style: const TextStyle(fontSize: 16),
                       ),
                     ),
                   ),
@@ -271,7 +273,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
-                          'O continuar con',
+                          l10n.orContinueWith,
                           style: TextStyle(color: Colors.grey[600]),
                         ),
                       ),
@@ -281,7 +283,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   OutlinedButton.icon(
                     onPressed:
-                        authService.isLoading ? null : _handleGoogleSignIn,
+                        authService.isLoading ? null : () => _handleGoogleSignIn(l10n),
                     icon: Image.asset(
                       'assets/google_logo.png',
                       height: 24,
@@ -289,11 +291,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         return const Icon(Icons.g_mobiledata, size: 24);
                       },
                     ),
-                    label: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12.0),
+                    label: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12.0),
                       child: Text(
-                        'Continuar con Google',
-                        style: TextStyle(fontSize: 16),
+                        l10n.continueWithGoogle,
+                        style: const TextStyle(fontSize: 16),
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
