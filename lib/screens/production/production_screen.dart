@@ -816,7 +816,7 @@ Widget _buildFilterOption<T>({
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
-                                'Lote: ${batch.batchNumber}', 
+                                'Lote: ${batch.batchNumber} (#${product.productNumber})', 
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(color: Colors.grey[700], fontSize: 13)
                               ),

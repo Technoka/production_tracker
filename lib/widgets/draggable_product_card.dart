@@ -85,7 +85,7 @@ final totalProgress = product.totalProgress;
                         Icon(Icons.inventory_2, size: 10, color: Colors.grey.shade700),
                         const SizedBox(width: 4),
                         Text(
-                          'Lote: ${batchNumber}',
+                          'Lote: $batchNumber (#${product.productNumber})',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,

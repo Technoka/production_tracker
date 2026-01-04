@@ -6,6 +6,8 @@ import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/production_batch_service.dart';
 import '../../services/phase_service.dart';
+import '../../models/production_batch_model.dart';
+import 'production_batch_detail_screen.dart';
 
 class BatchProductDetailScreen extends StatefulWidget {
   final String organizationId;
@@ -124,17 +126,19 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }
 
   Widget _buildProductInfoCard(BatchProductModel product, UserModel? user) {
+    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.info_outline),
-                const SizedBox(width: 8),
-                const Text(
+                Icon(Icons.info_outline),
+                SizedBox(width: 8),
+                Text(
                   'Información del Producto',
                   style: TextStyle(
                     fontSize: 18,
@@ -158,7 +162,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             // Referencia
             if (product.productReference != null) ...[
               Text(
-                'Referencia: ${product.productReference}',
+                'SKU: ${product.productReference}',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[700],
@@ -166,11 +170,73 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               ),
               const SizedBox(height: 8),
             ],
+            
+// Lote (Obtenido asíncronamente)
+            if (user?.organizationId != null)
+              FutureBuilder<ProductionBatchModel?>(
+                future: Provider.of<ProductionBatchService>(context, listen: false)
+                    .getBatch(user!.organizationId!, product.batchId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Text(
+                      'Cargando lote...',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+                    );
+                  }
+                  
+                  if (snapshot.hasError || !snapshot.hasData) {
+                     // Si falla o no encuentra el lote, mostramos el ID o un texto genérico
+                    return Text(
+                      'Lote no disponible',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    );
+                  }
+
+                  final batch = snapshot.data!;
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Lote: ${batch.batchNumber} (Producto #${product.productNumber} / ${batch.totalProducts})',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: 32, // Altura reducida para botón pequeño
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProductionBatchDetailScreen(
+                                  organizationId: user.organizationId!,
+                                  batchId: batch.id,
+                                ),
+                              ),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            visualDensity: VisualDensity.compact,
+                            textStyle: const TextStyle(fontSize: 12),
+                          ),
+                          child: const Text('Ver lote'),
+                        ),
+                      ),
+                      ],
+                  );
+                },
+              ),
+            const SizedBox(height: 16),
 
             // Descripción
             if (product.description != null) ...[
               Text(
-                product.description!,
+                'Descripción: ${product.description!}',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[700],
@@ -191,7 +257,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             const SizedBox(height: 8),
 
             // Precio (solo para roles autorizados)
-            if ((user?.canViewFinancials ?? false) && product.unitPrice != null) ...[
+            if ((user!.canViewFinancials) && product.unitPrice != null) ...[
               _buildInfoRow(
                 Icons.euro,
                 'Precio unitario',
@@ -796,7 +862,6 @@ Widget _buildPhaseItem(
                       color: borderColor,
                     ),
                   ),
-                  if (phase.description != null)
                     Text(
                       phase.description!,
                       style: TextStyle(

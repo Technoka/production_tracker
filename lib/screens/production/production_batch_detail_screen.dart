@@ -179,7 +179,7 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
               padding: const EdgeInsets.all(16),
               children: [
                 // Información del lote
-                _buildBatchInfoCard(batch),
+                _buildBatchInfoCard(batch, user),
                 const SizedBox(height: 16),
 
                 // Progreso general
@@ -296,7 +296,7 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
     );
   }
 
-  Widget _buildBatchInfoCard(ProductionBatchModel batch) {
+  Widget _buildBatchInfoCard(ProductionBatchModel batch, UserModel? user) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -357,6 +357,14 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
               'Creado',
               _formatDate(batch.createdAt),
             ),
+            const SizedBox(height: 8),
+            
+            // Creado por
+            _buildInfoRow(
+              Icons.person,
+              'Creado por',
+              user?.name ?? 'Desconocido',
+            ),
 
             if (batch.expectedCompletionDate != null) ...[
               const SizedBox(height: 8),
@@ -373,7 +381,7 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
               children: [
                 const SizedBox(width: 8),
                 Chip(
-                  label: Text(_getUrgencyLabel(batch.urgencyLevel)),
+                  label: Text('Urgencia: ${_getUrgencyLabel(batch.urgencyLevel)}'),
                   avatar: const Icon(Icons.speed, size: 16),
                   backgroundColor: _getUrgencyColor(batch.urgencyLevel),
                 ),
