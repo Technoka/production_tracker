@@ -31,6 +31,7 @@ class UserModel {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final bool isActive;
+  final String? photoURL;
 
   UserModel({
     required this.uid,
@@ -42,6 +43,7 @@ class UserModel {
     required this.createdAt,
     this.updatedAt,
     this.isActive = true,
+    this.photoURL,
   });
 
   // Convertir a Map para Firestore
@@ -56,6 +58,7 @@ class UserModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'isActive': isActive,
+      'photoURL': photoURL,
     };
   }
 
@@ -73,6 +76,7 @@ class UserModel {
           ? (map['updatedAt'] as Timestamp).toDate() 
           : null,
       isActive: map['isActive'] as bool? ?? true,
+      photoURL: map['photoURL'] as String?,
     );
   }
 
@@ -111,6 +115,7 @@ class UserModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isActive,
+    String? photoURL,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -122,6 +127,7 @@ class UserModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,
+      photoURL: photoURL ?? this.photoURL,
     );
   }
 }

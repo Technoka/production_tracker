@@ -5,6 +5,8 @@ import '../../models/batch_product_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/production_batch_service.dart';
+import '../../services/message_service.dart';
+import '../chat/chat_screen.dart';
 import 'add_product_to_batch_screen.dart';
 import 'batch_product_detail_screen.dart';
 
@@ -23,6 +25,8 @@ class ProductionBatchDetailScreen extends StatefulWidget {
 }
 
 class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScreen> {
+  final MessageService _messageService = MessageService();
+
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
@@ -66,6 +70,55 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
           appBar: AppBar(
             title: Text(batch.batchNumber),
             actions: [
+              // Botón de chat en el AppBar con badge
+              if (user != null)
+                StreamBuilder<int>(
+                  stream: _messageService.getUnreadCount(
+                    organizationId: widget.organizationId,
+                    entityType: 'batch',
+                    entityId: widget.batchId,
+                    userId: user.uid,
+                  ),
+                  builder: (context, unreadSnapshot) {
+                    final unreadCount = unreadSnapshot.data ?? 0;
+
+                    return Stack(
+                      children: [
+                        // IconButton(
+                        //   icon: const Icon(Icons.chat_bubble_outline),
+                        //   onPressed: () => _openChat(batch),
+                        //   tooltip: 'Chat del lote',
+                        // ),
+                        // if (unreadCount > 0)
+                        //   Positioned(
+                        //     right: 8,
+                        //     top: 8,
+                        //     child: Container(
+                        //       padding: const EdgeInsets.all(4),
+                        //       decoration: BoxDecoration(
+                        //         color: Colors.red,
+                        //         borderRadius: BorderRadius.circular(10),
+                        //       ),
+                        //       constraints: const BoxConstraints(
+                        //         minWidth: 18,
+                        //         minHeight: 18,
+                        //       ),
+                        //       child: Text(
+                        //         unreadCount > 99 ? '99+' : '$unreadCount',
+                        //         style: const TextStyle(
+                        //           color: Colors.white,
+                        //           fontSize: 10,
+                        //           fontWeight: FontWeight.bold,
+                        //         ),
+                        //         textAlign: TextAlign.center,
+                        //       ),
+                        //     ),
+                        //   ),
+                      ],
+                    );
+                  },
+                ),
+
               // Cambiar estado
               if (user?.canManageProduction ?? false)
                 PopupMenuButton<String>(
@@ -138,36 +191,108 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
               ],
             ),
           ),
-          // Sustituye tu bloque floatingActionButton actual por este:
-          floatingActionButton: Column(
-            mainAxisSize: MainAxisSize.min, // Ocupa solo el espacio necesario
-            crossAxisAlignment: CrossAxisAlignment.end, // Alinea a la derecha
-            children: [
-
-              // --- BOTÓN AÑADIR (Condicional) ---
-              if (user?.canManageProduction ?? false) ...[
-                const SizedBox(height: 16), // Espacio entre botones
-                FloatingActionButton.extended(
-                  heroTag: 'add_product_btn', // <--- IMPORTANTE: Tag único
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddProductToBatchScreen(
-                          organizationId: widget.organizationId,
-                          batchId: widget.batchId,
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Añadir Producto'),
-                ),
-              ],
-            ],
-          ),
+          // Botones flotantes con Chat y Añadir Producto
+          floatingActionButton: _buildFloatingButtons(user, batch),
         );
       },
+    );
+  }
+
+  /// Construir botones flotantes (Chat + Añadir Producto)
+  Widget _buildFloatingButtons(UserModel? user, ProductionBatchModel batch) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Botón de Chat con badge de mensajes no leídos
+        if (user != null)
+          StreamBuilder<int>(
+            stream: _messageService.getUnreadCount(
+              organizationId: widget.organizationId,
+              entityType: 'batch',
+              entityId: widget.batchId,
+              userId: user.uid,
+            ),
+            builder: (context, unreadSnapshot) {
+              final unreadCount = unreadSnapshot.data ?? 0;
+
+              return Stack(
+                children: [
+                  // FloatingActionButton(
+                  //   heroTag: 'chat_btn',
+                  //   onPressed: () => _openChat(batch),
+                  //   backgroundColor: Colors.blue[700],
+                  //   child: const Icon(Icons.chat),
+                  // ),
+                  // if (unreadCount > 0)
+                  //   Positioned(
+                  //     right: 0,
+                  //     top: 0,
+                  //     child: Container(
+                  //       padding: const EdgeInsets.all(6),
+                  //       decoration: BoxDecoration(
+                  //         color: Colors.red,
+                  //         borderRadius: BorderRadius.circular(12),
+                  //         border: Border.all(color: Colors.white, width: 2),
+                  //       ),
+                  //       constraints: const BoxConstraints(
+                  //         minWidth: 24,
+                  //         minHeight: 24,
+                  //       ),
+                  //       child: Text(
+                  //         unreadCount > 99 ? '99+' : '$unreadCount',
+                  //         style: const TextStyle(
+                  //           color: Colors.white,
+                  //           fontSize: 11,
+                  //           fontWeight: FontWeight.bold,
+                  //         ),
+                  //         textAlign: TextAlign.center,
+                  //       ),
+                  //     ),
+                  //   ),
+                ],
+              );
+            },
+          ),
+
+        // Espacio entre botones
+        if (user?.canManageProduction ?? false) const SizedBox(height: 16),
+
+        // Botón Añadir Producto (solo para managers)
+        if (user?.canManageProduction ?? false)
+          FloatingActionButton.extended(
+            heroTag: 'add_product_btn',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AddProductToBatchScreen(
+                    organizationId: widget.organizationId,
+                    batchId: widget.batchId,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Añadir Producto'),
+          ),
+      ],
+    );
+  }
+
+  /// Abrir pantalla de chat
+  void _openChat(ProductionBatchModel batch) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(
+          organizationId: widget.organizationId,
+          entityType: 'batch',
+          entityId: widget.batchId,
+          entityName: '${batch.batchNumber} - ${batch.projectName}',
+          showInternalMessages: true, // Mostrar mensajes internos para el equipo
+        ),
+      ),
     );
   }
 
@@ -435,7 +560,6 @@ Widget _buildProgressCard(ProductionBatchModel batch) {
   );
 }
 
-// AÑADIR este método helper para calcular estadísticas:
 Future<Map<String, double>> _calculateProgressStats(ProductionBatchModel batch) async {
   final batchService = Provider.of<ProductionBatchService>(context, listen: false);
   
@@ -455,11 +579,8 @@ Future<Map<String, double>> _calculateProgressStats(ProductionBatchModel batch) 
       };
     }
 
-    // Contar productos en Studio (fase completada)
     final inStudio = products.where((p) => p.isInStudio).length;
     final phaseProgress = inStudio / products.length;
-
-    // Contar productos en estado OK
     final okStatus = products.where((p) => p.isOK).length;
     final statusProgress = okStatus / products.length;
 
@@ -551,38 +672,38 @@ Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user) {
 
           // Lista de productos (código existente)
           Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.inventory_2_outlined),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Productos (${products.length})',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 24),
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: products.length,
-                    separatorBuilder: (context, index) => const Divider(),
-                    itemBuilder: (context, index) {
-                      final product = products[index];
-                      return _buildProductTile(product, user);
-                    },
+                  const Icon(Icons.inventory_2_outlined),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Productos (${products.length})',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
-            ),
+              const Divider(height: 24),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: products.length,
+                separatorBuilder: (context, index) => const Divider(),
+                itemBuilder: (context, index) {
+                  final product = products[index];
+                  return _buildProductTile(product, user);
+                },
+              ),
+            ],
+          ),
+        ),
           ),
         ],
       );
@@ -984,8 +1105,8 @@ void _showDeleteConfirmation(ProductionBatchModel batch) {
               listen: false,
             );
 
-            Navigator.pop(context); // Cerrar diálogo
-            Navigator.pop(context); // Volver a lista ANTES de eliminar
+            Navigator.pop(context);
+            Navigator.pop(context);
 
             final success = await batchService.deleteBatch(
               widget.organizationId,
@@ -993,7 +1114,6 @@ void _showDeleteConfirmation(ProductionBatchModel batch) {
             );
 
             if (success && mounted) {
-              // Mostrar mensaje en la pantalla anterior
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Lote eliminado'),
