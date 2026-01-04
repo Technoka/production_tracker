@@ -687,6 +687,7 @@ class ProductionBatchService extends ChangeNotifier {
     String? material,
     String? specialDetails,
     double? unitPrice,
+    DateTime? expectedDeliveryDate,
   }) async {
     try {
       _isLoading = true;
@@ -740,6 +741,7 @@ class ProductionBatchService extends ChangeNotifier {
         totalPrice: unitPrice != null ? unitPrice * quantity : null,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        expectedDeliveryDate: expectedDeliveryDate,
       );
 
       // Batch write para atomicidad
