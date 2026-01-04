@@ -304,32 +304,65 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Fecha Entrega
+                    // Fecha de entrega estimada del producto
                     InkWell(
                       onTap: _selectProductDeliveryDate,
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Entrega Estimada',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.calendar_today, size: 18),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade300),
                         ),
-                        child: Text(
-                          _formatDate(_productExpectedDelivery!),
-                          style: const TextStyle(fontSize: 14),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_today, size: 20, color: Colors.grey.shade600),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Fecha de entrega estimada',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatDate(_productExpectedDelivery!),
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                          ],
                         ),
                       ),
                     ),
+                    
                     const SizedBox(height: 12),
-
-                    // Notas
+                    
+                    // Notas del producto (NUEVO)
                     TextFormField(
                       controller: _productNotesController,
-                      decoration: const InputDecoration(
+                      maxLines: 2,
+                      decoration: InputDecoration(
                         labelText: 'Notas (opcional)',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.notes),
+                        hintText: 'Añade detalles específicos de este producto...',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.notes),
+                        alignLabelWithHint: true,
                       ),
+                      style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 12),
 
@@ -376,6 +409,104 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                         style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
                       ),
                     ),
+                    
+          const SizedBox(height: 24),
+                              // Lista de productos añadidos
+                    if (_pendingProducts.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: Text(
+                          'No hay productos seleccionados',
+                          style: TextStyle(color: Colors.grey[500]),
+                        ),
+                      )
+                    else
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _pendingProducts.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final item = _pendingProducts[index];
+                          final product = item['product'] as ProductCatalogModel;
+                          final quantity = item['quantity'] as int;
+                          final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
+                          final urgency = item['urgencyLevel'] as String? ?? 'medium';
+                          final notes = item['notes'] as String?;
+                          final sequence = index + 1 + (_batchData?.totalProducts ?? 0);
+
+                          // Color de urgencia
+                          Color urgencyColor;
+                          switch (urgency) {
+                            case 'low': urgencyColor = Colors.green; break;
+                            case 'high': urgencyColor = Colors.red[500]!; break;
+                            case 'critical': urgencyColor = Colors.red[900]!; break;
+                            default: urgencyColor = Colors.orange;
+                          }
+
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: urgencyColor.withOpacity(0.2),
+                              child: Text(
+                                '#$sequence',
+                                style: TextStyle(
+                                  color: urgencyColor,
+                                  fontWeight: FontWeight.bold
+                                ),
+                              ),
+                            ),
+                            title: Text(product.name),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'SKU: ${product.reference}', 
+                                  style: const TextStyle(fontWeight: FontWeight.bold)
+                                ),
+                                if (deliveryDate != null)
+                                  Text(
+                                    'Entrega: ${_formatDate(deliveryDate)}',
+                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                  ),
+                                if (notes != null && notes.isNotEmpty)
+                                  Text(
+                                    'Notas: $notes',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.blue[700],
+                                      fontStyle: FontStyle.italic
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                              ],
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[200],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text('x$quantity', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                  onPressed: () => _removeProductFromList(index),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                   ],
                 ),
               ),
@@ -384,33 +515,9 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
 
           const SizedBox(height: 24),
 
-          // 3. Lista de Pendientes
-          if (_pendingProducts.isNotEmpty) ...[
-            const Text('Productos por Guardar:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 8),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _pendingProducts.length,
-              itemBuilder: (context, index) {
-                final item = _pendingProducts[index];
-                final p = item['product'] as ProductCatalogModel;
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  color: Colors.blue.shade50,
-                  child: ListTile(
-                    title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('Cant: ${item['quantity']} - SKU: ${p.reference ?? "-"}'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _removePendingProduct(index),
-                    ),
-                  ),
-                );
-              },
-            ),
+ 
             const SizedBox(height: 24),
-          ],
+          
         ],
       ),
       bottomNavigationBar: _pendingProducts.isNotEmpty
