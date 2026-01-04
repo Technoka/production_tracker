@@ -1,27 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:gestion_produccion/models/project_model.dart';
 import 'package:provider/provider.dart';
 import '../models/batch_product_model.dart';
 import '../models/production_batch_model.dart';
 import '../services/production_batch_service.dart';
 import '../screens/production/production_screen.dart';
 
-class ProductionDashboardWidget extends StatefulWidget {
+class ProductionDashboardWidget extends StatelessWidget {
   final String organizationId;
   const ProductionDashboardWidget({super.key, required this.organizationId});
-
-  @override
-  State<ProductionDashboardWidget> createState() => _ProductionDashboardWidgetState();
-}
-
-class _ProductionDashboardWidgetState extends State<ProductionDashboardWidget> {
-  bool _isExpanded = false;
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<ProductionBatchModel>>(
       stream: Provider.of<ProductionBatchService>(context, listen: false)
-          .watchBatches(widget.organizationId),
+          .watchBatches(organizationId),
       builder: (context, batchSnapshot) {
         if (batchSnapshot.connectionState == ConnectionState.waiting) {
           return const Card(
@@ -59,59 +51,57 @@ class _ProductionDashboardWidgetState extends State<ProductionDashboardWidget> {
 
             return Card(
               elevation: 4,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
+              child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   children: [
-                    InkWell(
-                      onTap: () => setState(() => _isExpanded = !_isExpanded),
+                    // TÍTULO FIJO (Sin lógica de expansión)
+                    Row(
+                      children: [
+                        Icon(Icons.dashboard, color: Theme.of(context).colorScheme.primary, size: 24),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Dashboard de Producción', 
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+                        ),
+                      ],
+                    ),
+
+                    const Divider(height: 24),
+                    
+                    // COLUMNAS DE CONTENIDO
+                    // IntrinsicHeight hace que el divisor vertical tome la altura del hijo más alto
+                    IntrinsicHeight(
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.dashboard, color: Theme.of(context).colorScheme.primary, size: 24),
+                          Expanded(child: _buildPhasesSection(context, stats)),
                           const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text('Dashboard de Producción', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          ),
-                          if (!_isExpanded) ...[
-                            _buildMiniBadge(stats['phase_studio'] ?? 0, Colors.green, Icons.brush),
-                            const SizedBox(width: 8),
-                            _buildMiniBadge(stats['status_ok'] ?? 0, Colors.green, Icons.check_circle),
-                            const SizedBox(width: 12),
-                          ],
-                          Icon(_isExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.grey),
+                          // Divisor vertical dinámico
+                          VerticalDivider(width: 1, thickness: 1, color: Colors.grey[300]),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildStatusSection(context, stats)),
                         ],
                       ),
                     ),
-
-                    if (_isExpanded) ...[
-                      const Divider(height: 24),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _buildPhasesSection(stats)),
-                          const SizedBox(width: 12),
-                          Container(width: 1, height: 260, color: Colors.grey[300]),
-                          const SizedBox(width: 12),
-                          Expanded(child: _buildStatusSection(stats)),
-                        ],
+                    
+                    const SizedBox(height: 12),
+                    
+                    // BOTÓN INFERIOR
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ProductionScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text("Ver todos los lotes"),
                       ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const ProductionScreen(),
-                              ),
-                            );
-                          },
-                          child: const Text("Ver todos los lotes"),
-                        ),
-                      )
-                    ]
+                    )
                   ],
                 ),
               ),
@@ -122,21 +112,31 @@ class _ProductionDashboardWidgetState extends State<ProductionDashboardWidget> {
     );
   }
 
-  Widget _buildMiniBadge(int count, Color color, IconData icon) {
+  // Helper para alinear los encabezados (Solución al problema de alineación)
+  Widget _buildSectionHeader(IconData icon, String title) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+      // Establecemos una altura mínima. Si el texto ocupa 2 líneas (~40px),
+      // el otro encabezado también medirá eso, alineando los botones de TOTAL.
+      constraints: const BoxConstraints(minHeight: 42),
+      alignment: Alignment.centerLeft,
       child: Row(
         children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text('$count', style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 14)),
+          Icon(icon, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPhasesSection(Map<String, int> stats) {
+  Widget _buildPhasesSection(BuildContext context, Map<String, int> stats) {
     int totalPhases = (stats['phase_planned'] ?? 0) +
         (stats['phase_cutting'] ?? 0) +
         (stats['phase_skiving'] ?? 0) +
@@ -148,38 +148,29 @@ class _ProductionDashboardWidgetState extends State<ProductionDashboardWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
-          children: [
-            Icon(Icons.precision_manufacturing, size: 20),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Fases de Producción',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
+        // Encabezado alineado
+        _buildSectionHeader(Icons.precision_manufacturing, 'Fases de Producción'),
+        
         const SizedBox(height: 12),
         _buildTotalItem('TOTAL', totalPhases, isAllStudio ? Colors.green[700]! : Colors.grey[800]!),
         const SizedBox(height: 8),
         const Divider(height: 1, thickness: 3),
         const SizedBox(height: 8),
 
-        _buildPhaseItem('Planned', stats['phase_planned'] ?? 0, Colors.grey[700]!, Icons.calendar_today, 'planned'),
+        _buildPhaseItem(context, 'Planned', stats['phase_planned'] ?? 0, Colors.grey[700]!, Icons.calendar_today, 'planned'),
         const SizedBox(height: 8),
-        _buildPhaseItem('Cutting', stats['phase_cutting'] ?? 0, Colors.amber[700]!, Icons.content_cut, 'cutting'),
+        _buildPhaseItem(context, 'Cutting', stats['phase_cutting'] ?? 0, Colors.amber[700]!, Icons.content_cut, 'cutting'),
         const SizedBox(height: 8),
-        _buildPhaseItem('Skiving', stats['phase_skiving'] ?? 0, Colors.blue[700]!, Icons.layers, 'skiving'),
+        _buildPhaseItem(context, 'Skiving', stats['phase_skiving'] ?? 0, Colors.blue[700]!, Icons.layers, 'skiving'),
         const SizedBox(height: 8),
-        _buildPhaseItem('Assembly', stats['phase_assembly'] ?? 0, Colors.purple[700]!, Icons.construction, 'assembly'),
+        _buildPhaseItem(context, 'Assembly', stats['phase_assembly'] ?? 0, Colors.purple[700]!, Icons.construction, 'assembly'),
         const SizedBox(height: 8),
-        _buildPhaseItem('Studio', stats['phase_studio'] ?? 0, Colors.green[700]!, Icons.brush, 'studio'),
+        _buildPhaseItem(context, 'Studio', stats['phase_studio'] ?? 0, Colors.green[700]!, Icons.brush, 'studio'),
       ],
     );
   }
 
-  Widget _buildStatusSection(Map<String, int> stats) {
+  Widget _buildStatusSection(BuildContext context, Map<String, int> stats) {
     int totalStatus = (stats['status_pending'] ?? 0) +
         (stats['status_cao'] ?? 0) +
         (stats['status_hold'] ?? 0) +
@@ -191,30 +182,24 @@ class _ProductionDashboardWidgetState extends State<ProductionDashboardWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
-          children: [
-            Icon(Icons.info_outline, size: 20),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text('Estados', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
+        // Encabezado alineado
+        _buildSectionHeader(Icons.info_outline, 'Estados'),
+
         const SizedBox(height: 12),
         _buildTotalItem('TOTAL', totalStatus, isAllOk ? Colors.green[700]! : Colors.grey[800]!),
         const SizedBox(height: 8),
         const Divider(height: 1, thickness: 3),
         const SizedBox(height: 8),
 
-        _buildStatusItem('Pending', stats['status_pending'] ?? 0, Colors.grey[700]!, Icons.schedule, ProductStatus.pending.value),
+        _buildStatusItem(context, 'Pending', stats['status_pending'] ?? 0, Colors.grey[700]!, Icons.schedule, ProductStatus.pending.value),
         const SizedBox(height: 8),
-        _buildStatusItem('CAO', stats['status_cao'] ?? 0, Colors.red[700]!, Icons.error, ProductStatus.cao.value),
+        _buildStatusItem(context, 'CAO', stats['status_cao'] ?? 0, Colors.red[700]!, Icons.error, ProductStatus.cao.value),
         const SizedBox(height: 8),
-        _buildStatusItem('Hold', stats['status_hold'] ?? 0, Colors.orange[700]!, Icons.pause_circle, ProductStatus.hold.value),
+        _buildStatusItem(context, 'Hold', stats['status_hold'] ?? 0, Colors.orange[700]!, Icons.pause_circle, ProductStatus.hold.value),
         const SizedBox(height: 8),
-        _buildStatusItem('Control', stats['status_control'] ?? 0, Colors.blue[700]!, Icons.verified, ProductStatus.control.value),
+        _buildStatusItem(context, 'Control', stats['status_control'] ?? 0, Colors.blue[700]!, Icons.verified, ProductStatus.control.value),
         const SizedBox(height: 8),
-        _buildStatusItem('OK', stats['status_ok'] ?? 0, Colors.green[700]!, Icons.check_circle, ProductStatus.ok.value),
+        _buildStatusItem(context, 'OK', stats['status_ok'] ?? 0, Colors.green[700]!, Icons.check_circle, ProductStatus.ok.value),
       ],
     );
   }
@@ -244,7 +229,7 @@ class _ProductionDashboardWidgetState extends State<ProductionDashboardWidget> {
     );
   }
 
-  Widget _buildPhaseItem(String label, int count, Color color, IconData icon, String phaseId) {
+  Widget _buildPhaseItem(BuildContext context, String label, int count, Color color, IconData icon, String phaseId) {
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -286,7 +271,7 @@ class _ProductionDashboardWidgetState extends State<ProductionDashboardWidget> {
     );
   }
 
-  Widget _buildStatusItem(String label, int count, Color color, IconData icon, String? statusValue) {
+  Widget _buildStatusItem(BuildContext context, String label, int count, Color color, IconData icon, String? statusValue) {
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -350,7 +335,7 @@ class _ProductionDashboardWidgetState extends State<ProductionDashboardWidget> {
     for (final batch in batches) {
       try {
         final products = await batchService
-            .watchBatchProducts(widget.organizationId, batch.id)
+            .watchBatchProducts(organizationId, batch.id)
             .first;
 
         for (final product in products) {
