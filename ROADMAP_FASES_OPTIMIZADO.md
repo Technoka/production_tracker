@@ -116,7 +116,7 @@ dependencies:
 Chat completo por proyecto con línea de tiempo y eventos automáticos.
 
 ### Funcionalidades:
-1. **Chat por proyecto**
+1. **Chat por lote**
    - Mensajes de texto
    - Menciones @usuario
    - Adjuntar archivos (fotos, PDFs)
@@ -125,7 +125,7 @@ Chat completo por proyecto con línea de tiempo y eventos automáticos.
    - Threads (responder a mensajes)
 
 2. **Eventos automáticos del sistema**
-   - "Proyecto creado"
+   - "Lote creado"
    - "Fase X completada"
    - "Producto movido a fase Y"
    - "Retraso detectado en producto Z"
@@ -149,14 +149,14 @@ Chat completo por proyecto con línea de tiempo y eventos automáticos.
 ### Archivos a crear:
 - `lib/models/message_model.dart`
 - `lib/services/message_service.dart`
-- `lib/screens/chat/project_chat_screen.dart`
+- `lib/screens/chat/batch_chat_screen.dart`
 - `lib/widgets/chat/message_bubble.dart`
 - `lib/widgets/chat/message_input.dart`
 - `lib/widgets/chat/system_event_card.dart`
 - `lib/services/notification_service.dart`
 
 ### Base de datos:
-- Colección `projects/{projectId}/messages/`
+- Colección `/organizations/{organizationId}/production_batches/{batchId}/messages/`
 
 ---
 
