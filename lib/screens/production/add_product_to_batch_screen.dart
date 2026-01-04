@@ -344,7 +344,7 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                 ),
               ],
             ),
-            const Divider(height: 24),
+            const Divider(height: 16),
 
             StreamBuilder<List<BatchProductModel>>(
               stream: Provider.of<ProductionBatchService>(context, listen: false)
@@ -358,7 +358,7 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
 
                 if (products.isEmpty) {
                   return Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(8),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Colors.grey[100],
@@ -379,7 +379,7 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                   itemBuilder: (context, index) {
                     final product = products[index];
                     return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 4),
                       leading: CircleAvatar(
                         backgroundColor: product.urgencyColor.withOpacity(0.2),
                         child: Text(
@@ -404,7 +404,7 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                         ],
                       ),
                       trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                         decoration: BoxDecoration(
                           color: product.urgencyColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(4),
