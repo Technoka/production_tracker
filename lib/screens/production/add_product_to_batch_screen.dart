@@ -3,10 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:gestion_produccion/services/product_catalog_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/product_catalog_model.dart';
+import '../../models/batch_product_model.dart';
+import '../../models/production_batch_model.dart';
 import '../../services/production_batch_service.dart';
 import '../../services/phase_service.dart';
 import '../../services/client_service.dart';
 import '../../models/client_model.dart';
+import '../../utils/filter_utils.dart';
 
 class AddProductToBatchScreen extends StatefulWidget {
   final String organizationId;
@@ -25,30 +28,40 @@ class AddProductToBatchScreen extends StatefulWidget {
 class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
   final _formKey = GlobalKey<FormState>();
   final _quantityController = TextEditingController(text: '1');
-  final _colorController = TextEditingController();
-  final _materialController = TextEditingController();
-  final _specialDetailsController = TextEditingController();
   final _unitPriceController = TextEditingController();
+  final _productSearchController = TextEditingController();
+  final _productNotesController = TextEditingController();
 
   ProductCatalogModel? _selectedProduct;
   bool _isLoading = false;
+  String _productSearchQuery = '';
+  String _productUrgencyLevel = 'medium';
+  DateTime? _productExpectedDelivery;
   
   String? _batchClientId;
   String? _batchProjectId;
+  ProductionBatchModel? _batchData;
 
   @override
   void initState() {
     super.initState();
     _loadBatchInfo();
+    _productSearchController.addListener(() {
+      setState(() {
+        _productSearchQuery = _productSearchController.text;
+      });
+    });
+    // Fecha por defecto: 3 semanas
+    _productExpectedDelivery = DateTime.now().add(const Duration(days: 21));
   }
 
-  // AÑADIR método para cargar info del lote:
   Future<void> _loadBatchInfo() async {
     final batchService = Provider.of<ProductionBatchService>(context, listen: false);
     final batch = await batchService.getBatch(widget.organizationId, widget.batchId);
     
     if (batch != null && mounted) {
       setState(() {
+        _batchData = batch;
         _batchClientId = batch.clientId;
         _batchProjectId = batch.projectId;
       });
@@ -58,40 +71,76 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
   @override
   void dispose() {
     _quantityController.dispose();
-    _colorController.dispose();
-    _materialController.dispose();
-    _specialDetailsController.dispose();
     _unitPriceController.dispose();
+    _productSearchController.dispose();
+    _productNotesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectProductDeliveryDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _productExpectedDelivery ?? DateTime.now().add(const Duration(days: 21)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      helpText: 'Fecha de entrega del producto',
+    );
+
+    if (picked != null) {
+      setState(() {
+        _productExpectedDelivery = picked;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_batchData == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Añadir Producto')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Añadir Producto al Lote'),
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Seleccionar producto del catálogo
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+            const Text('Añadir Producto al Lote'),
+            Text(
+              _batchData!.batchNumber,
+              style: const TextStyle(fontSize: 14), // Tamaño más pequeño para el subtítulo
+            ),
+          ],
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // SECCIÓN 1: Productos existentes en el lote
+          _buildExistingProductsSection(),
+          const SizedBox(height: 24),
+
+          // SECCIÓN 2: Añadir nuevo producto
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Form(
+                key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         Icon(
-                          Icons.inventory_2_outlined,
+                          Icons.add_circle_outline,
                           color: Theme.of(context).colorScheme.primary,
                         ),
                         const SizedBox(width: 8),
                         const Text(
-                          'Seleccionar Producto',
+                          'Añadir Nuevo Producto',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -99,136 +148,281 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    _buildProductSelector(),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+                    const Divider(height: 24),
 
-            // Cantidad
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Cantidad *',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    // Filtro de búsqueda
+                    FilterUtils.buildSearchField(
+                      hintText: 'Buscar producto por nombre o SKU...',
+                      searchQuery: _productSearchQuery,
+                      onChanged: (value) {
+                        setState(() {
+                          _productSearchQuery = value;
+                        });
+                      },
+                      fontSize: 14,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Selector de producto
+                    _buildProductSelector(),
+                    const SizedBox(height: 12),
+
+                    // Urgencia
+                    FilterUtils.buildUrgencySelector(
+                      context: context,
+                      urgencyLevel: _productUrgencyLevel,
+                      onChanged: (newUrgency) {
+                        setState(() {
+                          _productUrgencyLevel = newUrgency;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Notas
+                    TextFormField(
+                      controller: _productNotesController,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'Notas (opcional)',
+                        hintText: 'Añade detalles específicos...',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.notes),
+                        alignLabelWithHint: true,
+                      ),
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Fecha de entrega
+                    InkWell(
+                      onTap: _selectProductDeliveryDate,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_today, size: 20, color: Colors.grey.shade600),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Fecha de entrega estimada',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatDate(_productExpectedDelivery!),
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _quantityController,
-                      decoration: const InputDecoration(
-                        labelText: 'Cantidad de unidades',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.numbers),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
+
+                    // Cantidad y Precio
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: TextFormField(
+                            controller: _quantityController,
+                            decoration: const InputDecoration(
+                              labelText: 'Cantidad *',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.numbers),
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            validator: (value) {
+                              if (value == null || value.isEmpty) return 'Requerido';
+                              final quantity = int.tryParse(value);
+                              if (quantity == null || quantity <= 0) return 'Mayor a 0';
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            controller: _unitPriceController,
+                            decoration: const InputDecoration(
+                              labelText: 'Precio (opcional)',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.euro),
+                              suffixText: '€',
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                            ],
+                          ),
+                        ),
                       ],
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'La cantidad es obligatoria';
-                        }
-                        final quantity = int.tryParse(value);
-                        if (quantity == null || quantity <= 0) {
-                          return 'Debe ser un número mayor a 0';
-                        }
-                        return null;
-                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Botón añadir
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _isLoading ? null : _addProduct,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(Icons.add),
+                        label: Text(_isLoading ? 'Añadiendo...' : 'Añadir Producto'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-            
-            const SizedBox(height: 16),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // Precio (opcional, solo para roles autorizados)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildExistingProductsSection() {
+    return Card(
+      elevation: 1,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        const Text(
-                          'Precio Unitario (opcional)',
+                    Icon(Icons.inventory_2, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Productos ya en el Lote',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                Text(
+                  '${_batchData!.totalProducts}/10',
+                  style: TextStyle(
+                    color: _batchData!.canAddMoreProducts ? Colors.grey : Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+
+            StreamBuilder<List<BatchProductModel>>(
+              stream: Provider.of<ProductionBatchService>(context, listen: false)
+                  .watchBatchProducts(widget.organizationId, widget.batchId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final products = snapshot.data ?? [];
+
+                if (products.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'No hay productos en el lote todavía',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: products.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final product = products[index];
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      leading: CircleAvatar(
+                        backgroundColor: product.urgencyColor.withOpacity(0.2),
+                        child: Text(
+                          '#${product.productNumber}',
                           style: TextStyle(
-                            fontSize: 16,
+                            color: product.urgencyColor,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.info_outline,
-                          size: 16,
-                          color: Colors.grey[600],
+                      ),
+                      title: Text(
+                        product.productName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (product.productReference != null)
+                            Text('SKU: ${product.productReference}', style: const TextStyle(fontSize: 12)),
+                          Text('Cantidad: ${product.quantity} uds', style: const TextStyle(fontSize: 12)),
+                          Text('Fase: ${product.currentPhaseName}', style: const TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: product.urgencyColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: product.urgencyColor.withOpacity(0.3)),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'El precio del catálogo se usa por defecto',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
+                        child: Text(
+                          product.urgencyDisplayName,
+                          style: TextStyle(
+                            color: product.urgencyColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _unitPriceController,
-                      decoration: const InputDecoration(
-                        labelText: 'Precio por unidad',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.euro),
-                        suffixText: '€',
-                      ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                      ],
-                      validator: (value) {
-                        if (value != null && value.isNotEmpty) {
-                          final basePrice = double.tryParse(value);
-                          if (basePrice == null || basePrice < 0) {
-                            return 'Precio inválido';
-                          }
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Botón añadir
-            FilledButton.icon(
-              onPressed: _isLoading ? null : _addProduct,
-              icon: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Icon(Icons.add),
-              label: Text(_isLoading ? 'Añadiendo...' : 'Añadir Producto'),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
+                    );
+                  },
+                );
+              },
             ),
           ],
         ),
@@ -236,240 +430,83 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
     );
   }
 
-Widget _buildProductSelector() {
-  if (_batchClientId == null) {
-    return const Center(child: CircularProgressIndicator());
-  }
+  Widget _buildProductSelector() {
+    if (_batchClientId == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  return StreamBuilder<List<ProductCatalogModel>>(
-    stream: Provider.of<ProductCatalogService>(context, listen: false)
-        .getClientProductsStream(widget.organizationId, _batchClientId!),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      }
+    return StreamBuilder<List<ProductCatalogModel>>(
+      stream: Provider.of<ProductCatalogService>(context, listen: false)
+          .getOrganizationProductsStream(widget.organizationId),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const LinearProgressIndicator();
 
-      if (snapshot.hasError) {
-        return Text('Error: ${snapshot.error}');
-      }
+        var allProducts = snapshot.data ?? [];
 
-      final allProducts = snapshot.data ?? [];
+        // FILTRAR: Solo productos del cliente del lote o públicos
+        var products = allProducts.where((product) {
+          if (product.isPublic) return true;
+          if (product.clientId != null) {
+            return product.clientId == _batchClientId;
+          }
+          return true;
+        }).toList();
 
-      // FILTRAR: Solo productos del cliente del lote o públicos
-      final products = allProducts.where((product) {
-        // Si el producto es público, incluirlo
-        if (product.isPublic) return true;
-        // Si tiene clientId específico, solo incluir si coincide
-        if (product.clientId != null) {
-          return product.clientId == _batchClientId;
+        // FILTRAR por búsqueda
+        if (_productSearchQuery.isNotEmpty) {
+          final query = _productSearchQuery.toLowerCase();
+          products = products.where((p) =>
+            p.name.toLowerCase().contains(query) ||
+            p.reference.toLowerCase().contains(query)
+          ).toList();
         }
-        return true;
-      }).toList();
 
-      if (products.isEmpty) {
-        return Column(
-          children: [
-            Text(
-              'No hay productos disponibles para este cliente',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Volver'),
-            ),
-          ],
-        );
-      }
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-            // CAMBIO AQUÍ: El tipo ahora es String, no ProductCatalogModel
-            DropdownButtonFormField<String>( 
-            decoration: const InputDecoration(
-              labelText: 'Producto del catálogo',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.shopping_bag),
-            ),
-              // USAMOS EL ID COMO VALOR
-              value: _selectedProduct?.id, 
-              isExpanded: true,
-              itemHeight: null,
-              // --- 1. CAMBIO: selectedItemBuilder para mostrar SOLO TEXTO al seleccionar ---
-              selectedItemBuilder: (BuildContext context) {
-                return products.map<Widget>((ProductCatalogModel product) {
-                  return Text(
-                    product.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold, 
-                      overflow: TextOverflow.ellipsis
-                    ),
-                    maxLines: 1,
-                  );
-                }).toList();
-              },
-            items: products.map((product) {
-              return DropdownMenuItem(
-                value: product.id,
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        product.name,style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        overflow: TextOverflow.ellipsis // Corta con "..." si es muy largo
-                      ), 
-                      maxLines: 1,
-                ),
-                if (product.clientId != null)
-                          FutureBuilder<ClientModel?>(
-                            future: Provider.of<ClientService>(context, listen: false)
-                                .getClient(widget.organizationId, product.clientId!),
-                            builder: (context, snapshot) {
-                              String clientText = 'Cliente: Cargando...';
-                              
-                              if (snapshot.hasData && snapshot.data != null) {
-                                clientText = 'Cliente: ${snapshot.data!.name}';
-                              } else if (snapshot.hasError) {
-                                clientText = 'Cliente: Error';
-                              }
-                              
-                              return Text(
-                                clientText,
-                                style: TextStyle(
-                                  fontSize: 12, 
-                                  color: Colors.grey[600]
-                                ),
-                              );
-                            },
-                          )
-                          else // SI NO TIENE CLIENTE
-                          Text(
-                            'Público',
-                            style: TextStyle(
-                              fontSize: 12, 
-                              color: Colors.green[700], // Color verde para destacar que es público
-                              fontStyle: FontStyle.italic
-                            ),
-                          ),
-        ]),
-              );
-            }).toList(),
-              // AL CAMBIAR, BUSCAMOS EL OBJETO REAL USANDO EL ID
-              onChanged: (productId) {
-                if (productId == null) return;
-                // Buscamos el objeto completo en la lista usando el ID
-                final product = products.firstWhere((p) => p.id == productId);
-                
-              setState(() {
-                _selectedProduct = product;
-                if (product.basePrice != null) {
-                  _unitPriceController.text = product.basePrice!.toStringAsFixed(2);
-                }
-              });
-            },
-            validator: (value) {
-              if (value == null) {
-                return 'Debes seleccionar un producto';
-              }
-              return null;
-            },
-          ),
-
-          // CAMBIAR el Container de detalles para evitar overflow:
-          if (_selectedProduct != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity, // FIX OVERFLOW
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
+        return FilterUtils.buildFullWidthDropdown<String>(
+          context: context,
+          label: 'Producto del catálogo',
+          value: _selectedProduct?.id,
+          icon: Icons.inventory,
+          hintText: products.isEmpty ? 'No hay productos disponibles' : 'Seleccionar producto...',
+          isRequired: true,
+          items: products.map((product) {
+            return DropdownMenuItem(
+              value: product.id,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [// CLIENTE (Movido aquí)
-                    Row(
-                      children: [
-                        Icon(Icons.person_outline, size: 16, color: Colors.grey[700]),
-                        const SizedBox(width: 4),
-                        if (_selectedProduct!.clientId != null)
-                          Expanded(
-                            child: FutureBuilder<ClientModel?>(
-                              future: Provider.of<ClientService>(context, listen: false)
-                                  .getClient(widget.organizationId, _selectedProduct!.clientId!),
-                              builder: (context, snapshot) {
-                                String clientText = 'Cargando...';
-                                if (snapshot.hasData && snapshot.data != null) {
-                                  clientText = snapshot.data!.name;
-                                } else if (snapshot.hasError) {
-                                  clientText = 'Error';
-                                }
-                                return Text(
-                                  'Cliente: ${clientText}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                );
-                              },
-                            ),
-                          )
-                        else
-                          Text(
-                            'Público',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.green[700],
-                              fontWeight: FontWeight.bold,
-                              fontStyle: FontStyle.italic
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                  if (_selectedProduct!.reference != null) ...[
-                    Text(
-                      'SKU: ${_selectedProduct!.reference}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  if (_selectedProduct!.description != null) ...[
-                    Text(
-                      _selectedProduct!.description!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[700],
-                      ),
-                      maxLines: 3, // FIX OVERFLOW
-                      overflow: TextOverflow.ellipsis, // FIX OVERFLOW
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  if (_selectedProduct!.basePrice != null)
-                    Text(
-                      'Precio catálogo: ${_selectedProduct!.basePrice!.toStringAsFixed(2)} €',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    product.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'SKU: ${product.reference}',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
                 ],
               ),
-            ),
-          ],
-        ],
-      );
-    },
-  );
-}
+            );
+          }).toList(),
+          onChanged: (productId) {
+            if (productId == null) return;
+            setState(() {
+              _selectedProduct = products.firstWhere((p) => p.id == productId);
+              if (_selectedProduct!.basePrice != null) {
+                _unitPriceController.text = _selectedProduct!.basePrice!.toStringAsFixed(2);
+              }
+            });
+          },
+          validator: (value) {
+            if (value == null) return 'Debes seleccionar un producto';
+            return null;
+          },
+        );
+      },
+    );
+  }
 
   Future<void> _addProduct() async {
     if (!_formKey.currentState!.validate()) return;
@@ -487,17 +524,14 @@ Widget _buildProductSelector() {
     final phaseService = Provider.of<PhaseService>(context, listen: false);
 
     try {
-      // Obtener las fases de producción
       final phases = await phaseService.getOrganizationPhases(widget.organizationId);
       
       if (phases.isEmpty) {
         throw Exception('No hay fases de producción configuradas');
       }
 
-      // Ordenar fases por orden
       phases.sort((a, b) => a.order.compareTo(b.order));
 
-      // Parsear valores
       final quantity = int.parse(_quantityController.text);
       final unitPrice = _unitPriceController.text.isNotEmpty
           ? double.tryParse(_unitPriceController.text)
@@ -512,16 +546,12 @@ Widget _buildProductSelector() {
         description: _selectedProduct!.description,
         quantity: quantity,
         phases: phases,
-        color: _colorController.text.trim().isEmpty
-            ? null
-            : _colorController.text.trim(),
-        material: _materialController.text.trim().isEmpty
-            ? null
-            : _materialController.text.trim(),
-        specialDetails: _specialDetailsController.text.trim().isEmpty
-            ? null
-            : _specialDetailsController.text.trim(),
         unitPrice: unitPrice,
+        expectedDeliveryDate: _productExpectedDelivery,
+        urgencyLevel: _productUrgencyLevel,
+        notes: _productNotesController.text.trim().isEmpty 
+            ? null 
+            : _productNotesController.text.trim(),
       );
 
       if (productId != null && mounted) {
@@ -539,7 +569,7 @@ Widget _buildProductSelector() {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al añadir producto: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -549,5 +579,9 @@ Widget _buildProductSelector() {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 }
