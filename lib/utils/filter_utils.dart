@@ -1,4 +1,4 @@
-// Crear este archivo en: lib/utils/filter_utils.dart
+// lib/utils/filter_utils.dart
 
 import 'package:flutter/material.dart';
 
@@ -133,6 +133,175 @@ class FilterUtils {
         ),
       ),
     );
+  }
+
+  /// Dropdown estilo moderno con ancho completo (para formularios)
+  static Widget buildFullWidthDropdown<T>({
+    required BuildContext context,
+    required String label,
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required Function(T?) onChanged,
+    IconData? icon,
+    String? hintText,
+    bool isRequired = false,
+    String? Function(T?)? validator,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            popupMenuTheme: PopupMenuThemeData(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 8,
+              color: Colors.white,
+              surfaceTintColor: Colors.white,
+            ),
+          ),
+          child: PopupMenuButton<T?>(
+            tooltip: label,
+            offset: const Offset(0, 50),
+            onSelected: (T? newValue) {
+              onChanged(newValue);
+            },
+            itemBuilder: (BuildContext context) {
+              return items.map((item) {
+                final isItemActive = item.value == value;
+                return PopupMenuItem<T?>(
+                  value: item.value,
+                  height: 48,
+                  child: SizedBox(
+                    width: constraints.maxWidth - 32,
+                    child: DefaultTextStyle(
+                      style: TextStyle(
+                        color: isItemActive ? Theme.of(context).primaryColor : Colors.black87,
+                        fontWeight: isItemActive ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 14,
+                      ),
+                      child: item.child,
+                    ),
+                  ),
+                );
+              }).toList();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: value != null 
+                      ? Theme.of(context).primaryColor 
+                      : Colors.grey.shade300,
+                  width: value != null ? 1.5 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  if (icon != null) ...[
+                    Icon(
+                      icon,
+                      size: 20,
+                      color: value != null 
+                          ? Theme.of(context).primaryColor 
+                          : Colors.grey.shade400,
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$label${isRequired ? ' *' : ''}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: value != null 
+                                ? Theme.of(context).primaryColor 
+                                : Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        if (value != null)
+                          _extractTextFromChild(items.firstWhere((item) => item.value == value).child)
+                        else
+                          Text(
+                            hintText ?? 'Seleccionar...',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.grey.shade400,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 20,
+                    color: value != null 
+                        ? Theme.of(context).primaryColor 
+                        : Colors.grey.shade400,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Helper para extraer texto del child de DropdownMenuItem
+  static Widget _extractTextFromChild(Widget child) {
+    if (child is Text) {
+      return Text(
+        child.data ?? '',
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
+        overflow: TextOverflow.ellipsis,
+      );
+    } else if (child is Row) {
+      final children = (child as Row).children;
+      for (var item in children) {
+        if (item is Text) {
+          return Text(
+            item.data ?? '',
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+            overflow: TextOverflow.ellipsis,
+          );
+        }
+      }
+    } else if (child is Column) {
+      final children = (child as Column).children;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: children.map((item) {
+          if (item is Text) {
+            return Text(
+              item.data ?? '',
+              style: TextStyle(
+                fontSize: item.style?.fontSize ?? 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+              overflow: TextOverflow.ellipsis,
+            );
+          }
+          return item;
+        }).toList(),
+      );
+    }
+    return child;
   }
 
   /// Campo de búsqueda reutilizable

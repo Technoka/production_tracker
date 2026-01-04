@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import '../../models/product_catalog_model.dart';
 import '../../services/product_catalog_service.dart';
 import '../../services/phase_service.dart';
+import '../../utils/filter_utils.dart';
 
 class CreateProductionBatchScreen extends StatefulWidget {
   final String organizationId;
@@ -44,6 +45,9 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
   final List<Map<String, dynamic>> _productsToAdd = []; // Lista de productos a añadir
   ProductCatalogModel? _selectedCatalogProduct;
   final _productQuantityController = TextEditingController(text: '1');
+  final _productSearchController = TextEditingController(); // Filtro de búsqueda
+  String _productSearchQuery = '';
+  DateTime? _productExpectedDelivery; // Fecha de entrega estimada del producto
   // -------------------------------------------
 
   @override
@@ -55,6 +59,16 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
     }
     _prefixController.addListener(_updateBatchNumberPreview);
     _updateBatchNumberPreview();
+    
+    // Listener para el filtro de búsqueda de productos
+    _productSearchController.addListener(() {
+      setState(() {
+        _productSearchQuery = _productSearchController.text;
+      });
+    });
+    
+    // Inicializar fecha de entrega por defecto (3 semanas)
+    _productExpectedDelivery = DateTime.now().add(const Duration(days: 21));
   }
 
   void _updateBatchNumberPreview() {
@@ -69,7 +83,8 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
     _prefixController.dispose();
     _notesController.dispose();
     _batchNumberPreview.dispose();
-    _productQuantityController.dispose(); // No olvidar dispose
+    _productQuantityController.dispose();
+    _productSearchController.dispose();
     super.dispose();
   }
 
@@ -110,10 +125,14 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
       _productsToAdd.add({
         'product': _selectedCatalogProduct,
         'quantity': quantity,
+        'expectedDeliveryDate': _productExpectedDelivery, // Guardamos la fecha
       });
       // Resetear selección para permitir añadir otro (incluso el mismo)
       _selectedCatalogProduct = null;
       _productQuantityController.text = '1';
+      // NO RESETEAMOS EL FILTRO: _productSearchController.clear();
+      // Resetear fecha a 3 semanas por defecto
+      _productExpectedDelivery = DateTime.now().add(const Duration(days: 21));
     });
   }
 
@@ -121,6 +140,22 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
     setState(() {
       _productsToAdd.removeAt(index);
     });
+  }
+  
+  Future<void> _selectProductDeliveryDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _productExpectedDelivery ?? DateTime.now().add(const Duration(days: 21)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      helpText: 'Fecha de entrega del producto',
+    );
+
+    if (picked != null) {
+      setState(() {
+        _productExpectedDelivery = picked;
+      });
+    }
   }
   // -----------------------------------------
 
@@ -174,7 +209,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
                         LengthLimitingTextInputFormatter(3),
-                        UpperCaseTextFormatter(), // Convertir a mayúsculas
+                        UpperCaseTextFormatter(),
                       ],
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -360,7 +395,8 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
               ),
             ),
             const SizedBox(height: 16),
-            // --- SECCIÓN: PRODUCTOS DEL LOTE (NUEVO) ---
+            
+            // --- SECCIÓN: PRODUCTOS DEL LOTE (ACTUALIZADA) ---
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -396,8 +432,67 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                     ),
                     const Divider(height: 24),
 
-                    // Selector de Producto
+                    // Campo de búsqueda de productos
+                    FilterUtils.buildSearchField(
+                      hintText: 'Buscar producto por nombre o SKU...',
+                      searchQuery: _productSearchQuery,
+                      onChanged: (value) {
+                        setState(() {
+                          _productSearchQuery = value;
+                        });
+                      },
+                      fontSize: 14,
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Selector de Producto (estilo moderno)
                     _buildProductSelector(),
+                    const SizedBox(height: 12),
+                    
+                    // Fecha de entrega estimada del producto
+                    InkWell(
+                      onTap: _selectProductDeliveryDate,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_today, size: 20, color: Colors.grey.shade600),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Fecha de entrega estimada',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatDate(_productExpectedDelivery!),
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                          ],
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     
                     // Cantidad y Botón Añadir
@@ -455,7 +550,8 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                           final item = _productsToAdd[index];
                           final product = item['product'] as ProductCatalogModel;
                           final quantity = item['quantity'] as int;
-                          final sequence = index + 1; // Número secuencial
+                          final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
+                          final sequence = index + 1;
 
                           return ListTile(
                             leading: CircleAvatar(
@@ -466,7 +562,17 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                               ),
                             ),
                             title: Text(product.name),
-                            subtitle: Text('SKU: ${product.reference}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('SKU: ${product.reference}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                if (deliveryDate != null)
+                                  Text(
+                                    'Entrega: ${_formatDate(deliveryDate)}',
+                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                  ),
+                              ],
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -523,7 +629,6 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
             ),
             const SizedBox(height: 24),
 
-
             // Botón Crear Lote
             FilledButton.icon(
               onPressed: _isLoading ? null : _createBatch,
@@ -549,7 +654,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
     );
   }
 
-  // Widget selector de producto (Dropdown simplificado)
+  // Widget selector de producto (estilo moderno con filtro)
   Widget _buildProductSelector() {
     return StreamBuilder<List<ProductCatalogModel>>(
       stream: Provider.of<ProductCatalogService>(context, listen: false)
@@ -557,22 +662,42 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const LinearProgressIndicator();
         
-        final products = snapshot.data ?? [];
+        var products = snapshot.data ?? [];
         
-        return DropdownButtonFormField<String>(
-          decoration: const InputDecoration(
-            labelText: 'Seleccionar producto del catálogo',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.search),
-          ),
+        // Filtrar productos según búsqueda
+        if (_productSearchQuery.isNotEmpty) {
+          final query = _productSearchQuery.toLowerCase();
+          products = products.where((p) =>
+            p.name.toLowerCase().contains(query) ||
+            p.reference.toLowerCase().contains(query)
+          ).toList();
+        }
+        
+        return FilterUtils.buildFullWidthDropdown<String>(
+          context: context,
+          label: 'Producto del catálogo',
           value: _selectedCatalogProduct?.id,
-          isExpanded: true,
+          icon: Icons.inventory,
+          hintText: products.isEmpty ? 'No hay productos disponibles' : 'Seleccionar producto...',
           items: products.map((product) {
             return DropdownMenuItem(
               value: product.id,
-              child: Text(
-                '${product.name} (SKU: ${product.reference})',
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    product.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'SKU: ${product.reference}',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
               ),
             );
           }).toList(),
@@ -675,28 +800,59 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
           );
         }
 
-        return DropdownButtonFormField<ProjectModel>(
-          decoration: const InputDecoration(
-            labelText: 'Seleccionar proyecto',
-            border: OutlineInputBorder(),
-          ),
-          value: _selectedProject,
-          items: projects.map((project) {
-            return DropdownMenuItem(
-              value: project,
-              child: Text(project.name),
+        // Cargar información de clientes para mostrar en el dropdown
+        return StreamBuilder<List<ClientModel>>(
+          stream: Provider.of<ClientService>(context, listen: false)
+              .watchClients(widget.organizationId),
+          builder: (context, clientSnapshot) {
+            final clients = clientSnapshot.data ?? [];
+            final clientMap = {for (var c in clients) c.id: c};
+
+            return FilterUtils.buildFullWidthDropdown<String>(
+              context: context,
+              label: 'Proyecto',
+              value: _selectedProject?.id,
+              icon: Icons.folder_outlined,
+              hintText: 'Seleccionar proyecto...',
+              isRequired: true,
+              items: projects.map((project) {
+                final client = clientMap[project.clientId];
+                return DropdownMenuItem(
+                  value: project.id,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        project.name,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      if (client != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Cliente: ${client.name}',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (projectId) {
+                if (projectId == null) return;
+                setState(() {
+                  _selectedProject = projects.firstWhere((p) => p.id == projectId);
+                });
+              },
+              validator: (value) {
+                if (value == null) {
+                  return 'Debes seleccionar un proyecto';
+                }
+                return null;
+              },
             );
-          }).toList(),
-          onChanged: (project) {
-            setState(() {
-              _selectedProject = project;
-            });
-          },
-          validator: (value) {
-            if (value == null) {
-              return 'Debes seleccionar un proyecto';
-            }
-            return null;
           },
         );
       },
@@ -734,7 +890,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
     final authService = Provider.of<AuthService>(context, listen: false);
     final batchService = Provider.of<ProductionBatchService>(context, listen: false);
     final clientService = Provider.of<ClientService>(context, listen: false);
-    final phaseService = Provider.of<PhaseService>(context, listen: false); // Servicio de fases
+    final phaseService = Provider.of<PhaseService>(context, listen: false);
 
     try {
       final client = await clientService.getClient(
@@ -771,8 +927,6 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
         // Obtener fases de la organización (necesarias para crear productos)
         final phases = await phaseService.getOrganizationPhases(widget.organizationId);
         if (phases.isEmpty) {
-          // Si no hay fases, no podemos crear productos, pero el lote ya está creado.
-          // Podríamos lanzar error, pero mejor avisar.
           debugPrint('Advertencia: No hay fases configuradas, no se pudieron añadir productos.');
         } else {
           phases.sort((a, b) => a.order.compareTo(b.order));
@@ -782,8 +936,9 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
             final item = _productsToAdd[i];
             final product = item['product'] as ProductCatalogModel;
             final quantity = item['quantity'] as int;
+            final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
 
-            // Añadimos el producto al lote
+            // Añadimos el producto al lote con la fecha de entrega
             await batchService.addProductToBatch(
               organizationId: widget.organizationId,
               batchId: batchId,
@@ -794,8 +949,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
               quantity: quantity,
               phases: phases,
               unitPrice: product.basePrice,
-              // Aquí podrías pasar un identificador especial en 'specialDetails' si lo necesitas
-              // specialDetails: "Seq #${i+1}", 
+              expectedDeliveryDate: deliveryDate, // Pasar la fecha de entrega
             );
           }
         }
@@ -809,14 +963,12 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
           ),
         );
         Navigator.pop(context, batchId);
-    } else if (mounted) {
-      throw Exception(batchService.error ?? 'Error desconocido');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-          content: Text('Error al crear lote: $e'),
+            content: Text('Error al crear lote: $e'),
             backgroundColor: Colors.red,
           ),
         );
