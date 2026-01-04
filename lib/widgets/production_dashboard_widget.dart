@@ -217,12 +217,12 @@ class ProductionDashboardWidget extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
-            child: Text(count.toString(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+            // decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+            child: Text(count.toString(), style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color)),
           ),
         ],
       ),
@@ -262,8 +262,8 @@ class ProductionDashboardWidget extends StatelessWidget {
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
-              child: Text(count.toString(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+              // decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+              child: Text(count.toString(), style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
             ),
           ],
         ),
@@ -304,8 +304,8 @@ class ProductionDashboardWidget extends StatelessWidget {
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
-              child: Text(count.toString(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+              // decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+              child: Text(count.toString(), style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
             ),
           ],
         ),
