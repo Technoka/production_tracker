@@ -274,7 +274,7 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
               );
             },
             icon: const Icon(Icons.add),
-            label: const Text('Añadir Producto'),
+            label: const Text('Añadir Productos'),
           ),
       ],
     );

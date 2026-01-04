@@ -43,7 +43,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
 
   // --- VARIABLES PARA GESTIÓN DE PRODUCTOS ---
   final List<Map<String, dynamic>> _productsToAdd = []; // Lista de productos a añadir
-  ProductCatalogModel? _selectedCatalogProduct;
+  ProductCatalogModel? _selectedProduct;
   final _productQuantityController = TextEditingController(text: '1');
   final _productSearchController = TextEditingController(); // Filtro de búsqueda
   String _productSearchQuery = '';
@@ -106,7 +106,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
 
   // --- MÉTODOS PARA GESTIÓN DE PRODUCTOS ---
   void _addProductToList() {
-    if (_selectedCatalogProduct == null) return;
+    if (_selectedProduct == null) return;
     
     // Validar límite de 10 productos
     if (_productsToAdd.length >= 10) {
@@ -126,7 +126,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
 
     setState(() {
       _productsToAdd.add({
-        'product': _selectedCatalogProduct,
+        'product': _selectedProduct,
         'quantity': quantity,
         'expectedDeliveryDate': _productExpectedDelivery, // Guardamos la fecha
         'urgencyLevel': _productUrgencyLevel, // NUEVO
@@ -135,7 +135,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
             : _productNotesController.text.trim(), // NUEVO
       });
       // Resetear selección para permitir añadir otro (incluso el mismo)
-      _selectedCatalogProduct = null;
+      _selectedProduct = null;
       _productQuantityController.text = '1';
       // NO RESETEAMOS EL FILTRO: _productSearchController.clear();
       // Resetear fecha a 3 semanas por defecto
@@ -470,21 +470,6 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                     ),
                     const SizedBox(height: 12),
                     
-                    // Notas del producto (NUEVO)
-                    TextFormField(
-                      controller: _productNotesController,
-                      maxLines: 2,
-                      decoration: InputDecoration(
-                        labelText: 'Notas (opcional)',
-                        hintText: 'Añade detalles específicos de este producto...',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.notes),
-                        alignLabelWithHint: true,
-                      ),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 12),
-                    
                     // Fecha de entrega estimada del producto
                     InkWell(
                       onTap: _selectProductDeliveryDate,
@@ -529,6 +514,23 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                         ),
                       ),
                     ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Notas del producto (NUEVO)
+                    TextFormField(
+                      controller: _productNotesController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: 'Notas (opcional)',
+                        hintText: 'Añade detalles específicos de este producto...',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.notes),
+                        alignLabelWithHint: true,
+                      ),
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    
                     const SizedBox(height: 12),
                     
                     // Cantidad y Botón Añadir
@@ -551,7 +553,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                         Expanded(
                           flex: 3,
                           child: FilledButton.icon(
-                            onPressed: _selectedCatalogProduct == null ? null : _addProductToList,
+                            onPressed: _selectedProduct == null ? null : _addProductToList,
                             icon: const Icon(Icons.add_shopping_cart),
                             label: const Text('Añadir al Lote'),
                           ),
@@ -737,10 +739,18 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
           ).toList();
         }
         
+        // --- SOLUCIÓN ERROR "BAD STATE" ---
+        // Verificamos si la selección actual sigue siendo válida en la lista filtrada
+        final isSelectionValid = _selectedProduct != null && products.any((p) => p.id == _selectedProduct!.id);
+        
+        // Si no es válida, pasamos null al dropdown (visual), pero mantenemos el estado si queremos
+        // O según tu petición: "se elimine el producto seleccionado"
+        final dropdownValue = isSelectionValid ? _selectedProduct!.id : null;
+        
         return FilterUtils.buildFullWidthDropdown<String>(
           context: context,
           label: 'Producto del catálogo',
-          value: _selectedCatalogProduct?.id,
+          value: _selectedProduct?.id,
           icon: Icons.inventory,
           hintText: products.isEmpty ? 'No hay productos disponibles' : 'Seleccionar producto...',
           items: products.map((product) {
@@ -768,7 +778,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
           onChanged: (productId) {
             if (productId == null) return;
             setState(() {
-              _selectedCatalogProduct = products.firstWhere((p) => p.id == productId);
+              _selectedProduct = products.firstWhere((p) => p.id == productId);
             });
           },
         );

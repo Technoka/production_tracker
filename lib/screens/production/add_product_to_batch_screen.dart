@@ -676,13 +676,158 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                 separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final product = products[index];
-                  return ListTile(
-                    dense: true, // Reduce altura
-                    leading: Text('#${product.productNumber}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                    title: Text(product.productName),
-                    subtitle: Text('SKU: ${product.productReference ?? "-"}'),
-                    trailing: Text('x${product.quantity}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  );
+                  
+                          final urgency = product.urgencyLevel as String? ?? 'medium';
+
+                  
+                      // Determinar color y texto de urgencia
+                          Color urgencyColor;
+                          String urgencyLabel;
+                          switch (urgency) {
+                            case 'low': 
+                              urgencyColor = Colors.green; 
+                              urgencyLabel = 'Baja';
+                              break;
+                            case 'high': 
+                              urgencyColor = Colors.red[500]!; 
+                              urgencyLabel = 'Alta';
+                              break;
+                            case 'critical': 
+                              urgencyColor = Colors.red[900]!; 
+                              urgencyLabel = 'Crítica';
+                              break;
+                            default: 
+                              urgencyColor = Colors.orange;
+                              urgencyLabel = 'Media';
+                          }
+                          
+         return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // 1. LEADING: Avatar con número
+                                CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: urgencyColor.withOpacity(0.2),
+                                  child: Text(
+                                    '#${product.productNumber}',
+                                    style: TextStyle(
+                                      color: urgencyColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+
+                                // 2. CENTRO: Información del producto
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        product.productName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'SKU: ${product.productReference}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[700],
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      if (product.expectedDeliveryDate != null) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Entrega: ${_formatDate(product.expectedDeliveryDate!)}',
+                                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                        ),
+                                      ],
+                                      if (product.productNotes != null && product.productNotes!.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.shade50,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            'Notas: ${product.productNotes}',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.blue[800],
+                                              fontStyle: FontStyle.italic,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+
+                                // 3. DERECHA: Chip arriba, Acciones abajo
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    // ARRIBA: Chip de urgencia
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: urgencyColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: urgencyColor.withOpacity(0.3)),
+                                      ),
+                                      child: Text(
+                                        urgencyLabel,
+                                        style: TextStyle(
+                                          color: urgencyColor,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    
+                                    const SizedBox(height: 12), // Espacio en medio
+                                    
+                                    // ABAJO: Cantidad y Borrar
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[100],
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: Colors.grey.shade300),
+                                          ),
+                                          child: Text(
+                                            'x${product.quantity}',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
                 },
               );
             },
