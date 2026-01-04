@@ -39,7 +39,7 @@ class ClientProductDetail extends StatelessWidget {
                     children: [
                       Chip(
                         avatar: const Icon(Icons.tag, size: 16),
-                        label: Text(l10n.batchLabel(product.batchNumber)),
+                        label: Text('${l10n.batchLabel}: ${product.batchNumber}'),
                       ),
                       Chip(
                         avatar: const Icon(Icons.inventory_2, size: 16),
