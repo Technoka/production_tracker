@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'production_batch_model.dart';
 
 /// Estados del producto en el ciclo completo
 enum ProductStatus {
@@ -83,6 +84,9 @@ class BatchProductModel {
   // NUEVO CAMPO: Fecha de entrega estimada
   final DateTime? expectedDeliveryDate;
 
+  final String urgencyLevel; // "low", "medium", "high", "critical"
+  final String? productNotes;
+
   BatchProductModel({
     required this.id,
     required this.batchId,
@@ -121,6 +125,8 @@ class BatchProductModel {
     this.discardedCount = 0,
     this.returnReason,
     this.expectedDeliveryDate,
+    this.urgencyLevel = 'medium',
+    this.productNotes,
   });
 
   Map<String, dynamic> toMap() {
@@ -172,6 +178,8 @@ class BatchProductModel {
       'expectedDeliveryDate': expectedDeliveryDate != null
           ? Timestamp.fromDate(expectedDeliveryDate!)
           : null,
+      'urgencyLevel': urgencyLevel,
+      'productNotes': productNotes,
     };
   }
 
@@ -231,6 +239,8 @@ class BatchProductModel {
       expectedDeliveryDate: map['expectedDeliveryDate'] != null
           ? (map['expectedDeliveryDate'] as Timestamp).toDate()
           : null,
+      urgencyLevel: map['urgencyLevel'] as String? ?? 'medium',
+      productNotes: map['productNotes'] as String?,
     );
   }
 
@@ -272,6 +282,8 @@ class BatchProductModel {
     int? discardedCount,
     String? returnReason,
     DateTime? expectedDeliveryDate,
+    String? urgencyLevel,
+    String? productNotes,
   }) {
     return BatchProductModel(
       id: id ?? this.id,
@@ -311,6 +323,8 @@ class BatchProductModel {
       discardedCount: discardedCount ?? this.discardedCount,
       returnReason: returnReason ?? this.returnReason,
       expectedDeliveryDate: expectedDeliveryDate ?? this.expectedDeliveryDate,
+      urgencyLevel: urgencyLevel ?? this.urgencyLevel,
+      productNotes: productNotes ?? this.productNotes,
     );
   }
 
@@ -370,6 +384,28 @@ class BatchProductModel {
   
   // Validar que reparados + basura = devueltos
   bool get isReturnBalanced => (repairedCount + discardedCount) == returnedCount;
+
+  
+  // Helpers de urgencia:
+  UrgencyLevel get urgencyEnum => UrgencyLevel.fromString(urgencyLevel);
+  Color get urgencyColor {
+    switch (urgencyLevel) {
+      case 'low': return Colors.green;
+      case 'medium': return Colors.orange;
+      case 'high': return Colors.red[500]!;
+      case 'critical': return Colors.red[900]!;
+      default: return Colors.grey;
+    }
+  }
+  String get urgencyDisplayName {
+    switch (urgencyLevel) {
+      case 'low': return 'Baja';
+      case 'medium': return 'Media';
+      case 'high': return 'Alta';
+      case 'critical': return 'Crítica';
+      default: return 'Desconocida';
+    }
+  }
 }
 
 /// Datos de progreso por fase
@@ -442,4 +478,5 @@ class PhaseProgressData {
   bool get isInProgress => status == 'in_progress';
   bool get isCompleted => status == 'completed';
   bool get isControl => status == 'control';
+  
 }

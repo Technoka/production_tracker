@@ -365,4 +365,88 @@ class FilterUtils {
   static int countActiveFilters(List<dynamic> filterValues) {
     return filterValues.where((v) => v != null && (v is! String || v.isNotEmpty)).length;
   }
+
+  /// Widget de selector de urgencia circular (cicla entre niveles)
+  static Widget buildUrgencySelector({
+    required BuildContext context,
+    required String urgencyLevel,
+    required Function(String) onChanged,
+    bool compact = false,
+  }) {
+    final urgencies = [
+      {'value': 'low', 'label': 'Baja', 'color': Colors.green},
+      {'value': 'medium', 'label': 'Media', 'color': Colors.orange},
+      {'value': 'high', 'label': 'Alta', 'color': Colors.red[500]!},
+      {'value': 'critical', 'label': 'Crítica', 'color': Colors.red[900]!},
+    ];
+
+    final currentIndex = urgencies.indexWhere((u) => u['value'] == urgencyLevel);
+    final current = currentIndex >= 0 ? urgencies[currentIndex] : urgencies[1];
+
+    return InkWell(
+      onTap: () {
+        // Ciclar al siguiente nivel
+        final nextIndex = (currentIndex + 1) % urgencies.length;
+        onChanged(urgencies[nextIndex]['value'] as String);
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 12 : 16,
+          vertical: compact ? 10 : 14,
+        ),
+        decoration: BoxDecoration(
+          color: (current['color'] as Color).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: (current['color'] as Color).withOpacity(0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
+          children: [
+            Icon(
+              Icons.priority_high_rounded,
+              color: current['color'] as Color,
+              size: compact ? 18 : 20,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!compact)
+                    Text(
+                      'Urgencia',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  if (!compact) const SizedBox(height: 4),
+                  Text(
+                    current['label'] as String,
+                    style: TextStyle(
+                      fontSize: compact ? 14 : 15,
+                      fontWeight: FontWeight.bold,
+                      color: current['color'] as Color,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.refresh_rounded,
+              color: (current['color'] as Color).withOpacity(0.6),
+              size: compact ? 16 : 18,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

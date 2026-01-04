@@ -673,7 +673,7 @@ class ProductionBatchService extends ChangeNotifier {
     }
   }
 
-    /// ACTUALIZADO: Con número secuencial y código único
+ /// ACTUALIZADO: Con urgencia y notas por producto
   Future<String?> addProductToBatch({
     required String organizationId,
     required String batchId,
@@ -688,6 +688,8 @@ class ProductionBatchService extends ChangeNotifier {
     String? specialDetails,
     double? unitPrice,
     DateTime? expectedDeliveryDate,
+    String urgencyLevel = 'medium', // NUEVO: Urgencia por producto
+    String? notes, // NUEVO: Notas por producto
   }) async {
     try {
       _isLoading = true;
@@ -732,8 +734,8 @@ class ProductionBatchService extends ChangeNotifier {
         currentPhase: firstPhase.id,
         currentPhaseName: firstPhase.name,
         phaseProgress: phaseProgress,
-        productNumber: productNumber, // NUEVO
-        productCode: productCode, // NUEVO
+        productNumber: productNumber,
+        productCode: productCode,
         color: color,
         material: material,
         specialDetails: specialDetails,
@@ -742,6 +744,8 @@ class ProductionBatchService extends ChangeNotifier {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         expectedDeliveryDate: expectedDeliveryDate,
+        urgencyLevel: urgencyLevel, // NUEVO
+        productNotes: notes, // NUEVO
       );
 
       // Batch write para atomicidad
@@ -767,7 +771,7 @@ class ProductionBatchService extends ChangeNotifier {
 
       batchWrite.update(batchRef, {
         'totalProducts': FieldValue.increment(1),
-        'productSequenceCounter': productNumber, // NUEVO
+        'productSequenceCounter': productNumber,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
@@ -782,8 +786,7 @@ class ProductionBatchService extends ChangeNotifier {
       notifyListeners();
       return null;
     }
-  }
-  
+  } 
   /// Stream de productos de un lote
   Stream<List<BatchProductModel>> watchBatchProducts(
     String organizationId,

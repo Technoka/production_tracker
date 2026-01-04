@@ -48,6 +48,8 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
   final _productSearchController = TextEditingController(); // Filtro de búsqueda
   String _productSearchQuery = '';
   DateTime? _productExpectedDelivery; // Fecha de entrega estimada del producto
+  String _productUrgencyLevel = 'medium'; // NUEVO: Urgencia del producto
+  final _productNotesController = TextEditingController(); // NUEVO: Notas del producto
   // -------------------------------------------
 
   @override
@@ -85,6 +87,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
     _batchNumberPreview.dispose();
     _productQuantityController.dispose();
     _productSearchController.dispose();
+    _productNotesController.dispose(); // NUEVO
     super.dispose();
   }
 
@@ -126,6 +129,10 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
         'product': _selectedCatalogProduct,
         'quantity': quantity,
         'expectedDeliveryDate': _productExpectedDelivery, // Guardamos la fecha
+        'urgencyLevel': _productUrgencyLevel, // NUEVO
+        'notes': _productNotesController.text.trim().isEmpty 
+            ? null 
+            : _productNotesController.text.trim(), // NUEVO
       });
       // Resetear selección para permitir añadir otro (incluso el mismo)
       _selectedCatalogProduct = null;
@@ -133,6 +140,8 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
       // NO RESETEAMOS EL FILTRO: _productSearchController.clear();
       // Resetear fecha a 3 semanas por defecto
       _productExpectedDelivery = DateTime.now().add(const Duration(days: 21));
+      _productUrgencyLevel = 'medium'; // NUEVO: Resetear urgencia
+      _productNotesController.clear(); // NUEVO: Limpiar notas
     });
   }
 
@@ -411,7 +420,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                             Icon(Icons.inventory_2_outlined, color: Theme.of(context).colorScheme.primary),
                             const SizedBox(width: 8),
                             const Text(
-                              'Productos del Lote',
+                              'Añadir Productos',
                               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                           ],
@@ -427,7 +436,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'Añade productos para inicializar el lote (Opcional)',
+                      'También puedes añadir productos al lote después de crearlo.',
                       style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     const Divider(height: 24),
@@ -447,6 +456,33 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                     
                     // Selector de Producto (estilo moderno)
                     _buildProductSelector(),
+                    const SizedBox(height: 12),
+                    
+                    // Urgencia del producto (NUEVO)
+                    FilterUtils.buildUrgencySelector(
+                      context: context,
+                      urgencyLevel: _productUrgencyLevel,
+                      onChanged: (newUrgency) {
+                        setState(() {
+                          _productUrgencyLevel = newUrgency;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Notas del producto (NUEVO)
+                    TextFormField(
+                      controller: _productNotesController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: 'Notas (opcional)',
+                        hintText: 'Añade detalles específicos de este producto...',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.notes),
+                        alignLabelWithHint: true,
+                      ),
+                      style: const TextStyle(fontSize: 14),
+                    ),
                     const SizedBox(height: 12),
                     
                     // Fecha de entrega estimada del producto
@@ -551,25 +587,53 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                           final product = item['product'] as ProductCatalogModel;
                           final quantity = item['quantity'] as int;
                           final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
+                          final urgency = item['urgencyLevel'] as String? ?? 'medium';
+                          final notes = item['notes'] as String?;
                           final sequence = index + 1;
+
+                          // Color de urgencia
+                          Color urgencyColor;
+                          switch (urgency) {
+                            case 'low': urgencyColor = Colors.green; break;
+                            case 'high': urgencyColor = Colors.red[500]!; break;
+                            case 'critical': urgencyColor = Colors.red[900]!; break;
+                            default: urgencyColor = Colors.orange;
+                          }
 
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: Colors.blue[100],
+                              backgroundColor: urgencyColor.withOpacity(0.2),
                               child: Text(
                                 '#$sequence',
-                                style: TextStyle(color: Colors.blue[900], fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  color: urgencyColor,
+                                  fontWeight: FontWeight.bold
+                                ),
                               ),
                             ),
                             title: Text(product.name),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('SKU: ${product.reference}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                Text(
+                                  'SKU: ${product.reference}', 
+                                  style: const TextStyle(fontWeight: FontWeight.bold)
+                                ),
                                 if (deliveryDate != null)
                                   Text(
                                     'Entrega: ${_formatDate(deliveryDate)}',
                                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                  ),
+                                if (notes != null)
+                                  Text(
+                                    'Notas: $notes',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.blue[700],
+                                      fontStyle: FontStyle.italic
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                               ],
                             ),
@@ -937,6 +1001,8 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
             final product = item['product'] as ProductCatalogModel;
             final quantity = item['quantity'] as int;
             final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
+            final urgency = item['urgencyLevel'] as String? ?? 'medium';
+            final notes = item['notes'] as String?;
 
             // Añadimos el producto al lote con la fecha de entrega
             await batchService.addProductToBatch(
@@ -950,6 +1016,8 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
               phases: phases,
               unitPrice: product.basePrice,
               expectedDeliveryDate: deliveryDate, // Pasar la fecha de entrega
+              urgencyLevel: urgency, // NUEVO
+              notes: notes, // NUEVO
             );
           }
         }
