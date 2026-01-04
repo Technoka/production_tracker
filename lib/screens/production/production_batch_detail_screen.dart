@@ -613,111 +613,243 @@ Future<Map<String, double>> _calculateProgressStats(ProductionBatchModel batch) 
 }
 
 Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user) {
-  return StreamBuilder<List<BatchProductModel>>(
-    stream: Provider.of<ProductionBatchService>(context, listen: false)
-        .watchBatchProducts(widget.organizationId, widget.batchId),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Card(
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-        );
-      }
-
-      if (snapshot.hasError) {
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text('Error: ${snapshot.error}'),
-          ),
-        );
-      }
-
-      final products = snapshot.data ?? [];
-
-      if (products.isEmpty) {
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.inventory_2_outlined,
-                  size: 48,
-                  color: Colors.grey[400],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No hay productos en este lote',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Añade productos usando el botón +',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                  ),
-                ),
-              ],
+    return StreamBuilder<List<BatchProductModel>>(
+      stream: Provider.of<ProductionBatchService>(context, listen: false)
+          .watchBatchProducts(widget.organizationId, widget.batchId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
             ),
-          ),
-        );
-      }
+          );
+        }
 
-      // Calcular estadísticas por fase y estado
-      final phaseStats = _calculatePhaseStats(products);
-      final statusStats = _calculateStatusStats(products);
+        if (snapshot.hasError) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Error: ${snapshot.error}'),
+            ),
+          );
+        }
 
-      return Column(
-        children: [
-          const SizedBox(height: 16),
+        final products = snapshot.data ?? [];
 
-          // Lista de productos (código existente)
-          Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        if (products.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
                 children: [
-                  const Icon(Icons.inventory_2_outlined),
-                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 48,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
                   Text(
-                    'Productos (${products.length})',
-                    style: const TextStyle(
+                    'No hay productos en este lote',
+                    style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Añade productos usando el botón +',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[500],
                     ),
                   ),
                 ],
               ),
-              const Divider(height: 24),
+            ),
+          );
+        }
+
+        return Card(
+          elevation: 1,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Productos en el lote (${batch.totalProducts})',
+                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              
+              // CORRECCIÓN 2: Eliminado el StreamBuilder interno incorrecto.
+              // Usamos directamente la lista 'products' que ya obtuvimos arriba.
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
                 itemCount: products.length,
-                separatorBuilder: (context, index) => const Divider(),
+                separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final product = products[index];
-                  return _buildProductTile(product, user);
+                  
+                  final urgency = product.urgencyLevel ?? 'medium'; 
+
+                  Color urgencyColor;
+                  String urgencyLabel;
+                  
+                  switch (urgency) {
+                    case 'low':
+                      urgencyColor = Colors.green;
+                      urgencyLabel = 'Baja';
+                      break;
+                    case 'high':
+                      urgencyColor = Colors.red[500]!;
+                      urgencyLabel = 'Alta';
+                      break;
+                    case 'critical':
+                      urgencyColor = Colors.red[900]!;
+                      urgencyLabel = 'Crítica';
+                      break;
+                    default:
+                      urgencyColor = Colors.orange;
+                      urgencyLabel = 'Media';
+                  }
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      // border: Border(bottom: BorderSide(color: Colors.grey.shade200)), // Ya lo hace el separator
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // 1. LEADING: Avatar con número
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: urgencyColor.withOpacity(0.2),
+                          child: Text(
+                            '#${product.productNumber}',
+                            style: TextStyle(
+                              color: urgencyColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+
+                        // 2. CENTRO: Información del producto
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product.productName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'SKU: ${product.productReference ?? "-"}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[700],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              // CORRECCIÓN 3: Verificar nulo antes de formatear
+                              if (product.expectedDeliveryDate != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Entrega: ${_formatDate(product.expectedDeliveryDate!)}',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                ),
+                              ],
+                              // Notas (si tu modelo BatchProductModel las tiene)
+                              /* if (product.notes != null && product.notes!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Notas: ${product.notes}',
+                                    style: TextStyle(fontSize: 11, color: Colors.blue[800], fontStyle: FontStyle.italic),
+                                  ),
+                                ),
+                              ],
+                              */
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // 3. DERECHA: Chip arriba, Cantidad abajo
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            // Chip de urgencia
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: urgencyColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: urgencyColor.withOpacity(0.3)),
+                              ),
+                              child: Text(
+                                urgencyLabel,
+                                style: TextStyle(
+                                  color: urgencyColor,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 12),
+                            
+                            // Cantidad
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: Text(
+                                'x${product.quantity}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
                 },
               ),
+              const SizedBox(height: 4),
             ],
           ),
-        ),
-          ),
-        ],
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
+
 
 // AÑADIR métodos helper:
 
@@ -758,6 +890,7 @@ Map<String, int> _calculateStatusStats(List<BatchProductModel> products) {
 
   return stats;
 }
+
 
 Widget _buildPhaseStatItem(String label, int count, Color color, int total) {
   final percentage = total > 0 ? (count / total * 100).round() : 0;

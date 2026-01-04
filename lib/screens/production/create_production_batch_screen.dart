@@ -743,16 +743,15 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
         // Verificamos si la selección actual sigue siendo válida en la lista filtrada
         final isSelectionValid = _selectedProduct != null && products.any((p) => p.id == _selectedProduct!.id);
         
-        // Si no es válida, pasamos null al dropdown (visual), pero mantenemos el estado si queremos
-        // O según tu petición: "se elimine el producto seleccionado"
+        // Si no es válida, pasamos null al dropdown (visual) para deseleccionarlo temporalmente
         final dropdownValue = isSelectionValid ? _selectedProduct!.id : null;
-        
+
         return FilterUtils.buildFullWidthDropdown<String>(
           context: context,
           label: 'Producto del catálogo',
-          value: _selectedProduct?.id,
+          value: dropdownValue,
           icon: Icons.inventory,
-          hintText: products.isEmpty ? 'No hay productos disponibles' : 'Seleccionar producto...',
+          hintText: products.isEmpty ? 'Sin coincidencias' : 'Seleccionar producto...',
           items: products.map((product) {
             return DropdownMenuItem(
               value: product.id,
