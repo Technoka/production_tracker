@@ -126,6 +126,31 @@ class OrganizationService extends ChangeNotifier {
     });
   }
 
+  /// Obtener solo el nombre de una organización por su ID
+  Future<String?> getOrganizationName(String organizationId) async {
+    try {
+      // 1. Optimización: Verificar si es la organización actual cargada en memoria
+      if (_currentOrganization != null && _currentOrganization!.id == organizationId) {
+        return _currentOrganization!.name;
+      }
+
+      // 2. Si no, buscar en Firestore (lectura ligera solo del documento)
+      final doc = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        return doc.data()!['name'] as String?;
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('Error al obtener nombre de organización: $e');
+      return null;
+    }
+  }
+
   // ==================== LOGO DE LA ORGANIZACIÓN ====================
   Future<String?> uploadOrganizationLogo(String orgId, File imageFile) async {
     try {
