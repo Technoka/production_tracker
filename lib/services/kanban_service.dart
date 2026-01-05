@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/batch_product_model.dart';
 import '../models/phase_model.dart';
 import '../models/user_model.dart';
+import '../utils/message_events_helper.dart';
 
 class KanbanService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -79,6 +80,17 @@ class KanbanService {
 
       final product = BatchProductModel.fromMap(productDoc.data()!);
       final updatedProgress = Map<String, PhaseProgressData>.from(product.phaseProgress);
+      
+      // Generar evento de movimiento de fase
+      await MessageEventsHelper.onProductMoved(
+        organizationId: organizationId,
+        batchId: batchId,
+        productId: productId,
+        productName: product.productName,
+        oldPhase: product.currentPhaseName,
+        newPhase: toPhaseName,
+        movedBy: userName,
+      );
 
       // Completar fase anterior si existe y es diferente
       if (fromPhaseId != toPhaseId && updatedProgress.containsKey(fromPhaseId)) {
@@ -100,6 +112,19 @@ class KanbanService {
         updatedProgress[toPhaseId] = updatedProgress[toPhaseId]!.copyWith(
           status: 'in_progress',
           startedAt: DateTime.now(),
+        );
+      }
+
+      // Si se completó una fase
+      if (fromPhaseId != toPhaseId && 
+          updatedProgress[fromPhaseId]?.status == 'completed') {
+        await MessageEventsHelper.onPhaseCompleted(
+          organizationId: organizationId,
+          batchId: batchId,
+          productId: productId,
+          phaseName: product.currentPhaseName,
+          completedBy: userName,
+          productName: product.productName,
         );
       }
 
