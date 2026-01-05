@@ -444,9 +444,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get batchLabel => 'Batch:';
 
   @override
-  String quantityLabel(Object quantity) {
-    return 'Quantity: $quantity units';
-  }
+  String get quantityLabel => 'Quantity';
 
   @override
   String get clientDetailTitle => 'Client Detail';
@@ -857,7 +855,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nameRequired => 'Name is required';
 
   @override
-  String get referenceLabel => 'Reference/SKU *';
+  String get referenceLabel => 'Reference';
 
   @override
   String get referenceHint => 'Ex: TABLE-001';
@@ -986,7 +984,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notesLabel => 'Notes';
 
   @override
-  String get notesHint => 'Additional information...';
+  String get notesHint => 'Optional remarks';
 
   @override
   String get unsavedChanges => 'Unsaved';
@@ -1347,7 +1345,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get phaseDescriptionLabel => 'Description (optional)';
 
   @override
-  String get phaseUpdatedSuccess => 'Phase updated';
+  String get phaseUpdatedSuccess => 'Phase updated successfully';
 
   @override
   String get noPhasesConfiguredTitle => 'No phases configured';
@@ -1621,4 +1619,229 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get currentLanguagesLabel => 'Currently: Spanish, English';
+
+  @override
+  String get productionTitle => 'Production';
+
+  @override
+  String get batchesTitle => 'Production Batches';
+
+  @override
+  String get activeBatchesTitle => 'Active Batches';
+
+  @override
+  String get noBatchesFound => 'No batches found';
+
+  @override
+  String get createBatchBtn => 'Create Batch';
+
+  @override
+  String get newBatchTitle => 'New Batch';
+
+  @override
+  String get newBatchSubtitle => 'Create a new production batch';
+
+  @override
+  String get batchNameLabel => 'Batch Name';
+
+  @override
+  String get batchNameHint => 'Ex: January 2024 Production';
+
+  @override
+  String get batchNameError => 'Please enter a name';
+
+  @override
+  String get batchCreatedSuccess => 'Batch created successfully';
+
+  @override
+  String get batchStatusDraft => 'Draft';
+
+  @override
+  String get batchStatusInProgress => 'In Progress';
+
+  @override
+  String get batchStatusCompleted => 'Completed';
+
+  @override
+  String get batchStatusCancelled => 'Cancelled';
+
+  @override
+  String get batchDetailTitle => 'Batch Detail';
+
+  @override
+  String get addProductBtn => 'Add Product';
+
+  @override
+  String get startProductionBtn => 'Start Production';
+
+  @override
+  String get completeBatchBtn => 'Complete Batch';
+
+  @override
+  String get deleteBatchAction => 'Delete Batch';
+
+  @override
+  String get deleteBatchConfirmTitle => 'Delete batch?';
+
+  @override
+  String get deleteBatchConfirmMsg => 'This action cannot be undone and will delete all associated data.';
+
+  @override
+  String get batchDeletedSuccess => 'Batch deleted successfully';
+
+  @override
+  String get batchStartedSuccess => 'Production started';
+
+  @override
+  String get batchCompletedSuccess => 'Batch marked as completed';
+
+  @override
+  String get noProductsInBatch => 'No products in this batch';
+
+  @override
+  String get productsTitle => 'Products';
+
+  @override
+  String get addProductsTitle => 'Add Products';
+
+  @override
+  String get selectProductsInstruction => 'Select products to add to the batch';
+
+  @override
+  String get noAvailableProducts => 'No available products to add';
+
+  @override
+  String get addSelectedBtn => 'Add selected';
+
+  @override
+  String get productsAddedSuccess => 'Products added successfully';
+
+  @override
+  String get currentPhaseLabel => 'Current Phase';
+
+  @override
+  String get historyTitle => 'History';
+
+  @override
+  String get moveNextPhaseBtn => 'Next Phase';
+
+  @override
+  String get chat => 'Chat';
+
+  @override
+  String get searchMessages => 'Search messages';
+
+  @override
+  String get searchingMessages => 'Searching...';
+
+  @override
+  String get writeToSearch => 'Type to search';
+
+  @override
+  String get searchInMessages => 'Search in messages';
+
+  @override
+  String get searchPlaceholder => 'Search in content, names or mentions';
+
+  @override
+  String get messageFound => 'Message found';
+
+  @override
+  String get noPinnedMessages => 'No pinned messages';
+
+  @override
+  String get chatOfBatch => 'Batch chat';
+
+  @override
+  String get chatOfProject => 'Project chat';
+
+  @override
+  String get chatOfProduct => 'Product chat';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String get eventBatchCreated => 'Batch created';
+
+  @override
+  String get eventBatchStarted => 'Production started';
+
+  @override
+  String get eventBatchCompleted => 'Batch completed';
+
+  @override
+  String get eventBatchStatusChanged => 'Status changed';
+
+  @override
+  String get eventPhaseCompleted => 'Phase completed';
+
+  @override
+  String get eventProductMoved => 'Product moved to phase';
+
+  @override
+  String get eventProductAdded => 'Product added';
+
+  @override
+  String get eventProductRemoved => 'Product removed';
+
+  @override
+  String get eventProductStatusChanged => 'Product status changed';
+
+  @override
+  String get eventDelayDetected => 'Delay detected';
+
+  @override
+  String get eventMemberAssigned => 'Member assigned';
+
+  @override
+  String get eventMemberRemoved => 'Member removed';
+
+  @override
+  String get eventInvoiceIssued => 'Invoice issued';
+
+  @override
+  String get eventPaymentReceived => 'Payment received';
+
+  @override
+  String get eventNoteAdded => 'Note added';
+
+  @override
+  String get eventFileUploaded => 'File uploaded';
+
+  @override
+  String get eventProjectCreated => 'Project created';
+
+  @override
+  String get eventProjectCompleted => 'Project completed';
+
+  @override
+  String get eventDeadlineApproaching => 'Deadline approaching';
+
+  @override
+  String get eventQualityCheckCompleted => 'Quality check';
+
+  @override
+  String get eventMaterialAssigned => 'Material assigned';
+
+  @override
+  String get allMasculine => 'All';
+
+  @override
+  String get allFemenine => 'All';
+
+  @override
+  String get allPluralMasculine => 'All';
+
+  @override
+  String get allPluralFeminine => 'All';
+
+  @override
+  String get allClients => 'All clients';
+
+  @override
+  String get batchesViewTitleLabel => 'View batches';
+
+  @override
+  String get productsViewTitleLabel => 'View products';
 }

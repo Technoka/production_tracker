@@ -968,8 +968,8 @@ abstract class AppLocalizations {
   /// No description provided for @quantityLabel.
   ///
   /// In en, this message translates to:
-  /// **'Quantity: {quantity} units'**
-  String quantityLabel(Object quantity);
+  /// **'Quantity'**
+  String get quantityLabel;
 
   /// No description provided for @clientDetailTitle.
   ///
@@ -1742,7 +1742,7 @@ abstract class AppLocalizations {
   /// No description provided for @referenceLabel.
   ///
   /// In en, this message translates to:
-  /// **'Reference/SKU *'**
+  /// **'Reference'**
   String get referenceLabel;
 
   /// No description provided for @referenceHint.
@@ -1988,7 +1988,7 @@ abstract class AppLocalizations {
   /// No description provided for @notesHint.
   ///
   /// In en, this message translates to:
-  /// **'Additional information...'**
+  /// **'Optional remarks'**
   String get notesHint;
 
   /// No description provided for @unsavedChanges.
@@ -2702,7 +2702,7 @@ abstract class AppLocalizations {
   /// No description provided for @phaseUpdatedSuccess.
   ///
   /// In en, this message translates to:
-  /// **'Phase updated'**
+  /// **'Phase updated successfully'**
   String get phaseUpdatedSuccess;
 
   /// No description provided for @noPhasesConfiguredTitle.
@@ -3250,6 +3250,456 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Currently: Spanish, English'**
   String get currentLanguagesLabel;
+
+  /// No description provided for @productionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Production'**
+  String get productionTitle;
+
+  /// No description provided for @batchesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Production Batches'**
+  String get batchesTitle;
+
+  /// No description provided for @activeBatchesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Batches'**
+  String get activeBatchesTitle;
+
+  /// No description provided for @noBatchesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No batches found'**
+  String get noBatchesFound;
+
+  /// No description provided for @createBatchBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Batch'**
+  String get createBatchBtn;
+
+  /// No description provided for @newBatchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Batch'**
+  String get newBatchTitle;
+
+  /// No description provided for @newBatchSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a new production batch'**
+  String get newBatchSubtitle;
+
+  /// No description provided for @batchNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch Name'**
+  String get batchNameLabel;
+
+  /// No description provided for @batchNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: January 2024 Production'**
+  String get batchNameHint;
+
+  /// No description provided for @batchNameError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a name'**
+  String get batchNameError;
+
+  /// No description provided for @batchCreatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch created successfully'**
+  String get batchCreatedSuccess;
+
+  /// No description provided for @batchStatusDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get batchStatusDraft;
+
+  /// No description provided for @batchStatusInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get batchStatusInProgress;
+
+  /// No description provided for @batchStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get batchStatusCompleted;
+
+  /// No description provided for @batchStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get batchStatusCancelled;
+
+  /// No description provided for @batchDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch Detail'**
+  String get batchDetailTitle;
+
+  /// No description provided for @addProductBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Product'**
+  String get addProductBtn;
+
+  /// No description provided for @startProductionBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Production'**
+  String get startProductionBtn;
+
+  /// No description provided for @completeBatchBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete Batch'**
+  String get completeBatchBtn;
+
+  /// No description provided for @deleteBatchAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Batch'**
+  String get deleteBatchAction;
+
+  /// No description provided for @deleteBatchConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete batch?'**
+  String get deleteBatchConfirmTitle;
+
+  /// No description provided for @deleteBatchConfirmMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone and will delete all associated data.'**
+  String get deleteBatchConfirmMsg;
+
+  /// No description provided for @batchDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch deleted successfully'**
+  String get batchDeletedSuccess;
+
+  /// No description provided for @batchStartedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Production started'**
+  String get batchStartedSuccess;
+
+  /// No description provided for @batchCompletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch marked as completed'**
+  String get batchCompletedSuccess;
+
+  /// No description provided for @noProductsInBatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No products in this batch'**
+  String get noProductsInBatch;
+
+  /// No description provided for @productsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Products'**
+  String get productsTitle;
+
+  /// No description provided for @addProductsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Products'**
+  String get addProductsTitle;
+
+  /// No description provided for @selectProductsInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'Select products to add to the batch'**
+  String get selectProductsInstruction;
+
+  /// No description provided for @noAvailableProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'No available products to add'**
+  String get noAvailableProducts;
+
+  /// No description provided for @addSelectedBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add selected'**
+  String get addSelectedBtn;
+
+  /// No description provided for @productsAddedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Products added successfully'**
+  String get productsAddedSuccess;
+
+  /// No description provided for @currentPhaseLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Phase'**
+  String get currentPhaseLabel;
+
+  /// No description provided for @historyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get historyTitle;
+
+  /// No description provided for @moveNextPhaseBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Phase'**
+  String get moveNextPhaseBtn;
+
+  /// No description provided for @chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get chat;
+
+  /// No description provided for @searchMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Search messages'**
+  String get searchMessages;
+
+  /// No description provided for @searchingMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching...'**
+  String get searchingMessages;
+
+  /// No description provided for @writeToSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Type to search'**
+  String get writeToSearch;
+
+  /// No description provided for @searchInMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in messages'**
+  String get searchInMessages;
+
+  /// No description provided for @searchPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in content, names or mentions'**
+  String get searchPlaceholder;
+
+  /// No description provided for @messageFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Message found'**
+  String get messageFound;
+
+  /// No description provided for @noPinnedMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'No pinned messages'**
+  String get noPinnedMessages;
+
+  /// No description provided for @chatOfBatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch chat'**
+  String get chatOfBatch;
+
+  /// No description provided for @chatOfProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Project chat'**
+  String get chatOfProject;
+
+  /// No description provided for @chatOfProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Product chat'**
+  String get chatOfProduct;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// No description provided for @eventBatchCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch created'**
+  String get eventBatchCreated;
+
+  /// No description provided for @eventBatchStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Production started'**
+  String get eventBatchStarted;
+
+  /// No description provided for @eventBatchCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch completed'**
+  String get eventBatchCompleted;
+
+  /// No description provided for @eventBatchStatusChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Status changed'**
+  String get eventBatchStatusChanged;
+
+  /// No description provided for @eventPhaseCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Phase completed'**
+  String get eventPhaseCompleted;
+
+  /// No description provided for @eventProductMoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Product moved to phase'**
+  String get eventProductMoved;
+
+  /// No description provided for @eventProductAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Product added'**
+  String get eventProductAdded;
+
+  /// No description provided for @eventProductRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Product removed'**
+  String get eventProductRemoved;
+
+  /// No description provided for @eventProductStatusChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Product status changed'**
+  String get eventProductStatusChanged;
+
+  /// No description provided for @eventDelayDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'Delay detected'**
+  String get eventDelayDetected;
+
+  /// No description provided for @eventMemberAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Member assigned'**
+  String get eventMemberAssigned;
+
+  /// No description provided for @eventMemberRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Member removed'**
+  String get eventMemberRemoved;
+
+  /// No description provided for @eventInvoiceIssued.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoice issued'**
+  String get eventInvoiceIssued;
+
+  /// No description provided for @eventPaymentReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment received'**
+  String get eventPaymentReceived;
+
+  /// No description provided for @eventNoteAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Note added'**
+  String get eventNoteAdded;
+
+  /// No description provided for @eventFileUploaded.
+  ///
+  /// In en, this message translates to:
+  /// **'File uploaded'**
+  String get eventFileUploaded;
+
+  /// No description provided for @eventProjectCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Project created'**
+  String get eventProjectCreated;
+
+  /// No description provided for @eventProjectCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Project completed'**
+  String get eventProjectCompleted;
+
+  /// No description provided for @eventDeadlineApproaching.
+  ///
+  /// In en, this message translates to:
+  /// **'Deadline approaching'**
+  String get eventDeadlineApproaching;
+
+  /// No description provided for @eventQualityCheckCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Quality check'**
+  String get eventQualityCheckCompleted;
+
+  /// No description provided for @eventMaterialAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Material assigned'**
+  String get eventMaterialAssigned;
+
+  /// No description provided for @allMasculine.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allMasculine;
+
+  /// No description provided for @allFemenine.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allFemenine;
+
+  /// No description provided for @allPluralMasculine.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allPluralMasculine;
+
+  /// No description provided for @allPluralFeminine.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allPluralFeminine;
+
+  /// No description provided for @allClients.
+  ///
+  /// In en, this message translates to:
+  /// **'All clients'**
+  String get allClients;
+
+  /// No description provided for @batchesViewTitleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'View batches'**
+  String get batchesViewTitleLabel;
+
+  /// No description provided for @productsViewTitleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'View products'**
+  String get productsViewTitleLabel;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

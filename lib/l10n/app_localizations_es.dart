@@ -444,9 +444,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get batchLabel => 'Lote:';
 
   @override
-  String quantityLabel(Object quantity) {
-    return 'Cantidad: $quantity unidades';
-  }
+  String get quantityLabel => 'Cantidad';
 
   @override
   String get clientDetailTitle => 'Detalle del Cliente';
@@ -857,7 +855,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get nameRequired => 'El nombre es obligatorio';
 
   @override
-  String get referenceLabel => 'Referencia/SKU *';
+  String get referenceLabel => 'Referencia';
 
   @override
   String get referenceHint => 'Ej: MESA-001';
@@ -986,7 +984,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get notesLabel => 'Notas';
 
   @override
-  String get notesHint => 'Información adicional...';
+  String get notesHint => 'Observaciones opcionales';
 
   @override
   String get unsavedChanges => 'Sin guardar';
@@ -1001,7 +999,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get discard => 'Descartar';
 
   @override
-  String get productDetailTitle => 'Detalle del Producto';
+  String get productDetailTitle => 'Detalle de Producto';
 
   @override
   String get productNotFound => 'Producto no encontrado';
@@ -1347,7 +1345,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get phaseDescriptionLabel => 'Descripción (opcional)';
 
   @override
-  String get phaseUpdatedSuccess => 'Fase actualizada';
+  String get phaseUpdatedSuccess => 'Fase actualizada correctamente';
 
   @override
   String get noPhasesConfiguredTitle => 'No hay fases configuradas';
@@ -1621,4 +1619,229 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get currentLanguagesLabel => 'Actualmente: Español, English';
+
+  @override
+  String get productionTitle => 'Producción';
+
+  @override
+  String get batchesTitle => 'Lotes de Producción';
+
+  @override
+  String get activeBatchesTitle => 'Lotes Activos';
+
+  @override
+  String get noBatchesFound => 'No se encontraron lotes';
+
+  @override
+  String get createBatchBtn => 'Crear Lote';
+
+  @override
+  String get newBatchTitle => 'Nuevo Lote';
+
+  @override
+  String get newBatchSubtitle => 'Crear un nuevo lote de producción';
+
+  @override
+  String get batchNameLabel => 'Nombre del lote';
+
+  @override
+  String get batchNameHint => 'Ej: Producción Enero 2024';
+
+  @override
+  String get batchNameError => 'Por favor ingresa un nombre';
+
+  @override
+  String get batchCreatedSuccess => 'Lote creado exitosamente';
+
+  @override
+  String get batchStatusDraft => 'Borrador';
+
+  @override
+  String get batchStatusInProgress => 'En Proceso';
+
+  @override
+  String get batchStatusCompleted => 'Completado';
+
+  @override
+  String get batchStatusCancelled => 'Cancelado';
+
+  @override
+  String get batchDetailTitle => 'Detalle del Lote';
+
+  @override
+  String get addProductBtn => 'Añadir Producto';
+
+  @override
+  String get startProductionBtn => 'Iniciar Producción';
+
+  @override
+  String get completeBatchBtn => 'Completar Lote';
+
+  @override
+  String get deleteBatchAction => 'Eliminar Lote';
+
+  @override
+  String get deleteBatchConfirmTitle => '¿Eliminar lote?';
+
+  @override
+  String get deleteBatchConfirmMsg => 'Esta acción no se puede deshacer y eliminará todos los datos asociados.';
+
+  @override
+  String get batchDeletedSuccess => 'Lote eliminado correctamente';
+
+  @override
+  String get batchStartedSuccess => 'Producción iniciada';
+
+  @override
+  String get batchCompletedSuccess => 'Lote marcado como completado';
+
+  @override
+  String get noProductsInBatch => 'No hay productos en este lote';
+
+  @override
+  String get productsTitle => 'Productos';
+
+  @override
+  String get addProductsTitle => 'Añadir Productos';
+
+  @override
+  String get selectProductsInstruction => 'Selecciona los productos para añadir al lote';
+
+  @override
+  String get noAvailableProducts => 'No hay productos disponibles para añadir';
+
+  @override
+  String get addSelectedBtn => 'Añadir seleccionados';
+
+  @override
+  String get productsAddedSuccess => 'Productos añadidos correctamente';
+
+  @override
+  String get currentPhaseLabel => 'Fase actual';
+
+  @override
+  String get historyTitle => 'Historial';
+
+  @override
+  String get moveNextPhaseBtn => 'Avanzar Fase';
+
+  @override
+  String get chat => 'Chat';
+
+  @override
+  String get searchMessages => 'Buscar mensajes';
+
+  @override
+  String get searchingMessages => 'Buscando...';
+
+  @override
+  String get writeToSearch => 'Escribe para buscar';
+
+  @override
+  String get searchInMessages => 'Buscar en mensajes';
+
+  @override
+  String get searchPlaceholder => 'Buscar en el contenido, nombres o menciones';
+
+  @override
+  String get messageFound => 'Mensaje encontrado';
+
+  @override
+  String get noPinnedMessages => 'No hay mensajes fijados';
+
+  @override
+  String get chatOfBatch => 'Chat del lote';
+
+  @override
+  String get chatOfProject => 'Chat del proyecto';
+
+  @override
+  String get chatOfProduct => 'Chat del producto';
+
+  @override
+  String get yesterday => 'Ayer';
+
+  @override
+  String get eventBatchCreated => 'Lote creado';
+
+  @override
+  String get eventBatchStarted => 'Producción iniciada';
+
+  @override
+  String get eventBatchCompleted => 'Lote completado';
+
+  @override
+  String get eventBatchStatusChanged => 'Estado cambiado';
+
+  @override
+  String get eventPhaseCompleted => 'Fase completada';
+
+  @override
+  String get eventProductMoved => 'Producto movido de fase';
+
+  @override
+  String get eventProductAdded => 'Producto añadido';
+
+  @override
+  String get eventProductRemoved => 'Producto eliminado';
+
+  @override
+  String get eventProductStatusChanged => 'Estado del producto cambiado';
+
+  @override
+  String get eventDelayDetected => 'Retraso detectado';
+
+  @override
+  String get eventMemberAssigned => 'Miembro asignado';
+
+  @override
+  String get eventMemberRemoved => 'Miembro removido';
+
+  @override
+  String get eventInvoiceIssued => 'Factura emitida';
+
+  @override
+  String get eventPaymentReceived => 'Pago recibido';
+
+  @override
+  String get eventNoteAdded => 'Nota añadida';
+
+  @override
+  String get eventFileUploaded => 'Archivo subido';
+
+  @override
+  String get eventProjectCreated => 'Proyecto creado';
+
+  @override
+  String get eventProjectCompleted => 'Proyecto completado';
+
+  @override
+  String get eventDeadlineApproaching => 'Fecha de entrega próxima';
+
+  @override
+  String get eventQualityCheckCompleted => 'Control de calidad';
+
+  @override
+  String get eventMaterialAssigned => 'Material asignado';
+
+  @override
+  String get allMasculine => 'Todo';
+
+  @override
+  String get allFemenine => 'Toda';
+
+  @override
+  String get allPluralMasculine => 'Todos';
+
+  @override
+  String get allPluralFeminine => 'Todas';
+
+  @override
+  String get allClients => 'Todos los clientes';
+
+  @override
+  String get batchesViewTitleLabel => 'Vista por lotes';
+
+  @override
+  String get productsViewTitleLabel => 'Vista por productos';
 }
