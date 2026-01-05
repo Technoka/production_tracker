@@ -8,6 +8,9 @@ import '../../services/production_batch_service.dart';
 import '../../services/phase_service.dart';
 import '../../models/production_batch_model.dart';
 import 'production_batch_detail_screen.dart';
+import '../../widgets/chat_button.dart';
+import '../../services/message_service.dart';
+import '../../screens/chat/chat_screen.dart';
 
 class BatchProductDetailScreen extends StatefulWidget {
   final String organizationId;
@@ -26,6 +29,9 @@ class BatchProductDetailScreen extends StatefulWidget {
 }
 
 class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
+  
+  final MessageService _messageService = MessageService();
+
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
@@ -69,12 +75,62 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       (p) => p.id == widget.productId,
       orElse: () => products.first, // Fallback si no se encuentra
     );
-
+    
         return Scaffold(
           appBar: AppBar(
             title: Text(product.productName),
             actions: [
-  if (user?.canManageProduction ?? false)
+  // Botón de chat
+            // Botón de chat en el AppBar con badge
+              if (user != null)
+                StreamBuilder<int>(
+                  stream: _messageService.getUnreadCount(
+                    organizationId: widget.organizationId,
+                    entityType: 'batch',
+                    entityId: widget.batchId,
+                    userId: user.uid,
+                  ),
+                  builder: (context, unreadSnapshot) {
+                    final unreadCount = unreadSnapshot.data ?? 0;
+
+                    return Stack(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.chat_bubble_outline),
+                          onPressed: () => _openChat(product),
+                          tooltip: 'Chat del lote',
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 18,
+                                minHeight: 18,
+                              ),
+                              child: Text(
+                                unreadCount > 99 ? '99+' : '$unreadCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+
+  if (user!.canManageProduction)
     PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert),
       onSelected: (value) => _handleAction(value, product),
@@ -1760,6 +1816,23 @@ Future<bool?> _showConfirmDialog(String title, String message) {
             child: const Text('Eliminar'),
           ),
         ],
+      ),
+    );
+  }
+
+    /// Abrir pantalla de chat
+  void _openChat(BatchProductModel product) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(
+          organizationId: widget.organizationId,
+          entityType: 'batch_product',
+          entityId: product.id,
+          parentId: product.batchId,
+          entityName: '${product.productName} - ${product.productReference}',
+          showInternalMessages: true, // Mostrar mensajes internos para el equipo
+        ),
       ),
     );
   }

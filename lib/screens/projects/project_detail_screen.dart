@@ -14,6 +14,7 @@ import 'edit_project_screen.dart';
 import '../products/add_product_to_project_screen.dart';
 import '../products/project_product_detail_screen.dart';
 import '../../widgets/universal_loading_screen.dart';
+import '../../widgets/chat_button.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final String projectId; // Cambiar a recibir solo el ID
@@ -102,7 +103,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
         if (!project.assignedMembers.contains(user.uid) && 
             !RoleUtils.canManageProjects(user.role)) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Acceso Denegado')),
+            appBar: AppBar(
+              title: const Text('Acceso Denegado'),
+              ),
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -144,6 +147,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
       appBar: AppBar(
         title: const Text('Detalle del Proyecto'),
         actions: [
+  // Botón de chat
+    ChatButton(
+      organizationId: user.organizationId!,
+      entityType: 'project',
+      entityId: widget.projectId,
+      entityName: project.name,
+      user: user,
+      showInAppBar: true,
+    ),
           if (canEdit)
             IconButton(
               icon: const Icon(Icons.edit),

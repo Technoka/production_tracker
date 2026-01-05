@@ -5,6 +5,7 @@ import '../models/production_batch_model.dart';
 import '../models/batch_product_model.dart';
 import '../models/phase_model.dart';
 import '../../services/phase_service.dart';
+import '../../utils/message_events_helper.dart';
 
 class ProductionBatchService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -942,6 +943,17 @@ Future<bool> updateProductPhaseFromKanban({
             completedBy: userId,
             completedByName: userName,
           );
+
+                // Si se completó una fase
+        await MessageEventsHelper.onPhaseCompleted(
+          organizationId: organizationId,
+          batchId: batchId,
+          productId: productId,
+          phaseName: phaseId,
+          completedBy: userName,
+          productName: product.productName,
+        );
+      
         }
       }
 
@@ -972,6 +984,17 @@ Future<bool> updateProductPhaseFromKanban({
           );
         }
       }
+
+      // Generar evento de movimiento de fase
+      await MessageEventsHelper.onProductMoved(
+        organizationId: organizationId,
+        batchId: batchId,
+        productId: productId,
+        productName: product.productName,
+        oldPhase: product.currentPhaseName,
+        newPhase: newPhaseId,
+        movedBy: userName,
+      );
 
       // Marcar nueva fase como en progreso
       if (updatedProgress.containsKey(newPhaseId)) {
