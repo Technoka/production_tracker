@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/production_batch_model.dart';
 import '../services/production_batch_service.dart';
-import '../screens/production/production_batches_list_screen.dart';
+import '../screens/production/production_screen.dart';
 
 class ProductionSummaryWidget extends StatelessWidget {
   final String organizationId;
@@ -49,7 +49,7 @@ class ProductionSummaryWidget extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const ProductionBatchesListScreen(),
+                  builder: (context) => const ProductionScreen(),
                 ),
               );
             },
