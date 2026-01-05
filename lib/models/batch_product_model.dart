@@ -384,28 +384,12 @@ class BatchProductModel {
   
   // Validar que reparados + basura = devueltos
   bool get isReturnBalanced => (repairedCount + discardedCount) == returnedCount;
-
   
   // Helpers de urgencia:
   UrgencyLevel get urgencyEnum => UrgencyLevel.fromString(urgencyLevel);
-  Color get urgencyColor {
-    switch (urgencyLevel) {
-      case 'low': return Colors.green;
-      case 'medium': return Colors.orange;
-      case 'high': return Colors.red[500]!;
-      case 'critical': return Colors.red[900]!;
-      default: return Colors.grey;
-    }
-  }
-  String get urgencyDisplayName {
-    switch (urgencyLevel) {
-      case 'low': return 'Baja';
-      case 'medium': return 'Media';
-      case 'high': return 'Alta';
-      case 'critical': return 'Crítica';
-      default: return 'Desconocida';
-    }
-  }
+  String get urgencyDisplayName => urgencyEnum.displayName;
+  int get urgencyNumericValue => urgencyEnum.numericValue;
+  Color get urgencyColor => urgencyEnum.color;
 }
 
 /// Datos de progreso por fase

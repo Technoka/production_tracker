@@ -1,6 +1,7 @@
 // lib/utils/filter_utils.dart
 
 import 'package:flutter/material.dart';
+import '../../models/production_batch_model.dart';
 
 class FilterUtils {
   /// Widget de filtro tipo chip reutilizable
@@ -366,28 +367,25 @@ class FilterUtils {
     return filterValues.where((v) => v != null && (v is! String || v.isNotEmpty)).length;
   }
 
-  /// Widget de selector de urgencia circular (cicla entre niveles)
+/// Widget de selector de urgencia circular (cicla entre niveles)
   static Widget buildUrgencySelector({
     required BuildContext context,
     required String urgencyLevel,
     required Function(String) onChanged,
     bool compact = false,
   }) {
-    final urgencies = [
-      {'value': 'low', 'label': 'Baja', 'color': Colors.green},
-      {'value': 'medium', 'label': 'Media', 'color': Colors.orange},
-      {'value': 'high', 'label': 'Alta', 'color': Colors.red[500]!},
-      {'value': 'critical', 'label': 'Crítica', 'color': Colors.red[900]!},
-    ];
-
-    final currentIndex = urgencies.indexWhere((u) => u['value'] == urgencyLevel);
-    final current = currentIndex >= 0 ? urgencies[currentIndex] : urgencies[1];
+    // 1. Obtenemos el nivel actual usando el método estático del Enum
+    final currentLevel = UrgencyLevel.fromString(urgencyLevel);
 
     return InkWell(
       onTap: () {
-        // Ciclar al siguiente nivel
-        final nextIndex = (currentIndex + 1) % urgencies.length;
-        onChanged(urgencies[nextIndex]['value'] as String);
+        // 2. Lógica de ciclado usando la lista de valores del Enum
+        const allLevels = UrgencyLevel.values;
+        final currentIndex = allLevels.indexOf(currentLevel);
+        final nextIndex = (currentIndex + 1) % allLevels.length;
+        
+        // Devolvemos el string value ('low', 'medium', etc.)
+        onChanged(allLevels[nextIndex].value);
       },
       borderRadius: BorderRadius.circular(8),
       child: Container(
@@ -396,10 +394,10 @@ class FilterUtils {
           vertical: compact ? 10 : 14,
         ),
         decoration: BoxDecoration(
-          color: (current['color'] as Color).withOpacity(0.1),
+          color: currentLevel.color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: (current['color'] as Color).withOpacity(0.3),
+            color: currentLevel.color.withOpacity(0.3),
             width: 1.5,
           ),
         ),
@@ -408,7 +406,7 @@ class FilterUtils {
           children: [
             Icon(
               Icons.priority_high_rounded,
-              color: current['color'] as Color,
+              color: currentLevel.color,
               size: compact ? 18 : 20,
             ),
             const SizedBox(width: 8),
@@ -428,11 +426,11 @@ class FilterUtils {
                     ),
                   if (!compact) const SizedBox(height: 4),
                   Text(
-                    current['label'] as String,
+                    currentLevel.displayName, // Usamos la propiedad del Enum
                     style: TextStyle(
                       fontSize: compact ? 14 : 15,
                       fontWeight: FontWeight.bold,
-                      color: current['color'] as Color,
+                      color: currentLevel.color,
                     ),
                   ),
                 ],
@@ -441,7 +439,7 @@ class FilterUtils {
             const SizedBox(width: 8),
             Icon(
               Icons.refresh_rounded,
-              color: (current['color'] as Color).withOpacity(0.6),
+              color: currentLevel.color.withOpacity(0.6),
               size: compact ? 16 : 18,
             ),
           ],

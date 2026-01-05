@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 /// Estado del lote de producción
 enum BatchStatus {
@@ -20,16 +21,17 @@ enum BatchStatus {
 
 /// Nivel de urgencia del lote
 enum UrgencyLevel {
-  low('low', 'Baja', 1),
-  medium('medium', 'Media', 2),
-  high('high', 'Alta', 3),
-  critical('critical', 'Urgente', 4);
+  low('low', 'Baja', 1, Colors.green),
+  medium('medium', 'Media', 2, Colors.orange),
+  high('high', 'Alta', 3, Colors.red),
+  urgent('urgent', 'Urgente', 4, Color(0xFFB71C1C));
 
   final String value;
   final String displayName;
   final int numericValue;
+  final Color color;
   
-  const UrgencyLevel(this.value, this.displayName, this.numericValue);
+  const UrgencyLevel(this.value, this.displayName, this.numericValue, this.color);
 
   static UrgencyLevel fromString(String value) {
     return UrgencyLevel.values.firstWhere(
@@ -58,7 +60,7 @@ class ProductionBatchModel {
   final DateTime updatedAt;
   
   // CAMBIO: Se elimina priority, solo urgencyLevel
-  final String urgencyLevel; // "low", "medium", "high", "critical"
+  final String urgencyLevel; // "low", "medium", "high", "urgent"
   
   // Campos para futuras fases (SLA)
   final bool isDelayed;
@@ -216,6 +218,7 @@ class ProductionBatchModel {
   UrgencyLevel get urgencyEnum => UrgencyLevel.fromString(urgencyLevel);
   String get urgencyDisplayName => urgencyEnum.displayName;
   int get urgencyNumericValue => urgencyEnum.numericValue;
+  Color get urgencyColor => urgencyEnum.color;
 
   /// Progreso del lote (0.0 a 1.0)
   double get progress {

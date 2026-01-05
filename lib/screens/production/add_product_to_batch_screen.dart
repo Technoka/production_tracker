@@ -441,27 +441,6 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                           final notes = item['notes'] as String?;
                           final sequence = index + 1 + (_batchData?.totalProducts ?? 0);
 
-                      // Determinar color y texto de urgencia
-                          Color urgencyColor;
-                          String urgencyLabel;
-                          switch (urgency) {
-                            case 'low': 
-                              urgencyColor = Colors.green; 
-                              urgencyLabel = 'Baja';
-                              break;
-                            case 'high': 
-                              urgencyColor = Colors.red[500]!; 
-                              urgencyLabel = 'Alta';
-                              break;
-                            case 'critical': 
-                              urgencyColor = Colors.red[900]!; 
-                              urgencyLabel = 'Crítica';
-                              break;
-                            default: 
-                              urgencyColor = Colors.orange;
-                              urgencyLabel = 'Media';
-                          }
-
   return Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             decoration: BoxDecoration(
@@ -475,11 +454,11 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                                 // 1. LEADING: Avatar con número
                                 CircleAvatar(
                                   radius: 18,
-                                  backgroundColor: urgencyColor.withOpacity(0.2),
+                                  backgroundColor: UrgencyLevel.fromString(urgency).color.withOpacity(0.2),
                                   child: Text(
                                     '#$sequence',
                                     style: TextStyle(
-                                      color: urgencyColor,
+                                      color: UrgencyLevel.fromString(urgency).color,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                     ),
@@ -544,17 +523,18 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     // ARRIBA: Chip de urgencia
+                                    if (UrgencyLevel.fromString(urgency).value == UrgencyLevel.urgent.value)
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: urgencyColor.withOpacity(0.1),
+                                        color: UrgencyLevel.fromString(urgency).color.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: urgencyColor.withOpacity(0.3)),
+                                        border: Border.all(color: UrgencyLevel.fromString(urgency).color.withOpacity(0.3)),
                                       ),
                                       child: Text(
-                                        urgencyLabel,
+                                        UrgencyLevel.fromString(urgency).displayName,
                                         style: TextStyle(
-                                          color: urgencyColor,
+                                          color: UrgencyLevel.fromString(urgency).color,
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -678,28 +658,6 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                   final product = products[index];
                   
                           final urgency = product.urgencyLevel as String? ?? 'medium';
-
-                  
-                      // Determinar color y texto de urgencia
-                          Color urgencyColor;
-                          String urgencyLabel;
-                          switch (urgency) {
-                            case 'low': 
-                              urgencyColor = Colors.green; 
-                              urgencyLabel = 'Baja';
-                              break;
-                            case 'high': 
-                              urgencyColor = Colors.red[500]!; 
-                              urgencyLabel = 'Alta';
-                              break;
-                            case 'critical': 
-                              urgencyColor = Colors.red[900]!; 
-                              urgencyLabel = 'Crítica';
-                              break;
-                            default: 
-                              urgencyColor = Colors.orange;
-                              urgencyLabel = 'Media';
-                          }
                           
          return Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -714,11 +672,11 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                                 // 1. LEADING: Avatar con número
                                 CircleAvatar(
                                   radius: 18,
-                                  backgroundColor: urgencyColor.withOpacity(0.2),
+                                  backgroundColor: product.urgencyColor.withOpacity(0.2),
                                   child: Text(
                                     '#${product.productNumber}',
                                     style: TextStyle(
-                                      color: urgencyColor,
+                                      color: product.urgencyColor,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                     ),
@@ -786,14 +744,14 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: urgencyColor.withOpacity(0.1),
+                                        color: product.urgencyColor.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: urgencyColor.withOpacity(0.3)),
+                                        border: Border.all(color: product.urgencyColor.withOpacity(0.3)),
                                       ),
                                       child: Text(
-                                        urgencyLabel,
+                                        UrgencyLevel.fromString(urgency).displayName,
                                         style: TextStyle(
-                                          color: urgencyColor,
+                                          color: product.urgencyColor,
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                         ),
