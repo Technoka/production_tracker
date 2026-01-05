@@ -33,6 +33,9 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
 
   String _searchQuery = '';
   String? _batchFilter;
+  String? _clientFilter; // NUEVO
+  String? _projectFilter; // NUEVO
+  bool _onlyUrgentFilter = false; // NUEVO
   UserModel? _currentUser;
 
   Map<String, List<Map<String, dynamic>>> _cachedProductsByPhase = {};
@@ -100,13 +103,16 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
   }
 
   bool get _hasActiveFilters {
-    return _searchQuery.isNotEmpty || _batchFilter != null;
+    return _searchQuery.isNotEmpty || _batchFilter != null || _projectFilter != null || _clientFilter != null || _onlyUrgentFilter;
   }
 
   void _clearAllFilters() {
     setState(() {
       _searchQuery = '';
       _batchFilter = null;
+      _projectFilter = null;
+      _clientFilter = null;
+      _onlyUrgentFilter = false;
     });
   }
 
@@ -239,23 +245,76 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
           .watchBatches(user.organizationId!),
       builder: (context, snapshot) {
         final batches = snapshot.data ?? [];
+
+        // Extraer listas únicas para los filtros basados en los lotes actuales
+        // Esto evita tener que hacer queries extra a las colecciones de clientes/proyectos
         
+        // 1. Clientes únicos
+        final Map<String, String> uniqueClients = {};
+        // 2. Proyectos únicos
+        final Map<String, String> uniqueProjects = {};
+
+        for (var batch in batches) {
+            uniqueClients[batch.clientId] = batch.clientName;
+            uniqueProjects[batch.projectId] = batch.projectName;
+        }
+
         return Wrap(
           spacing: 6.0,
           runSpacing: 6.0,
           alignment: WrapAlignment.start,
           children: [
+            // FILTRO: Lotes
             FilterUtils.buildFilterOption<String>(
               context: context,
-              label: l10n.batchLabel, // Usando clave existente hack
+              label: l10n.batchLabel, 
               value: _batchFilter,
               icon: Icons.inventory_2_outlined,
-              allLabel: l10n.selectAll.replaceAll(' Seleccionar ', ''), // Usando "Todo" o similar
+              allLabel: l10n.allPluralMasculine,
               items: batches.map((b) => DropdownMenuItem(
                 value: b.id,
                 child: Text(b.batchNumber, overflow: TextOverflow.ellipsis),
               )).toList(),
               onChanged: (val) => setState(() => _batchFilter = val),
+            ),
+
+            // FILTRO: Clientes
+            FilterUtils.buildFilterOption<String>(
+              context: context,
+              label: l10n.client,
+              value: _clientFilter,
+              icon: Icons.business,
+              allLabel: l10n.allPluralMasculine,
+              items: uniqueClients.entries.map((entry) => DropdownMenuItem(
+                value: entry.key,
+                child: Text(entry.value, overflow: TextOverflow.ellipsis),
+              )).toList(),
+              onChanged: (val) => setState(() => _clientFilter = val),
+            ),
+
+            // FILTRO: Proyectos
+            FilterUtils.buildFilterOption<String>(
+              context: context,
+              label: l10n.project,
+              value: _projectFilter,
+              icon: Icons.folder_outlined,
+              allLabel: l10n.allPluralMasculine,
+              items: uniqueProjects.entries.map((entry) => DropdownMenuItem(
+                value: entry.key,
+                child: Text(entry.value, overflow: TextOverflow.ellipsis),
+              )).toList(),
+              onChanged: (val) => setState(() => _projectFilter = val),
+            ),
+
+            // FILTRO: Urgencia (Toggle visual estilo chip)
+            FilterUtils.buildUrgencyFilterChip(
+                context: context,
+                isUrgentOnly: _onlyUrgentFilter,
+                onToggle: () {
+                    setState(() {
+                        _onlyUrgentFilter = !_onlyUrgentFilter;
+                    });
+                }
             ),
           ],
         );
@@ -278,6 +337,11 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
       final batches = await batchService.watchBatches(organizationId).first;
 
       for (final batch in batches) {
+        // FILTROS DE NIVEL DE LOTE (Optimización: saltar lote entero si no coincide)
+        if (_batchFilter != null && batch.id != _batchFilter) continue;
+        if (_clientFilter != null && batch.clientId != _clientFilter) continue;
+        if (_projectFilter != null && batch.projectId != _projectFilter) continue;
+
         final products = await batchService
             .watchBatchProducts(organizationId, batch.id)
             .first;
@@ -293,6 +357,14 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
 
           if (_batchFilter != null && batch.id != _batchFilter) {
             passesFilter = false;
+          }
+
+          // Filtro de Urgencia
+          if (passesFilter && _onlyUrgentFilter) {
+             // Verificamos si es urgente. Asumimos que 'urgent' es el string en BD
+             if (product.urgencyLevel != UrgencyLevel.urgent.value) {
+                 passesFilter = false;
+             }
           }
 
           if (passesFilter) {
