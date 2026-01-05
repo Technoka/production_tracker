@@ -533,7 +533,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                           final product = item['product'] as ProductCatalogModel;
                           final quantity = item['quantity'] as int;
                           final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
-                          final urgency = item['urgencyLevel'] as String? ?? 'medium';
+                          final urgency = item['urgencyLevel'] as String? ?? UrgencyLevel.medium.value;
                           final notes = item['notes'] as String?;
                           final sequence = index + 1;
 
