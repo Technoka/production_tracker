@@ -305,24 +305,49 @@ class SystemEventType {
   static const String paymentReceived = 'payment_received';
   static const String noteAdded = 'note_added';
   static const String fileUploaded = 'file_uploaded';
+  static const String productAdded = 'product_added';
+  static const String productRemoved = 'product_removed';
+  static const String productStatusChanged = 'product_status_changed';
+  static const String projectCreated = 'project_created';
+  static const String projectStatusChanged = 'project_status_changed';
+  static const String projectCompleted = 'project_completed';
+  static const String deadlineApproaching = 'deadline_approaching';
+  static const String qualityCheckCompleted = 'quality_check_completed';
+  static const String materialAssigned = 'material_assigned';
+  static const String batchStarted = 'batch_started';
+  static const String batchCompleted = 'batch_completed';
 
   /// Generar contenido legible para cada tipo de evento
   static String getEventContent(String eventType, Map<String, dynamic>? data) {
+    final productInfo = data?['productNumber'] != null 
+        ? 'Producto #${data!['productNumber']} (SKU: ${data['productCode'] ?? 'N/A'}): '
+        : '';
+    
     switch (eventType) {
       case batchCreated:
         return 'Lote creado';
+      case batchStarted:
+        return 'Producción iniciada';
+      case batchCompleted:
+        return 'Lote completado';
       case batchStatusChanged:
         return 'Estado cambiado a ${data?['newStatus'] ?? 'desconocido'}';
       case phaseCompleted:
-        return 'Fase "${data?['phaseName'] ?? 'desconocida'}" completada';
+        return '${productInfo}Fase "${data?['phaseName'] ?? 'desconocida'}" completada';
       case productMoved:
-        return 'Producto movido a fase "${data?['newPhase'] ?? 'desconocida'}"';
+        return '${productInfo}Movido a fase "${data?['newPhase'] ?? 'desconocida'}"';
       case delayDetected:
-        return 'Retraso detectado: ${data?['delayHours'] ?? 0} horas';
+        return '${productInfo}Retraso detectado: ${data?['delayHours'] ?? 0} horas';
+      case productAdded:
+        return '${productInfo}Añadido al lote';
+      case productRemoved:
+        return '${productInfo}Eliminado del lote';
+      case productStatusChanged:
+        return '${productInfo}Estado cambiado a ${data?['newStatus'] ?? 'desconocido'}';
       case memberAssigned:
-        return '${data?['memberName'] ?? 'Usuario'} asignado al lote';
+        return '${data?['memberName'] ?? 'Usuario'} asignado';
       case memberRemoved:
-        return '${data?['memberName'] ?? 'Usuario'} removido del lote';
+        return '${data?['memberName'] ?? 'Usuario'} removido';
       case invoiceIssued:
         return 'Factura emitida: ${data?['invoiceNumber'] ?? ''}';
       case paymentReceived:
@@ -331,6 +356,18 @@ class SystemEventType {
         return 'Nueva nota añadida';
       case fileUploaded:
         return 'Archivo subido: ${data?['fileName'] ?? ''}';
+      case projectCreated:
+        return 'Proyecto creado: ${data?['projectName'] ?? ''}';
+      case projectStatusChanged:
+        return 'Estado del proyecto: ${data?['newStatus'] ?? ''}';
+      case projectCompleted:
+        return 'Proyecto completado';
+      case deadlineApproaching:
+        return 'Fecha de entrega próxima: ${data?['daysRemaining'] ?? 0} días';
+      case qualityCheckCompleted:
+        return '${productInfo}Control de calidad: ${data?['result'] ?? ''}';
+      case materialAssigned:
+        return 'Material asignado: ${data?['materialName'] ?? ''}';
       default:
         return 'Evento del sistema';
     }
@@ -341,6 +378,10 @@ class SystemEventType {
     switch (eventType) {
       case batchCreated:
         return '✨';
+      case batchStarted:
+        return '▶️';
+      case batchCompleted:
+        return '🏁';
       case batchStatusChanged:
         return '🔄';
       case phaseCompleted:
@@ -349,6 +390,12 @@ class SystemEventType {
         return '➡️';
       case delayDetected:
         return '⚠️';
+      case productAdded:
+        return '➕';
+      case productRemoved:
+        return '➖';
+      case productStatusChanged:
+        return '🔄';
       case memberAssigned:
         return '👤';
       case memberRemoved:
@@ -361,6 +408,18 @@ class SystemEventType {
         return '📝';
       case fileUploaded:
         return '📎';
+      case projectCreated:
+        return '🆕';
+      case projectStatusChanged:
+        return '📊';
+      case projectCompleted:
+        return '🎉';
+      case deadlineApproaching:
+        return '⏰';
+      case qualityCheckCompleted:
+        return '🔍';
+      case materialAssigned:
+        return '📦';
       default:
         return 'ℹ️';
     }

@@ -48,6 +48,42 @@ class MessageEventsHelper {
     );
   }
 
+  /// Evento: Lote iniciado
+  static Future<void> onBatchStarted({
+    required String organizationId,
+    required String batchId,
+    required String startedBy,
+  }) async {
+    await _messageService.createSystemEvent(
+      organizationId: organizationId,
+      entityType: 'batch',
+      entityId: batchId,
+      eventType: SystemEventType.batchStarted,
+      eventData: {
+        'startedBy': startedBy,
+      },
+      isInternal: false,
+    );
+  }
+
+  /// Evento: Lote completado
+  static Future<void> onBatchCompleted({
+    required String organizationId,
+    required String batchId,
+    required String completedBy,
+  }) async {
+    await _messageService.createSystemEvent(
+      organizationId: organizationId,
+      entityType: 'batch',
+      entityId: batchId,
+      eventType: SystemEventType.batchCompleted,
+      eventData: {
+        'completedBy': completedBy,
+      },
+      isInternal: false,
+    );
+  }
+
   /// Evento: Fase completada
   static Future<void> onPhaseCompleted({
     required String organizationId,
@@ -56,6 +92,8 @@ class MessageEventsHelper {
     required String phaseName,
     required String completedBy,
     String? productName,
+    int? productNumber,
+    String? productCode,
   }) async {
     await _messageService.createSystemEvent(
       organizationId: organizationId,
@@ -66,6 +104,8 @@ class MessageEventsHelper {
         'phaseName': phaseName,
         'productId': productId,
         'productName': productName,
+        'productNumber': productNumber,
+        'productCode': productCode,
         'completedBy': completedBy,
       },
       isInternal: false,
@@ -81,6 +121,8 @@ class MessageEventsHelper {
     required String oldPhase,
     required String newPhase,
     required String movedBy,
+    int? productNumber,
+    String? productCode,
   }) async {
     await _messageService.createSystemEvent(
       organizationId: organizationId,
@@ -90,9 +132,93 @@ class MessageEventsHelper {
       eventData: {
         'productId': productId,
         'productName': productName,
+        'productNumber': productNumber,
+        'productCode': productCode,
         'oldPhase': oldPhase,
         'newPhase': newPhase,
         'movedBy': movedBy,
+      },
+      isInternal: false,
+    );
+  }
+
+  /// Evento: Producto añadido al lote
+  static Future<void> onProductAddedToBatch({
+    required String organizationId,
+    required String batchId,
+    required String productId,
+    required String productName,
+    int? productNumber,
+    String? productCode,
+    required String addedBy,
+  }) async {
+    await _messageService.createSystemEvent(
+      organizationId: organizationId,
+      entityType: 'batch',
+      entityId: batchId,
+      eventType: SystemEventType.productAdded,
+      eventData: {
+        'productId': productId,
+        'productName': productName,
+        'productNumber': productNumber,
+        'productCode': productCode,
+        'addedBy': addedBy,
+      },
+      isInternal: false,
+    );
+  }
+
+  /// Evento: Producto eliminado del lote
+  static Future<void> onProductRemoved({
+    required String organizationId,
+    required String batchId,
+    required String productId,
+    required String productName,
+    int? productNumber,
+    String? productCode,
+    required String removedBy,
+  }) async {
+    await _messageService.createSystemEvent(
+      organizationId: organizationId,
+      entityType: 'batch',
+      entityId: batchId,
+      eventType: SystemEventType.productRemoved,
+      eventData: {
+        'productId': productId,
+        'productName': productName,
+        'productNumber': productNumber,
+        'productCode': productCode,
+        'removedBy': removedBy,
+      },
+      isInternal: true, // Interno
+    );
+  }
+
+  /// Evento: Estado del producto cambiado
+  static Future<void> onProductStatusChanged({
+    required String organizationId,
+    required String batchId,
+    required String productId,
+    required String productName,
+    int? productNumber,
+    String? productCode,
+    required String oldStatus,
+    required String newStatus,
+    required String changedBy,
+  }) async {
+    await _messageService.createSystemEvent(
+      organizationId: organizationId,
+      entityType: 'batch',
+      entityId: batchId,
+      eventType: SystemEventType.productStatusChanged,
+      eventData: {
+        'productId': productId,
+        'productName': productName,
+        'productNumber': productNumber,
+        'productCode': productCode,
+        'oldStatus': oldStatus,
+        'newStatus': newStatus,
+        'changedBy': changedBy,
       },
       isInternal: false,
     );
@@ -299,7 +425,7 @@ class MessageEventsHelper {
   // =================================================================
 
   /// Evento: Producto añadido al proyecto
-  static Future<void> onProductAdded({
+  static Future<void> onProductAddedToProject({
     required String organizationId,
     required String projectId,
     required String productId,

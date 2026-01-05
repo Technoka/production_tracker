@@ -153,7 +153,7 @@ class MessageService {
     final messagesRef = _getMessagesCollection(organizationId, entityType, entityId);
 
     final content = SystemEventType.getEventContent(eventType, eventData);
-
+print('message id: ${messagesRef.doc().id} ------------------------------------------');
     final message = MessageModel(
       id: messagesRef.doc().id,
       entityType: entityType,

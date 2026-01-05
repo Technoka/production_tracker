@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/message_model.dart';
 import '../../models/user_model.dart';
 import '../../services/message_service.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/message_bubble_widget.dart';
 import '../../widgets/message_input_widget.dart';
-import '../../l10n/app_localizations.dart';
+import '../../widgets/message_search_delegate.dart';
 
+/// Pantalla de chat reutilizable para lotes, proyectos y productos
 class ChatScreen extends StatefulWidget {
   final String organizationId;
-  final String entityType;
+  final String entityType; // "batch", "project", "product"
   final String entityId;
   final String entityName;
   final bool showInternalMessages;
@@ -43,6 +45,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _loadCurrentUser();
     _scrollController.addListener(_onScroll);
     
+    // Marcar mensajes como leídos al entrar
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _markAllAsRead();
     });
@@ -55,6 +58,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _onScroll() {
+    // Mostrar botón de scroll to bottom si no está en el final
     final showButton = _scrollController.offset > 500;
     if (showButton != _showScrollToBottom) {
       setState(() => _showScrollToBottom = showButton);
@@ -83,7 +87,6 @@ class _ChatScreenState extends State<ChatScreen> {
     String content,
     List<String> mentions,
     bool isInternal,
-    AppLocalizations l10n,
   ) async {
     if (_currentUser == null || content.trim().isEmpty) return;
 
@@ -101,10 +104,13 @@ class _ChatScreenState extends State<ChatScreen> {
         parentMessageId: _replyingTo?.id,
       );
 
+      // Limpiar respuesta
       setState(() => _replyingTo = null);
+
+      // Scroll to bottom
       _scrollToBottom();
     } catch (e) {
-      _showError('${l10n.sendMessageError} $e');
+      _showError('Error al enviar mensaje: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -120,7 +126,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void _handleMessageLongPress(MessageModel message, AppLocalizations l10n) {
+  void _handleMessageLongPress(MessageModel message) {
     if (_currentUser == null) return;
 
     showModalBottomSheet(
@@ -128,11 +134,11 @@ class _ChatScreenState extends State<ChatScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => _buildMessageActions(message, l10n),
+      builder: (context) => _buildMessageActions(message),
     );
   }
 
-  Widget _buildMessageActions(MessageModel message, AppLocalizations l10n) {
+  Widget _buildMessageActions(MessageModel message) {
     final canEdit = message.canEdit(_currentUser!.uid);
     final canDelete = message.canDelete(_currentUser!.uid, _currentUser!.role == 'admin');
 
@@ -140,6 +146,7 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Handle
           Container(
             margin: const EdgeInsets.only(top: 8, bottom: 16),
             width: 40,
@@ -150,65 +157,72 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
+          // Responder
           if (!message.isSystemGenerated)
             ListTile(
               leading: const Icon(Icons.reply),
-              title: Text(l10n.reply),
+              title: const Text('Responder'),
               onTap: () {
                 Navigator.pop(context);
                 setState(() => _replyingTo = message);
               },
             ),
 
+          // Reaccionar
           if (!message.isSystemGenerated)
             ListTile(
               leading: const Icon(Icons.add_reaction),
-              title: Text(l10n.react),
+              title: const Text('Reaccionar'),
               onTap: () {
                 Navigator.pop(context);
                 EmojiReactionPicker.show(context, (emoji) {
-                  _addReaction(message, emoji, l10n);
+                  _addReaction(message, emoji);
                 });
               },
             ),
 
+          // Copiar
           if (!message.isSystemGenerated)
             ListTile(
               leading: const Icon(Icons.copy),
-              title: Text(l10n.copy),
+              title: const Text('Copiar'),
               onTap: () {
                 Navigator.pop(context);
-                _showSuccess(l10n.textCopied);
+                // TODO: Implementar copiar al portapapeles
+                _showSuccess('Texto copiado');
               },
             ),
 
+          // Fijar/Desfijar
           if (!message.isSystemGenerated)
             ListTile(
               leading: Icon(message.isPinned ? Icons.push_pin : Icons.push_pin_outlined),
-              title: Text(message.isPinned ? l10n.unpin : l10n.pin),
+              title: Text(message.isPinned ? 'Desfijar' : 'Fijar'),
               onTap: () {
                 Navigator.pop(context);
-                _togglePin(message, l10n);
+                _togglePin(message);
               },
             ),
 
+          // Editar
           if (canEdit)
             ListTile(
               leading: const Icon(Icons.edit),
-              title: Text(l10n.editMessage),
+              title: const Text('Editar'),
               onTap: () {
                 Navigator.pop(context);
-                _showEditDialog(message, l10n);
+                _showEditDialog(message);
               },
             ),
 
+          // Eliminar
           if (canDelete)
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: Text(l10n.deleteMessage, style: const TextStyle(color: Colors.red)),
+              title: const Text('Eliminar', style: TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
-                _confirmDelete(message, l10n);
+                _confirmDelete(message);
               },
             ),
 
@@ -218,15 +232,17 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Future<void> _addReaction(MessageModel message, String emoji, AppLocalizations l10n) async {
+  Future<void> _addReaction(MessageModel message, String emoji) async {
     if (_currentUser == null) return;
 
     try {
+      // Verificar si el usuario ya reaccionó con este emoji
       final hasReacted = message.reactions.any(
         (r) => r.userId == _currentUser!.uid && r.emoji == emoji,
       );
 
       if (hasReacted) {
+        // Quitar reacción
         await _messageService.removeReaction(
           organizationId: widget.organizationId,
           entityType: widget.entityType,
@@ -236,6 +252,7 @@ class _ChatScreenState extends State<ChatScreen> {
           userId: _currentUser!.uid,
         );
       } else {
+        // Añadir reacción
         await _messageService.addReaction(
           organizationId: widget.organizationId,
           entityType: widget.entityType,
@@ -246,11 +263,11 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     } catch (e) {
-      _showError('${l10n.reactionError} $e');
+      _showError('Error al reaccionar: $e');
     }
   }
 
-  Future<void> _togglePin(MessageModel message, AppLocalizations l10n) async {
+  Future<void> _togglePin(MessageModel message) async {
     try {
       await _messageService.togglePin(
         organizationId: widget.organizationId,
@@ -259,31 +276,31 @@ class _ChatScreenState extends State<ChatScreen> {
         messageId: message.id,
         isPinned: !message.isPinned,
       );
-      _showSuccess(message.isPinned ? l10n.messageUnpinned : l10n.messagePinned);
+      _showSuccess(message.isPinned ? 'Mensaje desfijado' : 'Mensaje fijado');
     } catch (e) {
-      _showError('${l10n.error}: $e');
+      _showError('Error: $e');
     }
   }
 
-  void _showEditDialog(MessageModel message, AppLocalizations l10n) {
+  void _showEditDialog(MessageModel message) {
     final controller = TextEditingController(text: message.content);
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.editMessage),
+        title: const Text('Editar mensaje'),
         content: TextField(
           controller: controller,
           maxLines: 3,
-          decoration: InputDecoration(
-            hintText: l10n.newContentHint,
-            border: const OutlineInputBorder(),
+          decoration: const InputDecoration(
+            hintText: 'Nuevo contenido...',
+            border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
+            child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -302,28 +319,28 @@ class _ChatScreenState extends State<ChatScreen> {
                   newContent: newContent,
                 );
                 Navigator.pop(context);
-                _showSuccess(l10n.messageEdited);
+                _showSuccess('Mensaje editado');
               } catch (e) {
-                _showError('${l10n.editError} $e');
+                _showError('Error al editar: $e');
               }
             },
-            child: Text(l10n.save),
+            child: const Text('Guardar'),
           ),
         ],
       ),
     );
   }
 
-  void _confirmDelete(MessageModel message, AppLocalizations l10n) {
+  void _confirmDelete(MessageModel message) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.deleteMessage),
-        content: Text(l10n.deleteMessageConfirm),
+        title: const Text('Eliminar mensaje'),
+        content: const Text('¿Estás seguro de que quieres eliminar este mensaje?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
+            child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -335,13 +352,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   messageId: message.id,
                 );
                 Navigator.pop(context);
-                _showSuccess(l10n.messageDeleted);
+                _showSuccess('Mensaje eliminado');
               } catch (e) {
-                _showError('${l10n.deleteError} $e');
+                _showError('Error al eliminar: $e');
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text(l10n.delete),
+            child: const Text('Eliminar'),
           ),
         ],
       ),
@@ -362,8 +379,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
     if (_currentUser == null) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.entityName)),
@@ -372,13 +387,18 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     return Scaffold(
-      appBar: _buildAppBar(l10n),
+      appBar: _buildAppBar(),
       body: Column(
         children: [
-          _buildPinnedMessages(l10n),
-          Expanded(child: _buildMessagesList(l10n)),
+          // Mensajes fijados
+          _buildPinnedMessages(),
+
+          // Lista de mensajes
+          Expanded(child: _buildMessagesList()),
+
+          // Input de mensaje
           MessageInput(
-            onSend: (content, mentions, isInternal) => _sendMessage(content, mentions, isInternal, l10n),
+            onSend: _sendMessage,
             replyingTo: _replyingTo,
             onCancelReply: () => setState(() => _replyingTo = null),
             showInternalToggle: widget.showInternalMessages,
@@ -395,14 +415,16 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(AppLocalizations l10n) {
+  PreferredSizeWidget _buildAppBar() {
+    final l10n = AppLocalizations.of(context)!;
+    
     return AppBar(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(widget.entityName),
           Text(
-            'Chat', // Podrías usar l10n.chat si existe
+            _getEntityTypeLabel(),
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey[300],
@@ -411,28 +433,180 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
       actions: [
+        // Buscar
         IconButton(
           icon: const Icon(Icons.search),
-          onPressed: () {},
+          onPressed: () async {
+            final result = await showSearch(
+              context: context,
+              delegate: MessageSearchDelegate(
+                organizationId: widget.organizationId,
+                entityType: widget.entityType,
+                entityId: widget.entityId,
+                currentUser: _currentUser!,
+              ),
+            );
+
+            // Si se seleccionó un mensaje, scroll hacia él
+            if (result != null) {
+              // TODO: Implementar scroll to message
+              _showSuccess('Mensaje encontrado');
+            }
+          },
+          tooltip: l10n.search,
         ),
+        // Más opciones
         PopupMenuButton(
           itemBuilder: (context) => [
-             PopupMenuItem(
+            PopupMenuItem(
               value: 'info',
               child: Text(l10n.chatInfo),
             ),
-             PopupMenuItem(
+            const PopupMenuItem(
               value: 'mute',
-              child: Text(l10n.muteNotifications),
+              child: Text('Silenciar'), // TODO: Add to l10n
+            ),
+            PopupMenuItem(
+              value: 'pinned',
+              child: Text(l10n.pinnedMessages),
             ),
           ],
-          onSelected: (value) {},
+          onSelected: (value) {
+            if (value == 'pinned') {
+              _showPinnedMessages();
+            }
+          },
         ),
       ],
     );
   }
 
-  Widget _buildPinnedMessages(AppLocalizations l10n) {
+  /// Obtener label del tipo de entidad
+  String _getEntityTypeLabel() {
+    switch (widget.entityType) {
+      case 'batch':
+        return 'Chat del lote';
+      case 'project':
+        return 'Chat del proyecto';
+      case 'product':
+        return 'Chat del producto';
+      default:
+        return 'Chat';
+    }
+  }
+
+  /// Mostrar diálogo con mensajes fijados
+  void _showPinnedMessages() {
+    final l10n = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) {
+          return StreamBuilder<List<MessageModel>>(
+            stream: _messageService.getPinnedMessages(
+              organizationId: widget.organizationId,
+              entityType: widget.entityType,
+              entityId: widget.entityId,
+            ),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.push_pin, size: 48, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No hay mensajes fijados',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final pinnedMessages = snapshot.data!;
+
+              return Column(
+                children: [
+                  // Handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 8, bottom: 16),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+
+                  // Título
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.push_pin),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.pinnedMessages,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${pinnedMessages.length}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const Divider(),
+
+                  // Lista de mensajes fijados
+                  Expanded(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: pinnedMessages.length,
+                      itemBuilder: (context, index) {
+                        final message = pinnedMessages[index];
+                        return MessageBubble(
+                          message: message,
+                          currentUser: _currentUser!,
+                          onLongPress: () {
+                            Navigator.pop(context);
+                            _handleMessageLongPress(message);
+                          },
+                          onReactionTap: (emoji) => _addReaction(message, emoji),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPinnedMessages() {
     return StreamBuilder<List<MessageModel>>(
       stream: _messageService.getPinnedMessages(
         organizationId: widget.organizationId,
@@ -457,7 +631,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   Icon(Icons.push_pin, size: 16, color: Colors.blue[900]),
                   const SizedBox(width: 8),
                   Text(
-                    '${l10n.pinnedMessages} (${pinnedMessages.length})',
+                    'Mensajes fijados (${pinnedMessages.length})',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -478,7 +652,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildPinnedMessagePreview(MessageModel message) {
     return InkWell(
       onTap: () {
-        // Scroll to pinned message
+        // TODO: Scroll to pinned message
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -492,7 +666,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildMessagesList(AppLocalizations l10n) {
+  Widget _buildMessagesList() {
     return StreamBuilder<List<MessageModel>>(
       stream: _messageService.getMessages(
         organizationId: widget.organizationId,
@@ -507,11 +681,11 @@ class _ChatScreenState extends State<ChatScreen> {
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('${l10n.error}: ${snapshot.error}'));
+          return Center(child: Text('Error: ${snapshot.error}'));
         }
 
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return _buildEmptyState(l10n);
+          return _buildEmptyState();
         }
 
         final messages = snapshot.data!;
@@ -527,8 +701,8 @@ class _ChatScreenState extends State<ChatScreen> {
             return MessageBubble(
               message: message,
               currentUser: _currentUser!,
-              onLongPress: () => _handleMessageLongPress(message, l10n),
-              onReactionTap: (emoji) => _addReaction(message, emoji, l10n),
+              onLongPress: () => _handleMessageLongPress(message),
+              onReactionTap: (emoji) => _addReaction(message, emoji),
               onReply: message.threadCount > 0
                   ? () => setState(() => _replyingTo = message)
                   : null,
@@ -539,7 +713,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildEmptyState(AppLocalizations l10n) {
+  Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -551,7 +725,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            l10n.noMessagesYet,
+            'No hay mensajes aún',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
@@ -560,7 +734,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            l10n.beFirstToMessage,
+            'Sé el primero en enviar un mensaje',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[500],

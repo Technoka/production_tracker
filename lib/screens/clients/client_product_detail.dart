@@ -43,7 +43,7 @@ class ClientProductDetail extends StatelessWidget {
                       ),
                       Chip(
                         avatar: const Icon(Icons.inventory_2, size: 16),
-                        label: Text(l10n.quantityLabel(product.quantity)),
+                        label: Text('${l10n.quantityLabel}: ${product.quantity}'),
                       ),
                     ],
                   ),

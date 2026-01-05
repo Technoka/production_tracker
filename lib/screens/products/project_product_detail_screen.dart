@@ -371,7 +371,7 @@ class _ProjectProductDetailScreenState
                   leading: const Icon(Icons.numbers),
                   title: Text(l10n.quantity),
                   trailing: Text(
-                    l10n.quantityLabel(product.quantity),
+                    '${l10n.quantityLabel}: ${product.quantity}',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
