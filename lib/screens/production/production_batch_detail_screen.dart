@@ -300,16 +300,7 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
               'Creado por',
               user?.name ?? 'Desconocido',
             ),
-
-            if (batch.expectedCompletionDate != null) ...[
-              const SizedBox(height: 8),
-              _buildInfoRow(
-                Icons.event,
-                'Entrega esperada',
-                _formatDate(batch.expectedCompletionDate!),
-              ),
-            ],
-
+            
             // Notas
             if (batch.notes != null && batch.notes!.isNotEmpty) ...[
               const Divider(height: 24),
