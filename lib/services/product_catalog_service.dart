@@ -25,6 +25,7 @@ class ProductCatalogService {
     int? estimatedProductionHours,
     String? clientId, // Para productos específicos de cliente
     bool isPublic = true,
+    String? family,
   }) async {
     try {
       // Verificar que la referencia sea única en la organización
@@ -73,6 +74,7 @@ class ProductCatalogService {
         createdBy: createdBy,
         createdAt: now,
         updatedAt: now,
+        family: family,
       );
 
       await _firestore

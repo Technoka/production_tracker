@@ -1,3 +1,4 @@
+// ... Imports
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'production_batch_model.dart';
@@ -26,65 +27,46 @@ enum ProductStatus {
 
 /// Modelo de Producto dentro de un Lote de Producción
 class BatchProductModel {
+  // ... Campos existentes
   final String id;
   final String batchId;
-  final String productCatalogId; // Referencia al catálogo de productos
+  final String productCatalogId;
   final String productName;
-  final String? productReference; // Referencia del catálogo (SKU)
+  final String? productReference;
+  final String? family;
   final String? description;
   final int quantity;
   final String currentPhase; // Fase actual (phaseId)
   final String currentPhaseName;
-  final Map<String, PhaseProgressData> phaseProgress; // phaseId -> progress
-  
-  // NUEVO: Número secuencial del producto dentro del lote
-  final int productNumber; // 1, 2, 3, ... hasta 10
-  
-  // NUEVO: Código único del producto (batchNumber-productNumber)
-  final String productCode; // Ej: "FL12601-3"
-  
-  // Personalización
+  final Map<String, PhaseProgressData> phaseProgress;
+  final int productNumber;
+  final String productCode;
   final String? color;
   final String? material;
   final String? specialDetails;
-  
-  // Precio (opcional, visible solo para roles autorizados)
   final double? unitPrice;
   final double? totalPrice;
-  
-  // Control de calidad (para futuras fases)
-  final String qualityStatus; // "pending", "approved", "rejected"
+  final String qualityStatus;
   final String? qualityNotes;
   final String? qualityCheckedBy;
   final DateTime? qualityCheckedAt;
-  
-  // Kanban (para futuras fases)
   final int kanbanPosition;
   final String? swimlane;
-  
-  // SLA (para futuras fases)
   final bool isDelayed;
   final double delayHours;
   final double? expectedDuration;
   final double? actualDuration;
-  
-  // Timestamps
   final DateTime createdAt;
   final DateTime updatedAt;
-
-  // Campos de estados
-  final String productStatus; // "pending", "cao", "hold", "control", "ok"
-  final DateTime? sentToClientAt; // Cuándo se envió al cliente
-  final DateTime? evaluatedAt; // Cuándo el cliente lo evaluó
-  final int returnedCount; // Productos devueltos (si CAO)
-  final int repairedCount; // De los devueltos, cuántos se repararon
-  final int discardedCount; // De los devueltos, cuántos son basura
-  final String? returnReason; // Motivo de devolución
-
-  // NUEVO CAMPO: Fecha de entrega estimada
+  final String productStatus;
+  final DateTime? sentToClientAt;
+  final DateTime? evaluatedAt;
+  final int returnedCount;
+  final int repairedCount;
+  final int discardedCount;
+  final String? returnReason;
   final DateTime? expectedDeliveryDate;
-
-  final String urgencyLevel; // "low", "medium", "high", "critical"
+  final String urgencyLevel;
   final String? productNotes;
 
   BatchProductModel({
@@ -93,6 +75,7 @@ class BatchProductModel {
     required this.productCatalogId,
     required this.productName,
     this.productReference,
+    this.family,
     this.description,
     required this.quantity,
     required this.currentPhase,
@@ -136,13 +119,12 @@ class BatchProductModel {
       'productCatalogId': productCatalogId,
       'productName': productName,
       'productReference': productReference,
+      'family': family,
       'description': description,
       'quantity': quantity,
       'currentPhase': currentPhase,
       'currentPhaseName': currentPhaseName,
-      'phaseProgress': phaseProgress.map(
-        (key, value) => MapEntry(key, value.toMap()),
-      ),
+      'phaseProgress': phaseProgress.map((key, value) => MapEntry(key, value.toMap())),
       'productNumber': productNumber,
       'productCode': productCode,
       'color': color,
@@ -153,9 +135,7 @@ class BatchProductModel {
       'qualityStatus': qualityStatus,
       'qualityNotes': qualityNotes,
       'qualityCheckedBy': qualityCheckedBy,
-      'qualityCheckedAt': qualityCheckedAt != null
-          ? Timestamp.fromDate(qualityCheckedAt!)
-          : null,
+      'qualityCheckedAt': qualityCheckedAt != null ? Timestamp.fromDate(qualityCheckedAt!) : null,
       'kanbanPosition': kanbanPosition,
       'swimlane': swimlane,
       'isDelayed': isDelayed,
@@ -165,19 +145,13 @@ class BatchProductModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'productStatus': productStatus,
-      'sentToClientAt': sentToClientAt != null
-          ? Timestamp.fromDate(sentToClientAt!)
-          : null,
-      'evaluatedAt': evaluatedAt != null
-          ? Timestamp.fromDate(evaluatedAt!)
-          : null,
+      'sentToClientAt': sentToClientAt != null ? Timestamp.fromDate(sentToClientAt!) : null,
+      'evaluatedAt': evaluatedAt != null ? Timestamp.fromDate(evaluatedAt!) : null,
       'returnedCount': returnedCount,
       'repairedCount': repairedCount,
       'discardedCount': discardedCount,
       'returnReason': returnReason,
-      'expectedDeliveryDate': expectedDeliveryDate != null
-          ? Timestamp.fromDate(expectedDeliveryDate!)
-          : null,
+      'expectedDeliveryDate': expectedDeliveryDate != null ? Timestamp.fromDate(expectedDeliveryDate!) : null,
       'urgencyLevel': urgencyLevel,
       'productNotes': productNotes,
     };
@@ -190,18 +164,17 @@ class BatchProductModel {
       productCatalogId: map['productCatalogId'] as String,
       productName: map['productName'] as String,
       productReference: map['productReference'] as String?,
+      family: map['family'] as String?,
       description: map['description'] as String?,
       quantity: map['quantity'] as int,
       currentPhase: map['currentPhase'] as String,
       currentPhaseName: map['currentPhaseName'] as String,
       phaseProgress: (map['phaseProgress'] as Map<String, dynamic>).map(
-        (key, value) => MapEntry(
-          key,
-          PhaseProgressData.fromMap(value as Map<String, dynamic>),
-        ),
+        (key, value) => MapEntry(key, PhaseProgressData.fromMap(value as Map<String, dynamic>)),
       ),
       productNumber: map['productNumber'] as int? ?? 1,
       productCode: map['productCode'] as String? ?? '',
+      // ... resto de mapeos
       color: map['color'] as String?,
       material: map['material'] as String?,
       specialDetails: map['specialDetails'] as String?,
@@ -210,35 +183,23 @@ class BatchProductModel {
       qualityStatus: map['qualityStatus'] as String? ?? 'pending',
       qualityNotes: map['qualityNotes'] as String?,
       qualityCheckedBy: map['qualityCheckedBy'] as String?,
-      qualityCheckedAt: map['qualityCheckedAt'] != null
-          ? (map['qualityCheckedAt'] as Timestamp).toDate()
-          : null,
+      qualityCheckedAt: map['qualityCheckedAt'] != null ? (map['qualityCheckedAt'] as Timestamp).toDate() : null,
       kanbanPosition: map['kanbanPosition'] as int? ?? 0,
       swimlane: map['swimlane'] as String?,
       isDelayed: map['isDelayed'] as bool? ?? false,
       delayHours: (map['delayHours'] as num?)?.toDouble() ?? 0,
-      expectedDuration: map['expectedDuration'] != null
-          ? (map['expectedDuration'] as num).toDouble()
-          : null,
-      actualDuration: map['actualDuration'] != null
-          ? (map['actualDuration'] as num).toDouble()
-          : null,
+      expectedDuration: map['expectedDuration'] != null ? (map['expectedDuration'] as num).toDouble() : null,
+      actualDuration: map['actualDuration'] != null ? (map['actualDuration'] as num).toDouble() : null,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
       productStatus: map['productStatus'] as String? ?? 'pending',
-      sentToClientAt: map['sentToClientAt'] != null
-          ? (map['sentToClientAt'] as Timestamp).toDate()
-          : null,
-      evaluatedAt: map['evaluatedAt'] != null
-          ? (map['evaluatedAt'] as Timestamp).toDate()
-          : null,
+      sentToClientAt: map['sentToClientAt'] != null ? (map['sentToClientAt'] as Timestamp).toDate() : null,
+      evaluatedAt: map['evaluatedAt'] != null ? (map['evaluatedAt'] as Timestamp).toDate() : null,
       returnedCount: map['returnedCount'] as int? ?? 0,
       repairedCount: map['repairedCount'] as int? ?? 0,
       discardedCount: map['discardedCount'] as int? ?? 0,
       returnReason: map['returnReason'] as String?,
-      expectedDeliveryDate: map['expectedDeliveryDate'] != null
-          ? (map['expectedDeliveryDate'] as Timestamp).toDate()
-          : null,
+      expectedDeliveryDate: map['expectedDeliveryDate'] != null ? (map['expectedDeliveryDate'] as Timestamp).toDate() : null,
       urgencyLevel: map['urgencyLevel'] as String? ?? 'medium',
       productNotes: map['productNotes'] as String?,
     );
@@ -250,6 +211,7 @@ class BatchProductModel {
     String? productCatalogId,
     String? productName,
     String? productReference,
+    String? family,
     String? description,
     int? quantity,
     String? currentPhase,
@@ -291,6 +253,7 @@ class BatchProductModel {
       productCatalogId: productCatalogId ?? this.productCatalogId,
       productName: productName ?? this.productName,
       productReference: productReference ?? this.productReference,
+      family: family ?? this.family,
       description: description ?? this.description,
       quantity: quantity ?? this.quantity,
       currentPhase: currentPhase ?? this.currentPhase,

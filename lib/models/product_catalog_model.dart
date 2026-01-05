@@ -7,29 +7,30 @@ class ProductCatalogModel {
   final String name;
   final String reference; // SKU/Código único
   final String description;
-  final String? category; // Ej: "Muebles", "Puertas", "Ventanas"
-  final List<String> imageUrls; // URLs de imágenes del producto
-  final Map<String, dynamic> specifications; // Especificaciones técnicas flexibles
-  final List<String> tags; // Etiquetas para búsqueda
-  final MaterialInfo? materialInfo; // Información de materiales
-  final DimensionsInfo? dimensions; // Dimensiones estándar
-  final double? estimatedWeight; // Peso estimado en kg
-  final double? basePrice; // Precio base de referencia
-  final String? notes; // Notas adicionales
-  final bool isActive; // Si está activo en el catálogo
-  final String createdBy; // UID del creador
+  final String? category; 
+  final String? family;
+  final List<String> imageUrls; 
+  final Map<String, dynamic> specifications; 
+  final List<String> tags; 
+  final MaterialInfo? materialInfo; 
+  final DimensionsInfo? dimensions; 
+  final double? estimatedWeight; 
+  final double? basePrice; 
+  final String? notes; 
+  final bool isActive; 
+  final String createdBy; 
   final DateTime createdAt;
-  final String? updatedBy; // UID del último editor
+  final String? updatedBy; 
   final DateTime updatedAt;
-  final int usageCount; // Contador de veces usado en proyectos
-  final String approvalStatus;           // "pending", "approved", "rejected"
+  final int usageCount; 
+  final String approvalStatus; 
   final String? approvedBy;
   final DateTime? approvedAt;
   final String? rejectionReason;
-  final String? clientId;                // Producto específico para un cliente
-  final bool isPublic;                   // Disponible para todos los clientes
-  final int? estimatedProductionHours;   // Tiempo estimado en horas
-  final List<Map<String, dynamic>>? clientPrices;  // Precios por cliente
+  final String? clientId; 
+  final bool isPublic; 
+  final int? estimatedProductionHours; 
+  final List<Map<String, dynamic>>? clientPrices; 
 
   ProductCatalogModel({
     required this.id,
@@ -38,6 +39,7 @@ class ProductCatalogModel {
     required this.reference,
     required this.description,
     this.category,
+    this.family, // ✅
     this.imageUrls = const [],
     this.specifications = const {},
     this.tags = const [],
@@ -70,6 +72,7 @@ class ProductCatalogModel {
       'reference': reference,
       'description': description,
       'category': category,
+      'family': family, // ✅
       'imageUrls': imageUrls,
       'specifications': specifications,
       'tags': tags,
@@ -103,6 +106,7 @@ class ProductCatalogModel {
       reference: map['reference'] as String,
       description: map['description'] as String,
       category: map['category'] as String?,
+      family: map['family'] as String?, // ✅
       imageUrls: map['imageUrls'] != null 
           ? List<String>.from(map['imageUrls'] as List)
           : [],
@@ -118,8 +122,8 @@ class ProductCatalogModel {
       dimensions: map['dimensions'] != null
           ? DimensionsInfo.fromMap(map['dimensions'] as Map<String, dynamic>)
           : null,
-      estimatedWeight: map['estimatedWeight'] as double?,
-      basePrice: map['basePrice'] as double?,
+      estimatedWeight: map['estimatedWeight'] != null ? (map['estimatedWeight'] as num).toDouble() : null,
+      basePrice: map['basePrice'] != null ? (map['basePrice'] as num).toDouble() : null,
       notes: map['notes'] as String?,
       isActive: map['isActive'] as bool? ?? true,
       createdBy: map['createdBy'] as String,
@@ -135,7 +139,7 @@ class ProductCatalogModel {
       rejectionReason: map['rejectionReason'],
       clientId: map['clientId'],
       isPublic: map['isPublic'] ?? true,
-      estimatedProductionHours: map['estimatedProductionHours'],
+      estimatedProductionHours: map['estimatedProductionHours'] != null ? (map['estimatedProductionHours'] as num).toInt() : null,
       clientPrices: map['clientPrices'] != null 
           ? List<Map<String, dynamic>>.from(map['clientPrices']) 
           : null,
@@ -149,6 +153,7 @@ class ProductCatalogModel {
     String? reference,
     String? description,
     String? category,
+    String? family, // ✅
     List<String>? imageUrls,
     Map<String, dynamic>? specifications,
     List<String>? tags,
@@ -179,6 +184,7 @@ class ProductCatalogModel {
       reference: reference ?? this.reference,
       description: description ?? this.description,
       category: category ?? this.category,
+      family: family ?? this.family, // ✅
       imageUrls: imageUrls ?? this.imageUrls,
       specifications: specifications ?? this.specifications,
       tags: tags ?? this.tags,
@@ -203,14 +209,15 @@ class ProductCatalogModel {
       clientPrices: clientPrices ?? this.clientPrices,
     );
   }
-
-  // Helpers para búsqueda y filtrado
+  
+  // ... Resto de métodos (matchesSearch, etc) se mantienen igual
   bool matchesSearch(String query) {
     final lowerQuery = query.toLowerCase();
     return name.toLowerCase().contains(lowerQuery) ||
            reference.toLowerCase().contains(lowerQuery) ||
            description.toLowerCase().contains(lowerQuery) ||
            (category?.toLowerCase().contains(lowerQuery) ?? false) ||
+           (family?.toLowerCase().contains(lowerQuery) ?? false) || // ✅ Incluimos familia en búsqueda
            tags.any((tag) => tag.toLowerCase().contains(lowerQuery));
   }
 

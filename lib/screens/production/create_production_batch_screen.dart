@@ -1,3 +1,4 @@
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/project_model.dart';
@@ -17,7 +18,7 @@ import '../../utils/filter_utils.dart';
 
 class CreateProductionBatchScreen extends StatefulWidget {
   final String organizationId;
-  final String? projectId; // Opcional: si viene desde un proyecto específico
+  final String? projectId;
 
   const CreateProductionBatchScreen({
     super.key,
@@ -41,34 +42,27 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
   final ValueNotifier<String> _batchNumberPreview = ValueNotifier<String>('___2601');
 
   // --- VARIABLES PARA GESTIÓN DE PRODUCTOS ---
-  final List<Map<String, dynamic>> _productsToAdd = []; // Lista de productos a añadir
+  final List<Map<String, dynamic>> _productsToAdd = [];
   ProductCatalogModel? _selectedProduct;
   final _productQuantityController = TextEditingController(text: '1');
-  final _productSearchController = TextEditingController(); // Filtro de búsqueda
-  String _productSearchQuery = '';
-  DateTime? _productExpectedDelivery; // Fecha de entrega estimada del producto
-  String _productUrgencyLevel = UrgencyLevel.medium.value; // NUEVO: Urgencia del producto
-  final _productNotesController = TextEditingController(); // NUEVO: Notas del producto
+  
+  // NUEVO: Variable para familia seleccionada
+  String? _selectedFamily; 
+  
+  DateTime? _productExpectedDelivery;
+  String _productUrgencyLevel = UrgencyLevel.medium.value;
+  final _productNotesController = TextEditingController();
   // -------------------------------------------
 
   @override
   void initState() {
     super.initState();
-    // Si viene con un projectId, cargar ese proyecto
     if (widget.projectId != null) {
       _loadProject();
     }
     _prefixController.addListener(_updateBatchNumberPreview);
     _updateBatchNumberPreview();
     
-    // Listener para el filtro de búsqueda de productos
-    _productSearchController.addListener(() {
-      setState(() {
-        _productSearchQuery = _productSearchController.text;
-      });
-    });
-    
-    // Inicializar fecha de entrega por defecto (3 semanas)
     _productExpectedDelivery = DateTime.now().add(const Duration(days: 21));
   }
 
@@ -85,8 +79,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
     _notesController.dispose();
     _batchNumberPreview.dispose();
     _productQuantityController.dispose();
-    _productSearchController.dispose();
-    _productNotesController.dispose(); // NUEVO
+    _productNotesController.dispose();
     super.dispose();
   }
 
@@ -107,7 +100,6 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
   void _addProductToList() {
     if (_selectedProduct == null) return;
     
-    // Validar límite de 10 productos
     if (_productsToAdd.length >= 10) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Máximo 10 productos por lote')),
@@ -127,20 +119,20 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
       _productsToAdd.add({
         'product': _selectedProduct,
         'quantity': quantity,
-        'expectedDeliveryDate': _productExpectedDelivery, // Guardamos la fecha
-        'urgencyLevel': _productUrgencyLevel, // NUEVO
+        'expectedDeliveryDate': _productExpectedDelivery,
+        'urgencyLevel': _productUrgencyLevel,
         'notes': _productNotesController.text.trim().isEmpty 
             ? null 
-            : _productNotesController.text.trim(), // NUEVO
+            : _productNotesController.text.trim(),
       });
-      // Resetear selección para permitir añadir otro (incluso el mismo)
+      // Resetear selección
       _selectedProduct = null;
       _productQuantityController.text = '1';
-      // NO RESETEAMOS EL FILTRO: _productSearchController.clear();
-      // Resetear fecha a 3 semanas por defecto
+      // MANTENEMOS la familia seleccionada para facilitar añadir más del mismo tipo
+      // _selectedFamily = null; 
       _productExpectedDelivery = DateTime.now().add(const Duration(days: 21));
-      _productUrgencyLevel = UrgencyLevel.medium.value; // NUEVO: Resetear urgencia
-      _productNotesController.clear(); // NUEVO: Limpiar notas
+      _productUrgencyLevel = UrgencyLevel.medium.value;
+      _productNotesController.clear();
     });
   }
 
@@ -165,7 +157,143 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
       });
     }
   }
-  // -----------------------------------------
+
+  // NUEVO: Método para mostrar popup de crear producto rápido
+  Future<void> _showQuickCreateProductDialog(String familyName) async {
+    final skuController = TextEditingController();
+    final notesController = TextEditingController();
+    
+    if (_selectedProject == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Debes seleccionar un proyecto primero')),
+      );
+      return;
+    }
+
+    final String familyNameCapitalized = familyName.isNotEmpty 
+        ? '${familyName[0].toUpperCase()}${familyName.substring(1)}' 
+        : familyName;
+
+final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Crear producto en "$familyNameCapitalized"', // Asegúrate que esta variable exista o pásala
+          style: const TextStyle(fontSize: 14),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: skuController,
+              decoration: const InputDecoration(
+                labelText: 'SKU',
+                border: OutlineInputBorder(),
+              ),
+              textCapitalization: TextCapitalization.characters,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: notesController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Notas (opcional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          // Usamos ValueListenableBuilder para escuchar cambios en el controlador
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: skuController,
+            builder: (context, value, child) {
+              // Verificamos si hay texto (quitando espacios en blanco)
+              final bool isValid = value.text.trim().isNotEmpty;
+
+              return FilledButton(
+                // Si no es válido, onPressed es null (lo que deshabilita/pone en gris el botón)
+                onPressed: isValid 
+                    ? () => Navigator.pop(context, true) 
+                    : null,
+                child: const Text('Crear Producto'),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && skuController.text.isNotEmpty) {
+      await _createQuickProduct(
+        sku: skuController.text.trim(),
+        notes: notesController.text.trim(),
+        family: familyName,
+      );
+    }
+  }
+
+  Future<void> _createQuickProduct({
+    required String sku,
+    required String notes,
+    required String family,
+  }) async {
+    try {
+      setState(() => _isLoading = true);
+      
+      final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
+      final authService = Provider.of<AuthService>(context, listen: false);
+
+      // IMPORTANTE: Asumimos que el servicio tiene un método addProduct o createProduct.
+      // Si no existe tal cual, deberás adaptarlo a tu servicio real.
+      final createdId = await catalogService.createProduct(
+        
+        organizationId: widget.organizationId,
+        name: '${family.capitalize}', // Nombre auto-generado
+        reference: sku,
+        description: notes,
+        family: family, // Asignamos la familia
+        clientId: _selectedProject!.clientId, // Cliente del proyecto
+        createdBy: authService.currentUser!.uid,
+        isPublic: false, // Por defecto privado para este cliente
+      );
+
+      if (createdId != null) {
+        // Recargar para que aparezca en el dropdown y seleccionarlo
+        // Al usar StreamBuilder en el build, la UI se actualizará sola,
+        // pero necesitamos seleccionar el ID nuevo.
+        
+        // Pequeño delay para asegurar que Firestore propague el cambio localmente
+        await Future.delayed(const Duration(milliseconds: 300));
+        
+        final newProduct = await catalogService.getProductById(widget.organizationId, createdId);
+
+        setState(() {
+          // Asignamos el producto recién creado
+          // Nota: Necesitamos reconstruir el objeto completo con el ID real para asignarlo a _selectedProduct
+          _selectedProduct = newProduct!.copyWith(id: createdId);
+          _isLoading = false;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Producto creado y seleccionado')),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al crear producto: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +306,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Información del lote
+            // ... (Información del lote y Proyecto se mantienen igual)
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -194,10 +322,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                         const SizedBox(width: 8),
                         const Text(
                           'Información del Lote',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -237,12 +362,12 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                       valueListenable: _batchNumberPreview,
                       builder: (context, preview, _) {
                         return Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue[200]!),
-                          ),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue[200]!),
+                        ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -344,10 +469,10 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
             
-            // --- SECCIÓN: PRODUCTOS DEL LOTE (ACTUALIZADA) ---
+            // --- SECCIÓN: PRODUCTOS DEL LOTE (MODIFICADA) ---
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -383,24 +508,178 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                     ),
                     const Divider(height: 24),
 
-                    // Campo de búsqueda de productos
-                    FilterUtils.buildSearchField(
-                      hintText: 'Buscar producto por nombre o SKU...',
-                      searchQuery: _productSearchQuery,
-                      onChanged: (value) {
-                        setState(() {
-                          _productSearchQuery = value;
-                        });
+                    // Usamos un StreamBuilder común para obtener todos los productos
+                    // y luego filtrar familias y productos en memoria para los dropdowns
+                    StreamBuilder<List<ProductCatalogModel>>(
+                      stream: Provider.of<ProductCatalogService>(context, listen: false)
+                          .getOrganizationProductsStream(widget.organizationId),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                        
+                        // Obtenemos todos los productos
+                        final allProducts = snapshot.data ?? [];
+                        
+                        // Filtramos productos relevantes para este cliente/proyecto si es necesario
+                        // (Por ahora mostramos todos los de la organización que coincidan en familia, 
+                        // pero podríamos filtrar por clientId si _selectedProject está definido)
+                        var relevantProducts = allProducts;
+                        if (_selectedProject != null) {
+                           // Opcional: filtrar solo productos de este cliente o públicos
+                           relevantProducts = allProducts.where((p) => p.clientId == _selectedProject!.clientId || p.isPublic).toList();
+                        }
+
+                        // 1. Extraer Familias Únicas
+                        final families = relevantProducts
+                            .map((p) => p.family)
+                            .where((f) => f != null && f.isNotEmpty)
+                            .toSet()
+                            .toList();
+                        families.sort();
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // --- SELECTOR DE FAMILIA ---
+
+                        // Si no hay proyecto seleccionado, no se puede seleccionar familia
+                          if (_selectedProject == null)
+                            Opacity(
+                              opacity: 0.5,
+                              child: IgnorePointer(
+                                child: FilterUtils.buildFullWidthDropdown<String>(
+                                  context: context,
+                                  label: 'Familia',
+                                  value: null,
+                                  icon: Icons.category_outlined,
+                                  hintText: 'Selecciona un proyecto primero',
+                                  items: [],
+                                  onChanged: (_) {},
+                                ),
+                              ),
+                            )
+                          else 
+                            FilterUtils.buildFullWidthDropdown<String>(
+                              context: context,
+                              label: 'Familia de Productos',
+                              value: _selectedFamily,
+                              icon: Icons.category_outlined,
+                              hintText: families.isEmpty ? 'No hay familias definidas' : 'Seleccionar familia...',
+                       items: families.map((f) {
+    // Lógica segura para capitalizar la primera letra solo visualmente
+    final String text = f ?? '';
+    final String displayName = text.isNotEmpty 
+        ? '${text[0].toUpperCase()}${text.substring(1)}' 
+        : text;
+
+    return DropdownMenuItem(
+      value: f, // ⚠️ IMPORTANTE: Mantener 'f' original para que el filtro funcione
+      child: Text(displayName), // Aquí mostramos la versión con mayúscula
+    );
+  }).toList(),
+  // ------------------------
+
+  onChanged: (val) {
+    setState(() {
+      _selectedFamily = val;
+      _selectedProduct = null;
+    });
+  },
+                            ),
+                            
+                            const SizedBox(height: 12),
+                            
+                            // --- SELECTOR DE PRODUCTO (Filtrado por Familia) ---
+                            Builder(
+                              builder: (context) {
+                                // Si no hay familia seleccionada
+                                if (_selectedFamily == null || _selectedProject == null) {
+                                  return Opacity(
+                                    opacity: 0.5,
+                                    child: IgnorePointer(
+                                      child: FilterUtils.buildFullWidthDropdown<String>(
+                                        context: context,
+                                        label: 'Producto',
+                                        value: null,
+                                        icon: Icons.inventory,
+                                        hintText: 'Selecciona una familia primero',
+                                        items: [],
+                                        onChanged: (_) {},
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                // Filtrar productos por la familia seleccionada
+                                final familyProducts = relevantProducts
+                                    .where((p) => p.family == _selectedFamily)
+                                    .toList();
+
+                                // Preparamos los items del dropdown
+                                final List<DropdownMenuItem<String>> dropdownItems = [];
+                                
+                                // OPCIÓN 1: Crear nuevo producto
+                                dropdownItems.add(
+                                  const DropdownMenuItem(
+                                    value: '__CREATE_NEW__',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.add_circle_outline, color: Colors.blue, size: 20),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Crear nuevo producto',
+                                          style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                                        ),
+                                    SizedBox(height: 4),
+                                    Divider(height: 1,),
+                                    SizedBox(height: 4),
+                                      ],
+                                    ),
+                                  ),
+                                );
+
+                                // OPCIONES: Productos existentes
+                                dropdownItems.addAll(familyProducts.map((p) => DropdownMenuItem(
+                                  value: p.id,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text('SKU: ${p.reference}', overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                )));
+
+                                // Validar selección actual
+                                final isSelectionValid = _selectedProduct != null && familyProducts.any((p) => p.id == _selectedProduct!.id);
+                                final currentValue = isSelectionValid ? _selectedProduct!.id : null;
+
+                                return FilterUtils.buildFullWidthDropdown<String>(
+                                  context: context,
+                                  label: 'Producto',
+                                  value: currentValue,
+                                  icon: Icons.inventory,
+                                  hintText: 'Seleccionar producto...',
+                                  items: dropdownItems,
+                                  onChanged: (value) {
+                                    if (value == '__CREATE_NEW__') {
+                                      _showQuickCreateProductDialog(_selectedFamily!);
+                                    } else if (value != null) {
+                                      setState(() {
+                                        _selectedProduct = familyProducts.firstWhere((p) => p.id == value);
+                                      });
+                                    }
+                                  },
+                                );
+                              }
+                            ),
+                          ],
+                        );
                       },
-                      fontSize: 14,
                     ),
+
                     const SizedBox(height: 12),
                     
-                    // Selector de Producto (estilo moderno)
-                    _buildProductSelector(),
-                    const SizedBox(height: 12),
-                    
-                    // Urgencia del producto (NUEVO)
+                    // Urgencia del producto
                     FilterUtils.buildUrgencyBinaryToggle(
                       context: context,
                       urgencyLevel: UrgencyLevel.fromString(_productUrgencyLevel),
@@ -412,7 +691,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                     ),
                     const SizedBox(height: 12),
                     
-                    // Fecha de entrega estimada del producto
+                    // Fecha de entrega
                     InkWell(
                       onTap: _selectProductDeliveryDate,
                       child: Container(
@@ -459,11 +738,11 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                     
                     const SizedBox(height: 12),
                     
-                    // Notas del producto (NUEVO)
+                    // Notas del producto
                     TextFormField(
                       controller: _productNotesController,
                       maxLines: 2,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Notas del producto (opcional)',
                         labelStyle: TextStyle(fontSize: 14),
                         hintText: 'Añade detalles específicos de este producto...',
@@ -536,7 +815,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                           final urgency = item['urgencyLevel'] as String? ?? UrgencyLevel.medium.value;
                           final notes = item['notes'] as String?;
                           final sequence = index + 1;
-
+                          
                           final urgencyLevel = UrgencyLevel.fromString(urgency);
 
                           return ListTile(
@@ -550,14 +829,14 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                                 ),
                               ),
                             ),
-                            title: Text(product.name),
+                            title: Text(
+                                  'SKU: ${product.reference}', 
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)
+                                ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'SKU: ${product.reference}', 
-                                  style: const TextStyle(fontWeight: FontWeight.bold)
-                                ),
+                                const SizedBox(height: 4),
                                 if (deliveryDate != null)
                                   Text(
                                     'Entrega: ${_formatDate(deliveryDate)}',
@@ -628,77 +907,16 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
     );
   }
 
-  // Widget selector de producto (estilo moderno con filtro)
-  Widget _buildProductSelector() {
-    return StreamBuilder<List<ProductCatalogModel>>(
-      stream: Provider.of<ProductCatalogService>(context, listen: false)
-          .getOrganizationProductsStream(widget.organizationId),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const LinearProgressIndicator();
-        
-        var products = snapshot.data ?? [];
-        
-        // Filtrar productos según búsqueda
-        if (_productSearchQuery.isNotEmpty) {
-          final query = _productSearchQuery.toLowerCase();
-          products = products.where((p) =>
-            p.name.toLowerCase().contains(query) ||
-            p.reference.toLowerCase().contains(query)
-          ).toList();
-        }
-        
-        // --- SOLUCIÓN ERROR "BAD STATE" ---
-        // Verificamos si la selección actual sigue siendo válida en la lista filtrada
-        final isSelectionValid = _selectedProduct != null && products.any((p) => p.id == _selectedProduct!.id);
-        
-        // Si no es válida, pasamos null al dropdown (visual) para deseleccionarlo temporalmente
-        final dropdownValue = isSelectionValid ? _selectedProduct!.id : null;
-
-        return FilterUtils.buildFullWidthDropdown<String>(
-          context: context,
-          label: 'Producto del catálogo',
-          value: dropdownValue,
-          icon: Icons.inventory,
-          hintText: products.isEmpty ? 'Sin coincidencias' : 'Seleccionar producto...',
-          items: products.map((product) {
-            return DropdownMenuItem(
-              value: product.id,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    product.name,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'SKU: ${product.reference}',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-          onChanged: (productId) {
-            if (productId == null) return;
-            setState(() {
-              _selectedProduct = products.firstWhere((p) => p.id == productId);
-            });
-          },
-        );
-      },
-    );
-  }
-
+  // ... (Resto de métodos auxiliares: _buildSelectedProjectCard, _buildProjectSelector, _createBatch, _formatDate, UpperCaseTextFormatter se mantienen igual)
+  
+  // Incluyo los métodos mínimos necesarios para que el archivo sea funcional al copiar
   Widget _buildSelectedProjectCard() {
-    return Card(
-      elevation: 0,
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+      // ... (Igual que en tu archivo original)
+      return Card(
+        elevation: 0,
+        color: Theme.of(context).colorScheme.primaryContainer,
+        child: Padding(
+            padding: const EdgeInsets.all(12),
         child: Row(
           children: [
             Expanded(
@@ -745,14 +963,14 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
           ],
         ),
       ),
-    );
+      );
   }
 
   Widget _buildProjectSelector() {
-    return StreamBuilder<List<ProjectModel>>(
+       return StreamBuilder<List<ProjectModel>>(
       stream: Provider.of<ProjectService>(context, listen: false)
           .watchProjects(widget.organizationId),
-      builder: (context, snapshot) {
+           builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -761,7 +979,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
           return Text('Error: ${snapshot.error}');
         }
 
-        final projects = snapshot.data ?? [];
+               final projects = snapshot.data ?? [];
 
         if (projects.isEmpty) {
           return Column(
@@ -789,10 +1007,10 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
             final clients = clientSnapshot.data ?? [];
             final clientMap = {for (var c in clients) c.id: c};
 
-            return FilterUtils.buildFullWidthDropdown<String>(
-              context: context,
-              label: 'Proyecto',
-              value: _selectedProject?.id,
+               return FilterUtils.buildFullWidthDropdown<String>(
+                   context: context,
+                   label: 'Proyecto',
+                   value: _selectedProject?.id,
               icon: Icons.folder_outlined,
               hintText: 'Seleccionar proyecto...',
               isRequired: true,
@@ -836,9 +1054,9 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
             );
           },
         );
-      },
-    );
-  }
+              },
+               );
+           }
 
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
@@ -920,6 +1138,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
             final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
             final urgency = item['urgencyLevel'] as String? ?? 'medium';
             final notes = item['notes'] as String?;
+            final family = item['family'];
 
             // Añadimos el producto al lote con la fecha de entrega
             await batchService.addProductToBatch(
@@ -935,6 +1154,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
               expectedDeliveryDate: deliveryDate, // Pasar la fecha de entrega
               urgencyLevel: urgency, // NUEVO
               notes: notes, // NUEVO
+              family: family,
             );
           }
         }

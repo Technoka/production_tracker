@@ -6,6 +6,7 @@ import '../models/batch_product_model.dart';
 import '../models/phase_model.dart';
 import '../../services/phase_service.dart';
 import '../../utils/message_events_helper.dart';
+import '../../models/batch_product_model.dart';
 
 class ProductionBatchService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -691,6 +692,7 @@ class ProductionBatchService extends ChangeNotifier {
     DateTime? expectedDeliveryDate,
     String urgencyLevel = 'medium', // NUEVO: Urgencia por producto
     String? notes, // NUEVO: Notas por producto
+    String? family,
   }) async {
     try {
       _isLoading = true;
@@ -747,6 +749,7 @@ class ProductionBatchService extends ChangeNotifier {
         expectedDeliveryDate: expectedDeliveryDate,
         urgencyLevel: urgencyLevel, // NUEVO
         productNotes: notes, // NUEVO
+        family: family,
       );
 
       // Batch write para atomicidad
