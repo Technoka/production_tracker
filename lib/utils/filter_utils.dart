@@ -447,4 +447,151 @@ class FilterUtils {
       ),
     );
   }
+
+  /// Toggle de urgencia simple (Normal / Urgente) para formularios de creación
+  /// Alterna entre 'medium' (Normal) y 'urgent' (Urgente)
+  static Widget buildUrgencyBinaryToggle({
+    required BuildContext context,
+    required UrgencyLevel urgencyLevel,
+    required Function(String) onChanged,
+  }) {
+    // Lógica binaria: si es 'urgent', es urgente. Cualquier otra cosa (low, medium, high) se trata como normal.
+    // Al cambiar a normal, usamos 'medium' por defecto.
+    final isUrgent = urgencyLevel == UrgencyLevel.urgent;
+
+    // Colores basados en el enum UrgencyLevel (hardcodeados aquí para evitar dependencias circulares complejas si no se pasa el enum)
+    final activeColor = isUrgent ? urgencyLevel.color : Colors.orange;
+    final backgroundColor = activeColor.withOpacity(0.1);
+    final borderColor = activeColor.withOpacity(0.3);
+
+    return InkWell(
+      onTap: () {
+        // Toggle simple
+        final newValue = isUrgent ? UrgencyLevel.medium.value : UrgencyLevel.urgent.value;
+        onChanged(newValue);
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: borderColor, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isUrgent ? Icons.priority_high_rounded : Icons.low_priority_rounded,
+              color: activeColor,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Prioridad',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isUrgent ? 'Urgente' : 'Normal',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: activeColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Switch visual simulado
+            Container(
+              width: 36,
+              height: 20,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: isUrgent ? activeColor : Colors.grey.shade300,
+              ),
+              alignment: isUrgent ? Alignment.centerRight : Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Chip de filtro para urgencia en Kanban
+  /// Mantiene la estética de los otros filtros (gris/borde) pero funciona como toggle
+  static Widget buildUrgencyFilterChip({
+    required BuildContext context,
+    required bool isUrgentOnly,
+    required VoidCallback onToggle,
+  }) {
+
+    final isActive = isUrgentOnly;
+    final activeColor = UrgencyLevel.urgent.color; // Rojo urgente
+
+    return InkWell(
+      onTap: onToggle,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          // Si está activo, fondo rojo suave. Si no, blanco como los otros.
+          color: isActive ? activeColor.withOpacity(0.08) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            // Si está activo, borde rojo. Si no, gris como los otros.
+            color: isActive ? activeColor : Colors.grey.shade300,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isActive ? Icons.priority_high : Icons.filter_list,
+              size: 14,
+              color: isActive ? activeColor : Colors.grey.shade600,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              isActive ? 'Solo Urgentes' : 'Urgencia',
+              style: TextStyle(
+                color: isActive ? activeColor : Colors.grey.shade700,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 12,
+              ),
+            ),
+            if (!isActive) ...[
+              const SizedBox(width: 2),
+              // Icono opcional para indicar que es clickeable
+              Icon(
+                Icons.add_circle_outline, 
+                size: 12, 
+                color: Colors.grey.shade400
+              ),
+            ]
+          ],
+        ),
+      ),
+    );
+  }
+
 }

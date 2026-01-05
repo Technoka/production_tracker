@@ -34,8 +34,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
   final _notesController = TextEditingController();
 
   ProjectModel? _selectedProject;
-  int _priority = 3;
-  String _urgencyLevel = 'medium';
+  final String _urgencyLevel = UrgencyLevel.medium.value;
   DateTime? _expectedCompletionDate;
   bool _isLoading = false;
   final _prefixController = TextEditingController();
@@ -48,7 +47,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
   final _productSearchController = TextEditingController(); // Filtro de búsqueda
   String _productSearchQuery = '';
   DateTime? _productExpectedDelivery; // Fecha de entrega estimada del producto
-  String _productUrgencyLevel = 'medium'; // NUEVO: Urgencia del producto
+  String _productUrgencyLevel = UrgencyLevel.medium.value; // NUEVO: Urgencia del producto
   final _productNotesController = TextEditingController(); // NUEVO: Notas del producto
   // -------------------------------------------
 
@@ -140,7 +139,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
       // NO RESETEAMOS EL FILTRO: _productSearchController.clear();
       // Resetear fecha a 3 semanas por defecto
       _productExpectedDelivery = DateTime.now().add(const Duration(days: 21));
-      _productUrgencyLevel = 'medium'; // NUEVO: Resetear urgencia
+      _productUrgencyLevel = UrgencyLevel.medium.value; // NUEVO: Resetear urgencia
       _productNotesController.clear(); // NUEVO: Limpiar notas
     });
   }
@@ -314,9 +313,10 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                 ),
               ),
             ),
-            const SizedBox(height: 16),
 
-            // Prioridad y Urgencia
+            const SizedBox(height: 16),
+            
+            // Notas
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -324,86 +324,28 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Urgencia',
+                      'Notas del lote (opcional)',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Baja'),
-                          selected: _urgencyLevel == 'low',
-                          selectedColor: Colors.green,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() => _urgencyLevel = 'low');
-                            }
-                          },
-                        ),
-                        ChoiceChip(
-                          label: const Text('Media'),
-                          selected: _urgencyLevel == 'medium',
-                          selectedColor: Colors.amber,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() => _urgencyLevel = 'medium');
-                            }
-                          },
-                        ),
-                        ChoiceChip(
-                          label: const Text('Alta'),
-                          selected: _urgencyLevel == 'high',
-                          selectedColor: Colors.red[500],
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() => _urgencyLevel = 'high');
-                            }
-                          },
-                        ),
-                        ChoiceChip(
-                          label: const Text('Crítica'),
-                          selected: _urgencyLevel == 'critical',
-                          selectedColor: Colors.red[900],
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() => _urgencyLevel = 'critical');
-                            }
-                          },
-                        ),
-                      ],
+                    TextFormField(
+                      controller: _notesController,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        hintText: 'Añade notas sobre este lote...',
+                        hintStyle: TextStyle(fontSize: 12),
+                        border: OutlineInputBorder(),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Fecha de entrega esperada
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.calendar_today),
-                title: const Text('Fecha de entrega esperada'),
-                subtitle: _expectedCompletionDate != null
-                    ? Text(_formatDate(_expectedCompletionDate!))
-                    : const Text('Opcional'),
-                trailing: _expectedCompletionDate != null
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          setState(() {
-                            _expectedCompletionDate = null;
-                          });
-                        },
-                      )
-                    : const Icon(Icons.chevron_right),
-                onTap: _selectDate,
-              ),
-            ),
-            const SizedBox(height: 16),
+            
+            const SizedBox(height: 24),
             
             // --- SECCIÓN: PRODUCTOS DEL LOTE (ACTUALIZADA) ---
             Card(
@@ -459,9 +401,9 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                     const SizedBox(height: 12),
                     
                     // Urgencia del producto (NUEVO)
-                    FilterUtils.buildUrgencySelector(
+                    FilterUtils.buildUrgencyBinaryToggle(
                       context: context,
-                      urgencyLevel: _productUrgencyLevel,
+                      urgencyLevel: UrgencyLevel.fromString(_productUrgencyLevel),
                       onChanged: (newUrgency) {
                         setState(() {
                           _productUrgencyLevel = newUrgency;
@@ -522,13 +464,15 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                       controller: _productNotesController,
                       maxLines: 2,
                       decoration: InputDecoration(
-                        labelText: 'Notas (opcional)',
+                        labelText: 'Notas del producto (opcional)',
+                        labelStyle: TextStyle(fontSize: 14),
                         hintText: 'Añade detalles específicos de este producto...',
+                        hintStyle: TextStyle(fontSize: 12),
                         border: const OutlineInputBorder(),
                         prefixIcon: const Icon(Icons.notes),
                         alignLabelWithHint: true,
                       ),
-                      style: const TextStyle(fontSize: 14),
+                      style: const TextStyle(fontSize: 12),
                     ),
                     
                     const SizedBox(height: 12),
@@ -593,22 +537,15 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                           final notes = item['notes'] as String?;
                           final sequence = index + 1;
 
-                          // Color de urgencia
-                          Color urgencyColor;
-                          switch (urgency) {
-                            case 'low': urgencyColor = Colors.green; break;
-                            case 'high': urgencyColor = Colors.red[500]!; break;
-                            case 'critical': urgencyColor = Colors.red[900]!; break;
-                            default: urgencyColor = Colors.orange;
-                          }
+                          final urgencyLevel = UrgencyLevel.fromString(urgency);
 
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: urgencyColor.withOpacity(0.2),
+                              backgroundColor: urgencyLevel.color.withOpacity(0.2),
                               child: Text(
                                 '#$sequence',
                                 style: TextStyle(
-                                  color: urgencyColor,
+                                  color: urgencyLevel.color,
                                   fontWeight: FontWeight.bold
                                 ),
                               ),
@@ -663,36 +600,7 @@ class _CreateProductionBatchScreenState extends State<CreateProductionBatchScree
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            // ---------------------------------------------
 
-            // Notas
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Notas (opcional)',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _notesController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        hintText: 'Añade notas sobre este lote...',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
             const SizedBox(height: 24),
 
             // Botón Crear Lote
