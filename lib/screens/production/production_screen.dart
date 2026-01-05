@@ -38,7 +38,6 @@ class _ProductionScreenState extends State<ProductionScreen> {
 
   // Filtros para Vista de Lotes
   String? _batchClientFilter;
-  String? _batchUrgencyFilter;
   String _batchSearchQuery = '';
 
   // Filtros para Vista de Productos
@@ -52,8 +51,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
   bool get _hasActiveFilters {
     if (_currentView == ProductionView.batches) {
       return _batchSearchQuery.isNotEmpty || 
-             _batchClientFilter != null || 
-             _batchUrgencyFilter != null;
+             _batchClientFilter != null;
     } else {
       return _productSearchQuery.isNotEmpty ||
              _productStatusFilter != null ||
@@ -69,7 +67,6 @@ class _ProductionScreenState extends State<ProductionScreen> {
       if (_currentView == ProductionView.batches) {
         _batchSearchQuery = '';
         _batchClientFilter = null;
-        _batchUrgencyFilter = null;
       } else {
         _productSearchQuery = '';
         _productStatusFilter = null;
@@ -404,20 +401,6 @@ Widget _buildFilterOption<T>({
               )).toList(),
               onChanged: (val) => setState(() => _batchClientFilter = val),
             ),
-
-            _buildFilterOption<String>(
-              label: 'Urgencia',
-              value: _batchUrgencyFilter,
-              icon: Icons.priority_high_rounded,
-              allLabel: 'Todas',
-              items: const [
-                DropdownMenuItem(value: 'low', child: Text('Baja')),
-                DropdownMenuItem(value: 'medium', child: Text('Media')),
-                DropdownMenuItem(value: 'high', child: Text('Alta')),
-                DropdownMenuItem(value: 'critical', child: Text('Urgente')),
-              ],
-              onChanged: (val) => setState(() => _batchUrgencyFilter = val),
-            ),
           ];
           
 // CAMBIO: Añadimos el botón de borrar filtros AL FINAL de la lista
@@ -562,9 +545,6 @@ Widget _buildFilterOption<T>({
 
         if (_batchClientFilter != null) {
           batches = batches.where((b) => b.clientId == _batchClientFilter).toList();
-        }
-        if (_batchUrgencyFilter != null) {
-          batches = batches.where((b) => b.urgencyLevel == _batchUrgencyFilter).toList();
         }
         
         if (_batchSearchQuery.isNotEmpty) {
@@ -724,7 +704,6 @@ Widget _buildFilterOption<T>({
                       ),
                     ),
                   ),
-                  _buildUrgencyChip(batch.urgencyLevel),
                 ],
               ),
               const SizedBox(height: 8),
@@ -748,6 +727,9 @@ Widget _buildFilterOption<T>({
     ProductionBatchModel batch,
     UserModel user,
   ) {
+
+    final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -774,35 +756,70 @@ Widget _buildFilterOption<T>({
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      product.productName,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: product.statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: product.statusColor.withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      product.statusDisplayName,
-                      style: TextStyle(
-                        color: product.statusColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                ],
+       Row(
+  children: [
+    Expanded(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 1. El nombre del producto (Flexible para evitar overflow)
+          Flexible(
+            child: Text(
+              product.productName,
+              overflow: TextOverflow.ellipsis, // Corta con "..." si es muy largo
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
               ),
+            ),
+          ),
+          
+          // 2. El Chip de urgencia (Ahora pegado al nombre)
+          if (urgencyLevel == UrgencyLevel.urgent) ...[
+            const SizedBox(width: 8), // Separación leve solicitada
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: urgencyLevel.color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: urgencyLevel.color.withOpacity(0.3), // Usar color de urgencia para el borde
+                ),
+              ),
+              child: Text(
+                urgencyLevel.displayName,
+                style: TextStyle(
+                  color: urgencyLevel.color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 10, // Un poco más pequeño para que sea sutil
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    ),
+
+    // 3. Chip de Estado (Se mantiene a la derecha o separado del grupo nombre)
+    const SizedBox(width: 8),
+    Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: product.statusColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: product.statusColor.withOpacity(0.3)),
+      ),
+      child: Text(
+        product.statusDisplayName,
+        style: TextStyle(
+          color: product.statusColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+        ),
+      ),
+    ),
+  ],
+),
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -870,33 +887,17 @@ Widget _buildFilterOption<T>({
 
   Widget _buildUrgencyChip(String urgency) {
     final urgencyEnum = UrgencyLevel.fromString(urgency);
-    Color color;
-    
-    switch (urgencyEnum) {
-      case UrgencyLevel.low:
-        color = Colors.green;
-        break;
-      case UrgencyLevel.medium:
-        color = Colors.orange;
-        break;
-      case UrgencyLevel.high:
-        color = Colors.red;
-        break;
-      case UrgencyLevel.critical:
-        color = Colors.red.shade900;
-        break;
-    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: urgencyEnum.color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         urgencyEnum.displayName,
         style: TextStyle(
-          color: color,
+          color: urgencyEnum.color,
           fontWeight: FontWeight.bold,
           fontSize: 11,
         ),

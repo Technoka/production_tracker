@@ -96,6 +96,8 @@ final totalProgress = product.totalProgress;
                     ),
                   ),
                   const Spacer(),
+                  if (product.urgencyLevel == UrgencyLevel.urgent.value)
+                  // Urgencia, solo se muestra si es critico
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
@@ -103,9 +105,9 @@ final totalProgress = product.totalProgress;
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      product.statusDisplayName,
+                      product.urgencyDisplayName,
                       style: TextStyle(
-                        color: product.statusColor,
+                        color: product.urgencyColor,
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
                       ),

@@ -135,7 +135,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       icon: const Icon(Icons.more_vert),
       onSelected: (value) => _handleAction(value, product),
       itemBuilder: (context) => [
-        const PopupMenuDivider(),
         
         const PopupMenuItem(
           value: 'delete',
@@ -183,6 +182,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
   Widget _buildProductInfoCard(BatchProductModel product, UserModel? user) {
     
+final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
 
     return Card(
       child: Padding(
@@ -204,6 +204,28 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               ],
             ),
             const Divider(height: 24),
+
+            // Urgencia
+            if (urgencyLevel == UrgencyLevel.urgent)
+                  Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: urgencyLevel.color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: urgencyLevel.color.withOpacity(0.3), // Usar color de urgencia para el borde
+                ),
+              ),
+              child: Text(
+                urgencyLevel.displayName,
+                style: TextStyle(
+                  color: urgencyLevel.color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12, // Un poco más pequeño para que sea sutil
+                ),
+              ),
+            ),
+              const SizedBox(height: 8),
 
             // Nombre
             Text(
@@ -301,15 +323,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               const SizedBox(height: 8),
             ],
             
-            // Urgencia
-              Text(
-                'Urgencia: ${product.urgencyLevel}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[700],
-                ),
-              ),
-              const SizedBox(height: 8),
               
             // Notas
             if (product.productNotes != null) ...[

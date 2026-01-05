@@ -310,19 +310,6 @@ class _ProductionBatchDetailScreenState extends State<ProductionBatchDetailScree
               ),
             ],
 
-            // Prioridad y urgencia
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const SizedBox(width: 8),
-                Chip(
-                  label: Text('Urgencia: ${_getUrgencyLabel(batch.urgencyLevel)}'),
-                  avatar: const Icon(Icons.speed, size: 16),
-                  backgroundColor: _getUrgencyColor(batch.urgencyLevel),
-                ),
-              ],
-            ),
-
             // Notas
             if (batch.notes != null && batch.notes!.isNotEmpty) ...[
               const Divider(height: 24),
@@ -632,29 +619,7 @@ Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user) {
                 separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final product = products[index];
-                  
-                  final urgency = product.urgencyLevel ?? 'medium'; 
-
-                  Color urgencyColor;
-                  String urgencyLabel;
-                  
-                  switch (urgency) {
-                    case 'low':
-                      urgencyColor = Colors.green;
-                      urgencyLabel = 'Baja';
-                      break;
-                    case 'high':
-                      urgencyColor = Colors.red[500]!;
-                      urgencyLabel = 'Alta';
-                      break;
-                    case 'critical':
-                      urgencyColor = Colors.red[900]!;
-                      urgencyLabel = 'Crítica';
-                      break;
-                    default:
-                      urgencyColor = Colors.orange;
-                      urgencyLabel = 'Media';
-                  }
+                  final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel); 
 
                   return InkWell(
                     onTap: () {
@@ -681,11 +646,11 @@ Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user) {
                         // 1. LEADING: Avatar con número
                         CircleAvatar(
                           radius: 18,
-                          backgroundColor: urgencyColor.withOpacity(0.2),
+                          backgroundColor: urgencyLevel.color.withOpacity(0.2),
                           child: Text(
                             '#${product.productNumber}',
                             style: TextStyle(
-                              color: urgencyColor,
+                              color: urgencyLevel.color,
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
@@ -748,17 +713,18 @@ Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user) {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             // Chip de urgencia
+                            if (urgencyLevel == UrgencyLevel.urgent)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: urgencyColor.withOpacity(0.1),
+                                color: urgencyLevel.color.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: urgencyColor.withOpacity(0.3)),
+                                border: Border.all(color: urgencyLevel.color.withOpacity(0.3)),
                               ),
                               child: Text(
-                                urgencyLabel,
+                                urgencyLevel.displayName,
                                 style: TextStyle(
-                                  color: urgencyColor,
+                                  color: urgencyLevel.color,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),
