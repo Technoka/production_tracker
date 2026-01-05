@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/organization_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class OrganizationMembersScreen extends StatefulWidget {
   const OrganizationMembersScreen({super.key});
@@ -23,7 +24,6 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
   }
 
   Future<void> _loadData() async {
-    // Usamos la función pública que definimos en el servicio
     await Provider.of<OrganizationService>(context, listen: false).loadOrganizationMembers();
   }
 
@@ -31,11 +31,12 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
   Widget build(BuildContext context) {
     final orgService = Provider.of<OrganizationService>(context);
     final authService = Provider.of<AuthService>(context);
+    final l10n = AppLocalizations.of(context)!;
     
     // Obtener datos actuales
     final organization = orgService.currentOrganization;
     final currentUser = authService.currentUserData;
-    final members = orgService.organizationMembers; // Getter del servicio
+    final members = orgService.organizationMembers;
 
     // Validaciones de seguridad
     if (organization == null || currentUser == null) {
@@ -44,10 +45,9 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
       );
     }
 
-    // Clonamos la lista para ordenarla sin afectar la original del provider
+    // Clonamos la lista para ordenarla
     final sortedMembers = List<UserModel>.from(members);
     
-    // Lógica de ordenamiento: Dueño > Admins > Alfabético
     sortedMembers.sort((a, b) {
       if (organization.ownerId == a.uid) return -1;
       if (organization.ownerId == b.uid) return 1;
@@ -66,9 +66,9 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Miembros'),
+            Text(l10n.members),
             Text(
-              '${sortedMembers.length} personas',
+              '${sortedMembers.length} ${l10n.peopleLabel}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -79,7 +79,7 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
           : RefreshIndicator(
               onRefresh: _loadData,
               child: sortedMembers.isEmpty 
-                ? const Center(child: Text('No se encontraron miembros'))
+                ? Center(child: Text(l10n.noMembersFound))
                 : ListView.builder(
                     itemCount: sortedMembers.length,
                     itemBuilder: (context, index) {
@@ -106,18 +106,14 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
     List<String> adminIds,
     OrganizationService service,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final isOwner = member.uid == ownerId;
     final isAdmin = adminIds.contains(member.uid);
     final isMe = member.uid == currentUser.uid;
 
-    // Determinar si el usuario actual tiene permisos sobre este miembro
     final iAmOwner = currentUser.uid == ownerId;
     final iAmAdmin = adminIds.contains(currentUser.uid);
     
-    // Reglas: 
-    // 1. Nadie se gestiona a sí mismo aquí (para eso está Salir).
-    // 2. El dueño gestiona a todos.
-    // 3. Los admins gestionan a miembros normales (no a otros admins ni al dueño).
     final canManage = !isMe && (iAmOwner || (iAmAdmin && !isOwner && !isAdmin));
 
     return ListTile(
@@ -145,7 +141,7 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
           Text(member.email),
           if (isOwner || isAdmin) ...[
             const SizedBox(height: 4),
-            _buildRoleBadge(isOwner, isAdmin),
+            _buildRoleBadge(context, isOwner, isAdmin),
           ]
         ],
       ),
@@ -153,7 +149,7 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
           ? PopupMenuButton<String>(
               onSelected: (value) => _handleAction(value, member, service, isAdmin),
               itemBuilder: (context) => [
-                // Opción Promover/Degradar (Solo Dueño)
+                // Opción Promover/Degradar
                 if (iAmOwner)
                   PopupMenuItem(
                     value: isAdmin ? 'demote' : 'promote',
@@ -165,7 +161,7 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
                           size: 20,
                         ),
                         const SizedBox(width: 8),
-                        Text(isAdmin ? 'Quitar Admin' : 'Hacer Admin'),
+                        Text(isAdmin ? l10n.removeAdminAction : l10n.makeAdminAction),
                       ],
                     ),
                   ),
@@ -176,7 +172,7 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
                     children: [
                       const Icon(Icons.person_remove, color: Colors.red, size: 20),
                       const SizedBox(width: 8),
-                      const Text('Expulsar', style: TextStyle(color: Colors.red)),
+                      Text(l10n.removeMemberAction, style: const TextStyle(color: Colors.red)),
                     ],
                   ),
                 ),
@@ -186,7 +182,8 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
     );
   }
 
-  Widget _buildRoleBadge(bool isOwner, bool isAdmin) {
+  Widget _buildRoleBadge(BuildContext context, bool isOwner, bool isAdmin) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
@@ -197,7 +194,7 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
         ),
       ),
       child: Text(
-        isOwner ? 'Propietario' : 'Admin',
+        isOwner ? l10n.ownerRole : l10n.adminRole,
         style: TextStyle(
           fontSize: 10, 
           color: isOwner ? Colors.purple[900] : Colors.blue[900],
@@ -213,49 +210,46 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
     OrganizationService service,
     bool isCurrentlyAdmin,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     bool success = false;
     
     if (action == 'remove') {
-      // Diálogo de confirmación
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('¿Expulsar miembro?'),
-          content: Text('¿Estás seguro de eliminar a ${member.name} de la organización?'),
+          title: Text(l10n.removeMemberTitle),
+          content: Text('${l10n.removeMemberConfirmPart1} ${member.name} ${l10n.removeMemberConfirmPart2}'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Expulsar'),
+              child: Text(l10n.removeMemberAction),
             ),
           ],
         ),
       );
 
       if (confirm == true) {
-        // Llamada a tu función: removeMember(userId)
         success = await service.removeMember(member.uid);
       } else {
         return;
       }
     } 
     else if (action == 'promote') {
-      // Llamada a tu función: promoteToAdmin(userId)
       success = await service.promoteToAdmin(member.uid);
     } 
     else if (action == 'demote') {
-      // Llamada a tu función: demoteFromAdmin(userId)
       success = await service.demoteFromAdmin(member.uid);
     }
 
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al actualizar el miembro'),
+        SnackBar(
+          content: Text(l10n.updateMemberError),
           backgroundColor: Colors.red,
         ),
       );

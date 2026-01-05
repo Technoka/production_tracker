@@ -480,7 +480,7 @@ class _ProductCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            l10n.skuLabel(product.reference),
+                            '${l10n.skuLabel}: ${product.reference}',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],

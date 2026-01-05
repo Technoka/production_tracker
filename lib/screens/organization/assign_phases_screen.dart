@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/phase_model.dart';
 import '../../models/user_model.dart';
 import '../../services/phase_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class AssignPhasesScreen extends StatefulWidget {
   final String organizationId;
@@ -56,7 +57,7 @@ class _AssignPhasesScreenState extends State<AssignPhasesScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cargar asignaciones: $e')),
+          SnackBar(content: Text('${AppLocalizations.of(context)!.errorLoadingAssignments}: $e')),
         );
       }
     } finally {
@@ -76,8 +77,8 @@ class _AssignPhasesScreenState extends State<AssignPhasesScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Asignaciones guardadas correctamente'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.assignmentsSavedSuccess),
             backgroundColor: Colors.green,
           ),
         );
@@ -87,7 +88,7 @@ class _AssignPhasesScreenState extends State<AssignPhasesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al guardar: $e'),
+            content: Text('${AppLocalizations.of(context)!.error}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -101,12 +102,14 @@ class _AssignPhasesScreenState extends State<AssignPhasesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Asignar Fases'),
+            Text(l10n.assignPhasesTitle),
             Text(
               widget.operatorName,
               style: const TextStyle(
@@ -124,7 +127,7 @@ class _AssignPhasesScreenState extends State<AssignPhasesScreen> {
                   _selectedPhaseIds.clear();
                 });
               },
-              child: const Text('Limpiar'),
+              child: Text(l10n.cleanSelection),
             ),
         ],
       ),
@@ -146,7 +149,7 @@ class _AssignPhasesScreenState extends State<AssignPhasesScreen> {
                       children: [
                         const Icon(Icons.error, size: 64, color: Colors.red),
                         const SizedBox(height: 16),
-                        Text('Error: ${snapshot.error}'),
+                        Text('${l10n.error}: ${snapshot.error}'),
                       ],
                     ),
                   );
@@ -157,13 +160,13 @@ class _AssignPhasesScreenState extends State<AssignPhasesScreen> {
                     phases.where((p) => p.isActive).toList();
 
                 if (activePhases.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Padding(
-                      padding: EdgeInsets.all(32),
+                      padding: const EdgeInsets.all(32),
                       child: Text(
-                        'No hay fases activas disponibles.\nConfigure las fases en la gestión de organización.',
+                        l10n.noActivePhasesAvailable,
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16),
+                        style: const TextStyle(fontSize: 16),
                       ),
                     ),
                   );
@@ -179,9 +182,9 @@ class _AssignPhasesScreenState extends State<AssignPhasesScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Selecciona las fases que puede gestionar',
-                            style: TextStyle(
+                          Text(
+                            l10n.selectPhasesInstruction,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -189,8 +192,8 @@ class _AssignPhasesScreenState extends State<AssignPhasesScreen> {
                           const SizedBox(height: 8),
                           Text(
                             _selectedPhaseIds.isEmpty
-                                ? 'Sin restricciones (puede gestionar todas)'
-                                : '${_selectedPhaseIds.length} fase(s) seleccionada(s)',
+                                ? l10n.noRestrictionsLabel
+                                : '${l10n.phasesSelectedLabel}: ${_selectedPhaseIds.length}',
                             style: TextStyle(
                               color: Colors.grey[700],
                               fontSize: 14,
@@ -269,7 +272,7 @@ class _AssignPhasesScreenState extends State<AssignPhasesScreen> {
                       ),
                     )
                   : const Icon(Icons.save),
-              label: const Text('Guardar'),
+              label: Text(l10n.save),
             ),
     );
   }

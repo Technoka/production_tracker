@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/phase_model.dart';
 import '../../models/user_model.dart';
 import '../../services/phase_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class ManagePhasesScreen extends StatefulWidget {
   final String organizationId;
@@ -28,23 +29,21 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
 
   Future<void> _initializeDefaultPhases() async {
     if (!_canEdit) return;
+    final l10n = AppLocalizations.of(context)!;
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Inicializar Fases'),
-        content: const Text(
-          '¿Deseas crear las fases de producción predeterminadas? '
-          'Esto añadirá las 5 fases estándar del proceso de fabricación de bolsos.',
-        ),
+        title: Text(l10n.initializePhasesTitle),
+        content: Text(l10n.initializePhasesConfirmMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Inicializar'),
+            child: Text(l10n.confirm),
           ),
         ],
       ),
@@ -58,15 +57,15 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
       await _phaseService.initializeDefaultPhases(widget.organizationId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Fases inicializadas correctamente'),
+          SnackBar(
+            content: Text(l10n.phasesInitializedSuccess),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('${l10n.error}: $e')),
         );
       }
     } finally {
@@ -78,6 +77,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
 
   Future<void> _togglePhaseStatus(ProductionPhase phase) async {
     if (!_canEdit) return;
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       await _phaseService.togglePhaseStatus(
@@ -90,8 +90,8 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
           SnackBar(
             content: Text(
               phase.isActive
-                  ? 'Fase desactivada'
-                  : 'Fase activada',
+                  ? l10n.phaseDeactivated
+                  : l10n.phaseActivated,
             ),
           ),
         );
@@ -99,7 +99,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('${l10n.error}: $e')),
         );
       }
     }
@@ -107,6 +107,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
 
   Future<void> _editPhase(ProductionPhase phase) async {
     if (!_canEdit) return;
+    final l10n = AppLocalizations.of(context)!;
 
     final nameController = TextEditingController(text: phase.name);
     final descriptionController = TextEditingController(text: phase.description ?? '');
@@ -114,24 +115,24 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Editar Fase'),
+        title: Text(l10n.editPhaseTitle),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre de la fase',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.phaseName,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Descripción (opcional)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.phaseDescriptionLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 maxLines: 3,
               ),
@@ -141,7 +142,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -150,7 +151,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                 'description': descriptionController.text.trim(),
               });
             },
-            child: const Text('Guardar'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -166,13 +167,13 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Fase actualizada')),
+          SnackBar(content: Text(l10n.phaseUpdatedSuccess)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('${l10n.error}: $e')),
         );
       }
     }
@@ -180,9 +181,11 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestión de Fases de Producción'),
+        title: Text(l10n.managePhasesTitle),
       ),
       body: StreamBuilder<List<ProductionPhase>>(
         stream: _phaseService.getOrganizationPhasesStream(widget.organizationId),
@@ -198,7 +201,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                 children: [
                   const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
-                  Text('Error: ${snapshot.error}'),
+                  Text('${l10n.error}: ${snapshot.error}'),
                 ],
               ),
             );
@@ -217,14 +220,14 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                     color: Colors.grey,
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'No hay fases configuradas',
-                    style: TextStyle(fontSize: 18),
+                  Text(
+                    l10n.noPhasesConfiguredTitle,
+                    style: const TextStyle(fontSize: 18),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Inicializa las fases predeterminadas para comenzar',
-                    style: TextStyle(color: Colors.grey),
+                  Text(
+                    l10n.noPhasesConfiguredSubtitle,
+                    style: const TextStyle(color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
@@ -238,7 +241,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.add),
-                      label: const Text('Inicializar Fases'),
+                      label: Text(l10n.initializePhasesButton),
                     ),
                 ],
               ),
@@ -258,22 +261,22 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Fases de Producción',
-                        style: TextStyle(
+                      Text(
+                        l10n.phases,
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Total: ${phases.length} fases (${activePhases.length} activas)',
+                        '${l10n.totalPhasesLabel}: ${phases.length} (${l10n.activePhasesSection}: ${activePhases.length})',
                         style: const TextStyle(color: Colors.grey),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Las fases activas se aplicarán automáticamente a todos los productos nuevos.',
-                        style: TextStyle(
+                      Text(
+                        l10n.activePhasesNote,
+                        style: const TextStyle(
                           fontSize: 13,
                           color: Colors.grey,
                           fontStyle: FontStyle.italic,
@@ -286,9 +289,9 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
               const SizedBox(height: 16),
               // Active phases
               if (activePhases.isNotEmpty) ...[
-                const Text(
-                  'Fases Activas',
-                  style: TextStyle(
+                Text(
+                  l10n.activePhasesSection,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -299,9 +302,9 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
               // Inactive phases
               if (inactivePhases.isNotEmpty) ...[
                 const SizedBox(height: 24),
-                const Text(
-                  'Fases Inactivas',
-                  style: TextStyle(
+                Text(
+                  l10n.inactivePhasesSection,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -317,6 +320,8 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
   }
 
   Widget _buildPhaseCard(ProductionPhase phase) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: phase.isActive ? 2 : 1,
@@ -368,17 +373,17 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                               : Icons.visibility,
                         ),
                         const SizedBox(width: 8),
-                        Text(phase.isActive ? 'Desactivar' : 'Activar'),
+                        Text(phase.isActive ? l10n.deactivateAction : l10n.activateAction),
                       ],
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'edit',
                     child: Row(
                       children: [
-                        Icon(Icons.edit),
-                        SizedBox(width: 8),
-                        Text('Editar'),
+                        const Icon(Icons.edit),
+                        const SizedBox(width: 8),
+                        Text(l10n.edit),
                       ],
                     ),
                   ),

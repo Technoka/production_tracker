@@ -7,6 +7,7 @@ import '../../services/project_product_service.dart';
 import '../../utils/role_utils.dart';
 import 'product_phases_screen.dart';
 import '../../widgets/phase_progress_indicator.dart';
+import '../../l10n/app_localizations.dart';
 
 class ProjectProductDetailScreen extends StatefulWidget {
   final String projectId;
@@ -33,7 +34,6 @@ class _ProjectProductDetailScreenState
   bool _isEditing = false;
   bool _isLoading = false;
   
-  // Controladores para edición
   late TextEditingController _quantityController;
   late TextEditingController _unitPriceController;
   late TextEditingController _colorController;
@@ -106,6 +106,8 @@ class _ProjectProductDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return StreamBuilder<ProjectProductModel?>(
       stream: _productService
           .watchProjectProducts(widget.currentUser.organizationId!, widget.projectId)
@@ -116,25 +118,25 @@ class _ProjectProductDetailScreenState
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Detalle del Producto')),
+            appBar: AppBar(title: Text(l10n.projectDetails)),
             body: const Center(child: CircularProgressIndicator()),
           );
         }
 
         if (!snapshot.hasData || snapshot.hasError) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Detalle del Producto')),
+            appBar: AppBar(title: Text(l10n.projectDetails)),
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.error, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
-                  const Text('Producto no encontrado'),
+                  Text(l10n.noProductsInProject), // Usando string similar
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Volver'),
+                    child: Text(l10n.back),
                   ),
                 ],
               ),
@@ -144,19 +146,17 @@ class _ProjectProductDetailScreenState
 
         final product = snapshot.data!;
         
-        // Poblar controladores si estamos editando y aún no se han llenado
         if (_isEditing && _quantityController.text.isEmpty) {
           _populateControllers(product);
         }
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Detalle del Producto'),
+            title: Text(l10n.product),
             actions: [
-                // Botón de acceso rápido a fases siempre visible
               IconButton(
                 icon: const Icon(Icons.fact_check),
-                onPressed: () => _navigateToPhases(product),
+                onPressed: () => _navigateToPhases(product, l10n),
               ),
               if (_canEdit() && !_isEditing)
                 IconButton(
@@ -186,7 +186,7 @@ class _ProjectProductDetailScreenState
                         children: [
                           const Icon(Icons.content_copy, size: 20),
                           const SizedBox(width: 8),
-                          const Text('Duplicar'),
+                          Text(l10n.copy), // Usando "Copy" o "Duplicar" si existe
                         ],
                       ),
                     ),
@@ -196,38 +196,35 @@ class _ProjectProductDetailScreenState
                         children: [
                           const Icon(Icons.delete, size: 20, color: Colors.red),
                           const SizedBox(width: 8),
-                          const Text('Eliminar', style: TextStyle(color: Colors.red)),
+                          Text(l10n.delete, style: const TextStyle(color: Colors.red)),
                         ],
                       ),
                     ),
                   ],
                   onSelected: (value) async {
                     if (value == 'duplicate') {
-                      await _duplicateProduct(product);
+                      await _duplicateProduct(product, l10n);
                     } else if (value == 'delete') {
-                      await _deleteProduct(product);
+                      await _deleteProduct(product, l10n);
                     }
                   },
                 ),
             ],
           ),
-body: Column(
+          body: Column(
           children: [
-            // 1. Cabecera fija de fases (No scrolleable para que siempre esté a la vista)
-            _buildPhasesHeader(product),
-            
-            // 2. Área de detalles con scroll
+            _buildPhasesHeader(product, l10n),
             Expanded(
                 child: _isEditing 
-                    ? _buildEditForm(product) 
-                    : _buildDetailView(product),
+                    ? _buildEditForm(product, l10n) 
+                    : _buildDetailView(product, l10n),
             ),
           ],
         ),
       
           floatingActionButton: _isEditing
               ? FloatingActionButton.extended(
-                  onPressed: _isLoading ? null : () => _saveChanges(product),
+                  onPressed: _isLoading ? null : () => _saveChanges(product, l10n),
                   icon: _isLoading
                       ? const SizedBox(
                           width: 20,
@@ -238,7 +235,7 @@ body: Column(
                           ),
                         )
                       : const Icon(Icons.save),
-                  label: const Text('Guardar'),
+                  label: Text(l10n.save),
                 )
               : null,
         );
@@ -246,7 +243,7 @@ body: Column(
     );
   }
 
-  Widget _buildPhasesHeader(ProjectProductModel product) {
+  Widget _buildPhasesHeader(ProjectProductModel product, AppLocalizations l10n) {
   return Container(
     width: double.infinity,
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -256,12 +253,11 @@ body: Column(
     ),
     child: Row(
       children: [
-        // El indicador ya tiene sus propios SizedBox internos de tamaño 'size'
         PhaseProgressIndicator(
           organizationId: widget.currentUser.organizationId!,
           projectId: widget.projectId,
           productId: widget.productId,
-          size: 50, // Definimos un tamaño claro
+          size: 50,
           showLabel: true,
         ),
         const SizedBox(width: 16),
@@ -271,7 +267,7 @@ body: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'PROGRESO DE PRODUCCIÓN',
+                l10n.productionProgress,
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -280,69 +276,26 @@ body: Column(
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Seguimiento por fases',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              Text(
+                l10n.phaseTracking,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
             ],
           ),
         ),
         ElevatedButton(
-          onPressed: () => _navigateToPhases(product),
+          onPressed: () => _navigateToPhases(product, l10n),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 12),
           ),
-          child: const Text('Gestionar'),
+          child: Text(l10n.manage),
         ),
       ],
     ),
   );
 }
 
-  // Widget para mostrar el resumen de fases de forma atractiva
-  Widget _buildPhasesSummaryCard(ProjectProductModel product) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () => _navigateToPhases(product),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Progreso de Producción',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Pulsa para gestionar las fases',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-              // Tu widget de indicador circular o de barra
-              PhaseProgressIndicator(
-                organizationId: widget.currentUser.organizationId!,
-                projectId: widget.projectId,
-                productId: widget.productId,
-                size: 50,
-              ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToPhases(ProjectProductModel product) {
+  void _navigateToPhases(ProjectProductModel product, AppLocalizations l10n) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -350,14 +303,14 @@ body: Column(
           organizationId: widget.currentUser.organizationId!,
           projectId: widget.projectId,
           productId: widget.productId,
-          productName: product.catalogProductName, // O el nombre del modelo
+          productName: product.catalogProductName,
           currentUser: widget.currentUser,
         ),
       ),
     );
   }
 
-  Widget _buildDetailView(ProjectProductModel product) {
+  Widget _buildDetailView(ProjectProductModel product, AppLocalizations l10n) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
     return RefreshIndicator(
@@ -367,8 +320,7 @@ body: Column(
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Información del producto del catálogo
-          _buildSectionTitle(context, 'Producto del Catálogo'),
+          _buildSectionTitle(context, l10n.catalogProduct),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -383,7 +335,7 @@ body: Column(
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _buildInfoRow('Referencia', product.catalogProductReference,
+                  _buildInfoRow(l10n.skuLabel, product.catalogProductReference,
                       monospace: true),
                 ],
               ),
@@ -391,14 +343,13 @@ body: Column(
           ),
           const SizedBox(height: 16),
 
-          // Estado y cantidad
-          _buildSectionTitle(context, 'Estado y Cantidad'),
+          _buildSectionTitle(context, l10n.statusAndQuantity),
           Card(
             child: Column(
               children: [
                 ListTile(
                   leading: const Icon(Icons.flag),
-                  title: const Text('Estado'),
+                  title: Text(l10n.status),
                   trailing: Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -407,7 +358,7 @@ body: Column(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      product.statusDisplayName,
+                      product.statusDisplayName, // Mapeo de status display
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: _getStatusColor(product.status),
@@ -418,9 +369,9 @@ body: Column(
                 const Divider(),
                 ListTile(
                   leading: const Icon(Icons.numbers),
-                  title: const Text('Cantidad'),
+                  title: Text(l10n.quantity),
                   trailing: Text(
-                    '${product.quantity} unidades',
+                    l10n.quantityLabel(product.quantity),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -431,7 +382,7 @@ body: Column(
                   const Divider(),
                   ListTile(
                     leading: const Icon(Icons.euro),
-                    title: const Text('Precio unitario'),
+                    title: Text(l10n.unitPrice),
                     trailing: Text(
                       '€${product.unitPrice.toStringAsFixed(2)}',
                       style: const TextStyle(fontSize: 16),
@@ -440,7 +391,7 @@ body: Column(
                   const Divider(),
                   ListTile(
                     leading: const Icon(Icons.attach_money),
-                    title: const Text('Precio total'),
+                    title: Text(l10n.totalPrice),
                     trailing: Text(
                       '€${product.totalPrice.toStringAsFixed(2)}',
                       style: const TextStyle(
@@ -456,9 +407,8 @@ body: Column(
           ),
           const SizedBox(height: 16),
 
-          // Personalización
           if (product.customization.hasCustomizations) ...[
-            _buildSectionTitle(context, 'Personalización'),
+            _buildSectionTitle(context, l10n.customization),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -486,9 +436,8 @@ body: Column(
             const SizedBox(height: 16),
           ],
 
-          // Notas
           if (product.notes != null && product.notes!.isNotEmpty) ...[
-            _buildSectionTitle(context, 'Notas'),
+            _buildSectionTitle(context, l10n.notes),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -498,9 +447,8 @@ body: Column(
             const SizedBox(height: 16),
           ],
 
-          // Acciones rápidas (cambiar estado)
           if (_canEdit()) ...[
-            _buildSectionTitle(context, 'Cambiar Estado'),
+            _buildSectionTitle(context, l10n.changeStatus),
             Wrap(
               spacing: 8,
               children: ProjectProductStatus.values
@@ -509,7 +457,7 @@ body: Column(
                         selected: product.status == status.value,
                         onSelected: (selected) async {
                           if (selected) {
-                            await _updateStatus(product, status.value);
+                            await _updateStatus(product, status.value, l10n);
                           }
                         },
                       ))
@@ -518,20 +466,19 @@ body: Column(
             const SizedBox(height: 16),
           ],
 
-          // Información del sistema
-          _buildSectionTitle(context, 'Información del Sistema'),
+          _buildSectionTitle(context, l10n.systemInfo),
           Card(
             child: Column(
               children: [
                 ListTile(
                   leading: const Icon(Icons.access_time),
-                  title: const Text('Creado'),
+                  title: Text(l10n.createdLabel.replaceAll(':', '').replaceAll('{date}', '').trim()),
                   subtitle: Text(dateFormat.format(product.createdAt)),
                 ),
                 const Divider(),
                 ListTile(
                   leading: const Icon(Icons.update),
-                  title: const Text('Última actualización'),
+                  title: Text(l10n.updatedLabel.replaceAll(':', '').replaceAll('{date}', '').trim()),
                   subtitle: Text(dateFormat.format(product.updatedAt)),
                 ),
               ],
@@ -543,30 +490,30 @@ body: Column(
     );
   }
 
-  Widget _buildEditForm(ProjectProductModel product) {
+  Widget _buildEditForm(ProjectProductModel product, AppLocalizations l10n) {
     return Form(
       key: _formKey,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildSectionTitle(context, 'Cantidad y Precio'),
+          _buildSectionTitle(context, l10n.quantityAndPrice),
           Row(
             children: [
               Expanded(
                 child: TextFormField(
                   controller: _quantityController,
-                  decoration: const InputDecoration(
-                    labelText: 'Cantidad *',
-                    border: OutlineInputBorder(),
-                    suffixText: 'uds',
+                  decoration: InputDecoration(
+                    labelText: '${l10n.quantity} *',
+                    border: const OutlineInputBorder(),
+                    suffixText: l10n.unitsSuffix,
                   ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Requerido';
+                    if (value == null || value.isEmpty) return l10n.fieldRequired;
                     final quantity = int.tryParse(value);
                     if (quantity == null || quantity <= 0) {
-                      return 'Cantidad inválida';
+                      return l10n.quantityInvalid;
                     }
                     return null;
                   },
@@ -578,9 +525,9 @@ body: Column(
                   flex: 2,
                   child: TextFormField(
                     controller: _unitPriceController,
-                    decoration: const InputDecoration(
-                      labelText: 'Precio unitario',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.unitPrice,
+                      border: const OutlineInputBorder(),
                       prefixText: '€ ',
                     ),
                     keyboardType:
@@ -596,7 +543,7 @@ body: Column(
           ),
           const SizedBox(height: 24),
 
-          _buildSectionTitle(context, 'Personalización'),
+          _buildSectionTitle(context, l10n.customization),
           TextFormField(
             controller: _colorController,
             decoration: const InputDecoration(
@@ -625,7 +572,7 @@ body: Column(
           ),
           const SizedBox(height: 24),
 
-          _buildSectionTitle(context, 'Dimensiones (cm)'),
+          _buildSectionTitle(context, l10n.customDimensions),
           Row(
             children: [
               Expanded(
@@ -682,12 +629,12 @@ body: Column(
           ),
           const SizedBox(height: 24),
 
-          _buildSectionTitle(context, 'Detalles y Notas'),
+          _buildSectionTitle(context, l10n.detailsAndNotes),
           TextFormField(
             controller: _specialDetailsController,
-            decoration: const InputDecoration(
-              labelText: 'Detalles especiales',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.specialDetails,
+              border: const OutlineInputBorder(),
             ),
             maxLines: 3,
             textCapitalization: TextCapitalization.sentences,
@@ -695,9 +642,9 @@ body: Column(
           const SizedBox(height: 16),
           TextFormField(
             controller: _notesController,
-            decoration: const InputDecoration(
-              labelText: 'Notas',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.notes,
+              border: const OutlineInputBorder(),
             ),
             maxLines: 2,
             textCapitalization: TextCapitalization.sentences,
@@ -708,7 +655,7 @@ body: Column(
     );
   }
 
-  Future<void> _saveChanges(ProjectProductModel product) async {
+  Future<void> _saveChanges(ProjectProductModel product, AppLocalizations l10n) async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -750,8 +697,8 @@ body: Column(
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Producto actualizado correctamente'),
+            SnackBar(
+              content: Text(l10n.productUpdatedSuccess),
               backgroundColor: Colors.green,
             ),
           );
@@ -760,8 +707,8 @@ body: Column(
           });
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error al actualizar producto'),
+            SnackBar(
+              content: Text(l10n.error),
               backgroundColor: Colors.red,
             ),
           );
@@ -771,7 +718,7 @@ body: Column(
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text('${l10n.error}: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -800,7 +747,7 @@ body: Column(
     );
   }
 
-  Future<void> _updateStatus(ProjectProductModel product, String newStatus) async {
+  Future<void> _updateStatus(ProjectProductModel product, String newStatus, AppLocalizations l10n) async {
     final success = await _productService.updateProductStatus(
       organizationId: widget.currentUser.organizationId!,
       projectId: widget.projectId,
@@ -814,8 +761,8 @@ body: Column(
         SnackBar(
           content: Text(
             success
-                ? 'Estado actualizado correctamente'
-                : 'Error al actualizar estado',
+                ? l10n.statusUpdatedSuccess
+                : l10n.statusUpdateError,
           ),
           backgroundColor: success ? Colors.green : Colors.red,
         ),
@@ -823,21 +770,20 @@ body: Column(
     }
   }
 
-  Future<void> _duplicateProduct(ProjectProductModel product) async {
+  Future<void> _duplicateProduct(ProjectProductModel product, AppLocalizations l10n) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Duplicar producto'),
-        content: const Text(
-            '¿Deseas crear una copia de este producto en el proyecto?'),
+        title: Text(l10n.duplicate), // "Duplicar"
+        content: Text(l10n.confirmDuplicateProductMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Duplicar'),
+            child: Text(l10n.duplicate), // "Duplicar"
           ),
         ],
       ),
@@ -855,16 +801,16 @@ body: Column(
     if (mounted) {
       if (newId != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Producto duplicado correctamente'),
+          SnackBar(
+            content: Text(l10n.success),
             backgroundColor: Colors.green,
           ),
         );
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al duplicar producto'),
+          SnackBar(
+            content: Text(l10n.duplicateProductError),
             backgroundColor: Colors.red,
           ),
         );
@@ -872,22 +818,22 @@ body: Column(
     }
   }
 
-  Future<void> _deleteProduct(ProjectProductModel product) async {
+  Future<void> _deleteProduct(ProjectProductModel product, AppLocalizations l10n) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar producto'),
+        title: Text(l10n.delete),
         content: Text(
-            '¿Estás seguro de que deseas eliminar "${product.catalogProductName}" del proyecto?'),
+            '${l10n.confirmDeleteProjectProductMessagePart1} "${product.catalogProductName}" ${l10n.confirmDeleteProjectProductMessagePart2}'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Eliminar'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -904,16 +850,16 @@ body: Column(
     if (mounted) {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Producto eliminado correctamente'),
+          SnackBar(
+            content: Text(l10n.success),
             backgroundColor: Colors.green,
           ),
         );
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al eliminar producto'),
+          SnackBar(
+            content: Text(l10n.deleteProductError),
             backgroundColor: Colors.red,
           ),
         );

@@ -6,6 +6,8 @@ import '../../models/user_model.dart';
 import '../../services/product_catalog_service.dart';
 import '../../services/project_product_service.dart';
 import '../../utils/role_utils.dart';
+// IMPORTAR IDIOMA
+import '../../l10n/app_localizations.dart';
 
 class AddProductToProjectScreen extends StatefulWidget {
   final String projectId;
@@ -65,11 +67,11 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
     super.dispose();
   }
 
-  Future<void> _addProduct() async {
+  Future<void> _addProduct(AppLocalizations l10n) async {
     if (!_formKey.currentState!.validate() || _selectedProduct == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor selecciona un producto'),
+        SnackBar(
+          content: Text(l10n.pleaseSelectProduct),
           backgroundColor: Colors.orange,
         ),
       );
@@ -119,16 +121,16 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
       if (mounted) {
         if (productId != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Producto añadido al proyecto'),
+            SnackBar(
+              content: Text(l10n.productAddedToProject),
               backgroundColor: Colors.green,
             ),
           );
           Navigator.pop(context, true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error al añadir producto'),
+            SnackBar(
+              content: Text(l10n.errorAddingProduct),
               backgroundColor: Colors.red,
             ),
           );
@@ -138,7 +140,7 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text('${l10n.error}: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -199,9 +201,11 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Añadir Producto'),
+        title: Text(l10n.addProduct),
       ),
       body: Form(
         key: _formKey,
@@ -209,12 +213,12 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             // Selector de producto del catálogo
-            _buildSectionTitle('Seleccionar del Catálogo'),
+            _buildSectionTitle(l10n.selectFromCatalog),
             Card(
               child: ListTile(
                 leading: const Icon(Icons.inventory_2),
                 title: Text(
-                  _selectedProduct?.name ?? 'Ningún producto seleccionado',
+                  _selectedProduct?.name ?? l10n.noProductSelected,
                   style: TextStyle(
                     fontWeight: _selectedProduct != null
                         ? FontWeight.bold
@@ -222,8 +226,8 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
                   ),
                 ),
                 subtitle: _selectedProduct != null
-                    ? Text('SKU: ${_selectedProduct!.reference}')
-                    : const Text('Toca para seleccionar'),
+                    ? Text('${l10n.skuLabel}: ${_selectedProduct!.reference}')
+                    : Text(l10n.tapToSelect),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () async {
                   final selected = await showModalBottomSheet<ProductCatalogModel>(
@@ -242,26 +246,26 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
             const SizedBox(height: 24),
 
             // Cantidad y precio
-            _buildSectionTitle('Cantidad y Precio'),
+            _buildSectionTitle(l10n.quantityAndPrice),
             Row(
               children: [
                 Expanded(
                   child: TextFormField(
                     controller: _quantityController,
-                    decoration: const InputDecoration(
-                      labelText: 'Cantidad *',
-                      border: OutlineInputBorder(),
-                      suffixText: 'uds',
+                    decoration: InputDecoration(
+                      labelText: '${l10n.quantity} *',
+                      border: const OutlineInputBorder(),
+                      suffixText: l10n.unitsSuffix,
                     ),
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Requerido';
+                        return l10n.fieldRequired;
                       }
                       final quantity = int.tryParse(value);
                       if (quantity == null || quantity <= 0) {
-                        return 'Cantidad inválida';
+                        return l10n.quantityInvalid;
                       }
                       return null;
                     },
@@ -274,7 +278,7 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
                     child: TextFormField(
                       controller: _unitPriceController,
                       decoration: const InputDecoration(
-                        labelText: 'Precio unitario',
+                        labelText: 'Precio unitario', // Usar clave si existe
                         border: OutlineInputBorder(),
                         prefixText: '€ ',
                       ),
@@ -290,11 +294,11 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
             const SizedBox(height: 24),
 
             // Personalización
-            _buildSectionTitle('Personalización'),
+            _buildSectionTitle(l10n.customization),
             TextFormField(
               controller: _colorController,
               decoration: const InputDecoration(
-                labelText: 'Color',
+                labelText: 'Color', // Usar clave existente
                 border: OutlineInputBorder(),
                 hintText: 'Ej: Azul marino',
               ),
@@ -304,7 +308,7 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
             TextFormField(
               controller: _materialController,
               decoration: const InputDecoration(
-                labelText: 'Material',
+                labelText: 'Material', // Usar clave existente
                 border: OutlineInputBorder(),
                 hintText: 'Ej: Cuero genuino',
               ),
@@ -314,7 +318,7 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
             TextFormField(
               controller: _finishController,
               decoration: const InputDecoration(
-                labelText: 'Acabado',
+                labelText: 'Acabado', // Usar clave existente
                 border: OutlineInputBorder(),
                 hintText: 'Ej: Mate',
               ),
@@ -323,7 +327,7 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
             const SizedBox(height: 24),
 
             // Dimensiones personalizadas
-            _buildSectionTitle('Dimensiones Personalizadas (cm)'),
+            _buildSectionTitle(l10n.customDimensions),
             Row(
               children: [
                 Expanded(
@@ -375,13 +379,13 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
             const SizedBox(height: 24),
 
             // Detalles especiales
-            _buildSectionTitle('Detalles Especiales'),
+            _buildSectionTitle(l10n.specialDetails),
             TextFormField(
               controller: _specialDetailsController,
-              decoration: const InputDecoration(
-                labelText: 'Detalles',
-                border: OutlineInputBorder(),
-                hintText: 'Especificaciones adicionales...',
+              decoration: InputDecoration(
+                labelText: l10n.detailsLabel,
+                border: const OutlineInputBorder(),
+                hintText: l10n.additionalSpecsHint,
               ),
               maxLines: 3,
               textCapitalization: TextCapitalization.sentences,
@@ -389,10 +393,10 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _notesController,
-              decoration: const InputDecoration(
-                labelText: 'Notas',
-                border: OutlineInputBorder(),
-                hintText: 'Notas internas...',
+              decoration: InputDecoration(
+                labelText: l10n.notes,
+                border: const OutlineInputBorder(),
+                hintText: l10n.internalNotesHint,
               ),
               maxLines: 2,
               textCapitalization: TextCapitalization.sentences,
@@ -401,14 +405,14 @@ class _AddProductToProjectScreenState extends State<AddProductToProjectScreen> {
 
             // Botón añadir
             FilledButton(
-              onPressed: _isLoading ? null : _addProduct,
+              onPressed: _isLoading ? null : () => _addProduct(l10n),
               child: _isLoading
                   ? const SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Añadir al Proyecto'),
+                  : Text(l10n.addToProject),
             ),
             const SizedBox(height: 16),
           ],
@@ -448,6 +452,8 @@ class _ProductSelectorSheetState extends State<_ProductSelectorSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
       minChildSize: 0.5,
@@ -474,9 +480,9 @@ class _ProductSelectorSheetState extends State<_ProductSelectorSheet> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Seleccionar Producto',
-                    style: TextStyle(
+                  Text(
+                    l10n.selectProductTitle,
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -485,7 +491,7 @@ class _ProductSelectorSheetState extends State<_ProductSelectorSheet> {
                   TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Buscar producto...',
+                      hintText: l10n.searchProductHint,
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -523,13 +529,13 @@ class _ProductSelectorSheetState extends State<_ProductSelectorSheet> {
                   }
 
                   if (products.isEmpty) {
-                    return const Center(
+                    return Center(
                         child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Text('No hay productos disponibles.'),
-                          SizedBox(height: 8),
-                          Text('Debes añadir primero productos al catálogo.'),
+                        children: [
+                          Text(l10n.noProductsAvailable),
+                          const SizedBox(height: 8),
+                          Text(l10n.addProductsToCatalogFirst),
                         ],
                         ),
                     );
@@ -569,7 +575,7 @@ class _ProductSelectorSheetState extends State<_ProductSelectorSheet> {
                             product.name,
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          subtitle: Text('SKU: ${product.reference}'),
+                          subtitle: Text('${l10n.skuLabel}: ${product.reference}'),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => Navigator.pop(context, product),
                         ),

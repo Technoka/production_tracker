@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/organization_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class CreateOrganizationScreen extends StatefulWidget {
   const CreateOrganizationScreen({super.key});
@@ -23,45 +24,45 @@ class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
     super.dispose();
   }
 
-Future<void> _handleCreateOrganization() async {
-  if (!_formKey.currentState!.validate()) return;
+  Future<void> _handleCreateOrganization() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  final authService = Provider.of<AuthService>(context, listen: false);
-  final organizationService = Provider.of<OrganizationService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final organizationService = Provider.of<OrganizationService>(context, listen: false);
 
-  final user = authService.currentUserData;
-  if (user == null) return;
+    final user = authService.currentUserData;
+    if (user == null) return;
 
-  final organizationId = await organizationService.createOrganization(
-    name: _nameController.text.trim(),
-    description: _descriptionController.text.trim(),
-    ownerId: user.uid,
-  );
+    final organizationId = await organizationService.createOrganization(
+      name: _nameController.text.trim(),
+      description: _descriptionController.text.trim(),
+      ownerId: user.uid,
+    );
 
-  // AQUÍ ESTÁ LA CORRECCIÓN:
-  // Verificamos 'mounted' antes de usar cualquier cosa que necesite el 'context'
-  if (organizationId != null && mounted) {
-    
-    // 1. Refrescar los datos del usuario para que detecte su nueva organización
-    await authService.getUserData(); 
-    
-    // 2. Cargar la organización en el servicio global
-    await organizationService.loadOrganization(organizationId);
+    // Verificamos 'mounted' antes de usar cualquier cosa que necesite el 'context'
+    if (organizationId != null && mounted) {
+      
+      // 1. Refrescar los datos del usuario para que detecte su nueva organización
+      await authService.getUserData(); 
+      
+      // 2. Cargar la organización en el servicio global
+      await organizationService.loadOrganization(organizationId);
 
-    // 3. Ahora sí, hacemos el pop con seguridad
-    if (mounted) {
-      Navigator.pop(context);
+      // 3. Ahora sí, hacemos el pop con seguridad
+      if (mounted) {
+        Navigator.pop(context);
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
     final organizationService = Provider.of<OrganizationService>(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Crear Organización'),
+        title: Text(l10n.createOrganization),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -78,13 +79,13 @@ Future<void> _handleCreateOrganization() async {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Nueva Organización',
+                  l10n.newOrganizationTitle,
                   style: Theme.of(context).textTheme.headlineSmall,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Crea tu organización para gestionar tu equipo y proyectos',
+                  l10n.createOrganizationSubtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.grey[600],
                       ),
@@ -96,18 +97,18 @@ Future<void> _handleCreateOrganization() async {
                 TextFormField(
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre de la organización',
-                    prefixIcon: Icon(Icons.business),
-                    border: OutlineInputBorder(),
-                    helperText: 'Ej: Mi Empresa S.L.',
+                  decoration: InputDecoration(
+                    labelText: l10n.orgNameLabel,
+                    prefixIcon: const Icon(Icons.business),
+                    border: const OutlineInputBorder(),
+                    helperText: l10n.orgNameHelper,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa el nombre';
+                      return l10n.orgNameError;
                     }
                     if (value.length < 3) {
-                      return 'El nombre debe tener al menos 3 caracteres';
+                      return l10n.orgNameLengthError;
                     }
                     return null;
                   },
@@ -119,19 +120,19 @@ Future<void> _handleCreateOrganization() async {
                   controller: _descriptionController,
                   textCapitalization: TextCapitalization.sentences,
                   maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Descripción',
-                    prefixIcon: Icon(Icons.description),
-                    border: OutlineInputBorder(),
-                    helperText: 'Describe brevemente tu organización',
+                  decoration: InputDecoration(
+                    labelText: l10n.orgDescriptionLabel,
+                    prefixIcon: const Icon(Icons.description),
+                    border: const OutlineInputBorder(),
+                    helperText: l10n.orgDescriptionHelper,
                     alignLabelWithHint: true,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa una descripción';
+                      return l10n.orgDescriptionError;
                     }
                     if (value.length < 10) {
-                      return 'La descripción debe tener al menos 10 caracteres';
+                      return l10n.orgDescriptionLengthError;
                     }
                     return null;
                   },
@@ -154,7 +155,7 @@ Future<void> _handleCreateOrganization() async {
                           Icon(Icons.info_outline, color: Colors.blue[700]),
                           const SizedBox(width: 8),
                           Text(
-                            'Como creador tendrás:',
+                            l10n.creatorBenefitsTitle,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.blue[900],
@@ -163,10 +164,10 @@ Future<void> _handleCreateOrganization() async {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _buildBenefit('Control total sobre la organización'),
-                      _buildBenefit('Capacidad de invitar miembros'),
-                      _buildBenefit('Gestión de roles y permisos'),
-                      _buildBenefit('Administración de proyectos'),
+                      _buildBenefit(l10n.benefitControl),
+                      _buildBenefit(l10n.benefitInvite),
+                      _buildBenefit(l10n.benefitRoles),
+                      _buildBenefit(l10n.benefitProjects),
                     ],
                   ),
                 ),
@@ -188,9 +189,9 @@ Future<void> _handleCreateOrganization() async {
                               color: Colors.white,
                             ),
                           )
-                        : const Text(
-                            'Crear Organización',
-                            style: TextStyle(fontSize: 16),
+                        : Text(
+                            l10n.createOrganization,
+                            style: const TextStyle(fontSize: 16),
                           ),
                   ),
                 ),

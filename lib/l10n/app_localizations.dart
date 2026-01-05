@@ -1682,8 +1682,8 @@ abstract class AppLocalizations {
   /// No description provided for @skuLabel.
   ///
   /// In en, this message translates to:
-  /// **'SKU: {sku}'**
-  String skuLabel(Object sku);
+  /// **'SKU:'**
+  String get skuLabel;
 
   /// No description provided for @usedCount.
   ///
@@ -2078,7 +2078,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteError.
   ///
   /// In en, this message translates to:
-  /// **'Error deleting product'**
+  /// **'Error al eliminar:'**
   String get deleteError;
 
   /// No description provided for @productIsInactiveMessage.
@@ -2104,6 +2104,1152 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create product'**
   String get createProductBtn;
+
+  /// No description provided for @kanbanBoardGlobal.
+  ///
+  /// In en, this message translates to:
+  /// **'Tablero Kanban Global'**
+  String get kanbanBoardGlobal;
+
+  /// No description provided for @noOrganizationAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'No tienes una organización asignada'**
+  String get noOrganizationAssigned;
+
+  /// No description provided for @searchByNameOrRef.
+  ///
+  /// In en, this message translates to:
+  /// **'Buscar por nombre o referencia...'**
+  String get searchByNameOrRef;
+
+  /// No description provided for @wipLimitReachedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Límite WIP alcanzado en'**
+  String get wipLimitReachedIn;
+
+  /// No description provided for @limitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Límite alcanzado'**
+  String get limitReached;
+
+  /// No description provided for @moveProductForward.
+  ///
+  /// In en, this message translates to:
+  /// **'Avanzar producto'**
+  String get moveProductForward;
+
+  /// No description provided for @moveProductBackward.
+  ///
+  /// In en, this message translates to:
+  /// **'Retroceder producto'**
+  String get moveProductBackward;
+
+  /// No description provided for @moveWarningPart1.
+  ///
+  /// In en, this message translates to:
+  /// **'Se marcarán como pendientes todas las fases posteriores a'**
+  String get moveWarningPart1;
+
+  /// No description provided for @moveForward.
+  ///
+  /// In en, this message translates to:
+  /// **'Avanzar'**
+  String get moveForward;
+
+  /// No description provided for @moveBackward.
+  ///
+  /// In en, this message translates to:
+  /// **'Retroceder'**
+  String get moveBackward;
+
+  /// No description provided for @productMovedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Producto movido a'**
+  String get productMovedTo;
+
+  /// No description provided for @phaseUpdateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error al actualizar fase'**
+  String get phaseUpdateError;
+
+  /// No description provided for @noPhasesConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'No hay fases configuradas'**
+  String get noPhasesConfigured;
+
+  /// No description provided for @configurePhasesFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Configura las fases de producción primero'**
+  String get configurePhasesFirst;
+
+  /// No description provided for @emptyColumnState.
+  ///
+  /// In en, this message translates to:
+  /// **'Sin productos'**
+  String get emptyColumnState;
+
+  /// No description provided for @addProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Añadir Producto'**
+  String get addProduct;
+
+  /// No description provided for @pleaseSelectProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Por favor selecciona un producto'**
+  String get pleaseSelectProduct;
+
+  /// No description provided for @productAddedToProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Producto añadido al proyecto'**
+  String get productAddedToProject;
+
+  /// No description provided for @errorAddingProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Error al añadir producto'**
+  String get errorAddingProduct;
+
+  /// No description provided for @selectFromCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Seleccionar del Catálogo'**
+  String get selectFromCatalog;
+
+  /// No description provided for @noProductSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Ningún producto seleccionado'**
+  String get noProductSelected;
+
+  /// No description provided for @tapToSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Toca para seleccionar'**
+  String get tapToSelect;
+
+  /// No description provided for @quantityAndPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Cantidad y Precio'**
+  String get quantityAndPrice;
+
+  /// No description provided for @quantityInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Cantidad inválida'**
+  String get quantityInvalid;
+
+  /// No description provided for @unitsSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'uds'**
+  String get unitsSuffix;
+
+  /// No description provided for @customDimensions.
+  ///
+  /// In en, this message translates to:
+  /// **'Dimensiones Personalizadas (cm)'**
+  String get customDimensions;
+
+  /// No description provided for @specialDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Detalles Especiales'**
+  String get specialDetails;
+
+  /// No description provided for @detailsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Detalles'**
+  String get detailsLabel;
+
+  /// No description provided for @additionalSpecsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Especificaciones adicionales...'**
+  String get additionalSpecsHint;
+
+  /// No description provided for @internalNotesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Notas internas...'**
+  String get internalNotesHint;
+
+  /// No description provided for @addToProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Añadir al Proyecto'**
+  String get addToProject;
+
+  /// No description provided for @selectProductTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Seleccionar Producto'**
+  String get selectProductTitle;
+
+  /// No description provided for @searchProductHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Buscar producto...'**
+  String get searchProductHint;
+
+  /// No description provided for @noProductsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No hay productos disponibles.'**
+  String get noProductsAvailable;
+
+  /// No description provided for @addProductsToCatalogFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Debes añadir primero productos al catálogo.'**
+  String get addProductsToCatalogFirst;
+
+  /// No description provided for @productionProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'PROGRESO DE PRODUCCIÓN'**
+  String get productionProgress;
+
+  /// No description provided for @phaseTracking.
+  ///
+  /// In en, this message translates to:
+  /// **'Seguimiento por fases'**
+  String get phaseTracking;
+
+  /// No description provided for @manage.
+  ///
+  /// In en, this message translates to:
+  /// **'Gestionar'**
+  String get manage;
+
+  /// No description provided for @catalogProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Producto del Catálogo'**
+  String get catalogProduct;
+
+  /// No description provided for @statusAndQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Estado y Cantidad'**
+  String get statusAndQuantity;
+
+  /// No description provided for @changeStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Cambiar Estado'**
+  String get changeStatus;
+
+  /// No description provided for @systemInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Información del Sistema'**
+  String get systemInfo;
+
+  /// No description provided for @confirmDuplicateProductMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'¿Deseas crear una copia de este producto en el proyecto?'**
+  String get confirmDuplicateProductMessage;
+
+  /// No description provided for @duplicateProductError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error al duplicar producto'**
+  String get duplicateProductError;
+
+  /// No description provided for @confirmDeleteProjectProductMessagePart1.
+  ///
+  /// In en, this message translates to:
+  /// **'¿Estás seguro de que deseas eliminar'**
+  String get confirmDeleteProjectProductMessagePart1;
+
+  /// No description provided for @confirmDeleteProjectProductMessagePart2.
+  ///
+  /// In en, this message translates to:
+  /// **'del proyecto?'**
+  String get confirmDeleteProjectProductMessagePart2;
+
+  /// No description provided for @deleteProductError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error al eliminar producto'**
+  String get deleteProductError;
+
+  /// No description provided for @statusUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Estado actualizado correctamente'**
+  String get statusUpdatedSuccess;
+
+  /// No description provided for @statusUpdateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error al actualizar estado'**
+  String get statusUpdateError;
+
+  /// No description provided for @detailsAndNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Detalles y Notas'**
+  String get detailsAndNotes;
+
+  /// No description provided for @productUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Producto actualizado correctamente'**
+  String get productUpdatedSuccess;
+
+  /// No description provided for @phasesInitializedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Phases initialized successfully'**
+  String get phasesInitializedSuccess;
+
+  /// No description provided for @initPhaseError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error al inicializar:'**
+  String get initPhaseError;
+
+  /// No description provided for @resetPhases.
+  ///
+  /// In en, this message translates to:
+  /// **'Reiniciar Fases'**
+  String get resetPhases;
+
+  /// No description provided for @resetPhasesWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'¿Estás seguro? Esto borrará el progreso actual y volverá a copiar las fases activas de la organización. Esta acción no se puede deshacer.'**
+  String get resetPhasesWarning;
+
+  /// No description provided for @resetSyncPhases.
+  ///
+  /// In en, this message translates to:
+  /// **'Reiniciar/Sincronizar fases'**
+  String get resetSyncPhases;
+
+  /// No description provided for @productNoFlow.
+  ///
+  /// In en, this message translates to:
+  /// **'Producto sin flujo de producción'**
+  String get productNoFlow;
+
+  /// No description provided for @productNoPhasesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Este producto aún no tiene fases asignadas. Inicialízalo para comenzar el seguimiento.'**
+  String get productNoPhasesMessage;
+
+  /// No description provided for @initProductionPhases.
+  ///
+  /// In en, this message translates to:
+  /// **'Inicializar Fases de Producción'**
+  String get initProductionPhases;
+
+  /// No description provided for @contactAdminPhasesPart1.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacta con un administrador'**
+  String get contactAdminPhasesPart1;
+
+  /// No description provided for @contactAdminPhasesPart2.
+  ///
+  /// In en, this message translates to:
+  /// **'para configurar las fases.'**
+  String get contactAdminPhasesPart2;
+
+  /// No description provided for @chatInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Info del chat'**
+  String get chatInfo;
+
+  /// No description provided for @muteNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Silenciar notificaciones'**
+  String get muteNotifications;
+
+  /// No description provided for @pinnedMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Mensajes fijados'**
+  String get pinnedMessages;
+
+  /// No description provided for @noMessagesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No hay mensajes aún'**
+  String get noMessagesYet;
+
+  /// No description provided for @beFirstToMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Sé el primero en enviar un mensaje'**
+  String get beFirstToMessage;
+
+  /// No description provided for @reply.
+  ///
+  /// In en, this message translates to:
+  /// **'Responder'**
+  String get reply;
+
+  /// No description provided for @react.
+  ///
+  /// In en, this message translates to:
+  /// **'Reaccionar'**
+  String get react;
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copiar'**
+  String get copy;
+
+  /// No description provided for @textCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Texto copiado'**
+  String get textCopied;
+
+  /// No description provided for @unpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Desfijar'**
+  String get unpin;
+
+  /// No description provided for @pin.
+  ///
+  /// In en, this message translates to:
+  /// **'Fijar'**
+  String get pin;
+
+  /// No description provided for @messageUnpinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Mensaje desfijado'**
+  String get messageUnpinned;
+
+  /// No description provided for @messagePinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Mensaje fijado'**
+  String get messagePinned;
+
+  /// No description provided for @editMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Editar mensaje'**
+  String get editMessage;
+
+  /// No description provided for @newContentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Nuevo contenido...'**
+  String get newContentHint;
+
+  /// No description provided for @messageEdited.
+  ///
+  /// In en, this message translates to:
+  /// **'Mensaje editado'**
+  String get messageEdited;
+
+  /// No description provided for @editError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error al editar:'**
+  String get editError;
+
+  /// No description provided for @deleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Eliminar mensaje'**
+  String get deleteMessage;
+
+  /// No description provided for @deleteMessageConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'¿Estás seguro de que quieres eliminar este mensaje?'**
+  String get deleteMessageConfirm;
+
+  /// No description provided for @messageDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Mensaje eliminado'**
+  String get messageDeleted;
+
+  /// No description provided for @sendMessageError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error al enviar mensaje:'**
+  String get sendMessageError;
+
+  /// No description provided for @reactionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error al reaccionar:'**
+  String get reactionError;
+
+  /// No description provided for @assignPhasesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign Phases'**
+  String get assignPhasesTitle;
+
+  /// No description provided for @cleanSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear selection'**
+  String get cleanSelection;
+
+  /// No description provided for @selectPhasesInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'Select phases they can manage'**
+  String get selectPhasesInstruction;
+
+  /// No description provided for @noRestrictionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'No restrictions (can manage all)'**
+  String get noRestrictionsLabel;
+
+  /// No description provided for @phasesSelectedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected phases'**
+  String get phasesSelectedLabel;
+
+  /// No description provided for @assignmentsSavedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignments saved successfully'**
+  String get assignmentsSavedSuccess;
+
+  /// No description provided for @errorLoadingAssignments.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading assignments'**
+  String get errorLoadingAssignments;
+
+  /// No description provided for @noActivePhasesAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No active phases available. Configure phases in organization settings.'**
+  String get noActivePhasesAvailable;
+
+  /// No description provided for @managePhasesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Phases'**
+  String get managePhasesTitle;
+
+  /// No description provided for @initializePhasesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Initialize Phases'**
+  String get initializePhasesTitle;
+
+  /// No description provided for @initializePhasesConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to create default production phases? This will add standard process phases.'**
+  String get initializePhasesConfirmMessage;
+
+  /// No description provided for @initializePhasesButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Initialize Phases'**
+  String get initializePhasesButton;
+
+  /// No description provided for @phaseDeactivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Phase deactivated'**
+  String get phaseDeactivated;
+
+  /// No description provided for @phaseActivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Phase activated'**
+  String get phaseActivated;
+
+  /// No description provided for @editPhaseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Phase'**
+  String get editPhaseTitle;
+
+  /// No description provided for @phaseDescriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (optional)'**
+  String get phaseDescriptionLabel;
+
+  /// No description provided for @phaseUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Phase updated'**
+  String get phaseUpdatedSuccess;
+
+  /// No description provided for @noPhasesConfiguredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No phases configured'**
+  String get noPhasesConfiguredTitle;
+
+  /// No description provided for @noPhasesConfiguredSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Initialize default phases to start'**
+  String get noPhasesConfiguredSubtitle;
+
+  /// No description provided for @activePhasesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Phases'**
+  String get activePhasesSection;
+
+  /// No description provided for @inactivePhasesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive Phases'**
+  String get inactivePhasesSection;
+
+  /// No description provided for @activateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate'**
+  String get activateAction;
+
+  /// No description provided for @deactivateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate'**
+  String get deactivateAction;
+
+  /// No description provided for @totalPhasesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Total phases'**
+  String get totalPhasesLabel;
+
+  /// No description provided for @activePhasesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Active phases will be automatically applied to all new products.'**
+  String get activePhasesNote;
+
+  /// No description provided for @joinOrganizationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join Organization'**
+  String get joinOrganizationTitle;
+
+  /// No description provided for @joinOrganizationSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Successfully joined the organization'**
+  String get joinOrganizationSuccess;
+
+  /// No description provided for @joinOrganizationError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error joining organization'**
+  String get joinOrganizationError;
+
+  /// No description provided for @inviteCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation Code'**
+  String get inviteCodeTitle;
+
+  /// No description provided for @inviteCodeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code provided by your organization'**
+  String get inviteCodeSubtitle;
+
+  /// No description provided for @inviteCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get inviteCodeLabel;
+
+  /// No description provided for @inviteCodeHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Format: ABCD1234 (8 characters)'**
+  String get inviteCodeHelper;
+
+  /// No description provided for @inviteCodeLengthError.
+  ///
+  /// In en, this message translates to:
+  /// **'Code must be 8 characters long'**
+  String get inviteCodeLengthError;
+
+  /// No description provided for @enterInviteCodeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the code'**
+  String get enterInviteCodeError;
+
+  /// No description provided for @inviteCodeInfoBox.
+  ///
+  /// In en, this message translates to:
+  /// **'The invitation code is unique for each organization and allows instant access.'**
+  String get inviteCodeInfoBox;
+
+  /// No description provided for @joinButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get joinButton;
+
+  /// No description provided for @inviteMemberTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite Member'**
+  String get inviteMemberTitle;
+
+  /// No description provided for @inviteSentSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation sent successfully'**
+  String get inviteSentSuccess;
+
+  /// No description provided for @inviteSendError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error sending invitation'**
+  String get inviteSendError;
+
+  /// No description provided for @inviteByEmailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite by Email'**
+  String get inviteByEmailTitle;
+
+  /// No description provided for @inviteByEmailSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send an invitation to join your organization'**
+  String get inviteByEmailSubtitle;
+
+  /// No description provided for @emailInputLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email address'**
+  String get emailInputLabel;
+
+  /// No description provided for @emailInputHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter user\'s email to invite'**
+  String get emailInputHelper;
+
+  /// No description provided for @aboutInvitationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About invitations'**
+  String get aboutInvitationsTitle;
+
+  /// No description provided for @inviteInfoExpiration.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation expires in 7 days'**
+  String get inviteInfoExpiration;
+
+  /// No description provided for @inviteInfoReceive.
+  ///
+  /// In en, this message translates to:
+  /// **'User will receive the invitation upon login'**
+  String get inviteInfoReceive;
+
+  /// No description provided for @inviteInfoCreateAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'If user has no account, they must create one first'**
+  String get inviteInfoCreateAccount;
+
+  /// No description provided for @inviteInfoExisting.
+  ///
+  /// In en, this message translates to:
+  /// **'You can only invite users not belonging to another organization'**
+  String get inviteInfoExisting;
+
+  /// No description provided for @sendInviteButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Invitation'**
+  String get sendInviteButton;
+
+  /// No description provided for @newOrganizationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Organization'**
+  String get newOrganizationTitle;
+
+  /// No description provided for @createOrganizationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your organization to manage team and projects'**
+  String get createOrganizationSubtitle;
+
+  /// No description provided for @orgNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization Name'**
+  String get orgNameLabel;
+
+  /// No description provided for @orgNameHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: My Company LLC'**
+  String get orgNameHelper;
+
+  /// No description provided for @orgNameError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the name'**
+  String get orgNameError;
+
+  /// No description provided for @orgNameLengthError.
+  ///
+  /// In en, this message translates to:
+  /// **'Name must be at least 3 characters'**
+  String get orgNameLengthError;
+
+  /// No description provided for @orgDescriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get orgDescriptionLabel;
+
+  /// No description provided for @orgDescriptionHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Briefly describe your organization'**
+  String get orgDescriptionHelper;
+
+  /// No description provided for @orgDescriptionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a description'**
+  String get orgDescriptionError;
+
+  /// No description provided for @orgDescriptionLengthError.
+  ///
+  /// In en, this message translates to:
+  /// **'Description must be at least 10 characters'**
+  String get orgDescriptionLengthError;
+
+  /// No description provided for @creatorBenefitsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'As creator you will have:'**
+  String get creatorBenefitsTitle;
+
+  /// No description provided for @benefitControl.
+  ///
+  /// In en, this message translates to:
+  /// **'Full control over the organization'**
+  String get benefitControl;
+
+  /// No description provided for @benefitInvite.
+  ///
+  /// In en, this message translates to:
+  /// **'Ability to invite members'**
+  String get benefitInvite;
+
+  /// No description provided for @benefitRoles.
+  ///
+  /// In en, this message translates to:
+  /// **'Role and permission management'**
+  String get benefitRoles;
+
+  /// No description provided for @benefitProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Project administration'**
+  String get benefitProjects;
+
+  /// No description provided for @peopleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'people'**
+  String get peopleLabel;
+
+  /// No description provided for @noMembersFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No members found'**
+  String get noMembersFound;
+
+  /// No description provided for @ownerRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner'**
+  String get ownerRole;
+
+  /// No description provided for @adminRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get adminRole;
+
+  /// No description provided for @adminsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Admins'**
+  String get adminsLabel;
+
+  /// No description provided for @removeAdminAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Admin'**
+  String get removeAdminAction;
+
+  /// No description provided for @makeAdminAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Make Admin'**
+  String get makeAdminAction;
+
+  /// No description provided for @removeMemberAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get removeMemberAction;
+
+  /// No description provided for @removeMemberTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove member?'**
+  String get removeMemberTitle;
+
+  /// No description provided for @removeMemberConfirmPart1.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to remove'**
+  String get removeMemberConfirmPart1;
+
+  /// No description provided for @removeMemberConfirmPart2.
+  ///
+  /// In en, this message translates to:
+  /// **'from the organization?'**
+  String get removeMemberConfirmPart2;
+
+  /// No description provided for @updateMemberError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating member'**
+  String get updateMemberError;
+
+  /// No description provided for @myOrganizationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Organization'**
+  String get myOrganizationTitle;
+
+  /// No description provided for @noOrganizationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not belong to any organization'**
+  String get noOrganizationTitle;
+
+  /// No description provided for @noOrganizationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your own organization or join an existing one'**
+  String get noOrganizationSubtitle;
+
+  /// No description provided for @createMyOrganizationBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Create my organization'**
+  String get createMyOrganizationBtn;
+
+  /// No description provided for @orLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get orLabel;
+
+  /// No description provided for @joinWithCodeBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Join with code'**
+  String get joinWithCodeBtn;
+
+  /// No description provided for @tapToViewLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to view'**
+  String get tapToViewLabel;
+
+  /// No description provided for @pendingInvitationPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'You have'**
+  String get pendingInvitationPrefix;
+
+  /// No description provided for @pendingInvitationSuffixSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'pending invitation'**
+  String get pendingInvitationSuffixSingle;
+
+  /// No description provided for @pendingInvitationSuffixPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'pending invitations'**
+  String get pendingInvitationSuffixPlural;
+
+  /// No description provided for @shareCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this code'**
+  String get shareCodeLabel;
+
+  /// No description provided for @codeCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Code copied'**
+  String get codeCopied;
+
+  /// No description provided for @copyCodeTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy code'**
+  String get copyCodeTooltip;
+
+  /// No description provided for @regenerateCodeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate code'**
+  String get regenerateCodeAction;
+
+  /// No description provided for @regenerateCodeWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure? The previous code will stop working.'**
+  String get regenerateCodeWarning;
+
+  /// No description provided for @regenerateBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate'**
+  String get regenerateBtn;
+
+  /// No description provided for @codeRegeneratedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Code regenerated'**
+  String get codeRegeneratedSuccess;
+
+  /// No description provided for @actionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions'**
+  String get actionsTitle;
+
+  /// No description provided for @managePhasesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure production phases'**
+  String get managePhasesSubtitle;
+
+  /// No description provided for @viewMembersAction.
+  ///
+  /// In en, this message translates to:
+  /// **'View members'**
+  String get viewMembersAction;
+
+  /// No description provided for @inviteMemberAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite member'**
+  String get inviteMemberAction;
+
+  /// No description provided for @leaveOrganizationAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave organization'**
+  String get leaveOrganizationAction;
+
+  /// No description provided for @leaveOrganizationWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to leave this organization? You will lose access to all projects and data.'**
+  String get leaveOrganizationWarning;
+
+  /// No description provided for @leaveOrganizationSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'You have left the organization'**
+  String get leaveOrganizationSuccess;
+
+  /// No description provided for @pendingInvitationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending Invitations'**
+  String get pendingInvitationsTitle;
+
+  /// No description provided for @noPendingInvitations.
+  ///
+  /// In en, this message translates to:
+  /// **'No pending invitations'**
+  String get noPendingInvitations;
+
+  /// No description provided for @invitedByLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Invited by:'**
+  String get invitedByLabel;
+
+  /// No description provided for @rejectAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get rejectAction;
+
+  /// No description provided for @acceptAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get acceptAction;
+
+  /// No description provided for @invitationRejectedMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation rejected'**
+  String get invitationRejectedMsg;
+
+  /// No description provided for @selectColorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Color'**
+  String get selectColorTitle;
+
+  /// No description provided for @currentLanguagesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently: Spanish, English'**
+  String get currentLanguagesLabel;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

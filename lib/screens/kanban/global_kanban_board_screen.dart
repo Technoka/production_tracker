@@ -12,6 +12,8 @@ import '../../services/production_batch_service.dart';
 import '../../widgets/draggable_product_card.dart';
 import '../../utils/filter_utils.dart';
 import '../production/batch_product_detail_screen.dart';
+// IMPORTAR IDIOMA
+import '../../l10n/app_localizations.dart';
 
 class GlobalKanbanBoardScreen extends StatefulWidget {
   const GlobalKanbanBoardScreen({Key? key}) : super(key: key);
@@ -25,7 +27,6 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
   final PhaseService _phaseService = PhaseService();
   final AuthService _authService = AuthService();
   
-  // NUEVO: Controlador para el scroll horizontal
   final ScrollController _scrollController = ScrollController();
   bool _isDragging = false;
   double _scrollSpeed = 0;
@@ -64,9 +65,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
     }
   }
 
-  // NUEVO: Auto-scroll cuando se arrastra cerca de los bordes
   void _startAutoScroll() {
-    // Ejecutar cada 50ms para scroll suave
     Stream.periodic(const Duration(milliseconds: 50)).listen((_) {
       if (_isDragging && _scrollSpeed != 0 && mounted) {
         final newOffset = _scrollController.offset + _scrollSpeed;
@@ -79,7 +78,6 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
     });
   }
 
-  // NUEVO: Detectar posición del drag para activar auto-scroll
   void _updateAutoScroll(Offset globalPosition) {
     if (!_isDragging) return;
 
@@ -87,19 +85,16 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
     final localPosition = box.globalToLocal(globalPosition);
     final screenWidth = box.size.width;
 
-    const edgeThreshold = 100.0; // Píxeles desde el borde para activar
-    const maxScrollSpeed = 15.0; // Velocidad máxima de scroll
+    const edgeThreshold = 100.0;
+    const maxScrollSpeed = 15.0;
 
     if (localPosition.dx < edgeThreshold) {
-      // Cerca del borde izquierdo - scroll a la izquierda
       final distance = edgeThreshold - localPosition.dx;
       _scrollSpeed = -(distance / edgeThreshold * maxScrollSpeed);
     } else if (localPosition.dx > screenWidth - edgeThreshold) {
-      // Cerca del borde derecho - scroll a la derecha
       final distance = localPosition.dx - (screenWidth - edgeThreshold);
       _scrollSpeed = distance / edgeThreshold * maxScrollSpeed;
     } else {
-      // En el centro - sin scroll
       _scrollSpeed = 0;
     }
   }
@@ -117,19 +112,20 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!; // LOCALIZACION
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserData;
 
     if (user?.organizationId == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Tablero Kanban')),
-        body: const Center(child: Text('No tienes una organización asignada')),
+        appBar: AppBar(title: Text(l10n.kanban)),
+        body: Center(child: Text(l10n.noOrganizationAssigned)),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tablero Kanban Global'),
+        title: Text(l10n.kanbanBoardGlobal),
         actions: [
           StreamBuilder<Map<String, dynamic>>(
             stream: _getStatsStream(user!.organizationId!),
@@ -155,7 +151,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
       ),
       body: Column(
         children: [
-          _buildFiltersBar(user),
+          _buildFiltersBar(user, l10n),
           Expanded(
             child: StreamBuilder<List<ProductionPhase>>(
               stream: _phaseService.getOrganizationPhasesStream(user.organizationId!),
@@ -165,7 +161,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
                 }
 
                 if (!phasesSnapshot.hasData || phasesSnapshot.data!.isEmpty) {
-                  return _buildEmptyState();
+                  return _buildEmptyState(l10n);
                 }
 
                 final phases = phasesSnapshot.data!
@@ -185,7 +181,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
                     final productsByPhase = productsSnapshot.data ?? {};
                     _cachedProductsByPhase = productsByPhase;
                     
-                    return _buildKanbanBoard(phases, productsByPhase, user);
+                    return _buildKanbanBoard(phases, productsByPhase, user, l10n);
                   },
                 );
               },
@@ -196,7 +192,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
     );
   }
 
-  Widget _buildFiltersBar(UserModel user) {
+  Widget _buildFiltersBar(UserModel user, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       decoration: BoxDecoration(
@@ -213,7 +209,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           FilterUtils.buildSearchField(
-            hintText: 'Buscar por nombre o referencia...',
+            hintText: l10n.searchByNameOrRef,
             searchQuery: _searchQuery,
             onChanged: (value) => setState(() => _searchQuery = value),
           ),
@@ -223,7 +219,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
           Row(
             children: [
               Expanded(
-                child: _buildFilterChips(user),
+                child: _buildFilterChips(user, l10n),
               ),
               FilterUtils.buildClearFiltersButton(
                 context: context,
@@ -237,7 +233,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
     );
   }
 
-  Widget _buildFilterChips(UserModel user) {
+  Widget _buildFilterChips(UserModel user, AppLocalizations l10n) {
     return StreamBuilder<List<ProductionBatchModel>>(
       stream: Provider.of<ProductionBatchService>(context, listen: false)
           .watchBatches(user.organizationId!),
@@ -251,10 +247,10 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
           children: [
             FilterUtils.buildFilterOption<String>(
               context: context,
-              label: 'Lote',
+              label: l10n.batchLabel, // Usando clave existente hack
               value: _batchFilter,
               icon: Icons.inventory_2_outlined,
-              allLabel: 'Todos',
+              allLabel: l10n.selectAll.replaceAll(' Seleccionar ', ''), // Usando "Todo" o similar
               items: batches.map((b) => DropdownMenuItem(
                 value: b.id,
                 child: Text(b.batchNumber, overflow: TextOverflow.ellipsis),
@@ -321,16 +317,16 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
     List<ProductionPhase> phases,
     Map<String, List<Map<String, dynamic>>> productsByPhase,
     UserModel user,
+    AppLocalizations l10n,
   ) {
     return Listener(
-      // NUEVO: Listener para detectar movimiento del drag
       onPointerMove: (details) {
         if (_isDragging) {
           _updateAutoScroll(details.position);
         }
       },
       child: ListView.builder(
-        controller: _scrollController, // NUEVO: Añadir controlador
+        controller: _scrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.all(16),
         itemCount: phases.length,
@@ -352,13 +348,12 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
               
               final productData = data['product'] as BatchProductModel;
 
-              // Si la fase es la misma, rechazamos el drop inmediatamente
               if (productData.currentPhase == phase.id) return false;
 
               if (productData.currentPhase != phase.id && isAtWipLimit) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Límite WIP alcanzado en ${phase.name}'),
+                    content: Text('${l10n.wipLimitReachedIn} ${phase.name}'),
                     backgroundColor: Colors.orange,
                   ),
                 );
@@ -368,7 +363,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
               return true;
             },
             onAccept: (data) {
-              _showMoveConfirmationDialog(data, phase);
+              _showMoveConfirmationDialog(data, phase, l10n);
             },
             builder: (context, candidateData, rejectedData) {
               final isHovering = candidateData.isNotEmpty;
@@ -381,7 +376,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
                       : null,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: _buildKanbanColumn(phase, productsData, phases, isAtWipLimit),
+                child: _buildKanbanColumn(phase, productsData, phases, isAtWipLimit, l10n),
               );
             },
           );
@@ -393,6 +388,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
   Future<void> _showMoveConfirmationDialog(
     Map<String, dynamic> data,
     ProductionPhase toPhase,
+    AppLocalizations l10n,
   ) async {
     final product = data['product'] as BatchProductModel;
     final batch = data['batch'] as ProductionBatchModel;
@@ -413,7 +409,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                isForward ? 'Avanzar producto' : 'Retroceder producto',
+                isForward ? l10n.moveProductForward : l10n.moveProductBackward,
                 style: const TextStyle(fontSize: 18),
               ),
             ),
@@ -429,21 +425,21 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Lote: ${batch.batchNumber}',
+              '${l10n.batchLabel}: ${batch.batchNumber}',
               style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
             Text(
-              'SKU: ${product.productReference}',
+              '${l10n.skuLabel}: ${product.productReference}',
               style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
             const SizedBox(height: 16),
             Text(
-              'De: ${product.currentPhaseName}',
+              '${l10n.forSearch.replaceAll('para', 'De').trim()}: ${product.currentPhaseName}', // "De" makeshift
               style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 4),
             Text(
-              'A: ${toPhase.name}',
+              '${l10n.forSearch.replaceAll('para', 'A').trim()}: ${toPhase.name}', // "A" makeshift
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
             if (!isForward) ...[
@@ -461,7 +457,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Se marcarán como pendientes todas las fases posteriores a ${toPhase.name}',
+                        '${l10n.moveWarningPart1} ${toPhase.name}',
                         style: TextStyle(
                           color: Colors.orange.shade700,
                           fontSize: 12,
@@ -477,27 +473,28 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: isForward ? Colors.green : Colors.orange,
             ),
-            child: Text(isForward ? 'Avanzar' : 'Retroceder'),
+            child: Text(isForward ? l10n.moveForward : l10n.moveBackward),
           ),
         ],
       ),
     );
 
     if (result == true) {
-      await _handleProductMove(data, toPhase);
+      await _handleProductMove(data, toPhase, l10n);
     }
   }
 
   Future<void> _handleProductMove(
     Map<String, dynamic> data,
     ProductionPhase toPhase,
+    AppLocalizations l10n,
   ) async {
     try {
       final product = data['product'] as BatchProductModel;
@@ -540,19 +537,19 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Producto movido a ${toPhase.name}'),
+            content: Text('${l10n.productMovedTo} ${toPhase.name}'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
           ),
         );
       } else {
-        throw Exception('Error al actualizar fase');
+        throw Exception(l10n.phaseUpdateError);
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'),
+          content: Text('${l10n.error}: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -564,6 +561,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
     List<Map<String, dynamic>> productsData,
     List<ProductionPhase> allPhases,
     bool isAtWipLimit,
+    AppLocalizations l10n,
   ) {
     final color = _parseColor(phase.color);
     
@@ -581,11 +579,11 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildColumnHeader(phase, color, productsData.length, isAtWipLimit),
+          _buildColumnHeader(phase, color, productsData.length, isAtWipLimit, l10n),
           const Divider(height: 1),
           Expanded(
             child: productsData.isEmpty
-                ? _buildEmptyColumnState()
+                ? _buildEmptyColumnState(l10n)
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: productsData.length,
@@ -611,7 +609,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
     );
   }
 
-  Widget _buildColumnHeader(ProductionPhase phase, Color color, int count, bool isAtWipLimit) {
+  Widget _buildColumnHeader(ProductionPhase phase, Color color, int count, bool isAtWipLimit, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -651,7 +649,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$count ${count == 1 ? "producto" : "productos"}',
+                      '$count ${l10n.products}',
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.grey.shade600,
@@ -676,7 +674,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      'Límite alcanzado',
+                      l10n.limitReached,
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.orange.shade700,
@@ -693,7 +691,7 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
     );
   }
 
-  Widget _buildEmptyColumnState() {
+  Widget _buildEmptyColumnState(AppLocalizations l10n) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -702,23 +700,23 @@ class _GlobalKanbanBoardScreenState extends State<GlobalKanbanBoardScreen> {
           children: [
             Icon(Icons.inbox_outlined, size: 48, color: Colors.grey.shade400),
             const SizedBox(height: 8),
-            Text('Sin productos', style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+            Text(l10n.emptyColumnState, style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.view_kanban, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
-          Text('No hay fases configuradas', style: TextStyle(fontSize: 18, color: Colors.grey.shade600)),
+          Text(l10n.noPhasesConfigured, style: TextStyle(fontSize: 18, color: Colors.grey.shade600)),
           const SizedBox(height: 8),
-          Text('Configura las fases de producción primero', style: TextStyle(color: Colors.grey.shade500)),
+          Text(l10n.configurePhasesFirst, style: TextStyle(color: Colors.grey.shade500)),
         ],
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/organization_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class InviteMemberScreen extends StatefulWidget {
   const InviteMemberScreen({super.key});
@@ -22,6 +23,7 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
 
   Future<void> _handleInvite() async {
     if (!_formKey.currentState!.validate()) return;
+    final l10n = AppLocalizations.of(context)!;
 
     final authService = Provider.of<AuthService>(context, listen: false);
     final organizationService =
@@ -43,8 +45,8 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
       if (success) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invitación enviada exitosamente'),
+          SnackBar(
+            content: Text(l10n.inviteSentSuccess),
             backgroundColor: Colors.green,
           ),
         );
@@ -52,7 +54,7 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              organizationService.error ?? 'Error al enviar invitación',
+              organizationService.error ?? l10n.inviteSendError,
             ),
             backgroundColor: Colors.red,
           ),
@@ -64,10 +66,11 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
   @override
   Widget build(BuildContext context) {
     final organizationService = Provider.of<OrganizationService>(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Invitar Miembro'),
+        title: Text(l10n.inviteMemberTitle),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -84,13 +87,13 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Invitar por Email',
+                  l10n.inviteByEmailTitle,
                   style: Theme.of(context).textTheme.headlineSmall,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Envía una invitación para unirse a tu organización',
+                  l10n.inviteByEmailSubtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.grey[600],
                       ),
@@ -102,18 +105,18 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Correo electrónico',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(),
-                    helperText: 'Ingresa el email del usuario a invitar',
+                  decoration: InputDecoration(
+                    labelText: l10n.emailInputLabel,
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: const OutlineInputBorder(),
+                    helperText: l10n.emailInputHelper,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Por favor ingresa un correo';
+                      return l10n.enterEmailError;
                     }
                     if (!value.contains('@')) {
-                      return 'Ingresa un correo válido';
+                      return l10n.enterValidEmailError;
                     }
                     return null;
                   },
@@ -136,7 +139,7 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
                           Icon(Icons.info_outline, color: Colors.blue[700]),
                           const SizedBox(width: 8),
                           Text(
-                            'Sobre las invitaciones',
+                            l10n.aboutInvitationsTitle,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.blue[900],
@@ -145,13 +148,10 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _buildInfoItem('La invitación expira en 7 días'),
-                      _buildInfoItem(
-                          'El usuario recibirá la invitación al iniciar sesión'),
-                      _buildInfoItem(
-                          'Si el usuario no tiene cuenta, debe crearla primero'),
-                      _buildInfoItem(
-                          'Solo puedes invitar usuarios que no pertenezcan a otra organización'),
+                      _buildInfoItem(l10n.inviteInfoExpiration),
+                      _buildInfoItem(l10n.inviteInfoReceive),
+                      _buildInfoItem(l10n.inviteInfoCreateAccount),
+                      _buildInfoItem(l10n.inviteInfoExisting),
                     ],
                   ),
                 ),
@@ -172,9 +172,9 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text(
-                            'Enviar Invitación',
-                            style: TextStyle(fontSize: 16),
+                        : Text(
+                            l10n.sendInviteButton,
+                            style: const TextStyle(fontSize: 16),
                           ),
                   ),
                 ),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../services/organization_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/organization_model.dart';
+import '../../l10n/app_localizations.dart';
 
 class PendingInvitationsScreen extends StatelessWidget {
   const PendingInvitationsScreen({super.key});
@@ -11,11 +12,12 @@ class PendingInvitationsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final organizationService = Provider.of<OrganizationService>(context);
     final authService = Provider.of<AuthService>(context);
+    final l10n = AppLocalizations.of(context)!;
     final user = authService.currentUserData;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Invitaciones Pendientes'),
+        title: Text(l10n.pendingInvitationsTitle),
       ),
       body: user == null
           ? const Center(child: CircularProgressIndicator())
@@ -27,7 +29,7 @@ class PendingInvitationsScreen extends StatelessWidget {
                 }
 
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  return Center(child: Text('${l10n.error}: ${snapshot.error}'));
                 }
 
                 final invitations = snapshot.data ?? [];
@@ -40,7 +42,7 @@ class PendingInvitationsScreen extends StatelessWidget {
                         Icon(Icons.mail_outline, size: 64, color: Colors.grey[400]),
                         const SizedBox(height: 16),
                         Text(
-                          'No tienes invitaciones pendientes',
+                          l10n.noPendingInvitations,
                           style: TextStyle(color: Colors.grey[600], fontSize: 16),
                         ),
                       ],
@@ -79,7 +81,7 @@ class PendingInvitationsScreen extends StatelessWidget {
                                           fontSize: 18,
                                         ),
                                       ),
-                                      Text('Invitado por: ${invitation.invitedByName}'),
+                                      Text('${l10n.invitedByLabel} ${invitation.invitedByName}'),
                                     ],
                                   ),
                                 ),
@@ -94,7 +96,7 @@ class PendingInvitationsScreen extends StatelessWidget {
                                         ? null
                                         : () => _handleReject(context, organizationService, invitation.id),
                                     style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                                    child: const Text('Rechazar'),
+                                    child: Text(l10n.rejectAction),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -103,7 +105,7 @@ class PendingInvitationsScreen extends StatelessWidget {
                                     onPressed: organizationService.isLoading
                                         ? null
                                         : () => _handleAccept(context, organizationService, authService, invitation),
-                                    child: const Text('Aceptar'),
+                                    child: Text(l10n.acceptAction),
                                   ),
                                 ),
                               ],
@@ -119,39 +121,39 @@ class PendingInvitationsScreen extends StatelessWidget {
     );
   }
 
-Future<void> _handleAccept(
-  BuildContext context,
-  OrganizationService service,
-  AuthService auth,
-  InvitationModel invitation,
-) async {
-  // IMPORTANTE: Ahora pasamos "context" como primer argumento
-  final success = await service.acceptInvitation(
-    context: context, // <--- Le damos permiso al servicio para usar la UI
-    invitationId: invitation.id,
-    userId: auth.currentUser!.uid,
-  );
+  Future<void> _handleAccept(
+    BuildContext context,
+    OrganizationService service,
+    AuthService auth,
+    InvitationModel invitation,
+  ) async {
+    final success = await service.acceptInvitation(
+      context: context,
+      invitationId: invitation.id,
+      userId: auth.currentUser!.uid,
+    );
 
-  if (success && context.mounted) {
-    await auth.loadUserData();
-    if (context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/organization_home',
-        (route) => false,
-      );
+    if (success && context.mounted) {
+      await auth.loadUserData();
+      if (context.mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/organization_home',
+          (route) => false,
+        );
+      }
     }
   }
-}
 
   Future<void> _handleReject(
     BuildContext context,
     OrganizationService service,
     String invitationId,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final success = await service.rejectInvitation(invitationId);
     if (success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invitación rechazada')),
+        SnackBar(content: Text(l10n.invitationRejectedMsg)),
       );
     }
   }

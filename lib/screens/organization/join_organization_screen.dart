@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/organization_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class JoinOrganizationScreen extends StatefulWidget {
   const JoinOrganizationScreen({super.key});
@@ -22,6 +23,7 @@ class _JoinOrganizationScreenState extends State<JoinOrganizationScreen> {
 
   Future<void> _handleJoinOrganization() async {
     if (!_formKey.currentState!.validate()) return;
+    final l10n = AppLocalizations.of(context)!;
 
     final authService = Provider.of<AuthService>(context, listen: false);
     final organizationService =
@@ -42,8 +44,8 @@ class _JoinOrganizationScreenState extends State<JoinOrganizationScreen> {
 
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Te has unido a la organización exitosamente'),
+          SnackBar(
+            content: Text(l10n.joinOrganizationSuccess),
             backgroundColor: Colors.green,
           ),
         );
@@ -51,7 +53,7 @@ class _JoinOrganizationScreenState extends State<JoinOrganizationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              organizationService.error ?? 'Error al unirse a la organización',
+              organizationService.error ?? l10n.joinOrganizationError,
             ),
             backgroundColor: Colors.red,
           ),
@@ -63,10 +65,11 @@ class _JoinOrganizationScreenState extends State<JoinOrganizationScreen> {
   @override
   Widget build(BuildContext context) {
     final organizationService = Provider.of<OrganizationService>(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Unirse a Organización'),
+        title: Text(l10n.joinOrganizationTitle),
       ),
       body: SafeArea(
         child: Center(
@@ -85,13 +88,13 @@ class _JoinOrganizationScreenState extends State<JoinOrganizationScreen> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Código de Invitación',
+                    l10n.inviteCodeTitle,
                     style: Theme.of(context).textTheme.headlineSmall,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Ingresa el código que te proporcionó tu organización',
+                    l10n.inviteCodeSubtitle,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.grey[600],
                         ),
@@ -109,19 +112,19 @@ class _JoinOrganizationScreenState extends State<JoinOrganizationScreen> {
                       fontWeight: FontWeight.bold,
                       letterSpacing: 4,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'Código',
-                      border: OutlineInputBorder(),
-                      helperText: 'Formato: ABCD1234 (8 caracteres)',
-                      prefixIcon: Icon(Icons.qr_code),
+                    decoration: InputDecoration(
+                      labelText: l10n.inviteCodeLabel,
+                      border: const OutlineInputBorder(),
+                      helperText: l10n.inviteCodeHelper,
+                      prefixIcon: const Icon(Icons.qr_code),
                     ),
                     maxLength: 8,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Por favor ingresa el código';
+                        return l10n.enterInviteCodeError;
                       }
                       if (value.length != 8) {
-                        return 'El código debe tener 8 caracteres';
+                        return l10n.inviteCodeLengthError;
                       }
                       return null;
                     },
@@ -142,7 +145,7 @@ class _JoinOrganizationScreenState extends State<JoinOrganizationScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'El código de invitación es único para cada organización y te permitirá unirte instantáneamente.',
+                            l10n.inviteCodeInfoBox,
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.blue[900],
@@ -170,9 +173,9 @@ class _JoinOrganizationScreenState extends State<JoinOrganizationScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text(
-                              'Unirse',
-                              style: TextStyle(fontSize: 16),
+                          : Text(
+                              l10n.joinButton,
+                              style: const TextStyle(fontSize: 16),
                             ),
                     ),
                   ),

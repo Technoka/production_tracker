@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
-import '../../models/phase_model.dart'; // Necesario para el modelo
+import '../../models/phase_model.dart';
 import '../../services/phase_service.dart';
 import '../../widgets/phase_progress_widget.dart';
+import '../../l10n/app_localizations.dart';
 
 class ProductPhasesScreen extends StatefulWidget {
   final String organizationId;
@@ -28,22 +29,19 @@ class _ProductPhasesScreenState extends State<ProductPhasesScreen> {
   final PhaseService _phaseService = PhaseService();
   bool _isInitializing = false;
 
-  // Roles que pueden gestionar la estructura de fases (Admin y Jefe de Producción)
   bool get _canManageStructure {
     final role = widget.currentUser.role.toLowerCase();
     return role == 'admin' || role == 'production_manager';
   }
 
-  // Roles de solo lectura (Cliente y Contable)
   bool get _isReadOnly {
     final role = widget.currentUser.role.toLowerCase();
     return role == 'client' || role == 'contable';
   }
 
-  Future<void> _initializePhases() async {
+  Future<void> _initializePhases(AppLocalizations l10n) async {
     setState(() => _isInitializing = true);
     try {
-      // Usamos el servicio existente para copiar las fases de la organización al producto
       await _phaseService.initializeProductPhases(
         widget.organizationId,
         widget.projectId,
@@ -52,8 +50,8 @@ class _ProductPhasesScreenState extends State<ProductPhasesScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Fases inicializadas correctamente'),
+          SnackBar(
+            content: Text(l10n.phasesInitializedSuccess),
             backgroundColor: Colors.green,
           ),
         );
@@ -62,7 +60,7 @@ class _ProductPhasesScreenState extends State<ProductPhasesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al inicializar: $e'),
+            content: Text('${l10n.initPhaseError} $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -74,45 +72,41 @@ class _ProductPhasesScreenState extends State<ProductPhasesScreen> {
     }
   }
 
-  Future<void> _resetPhases() async {
+  Future<void> _resetPhases(AppLocalizations l10n) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reiniciar Fases'),
-        content: const Text(
-          '¿Estás seguro? Esto borrará el progreso actual y volverá a copiar las fases activas de la organización. Esta acción no se puede deshacer.',
-        ),
+        title: Text(l10n.resetPhases),
+        content: Text(l10n.resetPhasesWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Reiniciar'),
+            child: Text(l10n.resetPhases.split(' ')[0]), // "Reiniciar" hackish or use custom key
           ),
         ],
       ),
     );
 
     if (confirm == true) {
-      // Nota: El servicio actual no tiene un método explícito "deleteProductPhases".
-      // La inicialización (initializeProductPhases) usa 'set' en el documento, 
-      // por lo que sobrescribirá los documentos existentes con los nuevos valores por defecto.
-      // Esto efectivamente reinicia el progreso.
-      await _initializePhases();
+      await _initializePhases(l10n);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Fases de Producción'),
+            Text(l10n.phases), // "Fases"
             Text(
               widget.productName,
               style: const TextStyle(
@@ -123,20 +117,19 @@ class _ProductPhasesScreenState extends State<ProductPhasesScreen> {
           ],
         ),
         actions: [
-          // Opción para administradores: Reiniciar/Actualizar fases si cambian en la organización
           if (_canManageStructure)
             PopupMenuButton<String>(
               onSelected: (value) {
-                if (value == 'reset') _resetPhases();
+                if (value == 'reset') _resetPhases(l10n);
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'reset',
                   child: Row(
                     children: [
-                      Icon(Icons.restore, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Text('Reiniciar/Sincronizar fases'),
+                      const Icon(Icons.restore, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      Text(l10n.resetSyncPhases),
                     ],
                   ),
                 ),
@@ -144,8 +137,6 @@ class _ProductPhasesScreenState extends State<ProductPhasesScreen> {
             ),
         ],
       ),
-      // Usamos un StreamBuilder aquí para determinar si mostrar el Widget de Progreso
-      // o el botón de Inicialización.
       body: StreamBuilder<List<ProductPhaseProgress>>(
         stream: _phaseService.getProductPhaseProgressStream(
           widget.organizationId,
@@ -158,12 +149,11 @@ class _ProductPhasesScreenState extends State<ProductPhasesScreen> {
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(child: Text('${l10n.error}: ${snapshot.error}'));
           }
 
           final phases = snapshot.data ?? [];
 
-          // ESTADO 1: NO HAY FASES (Inicialización necesaria)
           if (phases.isEmpty) {
             return Center(
               child: Padding(
@@ -178,26 +168,26 @@ class _ProductPhasesScreenState extends State<ProductPhasesScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Producto sin flujo de producción',
+                      l10n.productNoFlow,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Colors.grey[700],
                           ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Este producto aún no tiene fases asignadas. Inicialízalo para comenzar el seguimiento.',
+                    Text(
+                      l10n.productNoPhasesMessage,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
+                      style: const TextStyle(color: Colors.grey),
                     ),
                     const SizedBox(height: 32),
                     if (_canManageStructure)
                       _isInitializing
                           ? const CircularProgressIndicator()
                           : FilledButton.icon(
-                              onPressed: _initializePhases,
+                              onPressed: () => _initializePhases(l10n),
                               icon: const Icon(Icons.play_circle_outline),
-                              label: const Text('Inicializar Fases de Producción'),
+                              label: Text(l10n.initProductionPhases),
                               style: FilledButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 24,
@@ -219,9 +209,9 @@ class _ProductPhasesScreenState extends State<ProductPhasesScreen> {
                             const Icon(Icons.lock_outline,
                                 color: Colors.amber, size: 20),
                             const SizedBox(width: 8),
-                            const Text(
-                              'Contacta con un administrador\npara configurar las fases.',
-                              style: TextStyle(fontSize: 13),
+                            Text(
+                              '${l10n.contactAdminPhasesPart1}\n${l10n.contactAdminPhasesPart2}',
+                              style: const TextStyle(fontSize: 13),
                             ),
                           ],
                         ),
@@ -232,8 +222,6 @@ class _ProductPhasesScreenState extends State<ProductPhasesScreen> {
             );
           }
 
-          // ESTADO 2: HAY FASES (Gestión normal)
-          // Reutilizamos el widget existente para no duplicar lógica de UI
           return PhaseProgressWidget(
             organizationId: widget.organizationId,
             projectId: widget.projectId,

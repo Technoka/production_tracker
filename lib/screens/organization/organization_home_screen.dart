@@ -8,6 +8,7 @@ import 'join_organization_screen.dart';
 import 'pending_invitations_screen.dart';
 import '../../models/user_model.dart';
 import '../../widgets/universal_loading_screen.dart';
+import '../../l10n/app_localizations.dart';
 
 class OrganizationHomeScreen extends StatefulWidget {
   const OrganizationHomeScreen({super.key});
@@ -32,94 +33,85 @@ class _OrganizationHomeScreenState extends State<OrganizationHomeScreen> {
     if (user?.organizationId != null) {
       await organizationService.loadOrganization(user!.organizationId!);
     } else {
-      // Reload user data from Firestore to get updated organizationId
       await authService.getUserData();
     }
   }
-
-  
     
-@override
-Widget build(BuildContext context) {
-  final authService = Provider.of<AuthService>(context);
-  final organizationService = Provider.of<OrganizationService>(context);
-  
-  // Usamos un valor local para evitar problemas con nulos
-  final currentUser = authService.currentUserData;
+  @override
+  Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context);
+    final organizationService = Provider.of<OrganizationService>(context);
+    final l10n = AppLocalizations.of(context)!;
+    
+    final currentUser = authService.currentUserData;
 
-  if (currentUser == null) {
-    return const UniversalLoadingScreen();
+    if (currentUser == null) {
+      return const UniversalLoadingScreen();
+    }
+
+    return StreamBuilder<UserModel?>(
+      stream: authService.userStream, 
+      initialData: currentUser,
+      builder: (context, snapshot) {
+        
+        final user = snapshot.data ?? currentUser;
+
+        // CASO 1: El usuario YA TIENE organización
+        if (user.organizationId != null) {
+          
+          if (organizationService.currentOrganization?.id != user.organizationId) {
+             Future.microtask(() => 
+               organizationService.loadOrganization(user.organizationId!)
+             );
+          }
+
+          if (organizationService.currentOrganization != null && !organizationService.isLoading) {
+             return const OrganizationDetailScreen();
+          }
+
+          return const UniversalLoadingScreen();
+        }
+
+        // CASO 2: NO TIENE ORGANIZACIÓN
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(l10n.myOrganizationTitle),
+            actions: [
+              StreamBuilder<List<dynamic>>(
+                stream: organizationService.getPendingInvitations(user.email),
+                builder: (context, invitationSnapshot) {
+                  final count = invitationSnapshot.data?.length ?? 0;
+                  if (count == 0) return const SizedBox.shrink();
+
+                  return IconButton(
+                    icon: Badge(
+                      label: Text('$count'),
+                      child: const Icon(Icons.mail_outline),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PendingInvitationsScreen(),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+          body: organizationService.isLoading 
+              ? const Center(child: CircularProgressIndicator())
+              : _buildNoOrganizationView(context, user),
+        );
+      },
+    );
   }
 
-  // LÓGICA PRINCIPAL: Escuchar cambios en tiempo real
-  return StreamBuilder<UserModel?>(
-    // Usamos el stream para detectar si aceptaste una invitación
-    stream: authService.userStream, 
-    initialData: currentUser, // Usamos los datos actuales mientras conecta
-    builder: (context, snapshot) {
-      
-      final user = snapshot.data ?? currentUser;
-
-      // CASO 1: El usuario YA TIENE organización (detectado por Stream o local)
-      if (user.organizationId != null) {
-        
-        // Verificamos si necesitamos cargar los datos de la org en el servicio
-        if (organizationService.currentOrganization?.id != user.organizationId) {
-           Future.microtask(() => 
-             organizationService.loadOrganization(user.organizationId!)
-           );
-        }
-
-        // Si el servicio ya cargó la org, mostramos el Dashboard
-        if (organizationService.currentOrganization != null && !organizationService.isLoading) {
-           return const OrganizationDetailScreen(); // Esta pantalla ya tiene su propio Scaffold
-        }
-
-        // Si está cargando la org, mostramos rueda
-        return const UniversalLoadingScreen();
-      }
-
-      // CASO 2: NO TIENE ORGANIZACIÓN (Aquí estaba el error de pantalla negra)
-      // Debemos devolver un Scaffold explícito aquí para pintar el fondo y la AppBar
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Mi Organización'),
-          actions: [
-            // TU CÓDIGO DE BURBUJA (BADGE)
-            StreamBuilder<List<dynamic>>(
-              stream: organizationService.getPendingInvitations(user.email),
-              builder: (context, invitationSnapshot) {
-                final count = invitationSnapshot.data?.length ?? 0;
-                if (count == 0) return const SizedBox.shrink();
-
-                return IconButton(
-                  icon: Badge(
-                    label: Text('$count'),
-                    child: const Icon(Icons.mail_outline),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PendingInvitationsScreen(),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ],
-        ),
-        // Aquí pintamos la vista que antes salía negra, ahora dentro del body
-        body: organizationService.isLoading 
-            ? const Center(child: CircularProgressIndicator())
-            : _buildNoOrganizationView(context, user),
-      );
-    },
-  );
-}
-
   Widget _buildNoOrganizationView(BuildContext context, user) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -133,7 +125,7 @@ Widget build(BuildContext context) {
             ),
             const SizedBox(height: 24),
             Text(
-              'No perteneces a ninguna organización',
+              l10n.noOrganizationTitle,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -141,7 +133,7 @@ Widget build(BuildContext context) {
             ),
             const SizedBox(height: 12),
             Text(
-              'Crea tu propia organización o únete a una existente',
+              l10n.noOrganizationSubtitle,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.grey[600],
                   ),
@@ -149,7 +141,7 @@ Widget build(BuildContext context) {
             ),
             const SizedBox(height: 48),
 
-            // Crear organización (solo para fabricantes, admin, etc.)
+            // Crear organización
             if (user.canManageProduction) ...[
               SizedBox(
                 width: double.infinity,
@@ -163,11 +155,11 @@ Widget build(BuildContext context) {
                     );
                   },
                   icon: const Icon(Icons.add_business),
-                  label: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16.0),
+                  label: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
                     child: Text(
-                      'Crear mi organización',
-                      style: TextStyle(fontSize: 16),
+                      l10n.createMyOrganizationBtn,
+                      style: const TextStyle(fontSize: 16),
                     ),
                   ),
                 ),
@@ -179,7 +171,7 @@ Widget build(BuildContext context) {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      'o',
+                      l10n.orLabel,
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   ),
@@ -202,11 +194,11 @@ Widget build(BuildContext context) {
                   );
                 },
                 icon: const Icon(Icons.vpn_key),
-                label: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                label: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
                   child: Text(
-                    'Unirse con código',
-                    style: TextStyle(fontSize: 16),
+                    l10n.joinWithCodeBtn,
+                    style: const TextStyle(fontSize: 16),
                   ),
                 ),
               ),
@@ -245,14 +237,14 @@ Widget build(BuildContext context) {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Tienes $count invitación${count > 1 ? 'es' : ''} pendiente${count > 1 ? 's' : ''}',
+                                  '${l10n.pendingInvitationPrefix} $count ${count > 1 ? l10n.pendingInvitationSuffixPlural : l10n.pendingInvitationSuffixSingle}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.blue[900],
                                   ),
                                 ),
                                 Text(
-                                  'Toca para ver',
+                                  l10n.tapToViewLabel,
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.blue[700],

@@ -96,9 +96,9 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
         await _loadSettings();
       }
     } catch (e) {
-      _showError('Error al cargar configuración: $e');
+      if (mounted) _showError('${AppLocalizations.of(context)!.error}: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -202,7 +202,7 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
       });
       _showSuccess(AppLocalizations.of(context)!.logoRemoved);
     } catch (e) {
-      _showError('Error al eliminar logo: $e');
+      _showError('${AppLocalizations.of(context)!.error}: $e');
     } finally {
       setState(() => _isSaving = false);
     }
@@ -255,6 +255,7 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
   }
 
   void _showError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -264,6 +265,7 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
   }
 
   void _showSuccess(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -506,7 +508,7 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
               ),
             ),
           ),
-          const SizedBox(height: 80), // Espacio para FAB
+          const SizedBox(height: 80),
         ],
       ),
     );
@@ -548,7 +550,7 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
           _buildSectionTitle(l10n.supportedLanguages),
           const SizedBox(height: 8),
           Text(
-            'Actualmente: Español, English',
+            l10n.currentLanguagesLabel,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 80),
@@ -571,6 +573,7 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
 
   Widget _buildLogoSection() {
     final logoUrl = _previewSettings!.branding.logoUrl;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -610,15 +613,15 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
                 onPressed: _pickLogo,
                 icon: Icon(logoUrl != null ? Icons.edit : Icons.upload),
                 label: Text(logoUrl != null 
-                    ? AppLocalizations.of(context)!.changeLogo 
-                    : AppLocalizations.of(context)!.uploadLogo),
+                    ? l10n.changeLogo 
+                    : l10n.uploadLogo),
               ),
               if (logoUrl != null) ...[
                 const SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: _removeLogo,
                   icon: const Icon(Icons.delete),
-                  label: Text(AppLocalizations.of(context)!.removeLogo),
+                  label: Text(l10n.removeLogo),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red,
                     side: const BorderSide(color: Colors.red),
@@ -636,12 +639,13 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
     required Color currentColor,
     required ValueChanged<Color> onColorChanged,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     return InkWell(
       onTap: () async {
         final Color? picked = await showDialog<Color>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Seleccionar Color'),
+            title: Text(l10n.selectColorTitle),
             content: SingleChildScrollView(
               child: ColorPicker(
                 color: currentColor,
@@ -658,7 +662,7 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cerrar'),
+                child: Text(l10n.close),
               ),
             ],
           ),
@@ -706,7 +710,18 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
       'Raleway',
       'Ubuntu',
       'Nunito',
+      'Inter',
+      'Source Sans 3',
+      'DM Sans',
+      'Work Sans',
+      'Fira Sans',
+      'Manrope',
+      'Rubik',
+      'IBM Plex Sans',
+      'Heebo',
+      'Karla',
     ];
+
 
     return DropdownButtonFormField<String>(
       value: _previewSettings!.branding.fontFamily,

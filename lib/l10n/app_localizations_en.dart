@@ -819,9 +819,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inactiveStatus => 'Inactive';
 
   @override
-  String skuLabel(Object sku) {
-    return 'SKU: $sku';
-  }
+  String get skuLabel => 'SKU:';
 
   @override
   String usedCount(num count) {
@@ -1037,7 +1035,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get productDeletedSuccess => 'Product deleted successfully';
 
   @override
-  String get deleteError => 'Error deleting product';
+  String get deleteError => 'Error al eliminar:';
 
   @override
   String get productIsInactiveMessage => 'This product is deactivated';
@@ -1050,4 +1048,577 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get createProductBtn => 'Create product';
+
+  @override
+  String get kanbanBoardGlobal => 'Tablero Kanban Global';
+
+  @override
+  String get noOrganizationAssigned => 'No tienes una organización asignada';
+
+  @override
+  String get searchByNameOrRef => 'Buscar por nombre o referencia...';
+
+  @override
+  String get wipLimitReachedIn => 'Límite WIP alcanzado en';
+
+  @override
+  String get limitReached => 'Límite alcanzado';
+
+  @override
+  String get moveProductForward => 'Avanzar producto';
+
+  @override
+  String get moveProductBackward => 'Retroceder producto';
+
+  @override
+  String get moveWarningPart1 => 'Se marcarán como pendientes todas las fases posteriores a';
+
+  @override
+  String get moveForward => 'Avanzar';
+
+  @override
+  String get moveBackward => 'Retroceder';
+
+  @override
+  String get productMovedTo => 'Producto movido a';
+
+  @override
+  String get phaseUpdateError => 'Error al actualizar fase';
+
+  @override
+  String get noPhasesConfigured => 'No hay fases configuradas';
+
+  @override
+  String get configurePhasesFirst => 'Configura las fases de producción primero';
+
+  @override
+  String get emptyColumnState => 'Sin productos';
+
+  @override
+  String get addProduct => 'Añadir Producto';
+
+  @override
+  String get pleaseSelectProduct => 'Por favor selecciona un producto';
+
+  @override
+  String get productAddedToProject => 'Producto añadido al proyecto';
+
+  @override
+  String get errorAddingProduct => 'Error al añadir producto';
+
+  @override
+  String get selectFromCatalog => 'Seleccionar del Catálogo';
+
+  @override
+  String get noProductSelected => 'Ningún producto seleccionado';
+
+  @override
+  String get tapToSelect => 'Toca para seleccionar';
+
+  @override
+  String get quantityAndPrice => 'Cantidad y Precio';
+
+  @override
+  String get quantityInvalid => 'Cantidad inválida';
+
+  @override
+  String get unitsSuffix => 'uds';
+
+  @override
+  String get customDimensions => 'Dimensiones Personalizadas (cm)';
+
+  @override
+  String get specialDetails => 'Detalles Especiales';
+
+  @override
+  String get detailsLabel => 'Detalles';
+
+  @override
+  String get additionalSpecsHint => 'Especificaciones adicionales...';
+
+  @override
+  String get internalNotesHint => 'Notas internas...';
+
+  @override
+  String get addToProject => 'Añadir al Proyecto';
+
+  @override
+  String get selectProductTitle => 'Seleccionar Producto';
+
+  @override
+  String get searchProductHint => 'Buscar producto...';
+
+  @override
+  String get noProductsAvailable => 'No hay productos disponibles.';
+
+  @override
+  String get addProductsToCatalogFirst => 'Debes añadir primero productos al catálogo.';
+
+  @override
+  String get productionProgress => 'PROGRESO DE PRODUCCIÓN';
+
+  @override
+  String get phaseTracking => 'Seguimiento por fases';
+
+  @override
+  String get manage => 'Gestionar';
+
+  @override
+  String get catalogProduct => 'Producto del Catálogo';
+
+  @override
+  String get statusAndQuantity => 'Estado y Cantidad';
+
+  @override
+  String get changeStatus => 'Cambiar Estado';
+
+  @override
+  String get systemInfo => 'Información del Sistema';
+
+  @override
+  String get confirmDuplicateProductMessage => '¿Deseas crear una copia de este producto en el proyecto?';
+
+  @override
+  String get duplicateProductError => 'Error al duplicar producto';
+
+  @override
+  String get confirmDeleteProjectProductMessagePart1 => '¿Estás seguro de que deseas eliminar';
+
+  @override
+  String get confirmDeleteProjectProductMessagePart2 => 'del proyecto?';
+
+  @override
+  String get deleteProductError => 'Error al eliminar producto';
+
+  @override
+  String get statusUpdatedSuccess => 'Estado actualizado correctamente';
+
+  @override
+  String get statusUpdateError => 'Error al actualizar estado';
+
+  @override
+  String get detailsAndNotes => 'Detalles y Notas';
+
+  @override
+  String get productUpdatedSuccess => 'Producto actualizado correctamente';
+
+  @override
+  String get phasesInitializedSuccess => 'Phases initialized successfully';
+
+  @override
+  String get initPhaseError => 'Error al inicializar:';
+
+  @override
+  String get resetPhases => 'Reiniciar Fases';
+
+  @override
+  String get resetPhasesWarning => '¿Estás seguro? Esto borrará el progreso actual y volverá a copiar las fases activas de la organización. Esta acción no se puede deshacer.';
+
+  @override
+  String get resetSyncPhases => 'Reiniciar/Sincronizar fases';
+
+  @override
+  String get productNoFlow => 'Producto sin flujo de producción';
+
+  @override
+  String get productNoPhasesMessage => 'Este producto aún no tiene fases asignadas. Inicialízalo para comenzar el seguimiento.';
+
+  @override
+  String get initProductionPhases => 'Inicializar Fases de Producción';
+
+  @override
+  String get contactAdminPhasesPart1 => 'Contacta con un administrador';
+
+  @override
+  String get contactAdminPhasesPart2 => 'para configurar las fases.';
+
+  @override
+  String get chatInfo => 'Info del chat';
+
+  @override
+  String get muteNotifications => 'Silenciar notificaciones';
+
+  @override
+  String get pinnedMessages => 'Mensajes fijados';
+
+  @override
+  String get noMessagesYet => 'No hay mensajes aún';
+
+  @override
+  String get beFirstToMessage => 'Sé el primero en enviar un mensaje';
+
+  @override
+  String get reply => 'Responder';
+
+  @override
+  String get react => 'Reaccionar';
+
+  @override
+  String get copy => 'Copiar';
+
+  @override
+  String get textCopied => 'Texto copiado';
+
+  @override
+  String get unpin => 'Desfijar';
+
+  @override
+  String get pin => 'Fijar';
+
+  @override
+  String get messageUnpinned => 'Mensaje desfijado';
+
+  @override
+  String get messagePinned => 'Mensaje fijado';
+
+  @override
+  String get editMessage => 'Editar mensaje';
+
+  @override
+  String get newContentHint => 'Nuevo contenido...';
+
+  @override
+  String get messageEdited => 'Mensaje editado';
+
+  @override
+  String get editError => 'Error al editar:';
+
+  @override
+  String get deleteMessage => 'Eliminar mensaje';
+
+  @override
+  String get deleteMessageConfirm => '¿Estás seguro de que quieres eliminar este mensaje?';
+
+  @override
+  String get messageDeleted => 'Mensaje eliminado';
+
+  @override
+  String get sendMessageError => 'Error al enviar mensaje:';
+
+  @override
+  String get reactionError => 'Error al reaccionar:';
+
+  @override
+  String get assignPhasesTitle => 'Assign Phases';
+
+  @override
+  String get cleanSelection => 'Clear selection';
+
+  @override
+  String get selectPhasesInstruction => 'Select phases they can manage';
+
+  @override
+  String get noRestrictionsLabel => 'No restrictions (can manage all)';
+
+  @override
+  String get phasesSelectedLabel => 'Selected phases';
+
+  @override
+  String get assignmentsSavedSuccess => 'Assignments saved successfully';
+
+  @override
+  String get errorLoadingAssignments => 'Error loading assignments';
+
+  @override
+  String get noActivePhasesAvailable => 'No active phases available. Configure phases in organization settings.';
+
+  @override
+  String get managePhasesTitle => 'Manage Phases';
+
+  @override
+  String get initializePhasesTitle => 'Initialize Phases';
+
+  @override
+  String get initializePhasesConfirmMessage => 'Do you want to create default production phases? This will add standard process phases.';
+
+  @override
+  String get initializePhasesButton => 'Initialize Phases';
+
+  @override
+  String get phaseDeactivated => 'Phase deactivated';
+
+  @override
+  String get phaseActivated => 'Phase activated';
+
+  @override
+  String get editPhaseTitle => 'Edit Phase';
+
+  @override
+  String get phaseDescriptionLabel => 'Description (optional)';
+
+  @override
+  String get phaseUpdatedSuccess => 'Phase updated';
+
+  @override
+  String get noPhasesConfiguredTitle => 'No phases configured';
+
+  @override
+  String get noPhasesConfiguredSubtitle => 'Initialize default phases to start';
+
+  @override
+  String get activePhasesSection => 'Active Phases';
+
+  @override
+  String get inactivePhasesSection => 'Inactive Phases';
+
+  @override
+  String get activateAction => 'Activate';
+
+  @override
+  String get deactivateAction => 'Deactivate';
+
+  @override
+  String get totalPhasesLabel => 'Total phases';
+
+  @override
+  String get activePhasesNote => 'Active phases will be automatically applied to all new products.';
+
+  @override
+  String get joinOrganizationTitle => 'Join Organization';
+
+  @override
+  String get joinOrganizationSuccess => 'Successfully joined the organization';
+
+  @override
+  String get joinOrganizationError => 'Error joining organization';
+
+  @override
+  String get inviteCodeTitle => 'Invitation Code';
+
+  @override
+  String get inviteCodeSubtitle => 'Enter the code provided by your organization';
+
+  @override
+  String get inviteCodeLabel => 'Code';
+
+  @override
+  String get inviteCodeHelper => 'Format: ABCD1234 (8 characters)';
+
+  @override
+  String get inviteCodeLengthError => 'Code must be 8 characters long';
+
+  @override
+  String get enterInviteCodeError => 'Please enter the code';
+
+  @override
+  String get inviteCodeInfoBox => 'The invitation code is unique for each organization and allows instant access.';
+
+  @override
+  String get joinButton => 'Join';
+
+  @override
+  String get inviteMemberTitle => 'Invite Member';
+
+  @override
+  String get inviteSentSuccess => 'Invitation sent successfully';
+
+  @override
+  String get inviteSendError => 'Error sending invitation';
+
+  @override
+  String get inviteByEmailTitle => 'Invite by Email';
+
+  @override
+  String get inviteByEmailSubtitle => 'Send an invitation to join your organization';
+
+  @override
+  String get emailInputLabel => 'Email address';
+
+  @override
+  String get emailInputHelper => 'Enter user\'s email to invite';
+
+  @override
+  String get aboutInvitationsTitle => 'About invitations';
+
+  @override
+  String get inviteInfoExpiration => 'Invitation expires in 7 days';
+
+  @override
+  String get inviteInfoReceive => 'User will receive the invitation upon login';
+
+  @override
+  String get inviteInfoCreateAccount => 'If user has no account, they must create one first';
+
+  @override
+  String get inviteInfoExisting => 'You can only invite users not belonging to another organization';
+
+  @override
+  String get sendInviteButton => 'Send Invitation';
+
+  @override
+  String get newOrganizationTitle => 'New Organization';
+
+  @override
+  String get createOrganizationSubtitle => 'Create your organization to manage team and projects';
+
+  @override
+  String get orgNameLabel => 'Organization Name';
+
+  @override
+  String get orgNameHelper => 'Ex: My Company LLC';
+
+  @override
+  String get orgNameError => 'Please enter the name';
+
+  @override
+  String get orgNameLengthError => 'Name must be at least 3 characters';
+
+  @override
+  String get orgDescriptionLabel => 'Description';
+
+  @override
+  String get orgDescriptionHelper => 'Briefly describe your organization';
+
+  @override
+  String get orgDescriptionError => 'Please enter a description';
+
+  @override
+  String get orgDescriptionLengthError => 'Description must be at least 10 characters';
+
+  @override
+  String get creatorBenefitsTitle => 'As creator you will have:';
+
+  @override
+  String get benefitControl => 'Full control over the organization';
+
+  @override
+  String get benefitInvite => 'Ability to invite members';
+
+  @override
+  String get benefitRoles => 'Role and permission management';
+
+  @override
+  String get benefitProjects => 'Project administration';
+
+  @override
+  String get peopleLabel => 'people';
+
+  @override
+  String get noMembersFound => 'No members found';
+
+  @override
+  String get ownerRole => 'Owner';
+
+  @override
+  String get adminRole => 'Admin';
+
+  @override
+  String get adminsLabel => 'Admins';
+
+  @override
+  String get removeAdminAction => 'Remove Admin';
+
+  @override
+  String get makeAdminAction => 'Make Admin';
+
+  @override
+  String get removeMemberAction => 'Remove';
+
+  @override
+  String get removeMemberTitle => 'Remove member?';
+
+  @override
+  String get removeMemberConfirmPart1 => 'Are you sure you want to remove';
+
+  @override
+  String get removeMemberConfirmPart2 => 'from the organization?';
+
+  @override
+  String get updateMemberError => 'Error updating member';
+
+  @override
+  String get myOrganizationTitle => 'My Organization';
+
+  @override
+  String get noOrganizationTitle => 'You do not belong to any organization';
+
+  @override
+  String get noOrganizationSubtitle => 'Create your own organization or join an existing one';
+
+  @override
+  String get createMyOrganizationBtn => 'Create my organization';
+
+  @override
+  String get orLabel => 'or';
+
+  @override
+  String get joinWithCodeBtn => 'Join with code';
+
+  @override
+  String get tapToViewLabel => 'Tap to view';
+
+  @override
+  String get pendingInvitationPrefix => 'You have';
+
+  @override
+  String get pendingInvitationSuffixSingle => 'pending invitation';
+
+  @override
+  String get pendingInvitationSuffixPlural => 'pending invitations';
+
+  @override
+  String get shareCodeLabel => 'Share this code';
+
+  @override
+  String get codeCopied => 'Code copied';
+
+  @override
+  String get copyCodeTooltip => 'Copy code';
+
+  @override
+  String get regenerateCodeAction => 'Regenerate code';
+
+  @override
+  String get regenerateCodeWarning => 'Are you sure? The previous code will stop working.';
+
+  @override
+  String get regenerateBtn => 'Regenerate';
+
+  @override
+  String get codeRegeneratedSuccess => 'Code regenerated';
+
+  @override
+  String get actionsTitle => 'Actions';
+
+  @override
+  String get managePhasesSubtitle => 'Configure production phases';
+
+  @override
+  String get viewMembersAction => 'View members';
+
+  @override
+  String get inviteMemberAction => 'Invite member';
+
+  @override
+  String get leaveOrganizationAction => 'Leave organization';
+
+  @override
+  String get leaveOrganizationWarning => 'Are you sure you want to leave this organization? You will lose access to all projects and data.';
+
+  @override
+  String get leaveOrganizationSuccess => 'You have left the organization';
+
+  @override
+  String get pendingInvitationsTitle => 'Pending Invitations';
+
+  @override
+  String get noPendingInvitations => 'No pending invitations';
+
+  @override
+  String get invitedByLabel => 'Invited by:';
+
+  @override
+  String get rejectAction => 'Reject';
+
+  @override
+  String get acceptAction => 'Accept';
+
+  @override
+  String get invitationRejectedMsg => 'Invitation rejected';
+
+  @override
+  String get selectColorTitle => 'Select Color';
+
+  @override
+  String get currentLanguagesLabel => 'Currently: Spanish, English';
 }

@@ -8,6 +8,7 @@ import '../../models/organization_model.dart';
 import 'organization_members_screen.dart';
 import 'invite_member_screen.dart';
 import 'manage_phases_screen.dart';
+import '../../l10n/app_localizations.dart';
 
 class OrganizationDetailScreen extends StatelessWidget {
 
@@ -21,6 +22,7 @@ class OrganizationDetailScreen extends StatelessWidget {
     final organizationService = Provider.of<OrganizationService>(context);
     final organization = organizationService.currentOrganization;
     final user = authService.currentUserData;
+    final l10n = AppLocalizations.of(context)!;
 
     if (user == null || organization == null) {
       return const Scaffold(
@@ -33,7 +35,7 @@ class OrganizationDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mi Organización'),
+        title: Text(l10n.myOrganizationTitle),
       ),
       body: StreamBuilder<OrganizationModel?>(
         stream: organizationService.watchOrganization(organization.id),
@@ -93,14 +95,14 @@ class OrganizationDetailScreen extends StatelessWidget {
                             color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.star, size: 16, color: Colors.white),
-                              SizedBox(width: 6),
+                              const Icon(Icons.star, size: 16, color: Colors.white),
+                              const SizedBox(width: 6),
                               Text(
-                                'Propietario',
-                                style: TextStyle(
+                                l10n.ownerRole,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -120,15 +122,15 @@ class OrganizationDetailScreen extends StatelessWidget {
                             color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.admin_panel_settings,
+                              const Icon(Icons.admin_panel_settings,
                                   size: 16, color: Colors.white),
-                              SizedBox(width: 6),
+                              const SizedBox(width: 6),
                               Text(
-                                'Administrador',
-                                style: TextStyle(
+                                l10n.adminRole,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -154,7 +156,7 @@ class OrganizationDetailScreen extends StatelessWidget {
                             child: _buildStatCard(
                               context,
                               icon: Icons.people,
-                              label: 'Miembros',
+                              label: l10n.members,
                               value: '${org.totalMembers}',
                               color: Colors.blue,
                             ),
@@ -164,7 +166,7 @@ class OrganizationDetailScreen extends StatelessWidget {
                             child: _buildStatCard(
                               context,
                               icon: Icons.admin_panel_settings,
-                              label: 'Admins',
+                              label: l10n.adminsLabel,
                               value: '${org.totalAdmins}',
                               color: Colors.orange,
                             ),
@@ -175,7 +177,7 @@ class OrganizationDetailScreen extends StatelessWidget {
 
                       // Código de invitación
                       Text(
-                        'Código de Invitación',
+                        l10n.inviteCodeTitle,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -195,9 +197,9 @@ class OrganizationDetailScreen extends StatelessWidget {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Comparte este código',
-                                          style: TextStyle(
+                                        Text(
+                                          l10n.shareCodeLabel,
+                                          style: const TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey,
                                           ),
@@ -222,13 +224,13 @@ class OrganizationDetailScreen extends StatelessWidget {
                                       );
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Código copiado'),
-                                          duration: Duration(seconds: 2),
+                                        SnackBar(
+                                          content: Text(l10n.codeCopied),
+                                          duration: const Duration(seconds: 2),
                                         ),
                                       );
                                     },
-                                    tooltip: 'Copiar código',
+                                    tooltip: l10n.copyCodeTooltip,
                                   ),
                                 ],
                               ),
@@ -239,20 +241,20 @@ class OrganizationDetailScreen extends StatelessWidget {
                                     final confirmed = await showDialog<bool>(
                                       context: context,
                                       builder: (context) => AlertDialog(
-                                        title: const Text('Regenerar código'),
-                                        content: const Text(
-                                          '¿Estás seguro? El código anterior dejará de funcionar.',
+                                        title: Text(l10n.regenerateCodeAction),
+                                        content: Text(
+                                          l10n.regenerateCodeWarning,
                                         ),
                                         actions: [
                                           TextButton(
                                             onPressed: () =>
                                                 Navigator.pop(context, false),
-                                            child: const Text('Cancelar'),
+                                            child: Text(l10n.cancel),
                                           ),
                                           FilledButton(
                                             onPressed: () =>
                                                 Navigator.pop(context, true),
-                                            child: const Text('Regenerar'),
+                                            child: Text(l10n.regenerateBtn),
                                           ),
                                         ],
                                       ),
@@ -265,9 +267,9 @@ class OrganizationDetailScreen extends StatelessWidget {
                                           context.mounted) {
                                         ScaffoldMessenger.of(context)
                                             .showSnackBar(
-                                          const SnackBar(
+                                          SnackBar(
                                             content:
-                                                Text('Código regenerado'),
+                                                Text(l10n.codeRegeneratedSuccess),
                                             backgroundColor: Colors.green,
                                           ),
                                         );
@@ -275,7 +277,7 @@ class OrganizationDetailScreen extends StatelessWidget {
                                     }
                                   },
                                   icon: const Icon(Icons.refresh),
-                                  label: const Text('Regenerar código'),
+                                  label: Text(l10n.regenerateCodeAction),
                                 ),
                               ],
                             ],
@@ -286,7 +288,7 @@ class OrganizationDetailScreen extends StatelessWidget {
 
                       // Acciones rápidas
                       Text(
-                        'Acciones',
+                        l10n.actionsTitle,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -299,8 +301,8 @@ class OrganizationDetailScreen extends StatelessWidget {
                       // Añadir botón para gestionar fases
                           ListTile(
                             leading: const Icon(Icons.format_list_numbered),
-                            title: const Text('Gestión de Fases'),
-                            subtitle: const Text('Configurar fases de producción'),
+                            title: Text(l10n.managePhasesTitle),
+                            subtitle: Text(l10n.managePhasesSubtitle),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () {
                               Navigator.push(
@@ -318,7 +320,7 @@ class OrganizationDetailScreen extends StatelessWidget {
                               const Divider(height: 1),
                             ListTile(
                               leading: const Icon(Icons.people),
-                              title: const Text('Ver miembros'),
+                              title: Text(l10n.viewMembersAction),
                               trailing: const Icon(Icons.chevron_right),
                               onTap: () {
                                 Navigator.push(
@@ -334,7 +336,7 @@ class OrganizationDetailScreen extends StatelessWidget {
                               const Divider(height: 1),
                               ListTile(
                                 leading: const Icon(Icons.person_add),
-                                title: const Text('Invitar miembro'),
+                                title: Text(l10n.inviteMemberAction),
                                 trailing: const Icon(Icons.chevron_right),
                                 onTap: () {
                                   Navigator.push(
@@ -349,7 +351,7 @@ class OrganizationDetailScreen extends StatelessWidget {
                               const Divider(height: 1),
                               ListTile(
                                 leading: const Icon(Icons.settings),
-                                title: const Text('Configuracion de la Organización'),
+                                title: Text(l10n.organizationSettings),
                                 trailing: const Icon(Icons.chevron_right),
                                 onTap: () {
                                   Navigator.push(
@@ -368,7 +370,7 @@ class OrganizationDetailScreen extends StatelessWidget {
                                 leading: Icon(Icons.exit_to_app,
                                     color: Colors.red[700]),
                                 title: Text(
-                                  'Salir de la organización',
+                                  l10n.leaveOrganizationAction,
                                   style: TextStyle(color: Colors.red[700]),
                                 ),
                                 onTap: () => _showLeaveDialog(
@@ -432,17 +434,16 @@ class OrganizationDetailScreen extends StatelessWidget {
     OrganizationService organizationService,
     String userId,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Salir de la organización'),
-        content: const Text(
-          '¿Estás seguro de que deseas salir de esta organización? Perderás acceso a todos los proyectos y datos.',
-        ),
+        title: Text(l10n.leaveOrganizationAction),
+        content: Text(l10n.leaveOrganizationWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -451,15 +452,15 @@ class OrganizationDetailScreen extends StatelessWidget {
               if (success && context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Has salido de la organización'),
+                  SnackBar(
+                    content: Text(l10n.leaveOrganizationSuccess),
                     backgroundColor: Colors.green,
                   ),
                 );
               }
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Salir'),
+            child: Text(l10n.exitButton),
           ),
         ],
       ),
