@@ -46,6 +46,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
   String? _productBatchFilter;
   String? _productStatusFilter; 
   String _productSearchQuery = '';
+  bool? _onlyUrgentFilter;
 
   // Verificar si hay filtros activos
   bool get _hasActiveFilters {
@@ -57,7 +58,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
              _productStatusFilter != null ||
              _productPhaseFilter != null ||
              _productClientFilter != null ||
-             _productBatchFilter != null;
+             _productBatchFilter != null || _onlyUrgentFilter == true;
     }
   }
   
@@ -73,6 +74,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
         _productPhaseFilter = null;
         _productClientFilter = null;
         _productBatchFilter = null;
+        _onlyUrgentFilter = false;
       }
     });
   }
@@ -504,6 +506,17 @@ Widget _buildFilterOption<T>({
                   )).toList(),
                   onChanged: (val) => setState(() => _productBatchFilter = val),
                 ),
+                
+                // FILTRO: Urgencia (Toggle visual estilo chip)
+                FilterUtils.buildUrgencyFilterChip(
+                    context: context,
+                    isUrgentOnly: _onlyUrgentFilter ?? false,
+                    onToggle: () {
+                        setState(() {
+                            _onlyUrgentFilter = !(_onlyUrgentFilter ?? false);
+                        });
+                    }
+            ),
               ];
 
 // CAMBIO: Añadimos el botón al final si hay filtros
