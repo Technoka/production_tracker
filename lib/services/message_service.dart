@@ -8,43 +8,59 @@ class MessageService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// Obtener referencia a la colección de mensajes según el tipo de entidad
+  // Helper para construir la ruta correcta según el tipo de entidad
   CollectionReference _getMessagesCollection(
-    String organizationId,
-    String entityType,
-    String entityId,
+    String organizationId, 
+    String entityType, 
+    String entityId, 
+    {String? parentId}
   ) {
+    // Base de la organización
+    final orgRef = _firestore
+    .collection('organizations')
+    .doc(organizationId);
+
     switch (entityType) {
-      case 'batch':
-        return _firestore
-            .collection('organizations')
-            .doc(organizationId)
-            .collection('production_batches')
-            .doc(entityId)
-            .collection('messages');
       case 'project':
-        return _firestore
-            .collection('organizations')
-            .doc(organizationId)
-            .collection('projects')
+        return orgRef
+        .collection('projects')
+        .doc(entityId)
+        .collection('messages');
+      
+      case 'batch':
+        return orgRef
+        .collection('production_batches')
+        .doc(entityId)
+        .collection('messages');
+      
+      case 'batch_product': // Alias explícito
+        if (parentId == null) {
+          throw ArgumentError('parentId (batchId) is required for batch products');
+        }
+        // Asumimos que si estamos en contexto de lote, la ruta es:
+        // batches/{batchId}/products/{productId}/messages
+        return orgRef
+            .collection('production_batches')
+            .doc(parentId)
+            .collection('products')
             .doc(entityId)
             .collection('messages');
-      case 'product':
-        // Para productos dentro de proyectos
-        // entityId debe ser "projectId/products/productId"
-        final parts = entityId.split('/');
-        if (parts.length == 3) {
-          return _firestore
-              .collection('organizations')
-              .doc(organizationId)
-              .collection('projects')
-              .doc(parts[0])
-              .collection('products')
-              .doc(parts[2])
-              .collection('messages');
+            
+      
+      case 'project_product':
+        if (parentId == null) {
+          throw ArgumentError('parentId (projectId) is required for project products');
         }
-        throw ArgumentError('Invalid product entityId format');
+        return orgRef
+            .collection('projects')
+            .doc(parentId)
+            .collection('products')
+            .doc(entityId)
+            .collection('messages');
+            
       default:
-        throw ArgumentError('Invalid entity type: $entityType');
+        // Fallback genérico (probablemente causaba el error anterior)
+        return orgRef.collection(entityType).doc(entityId).collection('messages');
     }
   }
 
@@ -53,10 +69,11 @@ class MessageService {
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     bool includeInternal = true,
     int limit = 100,
   }) {
-    Query query = _getMessagesCollection(organizationId, entityType, entityId)
+    Query query = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .orderBy('createdAt', descending: true)
         .limit(limit);
 
@@ -75,11 +92,12 @@ class MessageService {
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     bool includeInternal = true,
     int limit = 50,
     DocumentSnapshot? lastDocument,
   }) async {
-    Query query = _getMessagesCollection(organizationId, entityType, entityId)
+    Query query = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .orderBy('createdAt', descending: true)
         .limit(limit);
 
@@ -100,6 +118,7 @@ class MessageService {
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     required String content,
     required UserModel currentUser,
     List<String> mentions = const [],
@@ -107,7 +126,7 @@ class MessageService {
     bool isInternal = false,
     String? parentMessageId,
   }) async {
-    final messagesRef = _getMessagesCollection(organizationId, entityType, entityId);
+    final messagesRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId);
 
     final message = MessageModel(
       id: messagesRef.doc().id,
@@ -134,6 +153,7 @@ class MessageService {
         organizationId,
         entityType,
         entityId,
+        parentId,
         parentMessageId,
       );
     }
@@ -146,11 +166,12 @@ class MessageService {
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     required String eventType,
     Map<String, dynamic>? eventData,
     bool isInternal = true,
   }) async {
-    final messagesRef = _getMessagesCollection(organizationId, entityType, entityId);
+    final messagesRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId);
 
     final content = SystemEventType.getEventContent(eventType, eventData);
 print('message id: ${messagesRef.doc().id} ------------------------------------------');
@@ -177,10 +198,11 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     required String messageId,
     required String newContent,
   }) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId)
+    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .doc(messageId);
 
     await messageRef.update({
@@ -195,9 +217,10 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     required String messageId,
   }) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId)
+    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .doc(messageId);
 
     await messageRef.delete();
@@ -208,10 +231,11 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     required String messageId,
     required String userId,
   }) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId)
+    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .doc(messageId);
 
     await messageRef.update({
@@ -225,9 +249,10 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     required String userId,
   }) async {
-    final messagesRef = _getMessagesCollection(organizationId, entityType, entityId);
+    final messagesRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId);
 
     // Obtener mensajes no leídos
     final snapshot = await messagesRef
@@ -253,11 +278,12 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     required String messageId,
     required String emoji,
     required UserModel user,
   }) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId)
+    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .doc(messageId);
 
     final reaction = MessageReaction(
@@ -278,11 +304,12 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     required String messageId,
     required String emoji,
     required String userId,
   }) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId)
+    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .doc(messageId);
 
     // Obtener el mensaje actual
@@ -307,10 +334,11 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     required String messageId,
     required bool isPinned,
   }) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId)
+    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .doc(messageId);
 
     await messageRef.update({
@@ -324,8 +352,9 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
   }) {
-    return _getMessagesCollection(organizationId, entityType, entityId)
+    return _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .where('isPinned', isEqualTo: true)
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -339,9 +368,10 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     required String parentMessageId,
   }) {
-    return _getMessagesCollection(organizationId, entityType, entityId)
+    return _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .where('parentMessageId', isEqualTo: parentMessageId)
         .orderBy('createdAt', descending: false)
         .snapshots()
@@ -355,12 +385,13 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     required String searchTerm,
     bool includeInternal = true,
   }) async {
     // Firestore no tiene búsqueda full-text nativa
     // Esta es una implementación básica que puede ser mejorada con Algolia
-    final messagesRef = _getMessagesCollection(organizationId, entityType, entityId);
+    final messagesRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId);
 
     Query query = messagesRef
         .orderBy('createdAt', descending: true)
@@ -388,9 +419,10 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     required String userId,
   }) {
-    return _getMessagesCollection(organizationId, entityType, entityId)
+    return _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .where('readBy', whereNotIn: [userId])
         .snapshots()
         .map((snapshot) => snapshot.docs.length);
@@ -401,9 +433,10 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     String organizationId,
     String entityType,
     String entityId,
+    String? parentId,
     String parentMessageId,
   ) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId)
+    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .doc(parentMessageId);
 
     await messageRef.update({
@@ -417,9 +450,10 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String organizationId,
     required String entityType,
     required String entityId,
+    String? parentId,
     required String userId,
   }) async {
-    final snapshot = await _getMessagesCollection(organizationId, entityType, entityId)
+    final snapshot = await _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .where('readBy', whereNotIn: [userId])
         .limit(1)
         .get();

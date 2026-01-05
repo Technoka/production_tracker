@@ -14,6 +14,7 @@ class ChatScreen extends StatefulWidget {
   final String entityType; // "batch", "project", "product"
   final String entityId;
   final String entityName;
+  final String? parentId;
   final bool showInternalMessages;
 
   const ChatScreen({
@@ -22,6 +23,7 @@ class ChatScreen extends StatefulWidget {
     required this.entityType,
     required this.entityId,
     required this.entityName,
+    this.parentId,
     this.showInternalMessages = true,
   }) : super(key: key);
 
@@ -79,6 +81,7 @@ class _ChatScreenState extends State<ChatScreen> {
       organizationId: widget.organizationId,
       entityType: widget.entityType,
       entityId: widget.entityId,
+      parentId: widget.parentId,
       userId: _currentUser!.uid,
     );
   }
@@ -97,6 +100,7 @@ class _ChatScreenState extends State<ChatScreen> {
         organizationId: widget.organizationId,
         entityType: widget.entityType,
         entityId: widget.entityId,
+      parentId: widget.parentId,
         content: content,
         currentUser: _currentUser!,
         mentions: mentions,
@@ -247,6 +251,7 @@ class _ChatScreenState extends State<ChatScreen> {
           organizationId: widget.organizationId,
           entityType: widget.entityType,
           entityId: widget.entityId,
+      parentId: widget.parentId,
           messageId: message.id,
           emoji: emoji,
           userId: _currentUser!.uid,
@@ -257,6 +262,7 @@ class _ChatScreenState extends State<ChatScreen> {
           organizationId: widget.organizationId,
           entityType: widget.entityType,
           entityId: widget.entityId,
+parentId: widget.parentId,
           messageId: message.id,
           emoji: emoji,
           user: _currentUser!,
@@ -273,6 +279,7 @@ class _ChatScreenState extends State<ChatScreen> {
         organizationId: widget.organizationId,
         entityType: widget.entityType,
         entityId: widget.entityId,
+parentId: widget.parentId,
         messageId: message.id,
         isPinned: !message.isPinned,
       );
@@ -315,6 +322,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   organizationId: widget.organizationId,
                   entityType: widget.entityType,
                   entityId: widget.entityId,
+parentId: widget.parentId,
                   messageId: message.id,
                   newContent: newContent,
                 );
@@ -349,6 +357,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   organizationId: widget.organizationId,
                   entityType: widget.entityType,
                   entityId: widget.entityId,
+parentId: widget.parentId,
                   messageId: message.id,
                 );
                 Navigator.pop(context);
@@ -417,7 +426,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     final l10n = AppLocalizations.of(context)!;
-    
+
     return AppBar(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -516,6 +525,7 @@ class _ChatScreenState extends State<ChatScreen> {
               organizationId: widget.organizationId,
               entityType: widget.entityType,
               entityId: widget.entityId,
+parentId: widget.parentId,
             ),
             builder: (context, snapshot) {
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -612,6 +622,7 @@ class _ChatScreenState extends State<ChatScreen> {
         organizationId: widget.organizationId,
         entityType: widget.entityType,
         entityId: widget.entityId,
+parentId: widget.parentId,
       ),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -672,6 +683,7 @@ class _ChatScreenState extends State<ChatScreen> {
         organizationId: widget.organizationId,
         entityType: widget.entityType,
         entityId: widget.entityId,
+parentId: widget.parentId,
         includeInternal: widget.showInternalMessages,
         limit: 100,
       ),
