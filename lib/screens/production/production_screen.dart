@@ -141,25 +141,25 @@ class _ProductionScreenState extends State<ProductionScreen> {
       ),
       body: Column(
         children: [
-          if (_currentView != ProductionView.kanban) _buildFilters(user!, l10n),
+          _buildFilters(user!, l10n),
           Expanded(
             child: _currentView == ProductionView.batches
-                ? _buildBatchesView(user!, l10n)
+                ? _buildBatchesView(user, l10n)
                 : _currentView == ProductionView.products
-                    ? _buildProductsView(user!, l10n)
-                    : _buildKanbanView(user!, l10n),
+                    ? _buildProductsView(user, l10n)
+                    : _buildKanbanView(user, l10n),
           ),
         ],
       ),
       floatingActionButton:
-          user!.canManageProduction && _currentView == ProductionView.batches
+          user.canManageProduction && _currentView == ProductionView.batches
               ? FloatingActionButton.extended(
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => CreateProductionBatchScreen(
-                          organizationId: user!.organizationId!,
+                          organizationId: user.organizationId!,
                         ),
                       ),
                     );
@@ -168,7 +168,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
                   label: Text(l10n.createBatchBtn),
                 )
               : null,
-      bottomNavigationBar: BottomNavBarWidget(currentIndex: 1, user: user!),
+      bottomNavigationBar: BottomNavBarWidget(currentIndex: 1, user: user),
     );
   }
 
@@ -228,11 +228,21 @@ class _ProductionScreenState extends State<ProductionScreen> {
           FilterUtils.buildSearchField(
             hintText: _currentView == ProductionView.batches 
                 ? '${l10n.search} ${l10n.batchLabel.toLowerCase()}...' 
-                : '${l10n.search} ${l10n.product.toLowerCase()}...',
-            searchQuery: _currentView == ProductionView.batches ? _batchSearchQuery : _productSearchQuery,
-            onChanged: (value) => setState(() => _currentView == ProductionView.batches 
-                ? _batchSearchQuery = value 
-                : _productSearchQuery = value),
+                : _currentView == ProductionView.products
+                    ? '${l10n.search} ${l10n.product.toLowerCase()}...'
+                    : l10n.searchByNameOrRef,
+            searchQuery: _currentView == ProductionView.batches 
+                ? _batchSearchQuery 
+                : _currentView == ProductionView.products 
+                    ? _productSearchQuery 
+                    : '',
+            onChanged: (value) => setState(() {
+              if (_currentView == ProductionView.batches) {
+                _batchSearchQuery = value;
+              } else if (_currentView == ProductionView.products) {
+                _productSearchQuery = value;
+              }
+            }),
           ),
           
           const SizedBox(height: 10),
@@ -241,7 +251,9 @@ class _ProductionScreenState extends State<ProductionScreen> {
             width: double.infinity,
             child: _currentView == ProductionView.batches
                 ? _buildBatchFilterChips(user, l10n)
-                : _buildProductFilterChips(user, l10n),
+                : _currentView == ProductionView.products
+                    ? _buildProductFilterChips(user, l10n)
+                    : _buildKanbanFilterChips(user, l10n),
           ),
         ],
       ),
@@ -375,6 +387,97 @@ class _ProductionScreenState extends State<ProductionScreen> {
                 onToggle: () {
                   setState(() {
                     _onlyUrgentFilter = !(_onlyUrgentFilter ?? false);
+                  });
+                }
+              ),
+            ];
+
+            if (_hasActiveFilters) {
+              filterWidgets.add(
+                FilterUtils.buildClearFiltersButton(
+                  context: context,
+                  onPressed: _clearAllFilters,
+                  hasActiveFilters: true,
+                ),
+              );
+            }
+
+            return Wrap(
+              spacing: 6.0,
+              runSpacing: 6.0,
+              alignment: WrapAlignment.start,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: filterWidgets,
+            );
+          }
+        );
+      },
+    );
+  }
+
+  Widget _buildKanbanFilterChips(UserModel user, AppLocalizations l10n) {
+    return StreamBuilder<List<ClientModel>>(
+      stream: Provider.of<ClientService>(context, listen: false).watchClients(user.organizationId!),
+      builder: (context, clientSnapshot) {
+        final clients = clientSnapshot.data ?? [];
+
+        return StreamBuilder<List<ProductionBatchModel>>(
+          stream: Provider.of<ProductionBatchService>(context, listen: false).watchBatches(user.organizationId!),
+          builder: (context, batchSnapshot) {
+            final batches = batchSnapshot.data ?? [];
+
+            // Extraer proyectos únicos
+            final Map<String, String> uniqueProjects = {};
+            for (var batch in batches) {
+              uniqueProjects[batch.projectId] = batch.projectName;
+            }
+
+            final List<Widget> filterWidgets = [
+              FilterUtils.buildFilterOption<String>(
+                context: context,
+                label: l10n.batchLabel,
+                value: _kanbanBatchFilter,
+                icon: Icons.inventory_2_outlined,
+                allLabel: l10n.allPluralMasculine,
+                items: batches.map((b) => DropdownMenuItem(
+                  value: b.id,
+                  child: Text(b.batchNumber, overflow: TextOverflow.ellipsis),
+                )).toList(),
+                onChanged: (val) => setState(() => _kanbanBatchFilter = val),
+              ),
+
+              FilterUtils.buildFilterOption<String>(
+                context: context,
+                label: l10n.client,
+                value: _kanbanClientFilter,
+                icon: Icons.storefront_outlined,
+                allLabel: l10n.allClients,
+                items: clients.map((c) => DropdownMenuItem(
+                  value: c.id,
+                  child: Text(c.name, overflow: TextOverflow.ellipsis),
+                )).toList(),
+                onChanged: (val) => setState(() => _kanbanClientFilter = val),
+              ),
+
+              FilterUtils.buildFilterOption<String>(
+                context: context,
+                label: l10n.project,
+                value: _kanbanProjectFilter,
+                icon: Icons.folder_outlined,
+                allLabel: l10n.allPluralMasculine,
+                items: uniqueProjects.entries.map((entry) => DropdownMenuItem(
+                  value: entry.key,
+                  child: Text(entry.value, overflow: TextOverflow.ellipsis),
+                )).toList(),
+                onChanged: (val) => setState(() => _kanbanProjectFilter = val),
+              ),
+
+              FilterUtils.buildUrgencyFilterChip(
+                context: context,
+                isUrgentOnly: _kanbanOnlyUrgent,
+                onToggle: () {
+                  setState(() {
+                    _kanbanOnlyUrgent = !_kanbanOnlyUrgent;
                   });
                 }
               ),

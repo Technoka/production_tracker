@@ -27,7 +27,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final authService = Provider.of<AuthService>(context);
     final organizationService = Provider.of<OrganizationService>(context);
     final user = authService.currentUserData;
-    final organization = organizationService.loadOrganization(user!.organizationId!);
 
     if (user == null) {
       return const Scaffold(
@@ -35,30 +34,19 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    if (user.organizationId == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
-        title: FutureBuilder<String?>(
-          future: organizationService.getOrganizationName(user!.organizationId!),
-          // Usamos el dato en memoria si ya existe para evitar parpadeos
-          initialData: organizationService.currentOrganization?.name,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-              return const SizedBox(
-                width: 20, 
-                height: 20, 
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
-              );
-            }
-            // Mostramos el nombre o un texto por defecto
-            return Text(snapshot.data ?? l10n.appTitle);
-          },
-        ),
+        title: user.organizationId != null
+            ? StreamBuilder(
+                stream: organizationService.watchOrganization(user.organizationId!),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData && snapshot.data != null) {
+                    return Text(snapshot.data!.name);
+                  }
+                  return Text(l10n.appTitle);
+                },
+              )
+            : Text(l10n.appTitle),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
@@ -183,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 12),
         Container(
-          height: 400,
+          height: 600,
           decoration: BoxDecoration(
             color: Colors.grey.shade50,
             borderRadius: BorderRadius.circular(12),
@@ -194,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: KanbanBoardWidget(
               organizationId: user.organizationId!,
               currentUser: user,
-              maxHeight: 400,
+              maxHeight: 600,
             ),
           ),
         ),
@@ -202,44 +190,58 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFloatingButtons(user, AppLocalizations l10n) {
+Widget _buildFloatingButtons(user, AppLocalizations l10n) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        FloatingActionButton.extended(
-          heroTag: 'fab_clients',
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ClientsListScreen()),
-            );
-          },
-          icon: const Icon(Icons.people),
-          label: Text(l10n.clients),
-          backgroundColor: Colors.purple,
+        // Botón Clientes (Compacto)
+        SizedBox(
+          height: 40, // Altura reducida (estándar es 48)
+          child: FloatingActionButton.extended(
+            heroTag: 'fab_clients',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ClientsListScreen()),
+              );
+            },
+            // Icono ligeramente más pequeño
+            icon: const Icon(Icons.people, size: 20),
+            // Texto más pequeño
+            label: Text(l10n.clients, style: const TextStyle(fontSize: 13)),
+            backgroundColor: Colors.purple,
+            // Ajustamos el padding para que no se vea "apretado" pero sí compacto
+            extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
+          ),
         ),
-        const SizedBox(height: 6),
-        FloatingActionButton.extended(
-          heroTag: 'fab_batch',
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CreateProductionBatchScreen(
-                  organizationId: user.organizationId!,
+        
+        const SizedBox(height: 8), // Espacio entre botones
+        
+        // Botón Crear Lote (Compacto)
+        SizedBox(
+          height: 40, // Altura reducida
+          child: FloatingActionButton.extended(
+            heroTag: 'fab_batch',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreateProductionBatchScreen(
+                    organizationId: user.organizationId!,
+                  ),
                 ),
-              ),
-            );
-          },
-          icon: const Icon(Icons.add),
-          label: Text(l10n.createBatchBtn),
-          backgroundColor: Theme.of(context).colorScheme.primary,
+              );
+            },
+            icon: const Icon(Icons.add, size: 20),
+            label: Text(l10n.createBatchBtn, style: const TextStyle(fontSize: 13)),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
+          ),
         ),
       ],
     );
   }
-
   Widget _buildDrawer(
     BuildContext context,
     user,
