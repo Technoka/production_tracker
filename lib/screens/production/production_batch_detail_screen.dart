@@ -748,7 +748,8 @@ Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user) {
                   );
                 },
               ),
-              const SizedBox(height: 4),
+              const Divider(height: 3),
+              const SizedBox(height: 100),
             ],
           ),
         );
