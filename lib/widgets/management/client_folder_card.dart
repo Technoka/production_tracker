@@ -1,6 +1,7 @@
 // lib/widgets/management/client_folder_card.dart
 
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/models/production_batch_model.dart';
 import 'package:provider/provider.dart';
 import '../../models/client_model.dart';
 import '../../models/project_model.dart';
@@ -59,8 +60,8 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
             final projects = projectSnapshot.data ?? [];
             
             return ExpansionTile(
-              tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              childrenPadding: const EdgeInsets.only(bottom: 12),
+              tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              childrenPadding: const EdgeInsets.only(bottom: 6),
               onExpansionChanged: (expanded) {
                 setState(() => _isExpanded = expanded);
               },
@@ -88,6 +89,8 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -96,6 +99,8 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                             fontSize: 13,
                             color: Colors.grey.shade600,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -114,7 +119,7 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                           Icon(
                             Icons.priority_high,
                             size: 14,
-                            color: Colors.red.shade700,
+                            color: UrgencyLevel.urgent.color,
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -122,7 +127,7 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: Colors.red.shade700,
+                              color: UrgencyLevel.urgent.color,
                             ),
                           ),
                         ],
@@ -134,16 +139,20 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Row(
                   children: [
-                    _buildStat(
-                      icon: Icons.folder_outlined,
-                      value: '${projects.length}',
-                      label: l10n.projects,
+                    Flexible(
+                      child: _buildStat(
+                        icon: Icons.folder_outlined,
+                        value: '${projects.length}',
+                        label: l10n.projects,
+                      ),
                     ),
                     const SizedBox(width: 16),
-                    _buildStat(
-                      icon: Icons.widgets_outlined,
-                      value: '${widget.totalProductsCount}',
-                      label: l10n.products,
+                    Flexible(
+                      child: _buildStat(
+                        icon: Icons.widgets_outlined,
+                        value: '${widget.totalProductsCount}',
+                        label: l10n.products,
+                      ),
                     ),
                   ],
                 ),
@@ -245,7 +254,7 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
     );
   }
 
-  Widget _buildStat({
+Widget _buildStat({
     required IconData icon,
     required String value,
     required String label,
@@ -255,11 +264,16 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
       children: [
         Icon(icon, size: 14, color: Colors.grey.shade600),
         const SizedBox(width: 4),
-        Text(
-          '$value $label',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade700,
+        // ✅ AÑADIR Flexible PARA QUE EL ELLIPSIS FUNCIONE
+        Flexible(
+          child: Text(
+            '$value $label',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
