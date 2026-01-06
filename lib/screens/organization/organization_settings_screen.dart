@@ -5,9 +5,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../models/organization_settings_model.dart';
 import '../../services/organization_settings_service.dart';
+import '../../services/organization_service.dart';
 import '../../services/auth_service.dart';
 import '../../providers/theme_provider.dart';
 import '../../l10n/app_localizations.dart';
+import 'dart:io';
 
 class OrganizationSettingsScreen extends StatefulWidget {
   final String organizationId;
@@ -134,22 +136,25 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
     }
   }
 
-  Future<void> _pickLogo() async {
+Future<void> _pickLogo() async {
     try {
+      // image_picker devuelve un XFile, que es perfecto
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
+        maxWidth: 512,
+        maxHeight: 512,
       );
 
       if (image == null) return;
 
       setState(() => _isSaving = true);
 
-      final logoUrl = await _settingsService.uploadOrganizationLogo(
-        organizationId: widget.organizationId,
-        imageFile: image,
+      final orgService = Provider.of<OrganizationService>(context, listen: false);
+      
+      // ✅ PASAMOS EL XFILE DIRECTAMENTE (image), NO File(image.path)
+      final logoUrl = await orgService.uploadOrganizationLogo(
+        widget.organizationId,
+        image, 
       );
 
       if (logoUrl != null) {
@@ -167,8 +172,7 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
     } finally {
       setState(() => _isSaving = false);
     }
-  }
-
+  }   
   Future<void> _removeLogo() async {
     final confirmed = await showDialog<bool>(
       context: context,
