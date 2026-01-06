@@ -276,7 +276,7 @@ class _ClientTabView extends StatelessWidget {
             Expanded(
               child: StreamBuilder<List<ProjectModel>>(
                 stream: Provider.of<ProjectService>(context, listen: false)
-                    .watchClientProjects(user.organizationId!, clientId),
+                    .watchClientProjects(clientId, user.organizationId!),
                 builder: (context, projectSnapshot) {
                   if (projectSnapshot.connectionState ==
                       ConnectionState.waiting) {
@@ -284,7 +284,6 @@ class _ClientTabView extends StatelessWidget {
                   }
 
                   var projects = projectSnapshot.data ?? [];
-                  print('list view projects: ${projects}');
 
                   // Aplicar filtros
                   if (filters.searchQuery.isNotEmpty) {
