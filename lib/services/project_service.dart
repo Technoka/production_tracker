@@ -138,9 +138,36 @@ class ProjectService extends ChangeNotifier {
             .toList());
   }
 
+    /// Estadísticas por cliente
+  Future<List<ProjectModel>?> getClientProjects(
+    String organizationId,
+    String clientId,
+  ) async {
+    try {
+      final snapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('projects')
+          .where('clientId', isEqualTo: clientId)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      final projects = snapshot.docs
+          .map((doc) => ProjectModel.fromMap(doc.data()))
+          .toList();
+
+      return projects;
+    } catch (e) {
+      _error = 'Error al obtener productos del cliente: $e';
+      notifyListeners();
+      return null;
+    }
+  }
+
   /// Stream de proyectos por cliente
   Stream<List<ProjectModel>> watchClientProjects(String clientId, String organizationId) {
-    return _firestore
+
+    final clientProjects = _firestore
         .collection('organizations')
         .doc(organizationId)
         .collection('projects')
@@ -151,6 +178,10 @@ class ProjectService extends ChangeNotifier {
         .map((snapshot) => snapshot.docs
             .map((doc) => ProjectModel.fromMap(doc.data()))
             .toList());
+
+    // print('clientId: ${clientId}, organizationId: ${organizationId} -> projects: ${clientProjects.length}');
+
+    return clientProjects;
   }
 
   /// Stream de un proyecto específico
