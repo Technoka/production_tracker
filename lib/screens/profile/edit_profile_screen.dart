@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
+import 'package:image_picker/image_picker.dart'; // ✅ Importar
+import 'dart:io'; // ✅ Importar
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -13,6 +15,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final ImagePicker _picker = ImagePicker(); // ✅ Inicializar picker
 
   bool _hasChanges = false;
 
@@ -38,6 +41,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+// ✅ NUEVO: Función para elegir y subir foto
+Future<void> _pickAndUploadPhoto() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+      );
+
+      if (image == null) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Subiendo foto...')),
+      );
+
+      // ✅ PASAMOS EL XFILE DIRECTAMENTE
+      final url = await authService.uploadProfilePhoto(image);
+
+      if (mounted && url != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Foto actualizada'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -120,20 +156,53 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Avatar inicial
-              CircleAvatar(
-                radius: 60,
-                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                child: Text(
-                  user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                  style: TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+// ✅ MODIFICADO: Avatar con funcionalidad de cámara
+              Center(
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      backgroundImage: user.photoURL != null 
+                          ? NetworkImage(user.photoURL!) 
+                          : null,
+                      child: user.photoURL == null
+                          ? Text(
+                              user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            )
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: InkWell(
+                        onTap: authService.isLoading ? null : _pickAndUploadPhoto,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: authService.isLoading
+                              ? const SizedBox(
+                                  width: 20, 
+                                  height: 20, 
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                                )
+                              : const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 32),
-
               // Nombre
               TextFormField(
                 controller: _nameController,

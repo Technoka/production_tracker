@@ -47,29 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               )
             : Text(l10n.appTitle),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: RoleUtils.buildRoleBadge(user.role, compact: true),
-          ),
-          IconButton(
-            icon: CircleAvatar(
-              radius: 16,
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              child: Text(
-                user.name[0].toUpperCase(),
-                style: const TextStyle(fontSize: 14, color: Colors.white),
-              ),
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              );
-            },
-            tooltip: l10n.profile,
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -79,11 +56,30 @@ class _HomeScreenState extends State<HomeScreen> {
             // Saludo
             Row(
               children: [
-                Icon(
-                  Icons.factory,
-                  size: 40,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+     IconButton(
+  padding: const EdgeInsets.all(8),
+  icon: CircleAvatar(
+    radius: 30, // Tamaño ajustado para AppBar
+    backgroundColor: Theme.of(context).colorScheme.primary,
+    backgroundImage: (user.photoURL != null && user.photoURL!.isNotEmpty)
+        ? NetworkImage(user.photoURL!) 
+        : null,
+    child: (user.photoURL == null || user.photoURL!.isEmpty)
+        ? Icon(
+            Icons.factory, // ✅ CAMBIO: Icono de fábrica en lugar de texto
+            size: 20,
+            color: Theme.of(context).colorScheme.onPrimary, // Color que contrasta (blanco sobre azul)
+          )
+        : null,
+  ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+            tooltip: l10n.profile,
+          ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -96,12 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        user.roleDisplayName,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey[600],
-                            ),
-                      ),
+                      RoleUtils.buildRoleBadge(user.role, compact: true),
                     ],
                   ),
                 ),
@@ -257,16 +248,33 @@ Widget _buildFloatingButtons(user, AppLocalizations l10n) {
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary,
             ),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Text(
-                user.name[0].toUpperCase(),
-                style: TextStyle(
-                  fontSize: 24,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
+            currentAccountPicture: 
+          IconButton(
+            icon: 
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      backgroundImage: user.photoURL != null 
+                          ? NetworkImage(user.photoURL!) 
+                          : null,
+                      child: user.photoURL == null
+                          ? Text(
+                              user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                fontSize: 24,
+                                color: Theme.of(context).textTheme.headlineSmall!.color,
+                              ),
+                            )
+                          : null,
+                    ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+            tooltip: l10n.profile,
+          ),
             accountName: Text(user.name),
             accountEmail: Text(user.email),
           ),

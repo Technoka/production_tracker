@@ -5,6 +5,7 @@ import '../../utils/role_utils.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
 import '../../widgets/common_refresh.dart';
+import '../../widgets/bottom_nav_bar_widget.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -54,6 +55,7 @@ class ProfileScreen extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(), 
         child: Column(
           children: [
+            
             // Header con nombre
             Container(
               width: double.infinity,
@@ -61,71 +63,56 @@ class ProfileScreen extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.blue[700]!, Colors.blue[500]!],
+                  colors: [Theme.of(context).colorScheme.secondary.withOpacity(0.7), Theme.of(context).colorScheme.secondary.withOpacity(0.4)],
                 ),
               ),
               child: Column(
                 children: [
                   const SizedBox(height: 32),
-                  // Avatar inicial
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.white,
-                    child: Text(
-                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                  
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      backgroundImage: user.photoURL != null 
+                          ? NetworkImage(user.photoURL!) 
+                          : null,
+                      child: user.photoURL == null
+                          ? Text(
+                              user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).textTheme.headlineSmall!.color,
+                              ),
+                            )
+                          : null,
                     ),
-                  ),
                   const SizedBox(height: 16),
                   // Nombre
                   Text(
                     user.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Theme.of(context).textTheme.labelLarge!.color,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   // Email
                   Text(
                     user.email,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Theme.of(context).textTheme.labelLarge!.color!.withValues(alpha: 0.5),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 4),
                   // Badge de rol
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          RoleUtils.getRoleIcon(user.role),
-                          size: 18,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          user.roleDisplayName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+                      child: RoleUtils.buildRoleBadge(user.role, compact: true),
+                    
                   ),
                   const SizedBox(height: 32),
                 ],
@@ -230,7 +217,10 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
       ),
-    ));
+    ),
+    
+      bottomNavigationBar: BottomNavBarWidget(currentIndex: 4, user: user),
+    );
   }
 
   bool _isGoogleUser(BuildContext context) {
