@@ -188,28 +188,6 @@ Widget _buildFloatingButtons(user, AppLocalizations l10n) {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         // Botón Clientes (Compacto)
-        SizedBox(
-          height: 40, // Altura reducida (estándar es 48)
-          child: FloatingActionButton.extended(
-            heroTag: 'fab_clients',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ManagementScreen()),
-              );
-            },
-            // Icono ligeramente más pequeño
-            icon: const Icon(Icons.people, size: 20),
-            // Texto más pequeño
-            label: Text(l10n.management, style: const TextStyle(fontSize: 13)),
-            backgroundColor: Colors.purple,
-            // Ajustamos el padding para que no se vea "apretado" pero sí compacto
-            extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
-          ),
-        ),
-        
-        const SizedBox(height: 8), // Espacio entre botones
-        
         // Botón Crear Lote (Compacto)
         SizedBox(
           height: 40, // Altura reducida

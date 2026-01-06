@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../screens/home_screen.dart';
 import '../screens/production/production_screen.dart';
-import '../screens/projects/projects_list_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../l10n/app_localizations.dart';
+import '../screens/management/management_screen.dart';
 
 class BottomNavBarWidget extends StatelessWidget {
   final int currentIndex;
@@ -59,18 +59,8 @@ class BottomNavBarWidget extends StatelessWidget {
       );
       items.add(
         BottomNavigationBarItem(
-          icon: const Icon(Icons.folder_outlined),
-          label: l10n.projects,
-        ),
-      );
-    }
-
-    // Reportes (si puede ver financieros)
-    if (user.canViewFinancials) {
-      items.add(
-        BottomNavigationBarItem(
-          icon: const Icon(Icons.analytics_outlined),
-          label: l10n.notifications, // Usar una clave existente temporalmente
+          icon: const Icon(Icons.manage_accounts),
+          label: l10n.management,
         ),
       );
     }
@@ -99,8 +89,8 @@ class BottomNavBarWidget extends StatelessWidget {
       destination = const HomeScreen();
     } else if (label == AppLocalizations.of(context)!.production) {
       destination = const ProductionScreen();
-    } else if (label == AppLocalizations.of(context)!.projects) {
-      destination = const ProjectsListScreen();
+    } else if (label == AppLocalizations.of(context)!.management) {
+      destination = const ManagementScreen();
     } else if (label == AppLocalizations.of(context)!.profile) {
       destination = const ProfileScreen();
     } else {
