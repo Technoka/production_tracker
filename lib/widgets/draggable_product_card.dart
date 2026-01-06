@@ -85,7 +85,7 @@ final totalProgress = product.totalProgress;
                         Icon(Icons.inventory_2, size: 10, color: Colors.grey.shade700),
                         const SizedBox(width: 4),
                         Text(
-                          'Lote: $batchNumber (#${product.productNumber})',
+                          'Lote: $batchNumber (#${product.productNumber}/${batch.totalProducts})',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -117,7 +117,7 @@ final totalProgress = product.totalProgress;
               ),
               
               const SizedBox(height: 8),
-              
+              Row(children: [
               Text(
                 product.productName,
                 style: const TextStyle(
@@ -127,6 +127,24 @@ final totalProgress = product.totalProgress;
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
+                  const Spacer(),
+if (product.productStatus != ProductStatus.pending.value)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: product.statusColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      product.statusDisplayName,
+                      style: TextStyle(
+                        color: product.statusColor,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],),
               
               const SizedBox(height: 8),
               
@@ -147,8 +165,9 @@ final totalProgress = product.totalProgress;
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ],
-                ),
+
+                ],
+              ),
                 const SizedBox(height: 4),
               ],
               
