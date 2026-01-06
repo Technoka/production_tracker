@@ -1,7 +1,4 @@
-// lib/widgets/management/client_folder_card.dart
-
 import 'package:flutter/material.dart';
-import 'package:gestion_produccion/models/production_batch_model.dart';
 import 'package:provider/provider.dart';
 import '../../models/client_model.dart';
 import '../../models/project_model.dart';
@@ -37,224 +34,294 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final authService = Provider.of<AuthService>(context, listen: false);
-    final user = authService.currentUserData!;
 
-    return Card(
-      elevation: 0,
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
+      decoration: BoxDecoration(
+        // Fondo con opacidad reducida del color del tema
+        color: theme.primaryColor.withOpacity(0.03), 
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: _isExpanded
-              ? theme.colorScheme.primary.withOpacity(0.3)
-              : Colors.grey.shade200,
-          width: _isExpanded ? 1.5 : 1,
+        border: Border.all(
+          color: theme.primaryColor.withOpacity(0.1), // Borde sutil del mismo color
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Theme(
-        data: theme.copyWith(dividerColor: Colors.transparent),
-        child: StreamBuilder<List<ProjectModel>>(
-          stream: Provider.of<ProjectService>(context, listen: false)
-              .watchClientProjects(user.organizationId!, widget.client.id),
-          builder: (context, projectSnapshot) {
-            final projects = projectSnapshot.data ?? [];
-            
-            return ExpansionTile(
-              tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              childrenPadding: const EdgeInsets.only(bottom: 6),
-              onExpansionChanged: (expanded) {
-                setState(() => _isExpanded = expanded);
-              },
-              leading: CircleAvatar(
-                radius: 24,
-                backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                child: Text(
-                  widget.client.initials,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ),
-              title: Row(
+      child: Column(
+        children: [
+          // === HEADER DEL CLIENTE ===
+          InkWell(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12), bottom: Radius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center, // Avatar centrado verticalmente
                 children: [
+                  // 1. Avatar (Izquierda)
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: theme.primaryColor.withOpacity(0.1),
+                    child: Text(
+                      widget.client.initials,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: theme.primaryColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // 2. Columna Central (Info + Stats)
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min, // Ajuste para el centrado vertical
                       children: [
-                        Text(
-                          widget.client.name,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.client.company,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (widget.urgentProductsCount > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade200),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.priority_high,
-                            size: 14,
-                            color: UrgencyLevel.urgent.color,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${widget.urgentProductsCount}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: UrgencyLevel.urgent.color,
+                        // FILA 1: Nombre + Iconos + Flecha
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.client.name,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
+                            
+                            // Badge Urgente
+                            if (widget.urgentProductsCount > 0) ...[
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.warning_amber_rounded, size: 12, color: Colors.red),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      widget.urgentProductsCount.toString(),
+                                      style: const TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+
+                            // Botones de acción (Ver / Editar) - Siempre visibles
+                            const SizedBox(width: 4),
+                            _buildActionButton(
+                              icon: Icons.visibility_outlined,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ClientDetailScreen(client: widget.client),
+                                  ),
+                                );
+                              },
+                              theme: theme,
+                              tooltip: l10n.viewDetailsTooltip,
+                            ),
+                            _buildActionButton(
+                              icon: Icons.edit_outlined,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EditClientScreen(client: widget.client),
+                                  ),
+                                );
+                              },
+                              theme: theme,
+                              tooltip: l10n.edit,
+                            ),
+
+                            // Flecha de expansión
+                            const SizedBox(width: 4),
+                            Icon(
+                              _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                              color: Colors.grey.shade500,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                        
+                        // FILA 2: Empresa
+                        if (widget.client.company.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.client.company,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
-                      ),
-                    ),
-                ],
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: _buildStat(
-                        icon: Icons.folder_outlined,
-                        value: '${projects.length}',
-                        label: l10n.projects,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Flexible(
-                      child: _buildStat(
-                        icon: Icons.widgets_outlined,
-                        value: '${widget.totalProductsCount}',
-                        label: l10n.products,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.visibility_outlined, size: 20),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ClientDetailScreen(
-                            client: widget.client,
-                          ),
-                        ),
-                      );
-                    },
-                    tooltip: l10n.viewDetailsTooltip,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 8),
-                  if (user.canManageProduction)
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, size: 20),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditClientScreen(
-                              client: widget.client,
-                            ),
-                          ),
-                        );
-                      },
-                      tooltip: l10n.edit,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    _isExpanded
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    size: 24,
-                  ),
-                ],
-              ),
-              children: [
-                if (projects.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.folder_off_outlined,
-                          size: 48,
-                          color: Colors.grey.shade300,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          l10n.noProjectsForClient,
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        if (user.canManageProduction) ...[
-                          const SizedBox(height: 12),
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const CreateProjectScreen(
+
+                        // FILA 3: Estadísticas (Proyectos y Productos)
+                        const SizedBox(height: 6),
+                        FutureBuilder<List<ProjectModel>>(
+                          future: Provider.of<ProjectService>(context, listen: false)
+                              .watchClientProjects(
+                                authService.currentUserData!.organizationId!, 
+                                widget.client.id
+                              ).first,
+                          builder: (context, snapshot) {
+                            final count = snapshot.hasData ? snapshot.data!.length : 0;
+                            return Row(
+                              children: [
+                                Flexible(
+                                  child: _buildStat(
+                                    icon: Icons.folder_outlined,
+                                    value: '$count',
+                                    label: l10n.projects,
                                   ),
                                 ),
-                              );
-                            },
-                            icon: const Icon(Icons.add, size: 18),
-                            label: Text(l10n.createProject),
-                          ),
-                        ],
+                                const SizedBox(width: 16),
+                                Flexible(
+                                  child: _buildStat(
+                                    icon: Icons.widgets_outlined,
+                                    value: '${widget.totalProductsCount}',
+                                    label: l10n.products,
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                        ),
                       ],
                     ),
-                  )
-                else
-                  ...projects.map((project) => ProjectFolderCard(
-                        project: project,
-                        client: widget.client,
-                      )),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // === CONTENIDO EXPANDIBLE (Lista de proyectos) ===
+          AnimatedCrossFade(
+            firstChild: const SizedBox(height: 0),
+            secondChild: Column(
+              children: [
+                Divider(height: 1, indent: 16, endIndent: 16, color: theme.primaryColor.withOpacity(0.1)),
+                FutureBuilder<List<ProjectModel>>(
+                  future: Provider.of<ProjectService>(context, listen: false)
+                      .watchClientProjects(
+                        authService.currentUserData!.organizationId!,
+                        widget.client.id
+                      ).first,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+                      );
+                    }
+
+                    final projects = snapshot.data ?? [];
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 8),
+                        // Lista de Proyectos
+                        if (projects.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Center(
+                              child: Column(
+                                children: [
+                                  Text(
+                                    l10n.projectsCount(0),
+                                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => CreateProjectScreen(),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.add, size: 16),
+                                    label: Text(l10n.createProject, style: const TextStyle(fontSize: 13)),
+                                    style: OutlinedButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                      side: BorderSide(color: theme.primaryColor.withOpacity(0.5)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          ...projects.map((project) => Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: ProjectFolderCard(
+                                  project: project,
+                                  client: widget.client,
+                                ),
+                          )),
+                         
+                        const SizedBox(height: 8),
+                      ],
+                    );
+                  }
+                ),
               ],
-            );
-          }
-        ),
+            ),
+            crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 300),
+          ),
+        ],
       ),
     );
   }
 
-Widget _buildStat({
+  // Widget auxiliar para botones de acción compactos
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required ThemeData theme,
+    required String tooltip,
+  }) {
+    return SizedBox(
+      width: 36,
+      height: 36,
+      child: IconButton(
+        padding: EdgeInsets.zero,
+        icon: Icon(icon, size: 20, color: theme.primaryColor.withOpacity(0.7)),
+        tooltip: tooltip,
+        onPressed: onTap,
+        splashRadius: 20,
+      ),
+    );
+  }
+
+  // Widget auxiliar para estadísticas pequeñas
+  Widget _buildStat({
     required IconData icon,
     required String value,
     required String label,
@@ -262,15 +329,15 @@ Widget _buildStat({
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: Colors.grey.shade600),
+        Icon(icon, size: 14, color: Colors.grey.shade500),
         const SizedBox(width: 4),
-        // ✅ AÑADIR Flexible PARA QUE EL ELLIPSIS FUNCIONE
         Flexible(
           child: Text(
             '$value $label',
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey.shade700,
+              fontWeight: FontWeight.w500,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
