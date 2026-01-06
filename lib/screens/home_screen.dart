@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/screens/management/management_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/organization_service.dart';
@@ -194,13 +195,13 @@ Widget _buildFloatingButtons(user, AppLocalizations l10n) {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ClientsListScreen()),
+                MaterialPageRoute(builder: (context) => const ManagementScreen()),
               );
             },
             // Icono ligeramente más pequeño
             icon: const Icon(Icons.people, size: 20),
             // Texto más pequeño
-            label: Text(l10n.clients, style: const TextStyle(fontSize: 13)),
+            label: Text(l10n.management, style: const TextStyle(fontSize: 13)),
             backgroundColor: Colors.purple,
             // Ajustamos el padding para que no se vea "apretado" pero sí compacto
             extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
