@@ -2,11 +2,16 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_storage/firebase_storage.dart'; // Importar storage
 import '../models/user_model.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart'; // Importar compresor
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instanceFor(
+    bucket: 'gs://production-tracker-top.firebasestorage.app'
+  );
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   User? get currentUser => _auth.currentUser;
@@ -340,6 +345,52 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+// Subir foto de perfil (Versión robusta con XFile)
+  Future<String?> uploadProfilePhoto(XFile imageFile) async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final ref = _storage.ref().child('users/${user.uid}/profile.png');
+
+      // 1. Leer bytes
+      final Uint8List imageBytes = await imageFile.readAsBytes();
+
+      // 2. Comprimir
+      final Uint8List compressedBytes = await FlutterImageCompress.compressWithList(
+        imageBytes,
+        minWidth: 256,
+        minHeight: 256,
+        quality: 85,
+        format: CompressFormat.png,
+      );
+
+      // 3. Subir
+      await ref.putData(compressedBytes, SettableMetadata(contentType: 'image/png'));
+      final downloadUrl = await ref.getDownloadURL();
+
+      // 4. Actualizar perfil
+      await user.updatePhotoURL(downloadUrl);
+      await _firestore.collection('users').doc(user.uid).update({
+        'photoURL': downloadUrl,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      await loadUserData(); // Refrescar datos locales
+
+      _isLoading = false;
+      notifyListeners();
+      return downloadUrl;
+    } catch (e) {
+      _error = 'Error al subir foto: $e';
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
   // Cambiar contraseña
   Future<bool> changePassword({
     required String currentPassword,

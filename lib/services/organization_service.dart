@@ -5,13 +5,15 @@ import 'dart:math';
 import '../models/organization_model.dart';
 import '../models/user_model.dart';
 import 'package:flutter/material.dart';
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart'; // Importar storage
 import 'package:flutter_image_compress/flutter_image_compress.dart'; // Importar compresor
 
 class OrganizationService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instanceFor(
+    bucket: 'gs://production-tracker-top.firebasestorage.app'
+  );
   final _uuid = const Uuid();
 
   OrganizationModel? _currentOrganization;
@@ -151,34 +153,44 @@ class OrganizationService extends ChangeNotifier {
     }
   }
 
-  // ==================== LOGO DE LA ORGANIZACIÓN ====================
-  Future<String?> uploadOrganizationLogo(String orgId, File imageFile) async {
+// ==================== LOGO DE LA ORGANIZACIÓN (MODO PNG) ====================
+  Future<String?> uploadOrganizationLogo(String orgId, XFile imageFile) async {
     try {
-      // 1. Definir la ruta en Storage
-      final ref = _storage.ref().child('organizations/$orgId/logo.jpg');
+      _isLoading = true;
+      notifyListeners();
 
-      // 2. Comprimir y redimensionar la imagen antes de subir
-      // Esto asegura un tamaño fijo y optimizado.
-      final Uint8List? compressedBytes = await FlutterImageCompress.compressWithFile(
-        imageFile.absolute.path,
-        minWidth: 512, // Ancho fijo objetivo
-        minHeight: 512, // Alto fijo objetivo
-        quality: 85, // Calidad JPEG (0-100)
-        format: CompressFormat.jpeg,
+      // ✅ CAMBIO 1: Extensión del archivo a .png
+      final ref = _storage.ref().child('organizations/$orgId/logo.png');
+
+      final Uint8List imageBytes = await imageFile.readAsBytes();
+
+      final Uint8List compressedBytes = await FlutterImageCompress.compressWithList(
+        imageBytes,
+        minWidth: 256,
+        minHeight: 256,
+        quality: 90, // PNG ignora esto a veces porque es 'lossless', pero lo dejamos alto
+        // ✅ CAMBIO 2: Formato PNG para mantener transparencia
+        format: CompressFormat.png, 
       );
 
-      if (compressedBytes == null) throw Exception("Error al comprimir imagen");
-
-      // 3. Subir los bytes comprimidos
-      final uploadTask = ref.putData(compressedBytes, SettableMetadata(contentType: 'image/jpeg'));
+      final uploadTask = ref.putData(
+        compressedBytes, 
+        // ✅ CAMBIO 3: Content type correcto
+        SettableMetadata(contentType: 'image/png') 
+      );
+      
       await uploadTask.whenComplete(() => null);
-
-      // 4. Obtener la URL de descarga
       final String downloadUrl = await ref.getDownloadURL();
+      
+      await updateOrganization(organizationId: orgId, logoUrl: downloadUrl);
+      
+      _isLoading = false;
+      notifyListeners();
       return downloadUrl;
     } catch (e) {
       print('Error uploading logo: $e');
-      // En un caso real, quizás quieras relanzar el error para manejarlo en la UI
+      _isLoading = false;
+      notifyListeners();
       return null;
     }
   }
@@ -648,7 +660,7 @@ Future<bool> acceptInvitation({
       
       // Solo actualizamos el logoUrl si se provee uno nuevo (o null para borrarlo si fuera necesario)
       if (logoUrl != null) {
-        updates['logoUrl'] = logoUrl;
+        updates['settings.branding.logoUrl'] = logoUrl;
       }
 
       await _firestore
