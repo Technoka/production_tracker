@@ -1844,4 +1844,78 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get productsViewTitleLabel => 'View products';
+
+  @override
+  String get hello => 'Hello';
+
+  @override
+  String get management => 'Management';
+
+  @override
+  String get listView => 'List';
+
+  @override
+  String get foldersView => 'Folders';
+
+  @override
+  String get viewDetailsTooltip => 'View details';
+
+  @override
+  String get noProjectsForClient => 'No projects for this client';
+
+  @override
+  String get clientNotFound => 'Client not found';
+
+  @override
+  String get projectNotFound => 'Project not found';
+
+  @override
+  String get complete => 'complete';
+
+  @override
+  String get urgentLabel => 'URGENT';
+
+  @override
+  String get general => 'General';
+
+  @override
+  String projectsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Projects',
+      one: '1 Project',
+      zero: 'No projects',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String productsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Products',
+      one: '1 Product',
+      zero: 'No products',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String urgentCount(Object count) {
+    return '$count urgent';
+  }
+
+  @override
+  String get startDate => 'Start date';
+
+  @override
+  String get dueDate => 'Due date';
+
+  @override
+  String get viewProjectDetails => 'View project details';
+
+  @override
+  String get contactInfo => 'Contact info';
 }

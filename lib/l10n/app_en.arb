@@ -662,5 +662,21 @@
   "allClients": "All clients",
   "batchesViewTitleLabel": "View batches",
   "productsViewTitleLabel": "View products",
-  "hello": "Hello"
+  "hello": "Hello",
+  "management": "Management",
+  "listView": "List",
+  "foldersView": "Folders",
+  "viewDetailsTooltip": "View details",
+  "noProjectsForClient": "No projects for this client",
+  "clientNotFound": "Client not found",
+  "projectNotFound": "Project not found",
+  "complete": "complete",
+  "urgentLabel": "URGENT",
+  "general": "General","projectsCount": "{count, plural, =0 {No projects} =1 {1 Project} other {{count} Projects}}",
+  "productsCount": "{count, plural, =0 {No products} =1 {1 Product} other {{count} Products}}",
+  "urgentCount": "{count} urgent",
+  "startDate": "Start date",
+  "dueDate": "Due date",
+  "viewProjectDetails": "View project details",
+  "contactInfo": "Contact info"
 }

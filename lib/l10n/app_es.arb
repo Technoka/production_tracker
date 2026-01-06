@@ -672,5 +672,21 @@
   "allClients": "Todos los clientes",
   "batchesViewTitleLabel": "Vista por lotes",
   "productsViewTitleLabel": "Vista por productos",
-  "hello": "Hola"
+  "hello": "Hola",
+  "management": "Gestión",
+  "listView": "Lista",
+  "foldersView": "Carpetas",
+  "viewDetailsTooltip": "Ver detalles",
+  "noProjectsForClient": "No hay proyectos para este cliente",
+  "clientNotFound": "Cliente no encontrado",
+  "projectNotFound": "Proyecto no encontrado",
+  "complete": "completado",
+  "urgentLabel": "URGENTE",
+  "general": "General","projectsCount": "{count, plural, =0 {Sin proyectos} =1 {1 Proyecto} other {{count} Proyectos}}",
+  "productsCount": "{count, plural, =0 {Sin productos} =1 {1 Producto} other {{count} Productos}}",
+  "urgentCount": "{count} urgentes",
+  "startDate": "Fecha inicio",
+  "dueDate": "Fecha entrega",
+  "viewProjectDetails": "Ver detalles del proyecto",
+  "contactInfo": "Información de contacto"
 }

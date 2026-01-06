@@ -3700,6 +3700,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View products'**
   String get productsViewTitleLabel;
+
+  /// No description provided for @hello.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello'**
+  String get hello;
+
+  /// No description provided for @management.
+  ///
+  /// In en, this message translates to:
+  /// **'Management'**
+  String get management;
+
+  /// No description provided for @listView.
+  ///
+  /// In en, this message translates to:
+  /// **'List'**
+  String get listView;
+
+  /// No description provided for @foldersView.
+  ///
+  /// In en, this message translates to:
+  /// **'Folders'**
+  String get foldersView;
+
+  /// No description provided for @viewDetailsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'View details'**
+  String get viewDetailsTooltip;
+
+  /// No description provided for @noProjectsForClient.
+  ///
+  /// In en, this message translates to:
+  /// **'No projects for this client'**
+  String get noProjectsForClient;
+
+  /// No description provided for @clientNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Client not found'**
+  String get clientNotFound;
+
+  /// No description provided for @projectNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Project not found'**
+  String get projectNotFound;
+
+  /// No description provided for @complete.
+  ///
+  /// In en, this message translates to:
+  /// **'complete'**
+  String get complete;
+
+  /// No description provided for @urgentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'URGENT'**
+  String get urgentLabel;
+
+  /// No description provided for @general.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get general;
+
+  /// No description provided for @projectsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0 {No projects} =1 {1 Project} other {{count} Projects}}'**
+  String projectsCount(num count);
+
+  /// No description provided for @productsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0 {No products} =1 {1 Product} other {{count} Products}}'**
+  String productsCount(num count);
+
+  /// No description provided for @urgentCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} urgent'**
+  String urgentCount(Object count);
+
+  /// No description provided for @startDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get startDate;
+
+  /// No description provided for @dueDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Due date'**
+  String get dueDate;
+
+  /// No description provided for @viewProjectDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View project details'**
+  String get viewProjectDetails;
+
+  /// No description provided for @contactInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact info'**
+  String get contactInfo;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
