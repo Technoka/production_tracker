@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/models/production_batch_model.dart';
 import 'package:provider/provider.dart';
 import '../../models/client_model.dart';
 import '../../models/project_model.dart';
@@ -36,14 +37,11 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
     final authService = Provider.of<AuthService>(context, listen: false);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 12), // Margen un poco más pequeño
       decoration: BoxDecoration(
-        // Fondo con opacidad reducida del color del tema
-        color: theme.primaryColor.withOpacity(0.03), 
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.primaryColor.withOpacity(0.1), // Borde sutil del mismo color
-        ),
+        border: Border.all(color: Colors.grey.shade200), // Borde sutil añadido
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -59,18 +57,18 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
             onTap: () => setState(() => _isExpanded = !_isExpanded),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12), bottom: Radius.circular(12)),
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12), // Padding reducido
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center, // Avatar centrado verticalmente
+                crossAxisAlignment: CrossAxisAlignment.start, // Alinear todo arriba
                 children: [
                   // 1. Avatar (Izquierda)
                   CircleAvatar(
-                    radius: 22,
+                    radius: 20, // Más pequeño
                     backgroundColor: theme.primaryColor.withOpacity(0.1),
                     child: Text(
                       widget.client.initials,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: theme.primaryColor,
                       ),
@@ -82,7 +80,6 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min, // Ajuste para el centrado vertical
                       children: [
                         // FILA 1: Nombre + Iconos + Flecha
                         Row(
@@ -91,7 +88,7 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                               child: Text(
                                 widget.client.name,
                                 style: const TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.black87,
                                 ),
@@ -99,25 +96,24 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            
-                            // Badge Urgente
+                            // Badge Urgente (Pequeño)
                             if (widget.urgentProductsCount > 0) ...[
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.1),
+                                  color: UrgencyLevel.urgent.color.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.warning_amber_rounded, size: 12, color: Colors.red),
+                                    const Icon(Icons.warning_amber_rounded, size: 10, color: Colors.red),
                                     const SizedBox(width: 2),
                                     Text(
                                       widget.urgentProductsCount.toString(),
-                                      style: const TextStyle(
-                                        color: Colors.red,
-                                        fontSize: 11,
+                                      style: TextStyle(
+                                        color: UrgencyLevel.urgent.color,
+                                        fontSize: 10,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -159,8 +155,8 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                             const SizedBox(width: 4),
                             Icon(
                               _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                              color: Colors.grey.shade500,
-                              size: 20,
+                              color: Colors.grey.shade400,
+                              size: 18,
                             ),
                           ],
                         ),
@@ -171,8 +167,8 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                           Text(
                             widget.client.company,
                             style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -180,7 +176,7 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                         ],
 
                         // FILA 3: Estadísticas (Proyectos y Productos)
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         FutureBuilder<List<ProjectModel>>(
                           future: Provider.of<ProjectService>(context, listen: false)
                               .watchClientProjects(
@@ -191,19 +187,21 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                             final count = snapshot.hasData ? snapshot.data!.length : 0;
                             return Row(
                               children: [
+                                // Proyectos
                                 Flexible(
                                   child: _buildStat(
                                     icon: Icons.folder_outlined,
                                     value: '$count',
-                                    label: l10n.projects,
+                                    label: l10n.projects, // Asegúrate de que tu arb tenga esta key, o usa "Proyectos"
                                   ),
                                 ),
                                 const SizedBox(width: 16),
+                                // Productos
                                 Flexible(
                                   child: _buildStat(
                                     icon: Icons.widgets_outlined,
                                     value: '${widget.totalProductsCount}',
-                                    label: l10n.products,
+                                    label: l10n.products, // Asegúrate de que tu arb tenga esta key, o usa "Productos"
                                   ),
                                 ),
                               ],
@@ -218,12 +216,12 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
             ),
           ),
 
-          // === CONTENIDO EXPANDIBLE (Lista de proyectos) ===
+          // === CONTENIDO EXPANDIBLE ===
           AnimatedCrossFade(
             firstChild: const SizedBox(height: 0),
             secondChild: Column(
               children: [
-                Divider(height: 1, indent: 16, endIndent: 16, color: theme.primaryColor.withOpacity(0.1)),
+                const Divider(height: 1, indent: 16, endIndent: 16),
                 FutureBuilder<List<ProjectModel>>(
                   future: Provider.of<ProjectService>(context, listen: false)
                       .watchClientProjects(
@@ -248,32 +246,31 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                         if (projects.isEmpty)
                           Padding(
                             padding: const EdgeInsets.all(16.0),
-                            child: Center(
-                              child: Column(
-                                children: [
-                                  Text(
+                            child: Column(
+                              children: [
+                                Center(
+                                  child: Text(
                                     l10n.projectsCount(0),
                                     style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                                   ),
-                                  const SizedBox(height: 8),
-                                  OutlinedButton.icon(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => CreateProjectScreen(),
-                                        ),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.add, size: 16),
-                                    label: Text(l10n.createProject, style: const TextStyle(fontSize: 13)),
-                                    style: OutlinedButton.styleFrom(
-                                      visualDensity: VisualDensity.compact,
-                                      side: BorderSide(color: theme.primaryColor.withOpacity(0.5)),
-                                    ),
+                                ),
+                                const SizedBox(height: 12),
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => CreateProjectScreen(),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: Text(l10n.createProject, style: const TextStyle(fontSize: 13)),
+                                  style: OutlinedButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           )
                         else
@@ -282,6 +279,7 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                             child: ProjectFolderCard(
                                   project: project,
                                   client: widget.client,
+                                  // Aquí podrías pasarle contadores reales si los tuvieras
                                 ),
                           )),
                          
@@ -329,14 +327,14 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: Colors.grey.shade500),
+        Icon(icon, size: 14, color: Colors.grey.shade400),
         const SizedBox(width: 4),
         Flexible(
           child: Text(
             '$value $label',
             style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade700,
+              fontSize: 11, // Fuente pequeña
+              color: Colors.grey.shade600,
               fontWeight: FontWeight.w500,
             ),
             maxLines: 1,
