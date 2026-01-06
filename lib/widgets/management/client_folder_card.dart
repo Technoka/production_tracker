@@ -180,8 +180,8 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                         FutureBuilder<List<ProjectModel>>(
                           future: Provider.of<ProjectService>(context, listen: false)
                               .watchClientProjects(
+                                widget.client.id,
                                 authService.currentUserData!.organizationId!, 
-                                widget.client.id
                               ).first,
                           builder: (context, snapshot) {
                             final count = snapshot.hasData ? snapshot.data!.length : 0;
@@ -222,12 +222,12 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
             secondChild: Column(
               children: [
                 const Divider(height: 1, indent: 16, endIndent: 16),
-                FutureBuilder<List<ProjectModel>>(
+                FutureBuilder<List<ProjectModel>?>(
                   future: Provider.of<ProjectService>(context, listen: false)
-                      .watchClientProjects(
+                      .getClientProjects(
                         authService.currentUserData!.organizationId!,
-                        widget.client.id
-                      ).first,
+                        widget.client.id,
+                      ),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Padding(
@@ -237,6 +237,7 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                     }
 
                     final projects = snapshot.data ?? [];
+                    print('client folder card: projects: ${projects}');
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
