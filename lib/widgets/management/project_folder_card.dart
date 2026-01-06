@@ -1,6 +1,7 @@
 // lib/widgets/management/project_folder_card.dart
 
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/screens/projects/edit_project_screen.dart';
 import 'package:provider/provider.dart';
 import '../../models/project_model.dart';
 import '../../models/client_model.dart';
@@ -81,12 +82,52 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
                 title: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                          children: [
                     Text(
                       widget.project.name,
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
+                    ),
+                            _buildActionButton(
+                              icon: Icons.visibility_outlined,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProjectDetailScreen(
+                              projectId: widget.project.id,
+                            ),
+                                  ),
+                                );
+                              },
+                              theme: theme,
+                              tooltip: l10n.viewDetailsTooltip,
+                            ),
+                            _buildActionButton(
+                              icon: Icons.edit_outlined,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EditProjectScreen(project: widget.project),
+                                  ),
+                                );
+                              },
+                              theme: theme,
+                              tooltip: l10n.edit,
+                            ),
+
+                            // Flecha de expansión
+                            const SizedBox(width: 4),
+                            Icon(
+                              _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                              color: Colors.grey.shade400,
+                              size: 18,
+                            ),
+                          ]
                     ),
                     const SizedBox(height: 6),
                     Row(
@@ -104,56 +145,7 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
                             color: Colors.grey.shade600,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Text(
-                          '${progress.toStringAsFixed(0)}% ${l10n.complete}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
                       ],
-                    ),
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: progress / 100,
-                        minHeight: 6,
-                        backgroundColor: Colors.grey.shade200,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.visibility_outlined, size: 18),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ProjectDetailScreen(
-                              projectId: widget.project.id,
-                            ),
-                          ),
-                        );
-                      },
-                      tooltip: l10n.viewDetailsTooltip,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      _isExpanded
-                          ? Icons.keyboard_arrow_up_rounded
-                          : Icons.keyboard_arrow_down_rounded,
-                      size: 20,
                     ),
                   ],
                 ),
@@ -281,6 +273,26 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
         tooltip: l10n.viewDetailsTooltip,
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),
+      ),
+    );
+  }
+
+    // Widget auxiliar para botones de acción compactos
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required ThemeData theme,
+    required String tooltip,
+  }) {
+    return SizedBox(
+      width: 36,
+      height: 36,
+      child: IconButton(
+        padding: EdgeInsets.zero,
+        icon: Icon(icon, size: 20, color: theme.primaryColor.withOpacity(0.7)),
+        tooltip: tooltip,
+        onPressed: onTap,
+        splashRadius: 20,
       ),
     );
   }
