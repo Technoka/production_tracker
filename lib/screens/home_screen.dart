@@ -61,16 +61,19 @@ class _HomeScreenState extends State<HomeScreen> {
   padding: const EdgeInsets.all(8),
   icon: CircleAvatar(
     radius: 30, // Tamaño ajustado para AppBar
-    backgroundColor: Theme.of(context).colorScheme.primary,
+    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
     backgroundImage: (user.photoURL != null && user.photoURL!.isNotEmpty)
         ? NetworkImage(user.photoURL!) 
         : null,
     child: (user.photoURL == null || user.photoURL!.isEmpty)
-        ? Icon(
-            Icons.factory, // ✅ CAMBIO: Icono de fábrica en lugar de texto
-            size: 20,
-            color: Theme.of(context).colorScheme.onPrimary, // Color que contrasta (blanco sobre azul)
-          )
+        ? Text(
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    )
         : null,
   ),
             onPressed: () {
@@ -231,17 +234,17 @@ Widget _buildFloatingButtons(user, AppLocalizations l10n) {
           IconButton(
             icon: 
                     CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      backgroundImage: user.photoURL != null 
+                      radius: 30,
+                      // backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                      backgroundImage: (user.photoURL != null ||user.photoURL.isEmpty) 
                           ? NetworkImage(user.photoURL!) 
                           : null,
-                      child: user.photoURL == null
+                      child: (user.photoURL == null || user.photoURL!.isEmpty)
                           ? Text(
                               user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
                               style: TextStyle(
-                                fontSize: 24,
-                                color: Theme.of(context).textTheme.headlineSmall!.color,
+                                fontSize: 18,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                             )
                           : null,
