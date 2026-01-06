@@ -6,6 +6,7 @@ import '../../models/project_model.dart';
 import '../../models/user_model.dart';
 import 'create_project_screen.dart';
 import 'project_detail_screen.dart';
+import '../../widgets/bottom_nav_bar_widget.dart';
 
 class ProjectsListScreen extends StatefulWidget {
   const ProjectsListScreen({super.key});
@@ -135,6 +136,7 @@ class _ProjectsListScreenState extends State<ProjectsListScreen>
           ),
         ],
       ),
+      bottomNavigationBar: BottomNavBarWidget(currentIndex: 2, user: user),
       floatingActionButton: canCreate
           ? FloatingActionButton(
               onPressed: () => Navigator.push(
