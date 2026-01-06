@@ -82,7 +82,7 @@ class ProfileScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 48,
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(context).textTheme.headlineSmall!.color,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                             )
                           : null,
