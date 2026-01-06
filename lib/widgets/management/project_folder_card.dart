@@ -57,9 +57,6 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
             builder: (context, productSnapshot) {
               final products = productSnapshot.data ?? [];
               final productCount = products.length;
-              
-              // Calcular progreso (simulado, ajustar según tu lógica)
-              final progress = productCount > 0 ? 65.0 : 0.0;
 
               return ExpansionTile(
                 tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -67,6 +64,7 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
                 onExpansionChanged: (expanded) {
                   setState(() => _isExpanded = expanded);
                 },
+                // ICONO CARPETA (Izquierda)
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -79,55 +77,18 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
                     size: 20,
                   ),
                 ),
+                // TÍTULO Y SUBTÍTULO (Centro)
                 title: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                          children: [
                     Text(
                       widget.project.name,
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
-                    ),
-                            _buildActionButton(
-                              icon: Icons.visibility_outlined,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ProjectDetailScreen(
-                              projectId: widget.project.id,
-                            ),
-                                  ),
-                                );
-                              },
-                              theme: theme,
-                              tooltip: l10n.viewDetailsTooltip,
-                            ),
-                            _buildActionButton(
-                              icon: Icons.edit_outlined,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => EditProjectScreen(project: widget.project),
-                                  ),
-                                );
-                              },
-                              theme: theme,
-                              tooltip: l10n.edit,
-                            ),
-
-                            // Flecha de expansión
-                            const SizedBox(width: 4),
-                            Icon(
-                              _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                              color: Colors.grey.shade400,
-                              size: 18,
-                            ),
-                          ]
+                      maxLines: 1, // Evita overflow vertical
+                      overflow: TextOverflow.ellipsis, // Puntos suspensivos si es largo
                     ),
                     const SizedBox(height: 6),
                     Row(
@@ -146,6 +107,47 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
                           ),
                         ),
                       ],
+                    ),
+                  ],
+                ),
+                // ICONOS DE ACCIÓN Y FLECHA (Derecha del todo)
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min, // Ocupa solo el espacio necesario
+                  children: [
+                    _buildActionButton(
+                      icon: Icons.visibility_outlined,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProjectDetailScreen(
+                              projectId: widget.project.id,
+                            ),
+                          ),
+                        );
+                      },
+                      theme: theme,
+                      tooltip: l10n.viewDetailsTooltip,
+                    ),
+                    _buildActionButton(
+                      icon: Icons.edit_outlined,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditProjectScreen(project: widget.project),
+                          ),
+                        );
+                      },
+                      theme: theme,
+                      tooltip: l10n.edit,
+                    ),
+                    const SizedBox(width: 4),
+                    // Flecha de expansión personalizada
+                    Icon(
+                      _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      color: Colors.grey.shade400,
+                      size: 20,
                     ),
                   ],
                 ),
@@ -219,6 +221,18 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
     return ListTile(
       dense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProductCatalogDetailScreen(
+                productId: product.id,
+                currentUser: user,
+                organizationId: user.organizationId!,
+              ),
+            ),
+          );
+        },
       leading: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
@@ -256,28 +270,12 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
           ),
         ],
       ),
-      trailing: IconButton(
-        icon: const Icon(Icons.arrow_forward_ios, size: 14),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProductCatalogDetailScreen(
-                productId: product.id,
-                currentUser: user,
-                organizationId: user.organizationId!,
-              ),
-            ),
-          );
-        },
-        tooltip: l10n.viewDetailsTooltip,
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(),
+      trailing: const Icon(Icons.keyboard_arrow_right
       ),
     );
   }
 
-    // Widget auxiliar para botones de acción compactos
+  // Widget auxiliar para botones de acción compactos
   Widget _buildActionButton({
     required IconData icon,
     required VoidCallback onTap,
