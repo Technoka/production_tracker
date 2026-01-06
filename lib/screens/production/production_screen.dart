@@ -153,8 +153,10 @@ class _ProductionScreenState extends State<ProductionScreen> {
       ),
       floatingActionButton:
           user.canManageProduction && _currentView == ProductionView.batches
-              ? FloatingActionButton.extended(
-                  onPressed: () {
+              ? SizedBox(
+        height: 40,
+        child: FloatingActionButton.extended(
+          onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -164,10 +166,10 @@ class _ProductionScreenState extends State<ProductionScreen> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.add),
-                  label: Text(l10n.createBatchBtn),
-                )
-              : null,
+          icon: const Icon(Icons.add, size: 20),
+          label: Text(l10n.createBatchBtn, style: const TextStyle(fontSize: 13)),
+        ),
+      ) : null,
       bottomNavigationBar: BottomNavBarWidget(currentIndex: 1, user: user),
     );
   }
