@@ -395,6 +395,22 @@ class ProductCatalogService {
     }
   }
 
+  // Obtener stream de productos asociados a un proyecto
+  Stream<List<ProductCatalogModel>> watchProjectProducts(String organizationId, String projectId) {
+    return _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('projects')
+        .doc(projectId)
+        .collection('products')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => ProductCatalogModel.fromMap(doc.data()))
+          .toList();
+    });
+  }
+
   // ==================== DESACTIVAR PRODUCTO ====================
   
   Future<bool> deactivateProduct({
