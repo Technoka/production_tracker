@@ -7,6 +7,8 @@ import '../../services/auth_service.dart';
 import '../../widgets/message_bubble_widget.dart';
 import '../../widgets/message_input_widget.dart';
 import '../../widgets/message_search_delegate.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 
 /// Pantalla de chat reutilizable para lotes, proyectos y productos
 class ChatScreen extends StatefulWidget {
@@ -46,10 +48,10 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _loadCurrentUser();
     _scrollController.addListener(_onScroll);
-    
+
     // Marcar mensajes como leídos al entrar
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _markAllAsRead();
+      _markAsRead();
     });
   }
 
@@ -74,16 +76,18 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Future<void> _markAllAsRead() async {
-    if (_currentUser == null) return;
-
-    await _messageService.markAllAsRead(
-      organizationId: widget.organizationId,
-      entityType: widget.entityType,
-      entityId: widget.entityId,
-      parentId: widget.parentId,
-      userId: _currentUser!.uid,
-    );
+  void _markAsRead() {
+    final user = Provider.of<AuthService>(context, listen: false).currentUserData;
+    
+    if (user != null) {
+      Provider.of<MessageService>(context, listen: false).markMessagesAsRead(
+        organizationId: widget.organizationId,
+        entityType: widget.entityType, // 'batch_product'
+        entityId: widget.entityId,     // productId
+        parentId: widget.parentId,      // batchId (Importante)
+        userId: user.uid,
+      );
+    }
   }
 
   Future<void> _sendMessage(
@@ -100,7 +104,7 @@ class _ChatScreenState extends State<ChatScreen> {
         organizationId: widget.organizationId,
         entityType: widget.entityType,
         entityId: widget.entityId,
-      parentId: widget.parentId,
+        parentId: widget.parentId,
         content: content,
         currentUser: _currentUser!,
         mentions: mentions,
@@ -144,7 +148,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageActions(MessageModel message) {
     final canEdit = message.canEdit(_currentUser!.uid);
-    final canDelete = message.canDelete(_currentUser!.uid, _currentUser!.role == 'admin');
+    final canDelete =
+        message.canDelete(_currentUser!.uid, _currentUser!.role == 'admin');
 
     return SafeArea(
       child: Column(
@@ -186,21 +191,27 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
 
           // Copiar
-          if (!message.isSystemGenerated)
-            ListTile(
-              leading: const Icon(Icons.copy),
-              title: const Text('Copiar'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Implementar copiar al portapapeles
-                _showSuccess('Texto copiado');
-              },
-            ),
+          // Copiar
+      if (!message.isSystemGenerated)
+        ListTile(
+          leading: const Icon(Icons.copy),
+          title: const Text('Copiar'),
+          onTap: () async { // 1. Marca como async
+            Navigator.pop(context);
+            
+            // 2. Implementación de copiar
+            await Clipboard.setData(ClipboardData(text: message.content));
+            
+            // 3. Feedback (asumiendo que tienes esta función)
+            _showSuccess('Texto copiado');
+          },
+        ),
 
           // Fijar/Desfijar
           if (!message.isSystemGenerated)
             ListTile(
-              leading: Icon(message.isPinned ? Icons.push_pin : Icons.push_pin_outlined),
+              leading: Icon(
+                  message.isPinned ? Icons.push_pin : Icons.push_pin_outlined),
               title: Text(message.isPinned ? 'Desfijar' : 'Fijar'),
               onTap: () {
                 Navigator.pop(context);
@@ -223,7 +234,8 @@ class _ChatScreenState extends State<ChatScreen> {
           if (canDelete)
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+              title:
+                  const Text('Eliminar', style: TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
                 _confirmDelete(message);
@@ -251,7 +263,7 @@ class _ChatScreenState extends State<ChatScreen> {
           organizationId: widget.organizationId,
           entityType: widget.entityType,
           entityId: widget.entityId,
-      parentId: widget.parentId,
+          parentId: widget.parentId,
           messageId: message.id,
           emoji: emoji,
           userId: _currentUser!.uid,
@@ -262,7 +274,7 @@ class _ChatScreenState extends State<ChatScreen> {
           organizationId: widget.organizationId,
           entityType: widget.entityType,
           entityId: widget.entityId,
-parentId: widget.parentId,
+          parentId: widget.parentId,
           messageId: message.id,
           emoji: emoji,
           user: _currentUser!,
@@ -279,7 +291,7 @@ parentId: widget.parentId,
         organizationId: widget.organizationId,
         entityType: widget.entityType,
         entityId: widget.entityId,
-parentId: widget.parentId,
+        parentId: widget.parentId,
         messageId: message.id,
         isPinned: !message.isPinned,
       );
@@ -322,7 +334,7 @@ parentId: widget.parentId,
                   organizationId: widget.organizationId,
                   entityType: widget.entityType,
                   entityId: widget.entityId,
-parentId: widget.parentId,
+                  parentId: widget.parentId,
                   messageId: message.id,
                   newContent: newContent,
                 );
@@ -344,7 +356,8 @@ parentId: widget.parentId,
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar mensaje'),
-        content: const Text('¿Estás seguro de que quieres eliminar este mensaje?'),
+        content:
+            const Text('¿Estás seguro de que quieres eliminar este mensaje?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -357,7 +370,7 @@ parentId: widget.parentId,
                   organizationId: widget.organizationId,
                   entityType: widget.entityType,
                   entityId: widget.entityId,
-parentId: widget.parentId,
+                  parentId: widget.parentId,
                   messageId: message.id,
                 );
                 Navigator.pop(context);
@@ -525,7 +538,7 @@ parentId: widget.parentId,
               organizationId: widget.organizationId,
               entityType: widget.entityType,
               entityId: widget.entityId,
-parentId: widget.parentId,
+              parentId: widget.parentId,
             ),
             builder: (context, snapshot) {
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -602,7 +615,8 @@ parentId: widget.parentId,
                             Navigator.pop(context);
                             _handleMessageLongPress(message);
                           },
-                          onReactionTap: (emoji) => _addReaction(message, emoji),
+                          onReactionTap: (emoji) =>
+                              _addReaction(message, emoji),
                         );
                       },
                     ),
@@ -622,7 +636,7 @@ parentId: widget.parentId,
         organizationId: widget.organizationId,
         entityType: widget.entityType,
         entityId: widget.entityId,
-parentId: widget.parentId,
+        parentId: widget.parentId,
       ),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -652,7 +666,9 @@ parentId: widget.parentId,
                 ],
               ),
               const SizedBox(height: 4),
-              ...pinnedMessages.take(2).map((message) => _buildPinnedMessagePreview(message)),
+              ...pinnedMessages
+                  .take(2)
+                  .map((message) => _buildPinnedMessagePreview(message)),
             ],
           ),
         );
@@ -683,7 +699,7 @@ parentId: widget.parentId,
         organizationId: widget.organizationId,
         entityType: widget.entityType,
         entityId: widget.entityId,
-parentId: widget.parentId,
+        parentId: widget.parentId,
         includeInternal: widget.showInternalMessages,
         limit: 100,
       ),
