@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../models/client_model.dart';
 import '../../models/project_model.dart';
 import '../../models/product_catalog_model.dart';
+import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/client_service.dart';
 import '../../services/project_service.dart';
@@ -23,6 +24,7 @@ class ManagementListView extends StatelessWidget {
   final ManagementFilters filters;
   final void Function(ClientModel) onOpenClientTab;
   final void Function(ProjectModel, String) onOpenProjectTab;
+  final void Function(String familyName, String projectId, String clientId) onOpenFamilyTab;
 
   const ManagementListView({
     Key? key,
@@ -30,6 +32,7 @@ class ManagementListView extends StatelessWidget {
     required this.filters,
     required this.onOpenClientTab,
     required this.onOpenProjectTab,
+    required this.onOpenFamilyTab,
   }) : super(key: key);
 
   @override
@@ -49,6 +52,15 @@ class ManagementListView extends StatelessWidget {
         );
       case ManagementTabType.project:
         return _ProjectTabView(
+          projectId: currentTab.projectId!,
+          clientId: currentTab.clientId!,
+          filters: filters,
+          onOpenFamilyTab: (familyName) =>
+              onOpenFamilyTab(familyName, currentTab.projectId!, currentTab.clientId!),
+        );
+      case ManagementTabType.family:
+        return _FamilyTabView(
+          familyName: currentTab.familyName!,
           projectId: currentTab.projectId!,
           clientId: currentTab.clientId!,
           filters: filters,
@@ -148,7 +160,7 @@ class _GeneralTabView extends StatelessWidget {
   Widget _buildClientCard(
     BuildContext context,
     ClientModel client,
-    dynamic user,
+    UserModel user,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
@@ -222,6 +234,250 @@ class _GeneralTabView extends StatelessWidget {
                         ],
                       ),
                     ],
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Colors.grey.shade400,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ==================== FAMILY TAB ====================
+
+class _FamilyTabView extends StatelessWidget {
+  final String familyName;
+  final String projectId;
+  final String clientId;
+  final ManagementFilters filters;
+
+  const _FamilyTabView({
+    required this.familyName,
+    required this.projectId,
+    required this.clientId,
+    required this.filters,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserData!;
+
+    return StreamBuilder<List<ProductCatalogModel>>(
+      stream: Provider.of<ProductCatalogService>(context, listen: false)
+          .getProjectFamilyProducts(user.organizationId!, projectId, familyName),
+      builder: (context, productSnapshot) {
+        if (productSnapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        var products = productSnapshot.data ?? [];
+
+        // Aplicar filtros
+        if (filters.searchQuery.isNotEmpty) {
+          final query = filters.searchQuery.toLowerCase();
+          products = products.where((p) {
+            return p.name.toLowerCase().contains(query) ||
+                p.reference.toLowerCase().contains(query);
+          }).toList();
+        }
+
+        return Column(
+          children: [
+            _buildFamilyHeader(context, familyName, products.length, l10n),
+            Expanded(
+              child: products.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.inventory_outlined,
+                            size: 64,
+                            color: Colors.grey.shade300,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            l10n.noProductsInFamily,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        return _buildProductCard(
+                          context,
+                          products[index],
+                          user,
+                          l10n,
+                        );
+                      },
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFamilyHeader(
+    BuildContext context,
+    String familyName,
+    int productCount,
+    AppLocalizations l10n,
+  ) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondary.withOpacity(0.1),
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondary.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.category,
+              color: theme.colorScheme.secondary,
+              size: 32,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  familyName,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.widgets_outlined,
+                      size: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$productCount ${l10n.products}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductCard(
+    BuildContext context,
+    ProductCatalogModel product,
+    UserModel user,
+    AppLocalizations l10n,
+  ) {
+    final theme = Theme.of(context);
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProductCatalogDetailScreen(
+                productId: product.id,
+                currentUser: user,
+                organizationId: user.organizationId!,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.secondary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.inventory_2_outlined,
+                  color: theme.colorScheme.secondary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.tag,
+                          size: 12,
+                          color: Colors.grey.shade500,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          product.reference,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -342,7 +598,7 @@ class _ClientTabView extends StatelessWidget {
   Widget _buildClientHeader(
     BuildContext context,
     ClientModel client,
-    dynamic user,
+    UserModel user,
     AppLocalizations l10n,
   ) {
     final theme = Theme.of(context);
@@ -429,7 +685,7 @@ class _ClientTabView extends StatelessWidget {
   Widget _buildProjectCard(
     BuildContext context,
     ProjectModel project,
-    dynamic user,
+    UserModel user,
     AppLocalizations l10n,
   ) {
     final theme = Theme.of(context);
@@ -451,12 +707,12 @@ class _ClientTabView extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  color: theme.colorScheme.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   Icons.folder,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: theme.colorScheme.primary,
                   size: 24,
                 ),
               ),
@@ -506,11 +762,13 @@ class _ProjectTabView extends StatelessWidget {
   final String projectId;
   final String clientId;
   final ManagementFilters filters;
+  final void Function(String) onOpenFamilyTab;
 
   const _ProjectTabView({
     required this.projectId,
     required this.clientId,
     required this.filters,
+    required this.onOpenFamilyTab,
   });
 
   @override
@@ -540,7 +798,7 @@ class _ProjectTabView extends StatelessWidget {
                 stream: Provider.of<ProductCatalogService>(
                   context,
                   listen: false,
-                ).getClientProductsStream(user.organizationId!, clientId),
+                ).getProjectProducts(user.organizationId!, projectId),
                 builder: (context, productSnapshot) {
                   if (productSnapshot.connectionState ==
                       ConnectionState.waiting) {
@@ -605,15 +863,16 @@ class _ProjectTabView extends StatelessWidget {
   Widget _buildProjectHeader(
     BuildContext context,
     ProjectModel project,
-    dynamic user,
+    UserModel user,
     AppLocalizations l10n,
   ) {
+    final theme = Theme.of(context);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+        color: theme.colorScheme.primary.withOpacity(0.1),
         border: Border(
           bottom: BorderSide(color: Colors.grey.shade200),
         ),
@@ -623,12 +882,12 @@ class _ProjectTabView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+              color: theme.colorScheme.primary.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               Icons.folder,
-              color: Theme.of(context).colorScheme.primary,
+              color: theme.colorScheme.primary,
               size: 32,
             ),
           ),
@@ -694,7 +953,7 @@ class _ProjectTabView extends StatelessWidget {
   Widget _buildProductCard(
     BuildContext context,
     ProductCatalogModel product,
-    dynamic user,
+    UserModel user,
     AppLocalizations l10n,
   ) {
     final theme = Theme.of(context);

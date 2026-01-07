@@ -237,7 +237,6 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                     }
 
                     final projects = snapshot.data ?? [];
-                    print('client folder card: projects: ${projects}');
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

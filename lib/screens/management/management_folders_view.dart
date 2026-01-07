@@ -140,62 +140,55 @@ class ManagementFoldersView extends StatelessWidget {
     );
   }
 
-Future<_ClientStats> _getClientStats(
-  BuildContext context,
-  String organizationId,
-  String clientId,
-  ManagementFilters filters,
-) async {
-  try {
-    print('inside get client stats.');
-    final clientService = Provider.of<ClientService>(context, listen: false);
-    final productService = Provider.of<ProductCatalogService>(context, listen: false);
+  Future<_ClientStats> _getClientStats(
+    BuildContext context,
+    String organizationId,
+    String clientId,
+    ManagementFilters filters,
+  ) async {
+    try {
+      final clientService = Provider.of<ClientService>(context, listen: false);
+      final productService = Provider.of<ProductCatalogService>(context, listen: false);
 
-    // Obtener proyectos del cliente
-    var projects = await clientService
-        .getClientProjects(organizationId, clientId)
-        .first;
+      // Obtener proyectos del cliente
+      var projects = await clientService
+          .getClientProjects(organizationId, clientId)
+          .first;
 
-    int totalProducts = 0;
-    int urgentCount = 0;
-    print('number of projects: ${projects}');
+      int totalProducts = 0;
+      int urgentCount = 0;
 
-    // Contar productos por proyecto usando el nuevo campo 'projects'
-    for (final project in projects) {
-      try {
-        final products = await productService
-            .getProjectProducts(organizationId, project.id)  // ✅ CAMBIO AQUÃ
-            .first;
-        print('project: ${project.id}, products: ${products}');
-        totalProducts += products.length;
-        
-        // Si tienes lógica de urgencia, aplicarla aquí
-        if (filters.onlyUrgent) {
-        urgentCount = 0;
-          // urgentCount += productos urgentes
+      // Contar productos por proyecto
+      for (final project in projects) {
+        try {
+          final products = await productService
+              .getProjectProducts(organizationId, project.id)
+              .first;
+
+          totalProducts += products.length;
+          
+          // Si tienes lógica de urgencia, aplicarla aquí
+          if (filters.onlyUrgent) {
+            urgentCount = 0;
+            // urgentCount += productos urgentes
+          }
+        } catch (e) {
+          continue;
         }
-      } catch (e) {
-        
-    print('Error clients stats: ${e}');
-        continue;
       }
-    }
 
-    return _ClientStats(
-      totalProducts,
-      urgentCount,
-    );
-  } catch (e) {
-    
-    return _ClientStats(
-      0,
-      0,
-    );
+      return _ClientStats(
+        totalProducts,
+        urgentCount,
+      );
+    } catch (e) {
+      return _ClientStats(
+        0,
+        0,
+      );
+    }
   }
 }
-}
-  
-
 
 class _ClientStats {
   final int totalProducts;

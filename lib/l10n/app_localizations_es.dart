@@ -1918,4 +1918,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get contactInfo => 'Información de contacto';
+
+  @override
+  String get family => 'familia';
+
+  @override
+  String get families => 'familias';
+
+  @override
+  String get uncategorized => 'Sin categoría';
+
+  @override
+  String get noFamiliesInProject => 'No hay familias de productos en este proyecto';
+
+  @override
+  String get noProductsInFamily => 'No hay productos en esta familia';
 }

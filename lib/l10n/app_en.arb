@@ -678,5 +678,10 @@
   "startDate": "Start date",
   "dueDate": "Due date",
   "viewProjectDetails": "View project details",
-  "contactInfo": "Contact info"
+  "contactInfo": "Contact info",
+  "family": "family",
+  "families": "families",
+  "uncategorized": "Uncategorized",
+  "noFamiliesInProject": "No product families in this project",
+  "noProductsInFamily": "No products in this family"
 }

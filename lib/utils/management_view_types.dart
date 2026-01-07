@@ -19,7 +19,8 @@ enum ManagementViewMode {
 enum ManagementTabType {
   general,
   client,
-  project;
+  project,
+  family;
 }
 
 /// Información de un tab dinámico
@@ -29,6 +30,7 @@ class ManagementTab {
   final String title;
   final String? clientId;
   final String? projectId;
+  final String? familyName;
 
   const ManagementTab({
     required this.id,
@@ -36,6 +38,7 @@ class ManagementTab {
     required this.title,
     this.clientId,
     this.projectId,
+    this.familyName,
   });
 
   factory ManagementTab.general() {
@@ -67,6 +70,21 @@ class ManagementTab {
       id: 'project_$projectId',
       type: ManagementTabType.project,
       title: projectName,
+      projectId: projectId,
+      clientId: clientId,
+    );
+  }
+
+  factory ManagementTab.family({
+    required String familyName,
+    required String projectId,
+    required String clientId,
+  }) {
+    return ManagementTab(
+      id: 'family_${familyName}_$projectId',
+      type: ManagementTabType.family,
+      title: familyName,
+      familyName: familyName,
       projectId: projectId,
       clientId: clientId,
     );

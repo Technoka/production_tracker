@@ -113,6 +113,13 @@ class _ManagementScreenState extends State<ManagementScreen> {
                         clientId: clientId,
                       ),
                     ),
+                    onOpenFamilyTab: (familyName, projectId, clientId) => _addTab(
+                      ManagementTab.family(
+                        familyName: familyName,
+                        projectId: projectId,
+                        clientId: clientId,
+                      ),
+                    ),
                   ),
           ),
         ],
@@ -173,7 +180,8 @@ class _ManagementScreenState extends State<ManagementScreen> {
           
           // Cliente (si existe)
           if (currentTab.type == ManagementTabType.client || 
-              currentTab.type == ManagementTabType.project) ...[
+              currentTab.type == ManagementTabType.project ||
+              currentTab.type == ManagementTabType.family) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Icon(
@@ -210,7 +218,45 @@ class _ManagementScreenState extends State<ManagementScreen> {
           ],
           
           // Proyecto (si existe)
-          if (currentTab.type == ManagementTabType.project) ...[
+          if (currentTab.type == ManagementTabType.project ||
+              currentTab.type == ManagementTabType.family) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: Colors.grey.shade400,
+              ),
+            ),
+            InkWell(
+              onTap: () {
+                // Encontrar el tab del proyecto
+                final projectTabIndex = _tabs.indexWhere(
+                  (t) => t.type == ManagementTabType.project && 
+                         t.projectId == currentTab.projectId
+                );
+                if (projectTabIndex != -1) {
+                  _navigateToTab(projectTabIndex);
+                }
+              },
+              child: Text(
+                _getProjectName(currentTab),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: currentTab.type == ManagementTabType.project 
+                      ? FontWeight.bold 
+                      : FontWeight.normal,
+                  color: currentTab.type == ManagementTabType.project
+                      ? theme.colorScheme.primary
+                      : Colors.grey.shade600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+          
+          // Familia (si existe)
+          if (currentTab.type == ManagementTabType.family) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Icon(
@@ -259,13 +305,28 @@ class _ManagementScreenState extends State<ManagementScreen> {
   String _getClientName(ManagementTab tab) {
     if (tab.type == ManagementTabType.client) {
       return tab.title;
-    } else if (tab.type == ManagementTabType.project) {
+    } else if (tab.type == ManagementTabType.project || 
+               tab.type == ManagementTabType.family) {
       // Buscar el nombre del cliente en los tabs
       final clientTab = _tabs.firstWhere(
         (t) => t.type == ManagementTabType.client && t.clientId == tab.clientId,
         orElse: () => ManagementTab.general(),
       );
       return clientTab.title;
+    }
+    return '';
+  }
+
+  String _getProjectName(ManagementTab tab) {
+    if (tab.type == ManagementTabType.project) {
+      return tab.title;
+    } else if (tab.type == ManagementTabType.family) {
+      // Buscar el nombre del proyecto en los tabs
+      final projectTab = _tabs.firstWhere(
+        (t) => t.type == ManagementTabType.project && t.projectId == tab.projectId,
+        orElse: () => ManagementTab.general(),
+      );
+      return projectTab.title;
     }
     return '';
   }

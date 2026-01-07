@@ -3808,6 +3808,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contact info'**
   String get contactInfo;
+
+  /// No description provided for @family.
+  ///
+  /// In en, this message translates to:
+  /// **'family'**
+  String get family;
+
+  /// No description provided for @families.
+  ///
+  /// In en, this message translates to:
+  /// **'families'**
+  String get families;
+
+  /// No description provided for @uncategorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncategorized'**
+  String get uncategorized;
+
+  /// No description provided for @noFamiliesInProject.
+  ///
+  /// In en, this message translates to:
+  /// **'No product families in this project'**
+  String get noFamiliesInProject;
+
+  /// No description provided for @noProductsInFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'No products in this family'**
+  String get noProductsInFamily;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

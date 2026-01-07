@@ -53,8 +53,8 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
           data: theme.copyWith(dividerColor: Colors.transparent),
           child: StreamBuilder<List<ProductCatalogModel>>(
             stream: Provider.of<ProductCatalogService>(context, listen: false)
-                .getClientProductsStream(
-                    user.organizationId!, widget.client.id),
+                .getProjectProducts(
+                    user.organizationId!, widget.project.id),
             builder: (context, productSnapshot) {
               final allProducts = productSnapshot.data ?? [];
 

@@ -411,6 +411,157 @@ class ProductCatalogService {
     });
   }
 
+  // ==================== GESTIÃ"N DE PRODUCTOS POR PROYECTO ====================
+
+/// Obtener productos asociados a un proyecto especÃ­fico (Stream)
+Stream<List<ProductCatalogModel>> getProjectProducts(
+  String organizationId,
+  String projectId,
+) {
+  return _firestore
+      .collection('organizations')
+      .doc(organizationId)
+      .collection('product_catalog')
+      .where('projects', arrayContains: projectId)
+      .where('isActive', isEqualTo: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => ProductCatalogModel.fromMap(doc.data()))
+          .toList());
+}
+
+/// Obtener productos de una familia especÃ­fica dentro de un proyecto (Stream)
+Stream<List<ProductCatalogModel>> getProjectFamilyProducts(
+  String organizationId,
+  String projectId,
+  String familyName,
+) {
+  return _firestore
+      .collection('organizations')
+      .doc(organizationId)
+      .collection('product_catalog')
+      .where('projects', arrayContains: projectId)
+      .where('family', isEqualTo: familyName)
+      .where('isActive', isEqualTo: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => ProductCatalogModel.fromMap(doc.data()))
+          .toList());
+}
+
+/// Obtener todas las familias Ãºnicas de productos en un proyecto
+Future<List<String>> getProjectFamilies(
+  String organizationId,
+  String projectId,
+) async {
+  try {
+    final snapshot = await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('product_catalog')
+        .where('projects', arrayContains: projectId)
+        .where('isActive', isEqualTo: true)
+        .get();
+
+    final families = <String>{};
+    for (var doc in snapshot.docs) {
+      final family = doc.data()['family'] as String?;
+      if (family != null && family.isNotEmpty) {
+        families.add(family);
+      }
+    }
+
+    final sortedFamilies = families.toList()..sort();
+    return sortedFamilies;
+  } catch (e) {
+    print('Error al obtener familias del proyecto: $e');
+    return [];
+  }
+}
+
+/// AÃ±adir un producto a un proyecto
+Future<bool> addProductToProject(
+  String organizationId,
+  String productId,
+  String projectId,
+) async {
+  try {
+    await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('product_catalog')
+        .doc(productId)
+        .update({
+      'projects': FieldValue.arrayUnion([projectId]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    return true;
+  } catch (e) {
+    print('Error al aÃ±adir producto al proyecto: $e');
+    return false;
+  }
+}
+
+/// Remover un producto de un proyecto
+Future<bool> removeProductFromProject(
+  String organizationId,
+  String productId,
+  String projectId,
+) async {
+  try {
+    await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('product_catalog')
+        .doc(productId)
+        .update({
+      'projects': FieldValue.arrayRemove([projectId]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    return true;
+  } catch (e) {
+    print('Error al remover producto del proyecto: $e');
+    return false;
+  }
+}
+
+/// Obtener estadÃ­sticas de productos por proyecto
+Future<Map<String, dynamic>> getProjectProductStats(
+  String organizationId,
+  String projectId,
+) async {
+  try {
+    final snapshot = await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('product_catalog')
+        .where('projects', arrayContains: projectId)
+        .where('isActive', isEqualTo: true)
+        .get();
+
+    final families = <String>{};
+    for (var doc in snapshot.docs) {
+      final family = doc.data()['family'] as String?;
+      if (family != null && family.isNotEmpty) {
+        families.add(family);
+      }
+    }
+
+    return {
+      'totalProducts': snapshot.docs.length,
+      'totalFamilies': families.length,
+      'families': families.toList()..sort(),
+    };
+  } catch (e) {
+    print('Error al obtener estadísticas del proyecto: $e');
+    return {
+      'totalProducts': 0,
+      'totalFamilies': 0,
+      'families': [],
+    };
+  }
+}
+
   // ==================== DESACTIVAR PRODUCTO ====================
   
   Future<bool> deactivateProduct({
