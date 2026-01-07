@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/screens/management/management_screen.dart';
+import 'package:gestion_produccion/screens/profile/user_preferences_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/organization_service.dart';
@@ -283,67 +284,19 @@ Widget _buildFloatingButtons(user, AppLocalizations l10n) {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.view_kanban),
-              title: Text(l10n.kanban),
+              leading: const Icon(Icons.manage_accounts),
+              title: Text(l10n.management),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ProductionScreen(
-                      initialView: ProductionView.kanban,
-                    ),
+                    builder: (context) => const ManagementScreen(),
                   ),
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.folder_outlined),
-              title: Text(l10n.projects),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.loading)),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.people_outlined),
-              title: Text(l10n.clients),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ClientsListScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.inventory_2_outlined),
-              title: Text(l10n.products),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.loading)),
-                );
-              },
-            ),
-          ],
-          
-          if (user.canViewFinancials)
-            ListTile(
-              leading: const Icon(Icons.analytics_outlined),
-              title: Text(l10n.notifications),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.loading)),
-                );
-              },
-            ),
-          
+          ],          
           ListTile(
             leading: const Icon(Icons.business),
             title: Text(l10n.organization),
@@ -398,8 +351,11 @@ Widget _buildFloatingButtons(user, AppLocalizations l10n) {
             title: Text(l10n.settings),
             onTap: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.loading)),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const UserPreferencesScreen(),
+                ),
               );
             },
           ),
@@ -419,7 +375,7 @@ Widget _buildFloatingButtons(user, AppLocalizations l10n) {
             padding: EdgeInsets.symmetric(vertical: 24.0),
             child: Center(
               child: Text(
-                'Versión 0.7.0 - 5/1/25',
+                'Versión 0.7.0 - 7/1/25',
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 12,
