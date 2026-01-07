@@ -225,7 +225,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       CircleAvatar(
                         radius: 60,
                         backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                        backgroundImage: (user.photoURL != null || user.photoURL!.isEmpty)  
+                        backgroundImage: (user.photoURL != null && user.photoURL!.isNotEmpty)  
                             ? NetworkImage(user.photoURL!) 
                             : null,
                         child: (user.photoURL == null || user.photoURL!.isEmpty)
