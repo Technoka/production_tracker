@@ -20,6 +20,7 @@ class OrganizationBranding {
     required this.welcomeMessage,
   });
 
+  
   /// Constructor desde Firestore
   factory OrganizationBranding.fromMap(Map<String, dynamic> map) {
     return OrganizationBranding(
@@ -29,11 +30,42 @@ class OrganizationBranding {
       logoUrl: map['logoUrl'] as String?,
       fontFamily: map['fontFamily'] as String? ?? 'Roboto',
       organizationName: map['organizationName'] as String? ?? '',
-      welcomeMessage: Map<String, String>.from(
-        map['welcomeMessage'] as Map<String, dynamic>? ?? 
-        {'es': 'Bienvenido', 'en': 'Welcome'},
-      ),
+        welcomeMessage: _parseWelcomeMessage(map['welcomeMessage']),
     );
+  }
+
+    static Map<String, String> _parseWelcomeMessage(dynamic value) {
+    if (value == null) {
+      return {'es': 'Bienvenido', 'en': 'Welcome'};
+    }
+
+    // Si es un String directo (legacy)
+    if (value is String) {
+      return {'es': value, 'en': value};
+    }
+
+    // Si es un Map (formato actual)
+    if (value is Map) {
+      try {
+        final result = <String, String>{};
+        value.forEach((key, val) {
+          if (key is String && val is String) {
+            result[key] = val;
+          }
+        });
+        
+        // Asegurar que tenga al menos 'es' y 'en'
+        result.putIfAbsent('es', () => 'Bienvenido');
+        result.putIfAbsent('en', () => 'Welcome');
+        
+        return result;
+      } catch (e) {
+        print('⚠️ Error parseando welcomeMessage Map: $e');
+      }
+    }
+
+    // Fallback
+    return {'es': 'Bienvenido', 'en': 'Welcome'};
   }
 
     /// Helper seguro para parsear colores

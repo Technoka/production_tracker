@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:gestion_produccion/models/organization_settings_model.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import '../../l10n/app_localizations.dart';
@@ -16,7 +17,6 @@ import 'services/project_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home_screen.dart';
 
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:country_picker/country_picker.dart';
 import 'services/production_batch_service.dart';
 import 'services/product_catalog_service.dart';
@@ -25,7 +25,7 @@ import 'services/message_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Inicializar Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -45,12 +45,11 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-@override
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      // 1. Aquí inyectamos TODOS los servicios (Antiguos + Nuevos)
       providers: [
-        // Servicios de lógica de negocio (Del código antiguo)
+        // Servicios de lógica de negocio
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => OrganizationService()),
         ChangeNotifierProvider(create: (_) => ClientService()),
@@ -59,14 +58,21 @@ class MyApp extends StatelessWidget {
         Provider<ProductCatalogService>(create: (_) => ProductCatalogService()),
         Provider<PhaseService>(create: (_) => PhaseService()),
         Provider<MessageService>(create: (_) => MessageService()),
-
-        // Servicios de UI (Nuevos - Asegúrate de tener estas clases creadas)
-        ChangeNotifierProvider(create: (_) => ThemeProvider()), 
-        ChangeNotifierProvider(create: (_) => LocaleProvider()),
       ],
-      // 2. Usamos Consumer para escuchar cambios de Tema e Idioma
+      // ✅ SOLO UN Consumer2 - No duplicado
       child: Consumer2<ThemeProvider, LocaleProvider>(
         builder: (context, themeProvider, localeProvider, child) {
+          // ✅ Asegurar que siempre haya branding
+          if (themeProvider.branding == null) {
+            // Solo log una vez, sin setState para evitar rebuild
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (themeProvider.branding == null) {
+                print('⚠️ Branding es null, aplicando defaults');
+                themeProvider.updateBranding(OrganizationBranding.defaultBranding());
+              }
+            });
+          }
+
           return MaterialApp(
             title: 'Production Tracker',
             debugShowCheckedModeBanner: false,
@@ -74,19 +80,19 @@ class MyApp extends StatelessWidget {
             // Configuración de Tema
             theme: themeProvider.lightTheme,
             darkTheme: themeProvider.darkTheme,
-            themeMode: ThemeMode.light, // O themeProvider.themeMode si lo tienes implementado
+            themeMode: ThemeMode.light,
 
             // Configuración de Idioma
             locale: localeProvider.locale,
             supportedLocales: localeProvider.supportedLocales,
-            
-            // Delegados de localización (Fusionados: App + Flutter + Country)
+
+            // Delegados de localización
             localizationsDelegates: const [
-              AppLocalizations.delegate, // Tus traducciones
+              AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
-              CountryLocalizations.delegate, // Importante para la librería de países
+              CountryLocalizations.delegate,
             ],
 
             // Lógica para resolver el idioma inicial
@@ -107,7 +113,7 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
-  }
+}
 
 /// Wrapper para manejar autenticación y cargar configuración
 class AuthWrapper extends StatelessWidget {
@@ -116,7 +122,7 @@ class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-    
+
     return StreamBuilder(
       stream: authService.authStateChanges,
       builder: (context, snapshot) {
@@ -135,8 +141,8 @@ class AuthWrapper extends StatelessWidget {
           if (authService.currentUserData == null) {
             authService.getUserData();
           }
-        // Si hay usuario, cargar configuración de organización y mostrar home
-        return const OrganizationSettingsWrapper();
+          // Si hay usuario, cargar configuración de organización y mostrar home
+          return const OrganizationSettingsWrapper();
         }
 
         // No hay usuario autenticado
@@ -151,14 +157,18 @@ class OrganizationSettingsWrapper extends StatefulWidget {
   const OrganizationSettingsWrapper({Key? key}) : super(key: key);
 
   @override
-  State<OrganizationSettingsWrapper> createState() => _OrganizationSettingsWrapperState();
+  State<OrganizationSettingsWrapper> createState() =>
+      _OrganizationSettingsWrapperState();
 }
 
-class _OrganizationSettingsWrapperState extends State<OrganizationSettingsWrapper> {
+class _OrganizationSettingsWrapperState
+    extends State<OrganizationSettingsWrapper> {
   final AuthService _authService = AuthService();
-  final OrganizationSettingsService _orgSettingsService = OrganizationSettingsService();
-  
+  final OrganizationSettingsService _orgSettingsService =
+      OrganizationSettingsService();
+
   bool _isLoading = true;
+  bool _hasLoaded = false; // ✅ GUARD para evitar carga duplicada
   String? _error;
 
   @override
@@ -168,52 +178,104 @@ class _OrganizationSettingsWrapperState extends State<OrganizationSettingsWrappe
   }
 
   Future<void> _loadUserConfiguration() async {
+    // ✅ GUARD: Evitar ejecuciones múltiples
+    if (_hasLoaded) {
+      print('⚠️ Configuración ya cargada, ignorando...');
+      return;
+    }
+    _hasLoaded = true;
+
     try {
+      print('🚀 Iniciando carga de configuración...');
+
       final user = _authService.currentUser;
       if (user == null) {
-        setState(() {
-          _error = 'Usuario no autenticado';
-          _isLoading = false;
-        });
+        print('❌ Usuario no autenticado');
+        if (mounted) {
+          setState(() {
+            _error = 'Usuario no autenticado';
+            _isLoading = false;
+          });
+        }
         return;
       }
+
+      print('✅ Usuario autenticado: ${user.uid}');
 
       // Obtener datos del usuario
       final userData = await _authService.getUserData();
       if (userData == null) {
-        setState(() {
-          _error = 'No se pudieron cargar los datos del usuario';
-          _isLoading = false;
-        });
+        print('❌ No se pudieron cargar los datos del usuario');
+        if (mounted) {
+          setState(() {
+            _error = 'No se pudieron cargar los datos del usuario';
+            _isLoading = false;
+          });
+        }
         return;
       }
 
+      print('✅ Datos de usuario obtenidos: ${userData.name}');
+
       final organizationId = userData.organizationId;
 
+      if (organizationId == null || organizationId.isEmpty) {
+        print('⚠️ Usuario sin organizationId, usando configuración por defecto');
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+        return;
+      }
+
+      print('✅ OrganizationId encontrado: $organizationId');
+
       // Cargar configuración de organización
-      final orgSettings = await _orgSettingsService.getOrganizationSettings(organizationId!);
-      
+      final orgSettings =
+          await _orgSettingsService.getOrganizationSettings(organizationId);
+
+      print('📦 Settings recibidos: ${orgSettings != null ? "✅ OK" : "❌ NULL"}');
+
       if (orgSettings != null && mounted) {
+        print('🎨 Aplicando branding...');
+
         // Aplicar branding al tema
         Provider.of<ThemeProvider>(context, listen: false)
             .updateBranding(orgSettings.branding);
 
+        print('🌍 Cargando locale del usuario...');
+
         // Cargar locale efectivo del usuario
         final systemLocale = WidgetsBinding.instance.platformDispatcher.locale;
-        await Provider.of<LocaleProvider>(context, listen: false).loadUserLocale(
+        await Provider.of<LocaleProvider>(context, listen: false)
+            .loadUserLocale(
           userId: user.uid,
           organizationId: organizationId,
           systemLocale: systemLocale,
         );
+
+        print('✅ Configuración aplicada correctamente');
+      } else if (!mounted) {
+        print('⚠️ Widget desmontado, cancelando aplicación de settings');
+        return; // ✅ IMPORTANTE: Return para no ejecutar setState
       }
 
-      setState(() => _isLoading = false);
-    } catch (e) {
-      print('Error al cargar configuración: $e');
-      setState(() {
-        _error = 'Error al cargar configuración: $e';
-        _isLoading = false;
-      });
+      // ✅ Solo setState si mounted
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      
+    } catch (e, stackTrace) {
+      print('❌ ERROR CRÍTICO al cargar configuración: $e');
+      print('📍 Stack trace completo:');
+      print(stackTrace);
+
+      // ✅ Solo setState si mounted
+      if (mounted) {
+        setState(() {
+          _error = null; // No mostrar error al usuario
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -247,10 +309,12 @@ class _OrganizationSettingsWrapperState extends State<OrganizationSettingsWrappe
               ElevatedButton(
                 onPressed: () async {
                   await _authService.signOut();
-                  Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HomeScreen()),
-              );
+                  if (mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    );
+                  }
                 },
                 child: const Text('Volver al Login'),
               ),
