@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/screens/profile/user_preferences_screen.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../utils/role_utils.dart';
@@ -193,6 +194,31 @@ class ProfileScreen extends StatelessWidget {
 
                   const SizedBox(height: 24),
                   _buildSectionTitle(context, 'Cuenta'),
+                  const SizedBox(height: 8),
+                  _buildInfoCard(
+                    context,
+                    children: [
+                      ListTile(
+                        leading: Icon(
+                          Icons.settings,
+                          color: Colors.black,
+                        ),
+                        title: Text(
+                          'Configuración',
+                          style: TextStyle(color: Colors.black),
+                        ),
+                        onTap: () =>  {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UserPreferencesScreen(
+              ),
+            ),
+          )
+        },
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 8),
                   _buildInfoCard(
                     context,
