@@ -83,52 +83,15 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   // Botón de chat
             // Botón de chat en el AppBar con badge
               if (user != null)
-                StreamBuilder<int>(
-                  stream: _messageService.getUnreadCount(
-                    organizationId: widget.organizationId,
-                    entityType: 'batch',
-                    entityId: widget.batchId,
-                    userId: user.uid,
-                  ),
-                  builder: (context, unreadSnapshot) {
-                    final unreadCount = unreadSnapshot.data ?? 0;
-
-                    return Stack(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.chat_bubble_outline),
-                          onPressed: () => _openChat(product),
-                          tooltip: 'Chat del lote',
-                        ),
-                        if (unreadCount > 0)
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 18,
-                                minHeight: 18,
-                              ),
-                              child: Text(
-                                unreadCount > 99 ? '99+' : '$unreadCount',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
+              ChatButton(
+                      organizationId: widget.organizationId,
+                      entityType: 'batch_product',
+                      entityId: product.id,
+                      parentId: product.batchId,
+                      entityName:
+                          '${product.productName} - ${product.productReference}',
+                      user: user,
+                      showInAppBar: true),
 
   if (user!.canManageProduction)
     PopupMenuButton<String>(
