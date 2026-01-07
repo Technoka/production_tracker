@@ -21,6 +21,7 @@ import 'package:country_picker/country_picker.dart';
 import 'services/production_batch_service.dart';
 import 'services/product_catalog_service.dart';
 import 'services/phase_service.dart';
+import 'services/message_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,6 +58,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProductionBatchService()),
         Provider<ProductCatalogService>(create: (_) => ProductCatalogService()),
         Provider<PhaseService>(create: (_) => PhaseService()),
+        Provider<MessageService>(create: (_) => MessageService()),
 
         // Servicios de UI (Nuevos - Asegúrate de tener estas clases creadas)
         ChangeNotifierProvider(create: (_) => ThemeProvider()), 
