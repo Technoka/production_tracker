@@ -1933,4 +1933,100 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noProductsInFamily => 'No products in this family';
+
+  @override
+  String get uploadingPhoto => 'Uploading photo...';
+
+  @override
+  String get photoUpdated => 'Photo updated';
+
+  @override
+  String get profileUpdatedSuccess => 'Profile updated successfully';
+
+  @override
+  String get updateProfileError => 'Error updating profile';
+
+  @override
+  String get emailReadOnlyHelper => 'Email cannot be modified';
+
+  @override
+  String get accountType => 'Account Type';
+
+  @override
+  String get roleReadOnlyHelper => 'Account type cannot be modified';
+
+  @override
+  String get myProfileTitle => 'My Profile';
+
+  @override
+  String get personalInfo => 'Personal Information';
+
+  @override
+  String get memberSince => 'Member since';
+
+  @override
+  String get securityTitle => 'Security';
+
+  @override
+  String get changePassword => 'Change password';
+
+  @override
+  String get googleAccountAlert => 'Not available for Google accounts';
+
+  @override
+  String get updatePasswordSubtitle => 'Update your password';
+
+  @override
+  String get accountSection => 'Account';
+
+  @override
+  String get changePasswordTitle => 'Change Password';
+
+  @override
+  String get passwordUpdatedSuccess => 'Password updated successfully';
+
+  @override
+  String get changePasswordError => 'Error changing password';
+
+  @override
+  String get securePasswordAdvice => 'Make sure to use a secure password';
+
+  @override
+  String get currentPasswordLabel => 'Current password';
+
+  @override
+  String get enterCurrentPasswordError => 'Please enter your current password';
+
+  @override
+  String get newPasswordLabel => 'New password';
+
+  @override
+  String get enterNewPasswordError => 'Please enter a new password';
+
+  @override
+  String get passwordDiffError => 'New password must be different';
+
+  @override
+  String get confirmNewPasswordLabel => 'Confirm new password';
+
+  @override
+  String get passwordTipsTitle => 'Tips for a secure password:';
+
+  @override
+  String get passwordTip1 => 'Use at least 8 characters';
+
+  @override
+  String get passwordTip2 => 'Combine uppercase and lowercase letters';
+
+  @override
+  String get passwordTip3 => 'Include numbers and symbols';
+
+  @override
+  String get passwordTip4 => 'Do not use personal information';
+
+  @override
+  String get editProfileTitle => 'Edit profile';
+
+  @override
+  String get personalDataUpdated => 'Personal data updated';
 }

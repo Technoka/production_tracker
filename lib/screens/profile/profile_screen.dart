@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/screens/profile/user_preferences_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart'; // ✅ Asegúrate de tener intl
 import '../../services/auth_service.dart';
 import '../../utils/role_utils.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
 import '../../widgets/common_refresh.dart';
 import '../../widgets/bottom_nav_bar_widget.dart';
+import '../../l10n/app_localizations.dart'; // ✅ Importar l10n
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -15,6 +17,7 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserData;
+    final l10n = AppLocalizations.of(context)!; // ✅ Referencia a l10n
 
     if (user == null) {
       return const Scaffold(
@@ -24,15 +27,13 @@ class ProfileScreen extends StatelessWidget {
       );
     }
 
-  // Función para recargar los datos del perfil
-  Future<void> handleRefresh() async {
-    // Usamos listen: false porque estamos dentro de una función asíncrona
-    await Provider.of<AuthService>(context, listen: false).loadUserData();
-  }
+    Future<void> handleRefresh() async {
+      await Provider.of<AuthService>(context, listen: false).loadUserData();
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mi Perfil'),
+        title: Text(l10n.myProfileTitle), // ✅ Traducido
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
@@ -44,33 +45,29 @@ class ProfileScreen extends StatelessWidget {
                 ),
               );
             },
-            tooltip: 'Editar perfil',
+            tooltip: l10n.edit, // ✅ Traducido
           ),
         ],
       ),
-    // AQUI EMPIEZA LA MAGIA DEL REFRESH
-    body: CommonRefresh(
-      onRefresh: handleRefresh,
-      child: SingleChildScrollView(
-        // IMPORTANTE: Esto permite hacer scroll (y refresh) aunque el contenido sea corto
-        physics: const AlwaysScrollableScrollPhysics(), 
-        child: Column(
-          children: [
-            
-            // Header con nombre
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Theme.of(context).colorScheme.secondary.withOpacity(0.7), Theme.of(context).colorScheme.secondary.withOpacity(0.4)],
+      body: CommonRefresh(
+        onRefresh: handleRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(), 
+          child: Column(
+            children: [
+              // Header con nombre
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Theme.of(context).colorScheme.secondary.withOpacity(0.7), Theme.of(context).colorScheme.secondary.withOpacity(0.4)],
+                  ),
                 ),
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 32),
-                  
+                child: Column(
+                  children: [
+                    const SizedBox(height: 32),
                     CircleAvatar(
                       radius: 60,
                       backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
@@ -88,163 +85,156 @@ class ProfileScreen extends StatelessWidget {
                             )
                           : null,
                     ),
-                  const SizedBox(height: 16),
-                  // Nombre
-                  Text(
-                    user.name,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).textTheme.labelLarge!.color,
+                    const SizedBox(height: 16),
+                    Text(
+                      user.name,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).textTheme.labelLarge!.color,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Email
-                  Text(
-                    user.email,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).textTheme.labelLarge!.color!.withValues(alpha: 0.5),
+                    const SizedBox(height: 16),
+                    Text(
+                      user.email,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).textTheme.labelLarge!.color!.withValues(alpha: 0.5),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Badge de rol
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: RoleUtils.buildRoleBadge(user.role, compact: true),
-                    
-                  ),
-                  const SizedBox(height: 32),
-                ],
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
-            ),
 
-            // Información del perfil
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle(context, 'Información Personal'),
-                  const SizedBox(height: 8),
-                  _buildInfoCard(
-                    context,
-                    children: [
-                      _buildInfoTile(
-                        icon: Icons.person_outline,
-                        label: 'Nombre',
-                        value: user.name,
-                      ),
-                      const Divider(),
-                      _buildInfoTile(
-                        icon: Icons.email_outlined,
-                        label: 'Correo electrónico',
-                        value: user.email,
-                      ),
-                      if (user.phone != null) ...[
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle(context, l10n.personalInfo), // ✅ Traducido
+                    const SizedBox(height: 8),
+                    _buildInfoCard(
+                      context,
+                      children: [
+                        _buildInfoTile(
+                          icon: Icons.person_outline,
+                          label: l10n.name, // ✅ Traducido
+                          value: user.name,
+                        ),
                         const Divider(),
                         _buildInfoTile(
-                          icon: Icons.phone_outlined,
-                          label: 'Teléfono',
-                          value: user.phone!,
+                          icon: Icons.email_outlined,
+                          label: l10n.email, // ✅ Traducido
+                          value: user.email,
+                        ),
+                        if (user.phone != null) ...[
+                          const Divider(),
+                          _buildInfoTile(
+                            icon: Icons.phone_outlined,
+                            label: l10n.phone, // ✅ Traducido
+                            value: user.phone!,
+                          ),
+                        ],
+                        const Divider(),
+                        _buildInfoTile(
+                          icon: Icons.calendar_today_outlined,
+                          label: l10n.memberSince, // ✅ Traducido
+                          // Usamos DateFormat con el locale actual para formatear la fecha automáticamente
+                          value: DateFormat.yMMMMd(Localizations.localeOf(context).toString()).format(user.createdAt), 
                         ),
                       ],
-                      const Divider(),
-                      _buildInfoTile(
-                        icon: Icons.calendar_today_outlined,
-                        label: 'Miembro desde',
-                        value: _formatDate(user.createdAt),
-                      ),
-                    ],
-                  ),
+                    ),
 
-                  const SizedBox(height: 24),
-                  _buildSectionTitle(context, 'Seguridad'),
-                  const SizedBox(height: 8),
-                  _buildInfoCard(
-                    context,
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.lock_outline),
-                        title: const Text('Cambiar contraseña'),
-                        subtitle: Text(
-                          _isGoogleUser(context)
-                              ? 'No disponible para cuentas de Google'
-                              : 'Actualiza tu contraseña',
+                    const SizedBox(height: 24),
+                    _buildSectionTitle(context, l10n.securityTitle), // ✅ Traducido
+                    const SizedBox(height: 8),
+                    _buildInfoCard(
+                      context,
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.lock_outline),
+                          title: Text(l10n.changePassword), // ✅ Traducido
+                          subtitle: Text(
+                            _isGoogleUser(context)
+                                ? l10n.googleAccountAlert // ✅ Traducido
+                                : l10n.updatePasswordSubtitle, // ✅ Traducido
+                          ),
+                          trailing: _isGoogleUser(context)
+                              ? null
+                              : const Icon(Icons.chevron_right),
+                          enabled: !_isGoogleUser(context),
+                          onTap: _isGoogleUser(context)
+                              ? null
+                              : () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const ChangePasswordScreen(),
+                                    ),
+                                  );
+                                },
                         ),
-                        trailing: _isGoogleUser(context)
-                            ? null
-                            : const Icon(Icons.chevron_right),
-                        enabled: !_isGoogleUser(context),
-                        onTap: _isGoogleUser(context)
-                            ? null
-                            : () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const ChangePasswordScreen(),
-                                  ),
-                                );
-                              },
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  const SizedBox(height: 24),
-                  _buildSectionTitle(context, 'Cuenta'),
-                  const SizedBox(height: 8),
-                  _buildInfoCard(
-                    context,
-                    children: [
-                      ListTile(
-                        leading: Icon(
-                          Icons.settings,
-                          color: Colors.black,
+                    const SizedBox(height: 24),
+                    _buildSectionTitle(context, l10n.accountSection), // ✅ Traducido
+                    const SizedBox(height: 8),
+                    _buildInfoCard(
+                      context,
+                      children: [
+                        ListTile(
+                          leading: const Icon(
+                            Icons.settings,
+                            color: Colors.black,
+                          ),
+                          title: Text(
+                            l10n.settings, // ✅ Traducido
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                          onTap: () => {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const UserPreferencesScreen(),
+                              ),
+                            )
+                          },
                         ),
-                        title: Text(
-                          'Configuración',
-                          style: TextStyle(color: Colors.black),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildInfoCard(
+                      context,
+                      children: [
+                        ListTile(
+                          leading: Icon(
+                            Icons.logout,
+                            color: Colors.red[700],
+                          ),
+                          title: Text(
+                            l10n.logout, // ✅ Traducido
+                            style: TextStyle(color: Colors.red[700]),
+                          ),
+                          onTap: () => _showLogoutDialog(context, authService, l10n),
                         ),
-                        onTap: () =>  {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => UserPreferencesScreen(
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
-            ),
-          )
-        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _buildInfoCard(
-                    context,
-                    children: [
-                      ListTile(
-                        leading: Icon(
-                          Icons.logout,
-                          color: Colors.red[700],
-                        ),
-                        title: Text(
-                          'Cerrar sesión',
-                          style: TextStyle(color: Colors.red[700]),
-                        ),
-                        onTap: () => _showLogoutDialog(context, authService),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-    
       bottomNavigationBar: BottomNavBarWidget(currentIndex: 3, user: user),
     );
   }
@@ -264,8 +254,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard(BuildContext context,
-      {required List<Widget> children}) {
+  Widget _buildInfoCard(BuildContext context, {required List<Widget> children}) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -300,48 +289,28 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
-    final months = [
-      'Enero',
-      'Febrero',
-      'Marzo',
-      'Abril',
-      'Mayo',
-      'Junio',
-      'Julio',
-      'Agosto',
-      'Septiembre',
-      'Octubre',
-      'Noviembre',
-      'Diciembre'
-    ];
-    return '${date.day} de ${months[date.month - 1]} de ${date.year}';
-  }
-
-  void _showLogoutDialog(BuildContext context, AuthService authService) {
+  // ✅ Método _showLogoutDialog actualizado para recibir l10n
+  void _showLogoutDialog(BuildContext context, AuthService authService, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cerrar sesión'),
-        content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
+        title: Text(l10n.logout), // ✅ Traducido
+        content: Text(l10n.logoutConfirmMessage), // ✅ Traducido
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel), // ✅ Traducido
           ),
           FilledButton(
             onPressed: () async {
-              // Cerrar el diálogo
               Navigator.pop(context);
-              // Cerrar la pantalla de perfil (volver al home)
               Navigator.pop(context);
-              // Cerrar sesión
               await authService.signOut();
             },
             style: FilledButton.styleFrom(
               backgroundColor: Colors.red,
             ),
-            child: const Text('Cerrar sesión'),
+            child: Text(l10n.logout), // ✅ Traducido
           ),
         ],
       ),

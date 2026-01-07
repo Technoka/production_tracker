@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../services/auth_service.dart';
-import 'package:image_picker/image_picker.dart'; // ✅ Importar
-import 'dart:io'; // ✅ Importar
+import '../../l10n/app_localizations.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -15,35 +15,87 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final ImagePicker _picker = ImagePicker(); // ✅ Inicializar picker
+  final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false;
 
+  // Variables para controlar el estado de los cambios
+  String _originalName = '';
+  String _originalPhone = '';
   bool _hasChanges = false;
 
   @override
   void initState() {
     super.initState();
     loadUserData();
+
+    // Listeners para detectar cambios en tiempo real
+    _nameController.addListener(_checkForChanges);
+    _phoneController.addListener(_checkForChanges);
+  }
+
+  @override
+  void dispose() {
+    _nameController.removeListener(_checkForChanges);
+    _phoneController.removeListener(_checkForChanges);
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
   }
 
   void loadUserData() {
     final authService = Provider.of<AuthService>(context, listen: false);
     final user = authService.currentUserData;
     if (user != null) {
-      _nameController.text = user.name;
-      _phoneController.text = user.phone ?? '';
+      _originalName = user.name;
+      _originalPhone = user.phone ?? '';
+
+      _nameController.text = _originalName;
+      _phoneController.text = _originalPhone;
     }
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    super.dispose();
+  // Compara los valores actuales con los originales
+  void _checkForChanges() {
+    final nameChanged = _nameController.text.trim() != _originalName;
+    final phoneChanged = _phoneController.text.trim() != _originalPhone;
+    
+    final hasChangesNow = nameChanged || phoneChanged;
+
+    if (_hasChanges != hasChangesNow) {
+      setState(() {
+        _hasChanges = hasChangesNow;
+      });
+    }
   }
 
-// ✅ NUEVO: Función para elegir y subir foto
-Future<void> _pickAndUploadPhoto() async {
+  Future<bool> _onWillPop(AppLocalizations l10n) async {
+    if (!_hasChanges) return true;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.unsavedChangesTitle),
+        content: Text(l10n.unsavedChangesMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false), // No salir (quedarse)
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true), // Salir (descartar)
+            // style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: Text(l10n.discard),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
+  }
+
+  Future<void> _pickAndUploadPhoto() async {
     final authService = Provider.of<AuthService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
     
     try {
       final XFile? image = await _picker.pickImage(
@@ -54,61 +106,66 @@ Future<void> _pickAndUploadPhoto() async {
 
       if (image == null) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Subiendo foto...')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text(l10n.uploadingPhoto)),
+        );
+      }
 
-      // ✅ PASAMOS EL XFILE DIRECTAMENTE
       final url = await authService.uploadProfilePhoto(image);
 
       if (mounted && url != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Foto actualizada'), backgroundColor: Colors.green),
+           SnackBar(content: Text(l10n.photoUpdated), backgroundColor: Colors.green),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('${l10n.error}: $e'), backgroundColor: Colors.red),
         );
       }
     }
   }
+
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
+    // Doble verificación por seguridad
+    if (!_hasChanges) return;
+    
 
     final authService = Provider.of<AuthService>(context, listen: false);
-    final user = authService.currentUserData;
+    final l10n = AppLocalizations.of(context)!;
 
-    if (user == null) return;
-
-    // Verificar si hubo cambios
-    final nameChanged = _nameController.text.trim() != user.name;
-    final phoneChanged = _phoneController.text.trim() != (user.phone ?? '');
-
-    if (!nameChanged && !phoneChanged) {
-      Navigator.pop(context);
-      return;
-    }
+    // Desenfocar campos para cerrar teclado
+    FocusScope.of(context).unfocus();
 
     final success = await authService.updateProfile(
-      name: nameChanged ? _nameController.text.trim() : null,
-      phone: phoneChanged ? _phoneController.text.trim() : null,
+      name: _nameController.text.trim(),
+      phone: _phoneController.text.trim(),
     );
 
     if (mounted) {
       if (success) {
-        Navigator.pop(context);
+        // Actualizar valores originales para que _hasChanges vuelva a false
+        setState(() {
+          _originalName = _nameController.text.trim();
+          _originalPhone = _phoneController.text.trim();
+          _hasChanges = false;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Perfil actualizado exitosamente'),
+           SnackBar(
+            content: Text(l10n.profileUpdatedSuccess),
             backgroundColor: Colors.green,
           ),
         );
+        // Opcional: Salir automáticamente al guardar
+        // Navigator.pop(context); 
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authService.error ?? 'Error al actualizar perfil'),
+            content: Text(authService.error ?? l10n.updateProfileError),
             backgroundColor: Colors.red,
           ),
         );
@@ -120,6 +177,7 @@ Future<void> _pickAndUploadPhoto() async {
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserData;
+    final l10n = AppLocalizations.of(context)!;
 
     if (user == null) {
       return const Scaffold(
@@ -127,142 +185,161 @@ Future<void> _pickAndUploadPhoto() async {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Editar Perfil'),
-        actions: [
-          TextButton(
-            onPressed: authService.isLoading ? null : _saveChanges,
-            child: authService.isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Guardar'),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          onChanged: () {
-            setState(() {
-              _hasChanges = true;
-            });
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Avatar inicial
-// ✅ MODIFICADO: Avatar con funcionalidad de cámara
-              Center(
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 60,
-                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      backgroundImage: (user.photoURL != null || user.photoURL!.isEmpty)  
-                          ? NetworkImage(user.photoURL!) 
-                          : null,
-                      child: (user.photoURL == null || user.photoURL!.isEmpty)
-                          ? Text(
-                              user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                              style: TextStyle(
-                                fontSize: 48,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            )
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: InkWell(
-                        onTap: authService.isLoading ? null : _pickAndUploadPhoto,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
+    return WillPopScope(
+      onWillPop: () => _onWillPop(l10n),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.editProfileTitle),
+          actions: [
+            // Badge de "Sin guardar"
+            if (_hasChanges)
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange[100],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  l10n.unsavedChanges,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            // onChanged: ya no es necesario aquí porque usamos controllers listeners
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Center(
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 60,
+                        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        backgroundImage: (user.photoURL != null || user.photoURL!.isEmpty)  
+                            ? NetworkImage(user.photoURL!) 
+                            : null,
+                        child: (user.photoURL == null || user.photoURL!.isEmpty)
+                            ? Text(
+                                user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                                style: TextStyle(
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              )
+                            : null,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: InkWell(
+                          onTap: authService.isLoading ? null : _pickAndUploadPhoto,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: authService.isLoading
+                                ? const SizedBox(
+                                    width: 20, 
+                                    height: 20, 
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                                  )
+                                : const Icon(Icons.camera_alt, color: Colors.white, size: 20),
                           ),
-                          child: authService.isLoading
-                              ? const SizedBox(
-                                  width: 20, 
-                                  height: 20, 
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                                )
-                              : const Icon(Icons.camera_alt, color: Colors.white, size: 20),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 32),
-              // Nombre
-              TextFormField(
-                controller: _nameController,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre completo',
-                  prefixIcon: Icon(Icons.person_outline),
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 32),
+                
+                // Nombre
+                TextFormField(
+                  controller: _nameController,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    labelText: l10n.fullNameLabel,
+                    prefixIcon: const Icon(Icons.person_outline),
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return l10n.enterNameError;
+                    }
+                    if (value.length < 3) {
+                      return l10n.nameMinLengthError;
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor ingresa tu nombre';
-                  }
-                  if (value.length < 3) {
-                    return 'El nombre debe tener al menos 3 caracteres';
-                  }
-                  return null;
-                },
+                const SizedBox(height: 16),
+
+                // Email (solo lectura)
+                TextFormField(
+                  initialValue: user.email,
+                  enabled: false,
+                  decoration: InputDecoration(
+                    labelText: l10n.email,
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: const OutlineInputBorder(),
+                    helperText: l10n.emailReadOnlyHelper,
+                    helperStyle: TextStyle(color: Colors.grey[600]),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Teléfono
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: l10n.phoneOptionalLabel,
+                    prefixIcon: const Icon(Icons.phone_outlined),
+                    border: const OutlineInputBorder(),
+                    helperText: l10n.phoneHelper,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Rol (solo lectura)
+                TextFormField(
+                  initialValue: user.roleDisplayName,
+                  enabled: false,
+                  decoration: InputDecoration(
+                    labelText: l10n.accountType,
+                    prefixIcon: const Icon(Icons.badge_outlined),
+                    border: const OutlineInputBorder(),
+                    helperText: l10n.roleReadOnlyHelper,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              FilledButton(
+                onPressed: _isLoading || !_hasChanges ? null : () => _saveChanges(),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(l10n.saveChangesButton),
               ),
               const SizedBox(height: 16),
 
-              // Email (solo lectura)
-              TextFormField(
-                initialValue: user.email,
-                enabled: false,
-                decoration: InputDecoration(
-                  labelText: 'Correo electrónico',
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  border: const OutlineInputBorder(),
-                  helperText: 'El correo no se puede modificar',
-                  helperStyle: TextStyle(color: Colors.grey[600]),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Teléfono
-              TextFormField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Teléfono (opcional)',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                  border: OutlineInputBorder(),
-                  helperText: 'Ej: +34 123 456 789',
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Rol (solo lectura)
-              TextFormField(
-                initialValue: user.roleDisplayName,
-                enabled: false,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo de cuenta',
-                  prefixIcon: Icon(Icons.badge_outlined),
-                  border: OutlineInputBorder(),
-                  helperText: 'El tipo de cuenta no se puede modificar',
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

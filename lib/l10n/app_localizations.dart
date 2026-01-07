@@ -3838,6 +3838,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No products in this family'**
   String get noProductsInFamily;
+
+  /// No description provided for @uploadingPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading photo...'**
+  String get uploadingPhoto;
+
+  /// No description provided for @photoUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo updated'**
+  String get photoUpdated;
+
+  /// No description provided for @profileUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile updated successfully'**
+  String get profileUpdatedSuccess;
+
+  /// No description provided for @updateProfileError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating profile'**
+  String get updateProfileError;
+
+  /// No description provided for @emailReadOnlyHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Email cannot be modified'**
+  String get emailReadOnlyHelper;
+
+  /// No description provided for @accountType.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Type'**
+  String get accountType;
+
+  /// No description provided for @roleReadOnlyHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Account type cannot be modified'**
+  String get roleReadOnlyHelper;
+
+  /// No description provided for @myProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Profile'**
+  String get myProfileTitle;
+
+  /// No description provided for @personalInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal Information'**
+  String get personalInfo;
+
+  /// No description provided for @memberSince.
+  ///
+  /// In en, this message translates to:
+  /// **'Member since'**
+  String get memberSince;
+
+  /// No description provided for @securityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get securityTitle;
+
+  /// No description provided for @changePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get changePassword;
+
+  /// No description provided for @googleAccountAlert.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available for Google accounts'**
+  String get googleAccountAlert;
+
+  /// No description provided for @updatePasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your password'**
+  String get updatePasswordSubtitle;
+
+  /// No description provided for @accountSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get accountSection;
+
+  /// No description provided for @changePasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePasswordTitle;
+
+  /// No description provided for @passwordUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password updated successfully'**
+  String get passwordUpdatedSuccess;
+
+  /// No description provided for @changePasswordError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error changing password'**
+  String get changePasswordError;
+
+  /// No description provided for @securePasswordAdvice.
+  ///
+  /// In en, this message translates to:
+  /// **'Make sure to use a secure password'**
+  String get securePasswordAdvice;
+
+  /// No description provided for @currentPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password'**
+  String get currentPasswordLabel;
+
+  /// No description provided for @enterCurrentPasswordError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your current password'**
+  String get enterCurrentPasswordError;
+
+  /// No description provided for @newPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get newPasswordLabel;
+
+  /// No description provided for @enterNewPasswordError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a new password'**
+  String get enterNewPasswordError;
+
+  /// No description provided for @passwordDiffError.
+  ///
+  /// In en, this message translates to:
+  /// **'New password must be different'**
+  String get passwordDiffError;
+
+  /// No description provided for @confirmNewPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get confirmNewPasswordLabel;
+
+  /// No description provided for @passwordTipsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tips for a secure password:'**
+  String get passwordTipsTitle;
+
+  /// No description provided for @passwordTip1.
+  ///
+  /// In en, this message translates to:
+  /// **'Use at least 8 characters'**
+  String get passwordTip1;
+
+  /// No description provided for @passwordTip2.
+  ///
+  /// In en, this message translates to:
+  /// **'Combine uppercase and lowercase letters'**
+  String get passwordTip2;
+
+  /// No description provided for @passwordTip3.
+  ///
+  /// In en, this message translates to:
+  /// **'Include numbers and symbols'**
+  String get passwordTip3;
+
+  /// No description provided for @passwordTip4.
+  ///
+  /// In en, this message translates to:
+  /// **'Do not use personal information'**
+  String get passwordTip4;
+
+  /// No description provided for @editProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit profile'**
+  String get editProfileTitle;
+
+  /// No description provided for @personalDataUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal data updated'**
+  String get personalDataUpdated;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

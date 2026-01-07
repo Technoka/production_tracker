@@ -1933,4 +1933,100 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get noProductsInFamily => 'No hay productos en esta familia';
+
+  @override
+  String get uploadingPhoto => 'Subiendo foto...';
+
+  @override
+  String get photoUpdated => 'Foto actualizada';
+
+  @override
+  String get profileUpdatedSuccess => 'Perfil actualizado exitosamente';
+
+  @override
+  String get updateProfileError => 'Error al actualizar perfil';
+
+  @override
+  String get emailReadOnlyHelper => 'El correo no se puede modificar';
+
+  @override
+  String get accountType => 'Tipo de cuenta';
+
+  @override
+  String get roleReadOnlyHelper => 'El tipo de cuenta no se puede modificar';
+
+  @override
+  String get myProfileTitle => 'Mi Perfil';
+
+  @override
+  String get personalInfo => 'Información Personal';
+
+  @override
+  String get memberSince => 'Miembro desde';
+
+  @override
+  String get securityTitle => 'Seguridad';
+
+  @override
+  String get changePassword => 'Cambiar contraseña';
+
+  @override
+  String get googleAccountAlert => 'No disponible para cuentas de Google';
+
+  @override
+  String get updatePasswordSubtitle => 'Actualiza tu contraseña';
+
+  @override
+  String get accountSection => 'Cuenta';
+
+  @override
+  String get changePasswordTitle => 'Cambiar Contraseña';
+
+  @override
+  String get passwordUpdatedSuccess => 'Contraseña actualizada exitosamente';
+
+  @override
+  String get changePasswordError => 'Error al cambiar contraseña';
+
+  @override
+  String get securePasswordAdvice => 'Asegúrate de usar una contraseña segura';
+
+  @override
+  String get currentPasswordLabel => 'Contraseña actual';
+
+  @override
+  String get enterCurrentPasswordError => 'Por favor ingresa tu contraseña actual';
+
+  @override
+  String get newPasswordLabel => 'Nueva contraseña';
+
+  @override
+  String get enterNewPasswordError => 'Por favor ingresa una nueva contraseña';
+
+  @override
+  String get passwordDiffError => 'La nueva contraseña debe ser diferente a la actual';
+
+  @override
+  String get confirmNewPasswordLabel => 'Confirmar nueva contraseña';
+
+  @override
+  String get passwordTipsTitle => 'Consejos para una contraseña segura:';
+
+  @override
+  String get passwordTip1 => 'Usa al menos 8 caracteres';
+
+  @override
+  String get passwordTip2 => 'Combina letras mayúsculas y minúsculas';
+
+  @override
+  String get passwordTip3 => 'Incluye números y símbolos';
+
+  @override
+  String get passwordTip4 => 'No uses información personal';
+
+  @override
+  String get editProfileTitle => 'Editar perfil';
+
+  @override
+  String get personalDataUpdated => 'Datos personales actualizados';
 }
