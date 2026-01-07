@@ -42,7 +42,7 @@ class MessageService {
         return orgRef
             .collection('production_batches')
             .doc(parentId)
-            .collection('products')
+            .collection('batch_products')
             .doc(entityId)
             .collection('messages');
             
