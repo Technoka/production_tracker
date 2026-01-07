@@ -10,7 +10,7 @@ import '../../services/auth_service.dart';
 import '../../services/product_catalog_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../screens/projects/project_detail_screen.dart';
-import '../../screens/catalog/product_catalog_detail_screen.dart';
+import 'product_family_folder_card.dart';
 
 class ProjectFolderCard extends StatefulWidget {
   final ProjectModel project;
@@ -53,22 +53,36 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
           data: theme.copyWith(dividerColor: Colors.transparent),
           child: StreamBuilder<List<ProductCatalogModel>>(
             stream: Provider.of<ProductCatalogService>(context, listen: false)
-                .getClientProductsStream(user.organizationId!, widget.client.id),
+                .getClientProductsStream(
+                    user.organizationId!, widget.client.id),
             builder: (context, productSnapshot) {
-              final products = productSnapshot.data ?? [];
-              final productCount = products.length;
+              final allProducts = productSnapshot.data ?? [];
+
+              // Agrupar productos por familia
+              final Map<String, List<ProductCatalogModel>> productsByFamily =
+                  {};
+              for (final product in allProducts) {
+                final family = product.family ?? 'Sin categoría';
+                productsByFamily.putIfAbsent(family, () => []).add(product);
+              }
+
+              final productCount = allProducts.length;
+              final familyCount = productsByFamily.keys.length;
 
               return ExpansionTile(
-                tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                tilePadding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                 childrenPadding: EdgeInsets.zero,
                 onExpansionChanged: (expanded) {
                   setState(() => _isExpanded = expanded);
                 },
-                // ICONO CARPETA (Izquierda)
+                
+                trailing: const SizedBox.shrink(),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    color:
+                        Theme.of(context).colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -77,22 +91,84 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
                     size: 20,
                   ),
                 ),
-                // TÍTULO Y SUBTÍTULO (Centro)
-                title: Column(
+          title: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.project.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1, // Evita overflow vertical
-                      overflow: TextOverflow.ellipsis, // Puntos suspensivos si es largo
+                    // --- FILA 1: NOMBRE + ICONOS (A LA DERECHA DEL TODO) ---
+                    Row(
+                      children: [
+                        // Expanded empuja los iconos al final
+                        Expanded(
+                          child: Text(
+                            widget.project.name,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        
+                        // Iconos de acción
+                        _buildActionButton(
+                          icon: Icons.visibility_outlined,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProjectDetailScreen(
+                                  projectId: widget.project.id,
+                                ),
+                              ),
+                            );
+                          },
+                          theme: theme,
+                          tooltip: l10n.viewDetailsTooltip,
+                        ),
+                        _buildActionButton(
+                          icon: Icons.edit_outlined,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    EditProjectScreen(project: widget.project),
+                              ),
+                            );
+                          },
+                          theme: theme,
+                          tooltip: l10n.edit,
+                        ),
+                        const SizedBox(width: 4),
+                        
+                        // Tu flecha personalizada
+                        Icon(
+                          _isExpanded
+                              ? Icons.keyboard_arrow_up
+                              : Icons.keyboard_arrow_down,
+                          color: Colors.grey.shade400,
+                          size: 20,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
+                        Icon(
+                          Icons.category_outlined,
+                          size: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$familyCount ${familyCount == 1 ? l10n.family : l10n.families}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
                         Icon(
                           Icons.widgets_outlined,
                           size: 12,
@@ -110,49 +186,9 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
                     ),
                   ],
                 ),
-                // ICONOS DE ACCIÓN Y FLECHA (Derecha del todo)
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min, // Ocupa solo el espacio necesario
-                  children: [
-                    _buildActionButton(
-                      icon: Icons.visibility_outlined,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ProjectDetailScreen(
-                              projectId: widget.project.id,
-                            ),
-                          ),
-                        );
-                      },
-                      theme: theme,
-                      tooltip: l10n.viewDetailsTooltip,
-                    ),
-                    _buildActionButton(
-                      icon: Icons.edit_outlined,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditProjectScreen(project: widget.project),
-                          ),
-                        );
-                      },
-                      theme: theme,
-                      tooltip: l10n.edit,
-                    ),
-                    const SizedBox(width: 4),
-                    // Flecha de expansión personalizada
-                    Icon(
-                      _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                      color: Colors.grey.shade400,
-                      size: 20,
-                    ),
-                  ],
-                ),
+                
                 children: [
-                  if (products.isEmpty)
+                  if (allProducts.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Center(
@@ -183,25 +219,36 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
                           top: BorderSide(color: Colors.grey.shade200),
                         ),
                       ),
-                      child: ListView.separated(
+                      child: ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: products.length,
-                        separatorBuilder: (context, index) => Divider(
-                          height: 1,
-                          color: Colors.grey.shade100,
-                        ),
+                        itemCount: productsByFamily.keys.length,
                         itemBuilder: (context, index) {
-                          return _buildProductListTile(
-                            context,
-                            products[index],
-                            user,
-                            l10n,
+                          final family = productsByFamily.keys.elementAt(index);
+                          final products = productsByFamily[family]!;
+
+                          // Colores alternados para familias
+                          final colors = [
+                            theme.colorScheme.secondary,
+                            Colors.teal,
+                            Colors.purple,
+                            Colors.orange,
+                            Colors.indigo,
+                          ];
+                          final color = colors[index % colors.length];
+
+                          return ProductFamilyFolderCard(
+                            familyName: family,
+                            products: products,
+                            accentColor: color,
                           );
                         },
                       ),
+                      
                     ),
+                    
                 ],
+                
               );
             },
           ),
@@ -210,72 +257,6 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
     );
   }
 
-  Widget _buildProductListTile(
-    BuildContext context,
-    ProductCatalogModel product,
-    dynamic user,
-    AppLocalizations l10n,
-  ) {
-    final theme = Theme.of(context);
-
-    return ListTile(
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProductCatalogDetailScreen(
-                productId: product.id,
-                currentUser: user,
-                organizationId: user.organizationId!,
-              ),
-            ),
-          );
-        },
-      leading: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Icon(
-          Icons.inventory_2_outlined,
-          size: 18,
-          color: theme.colorScheme.primary,
-        ),
-      ),
-      title: Text(
-        product.name,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Row(
-        children: [
-          Icon(
-            Icons.tag,
-            size: 11,
-            color: Colors.grey.shade500,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            product.reference,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade600,
-            ),
-          ),
-        ],
-      ),
-      trailing: const Icon(Icons.keyboard_arrow_right
-      ),
-    );
-  }
-
-  // Widget auxiliar para botones de acción compactos
   Widget _buildActionButton({
     required IconData icon,
     required VoidCallback onTap,
