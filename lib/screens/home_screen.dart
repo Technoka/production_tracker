@@ -236,7 +236,7 @@ Widget _buildFloatingButtons(user, AppLocalizations l10n) {
                     CircleAvatar(
                       radius: 30,
                       // backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                      backgroundImage: (user.photoURL != null ||user.photoURL.isEmpty) 
+                      backgroundImage: (user.photoURL != null || user.photoURL.isEmpty) 
                           ? NetworkImage(user.photoURL!) 
                           : null,
                       child: (user.photoURL == null || user.photoURL!.isEmpty)

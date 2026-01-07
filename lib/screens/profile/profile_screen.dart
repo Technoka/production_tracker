@@ -73,10 +73,10 @@ class ProfileScreen extends StatelessWidget {
                     CircleAvatar(
                       radius: 60,
                       backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      backgroundImage: user.photoURL != null 
+                      backgroundImage: (user.photoURL != null || user.photoURL!.isEmpty) 
                           ? NetworkImage(user.photoURL!) 
                           : null,
-                      child: user.photoURL == null
+                      child: (user.photoURL == null || user.photoURL!.isEmpty)
                           ? Text(
                               user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
                               style: TextStyle(
