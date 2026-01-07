@@ -24,9 +24,9 @@ class OrganizationBranding {
   /// Constructor desde Firestore
   factory OrganizationBranding.fromMap(Map<String, dynamic> map) {
     return OrganizationBranding(
-      primaryColor: _parseColor(map['primaryColor']) as String? ?? '#2196F3',
-      secondaryColor: _parseColor(map['secondaryColor']) as String? ?? '#FF9800',
-      accentColor: _parseColor(map['accentColor']) as String? ?? '#4CAF50',
+      primaryColor: _parseColorToHex(map['primaryColor']) ?? '#2196F3',
+      secondaryColor: _parseColorToHex(map['secondaryColor']) ?? '#FF9800',
+      accentColor: _parseColorToHex(map['accentColor']) ?? '#4CAF50',
       logoUrl: map['logoUrl'] as String?,
       fontFamily: map['fontFamily'] as String? ?? 'Roboto',
       organizationName: map['organizationName'] as String? ?? '',
@@ -69,27 +69,84 @@ class OrganizationBranding {
   }
 
     /// Helper seguro para parsear colores
-  static Color? _parseColor(dynamic value) {
+    static String? _parseColorToHex(dynamic value) {
     if (value == null) return null;
     
     try {
-      if (value is int) {
-        return Color(value);
-      }
+      // Si ya es un String hex, devolverlo normalizado
       if (value is String) {
-        // Formato "#RRGGBB" o "0xAARRGGBB"
-        final hex = value.replaceAll('#', '');
-        if (hex.length == 6) {
-          return Color(int.parse('FF$hex', radix: 16));
-        } else if (hex.length == 8) {
-          return Color(int.parse(hex, radix: 16));
+        final hex = value.trim().toUpperCase();
+        
+        // Si empieza con #, validar formato
+        if (hex.startsWith('#')) {
+          final cleanHex = hex.substring(1);
+          
+          if (cleanHex.length == 6) {
+            // Formato válido #RRGGBB
+            return '#$cleanHex';
+          } else if (cleanHex.length == 8) {
+            // Formato #AARRGGBB -> convertir a #RRGGBB
+            return '#${cleanHex.substring(2)}';
+          } else if (cleanHex.length == 3) {
+            // Formato corto #RGB -> #RRGGBB
+            final r = cleanHex[0];
+            final g = cleanHex[1];
+            final b = cleanHex[2];
+            return '#$r$r$g$g$b$b';
+          }
         }
+        
+        // Si no tiene #, asumir que es hex y añadirlo
+        if (hex.length == 6 && _isValidHex(hex)) {
+          return '#$hex';
+        }
+        
+        // Devolver tal cual si no podemos parsearlo
+        return value;
+      }
+      
+      // Si es un int, convertir a hex
+      if (value is int) {
+        // Formato 0xAARRGGBB o 0xRRGGBB
+        final hexString = value.toRadixString(16).toUpperCase();
+        
+        if (hexString.length >= 6) {
+          // Tomar solo los últimos 6 dígitos (RGB)
+          final rgb = hexString.substring(hexString.length - 6);
+          return '#$rgb';
+        }
+        
+        // Si es muy corto, pad con ceros
+        return '#${hexString.padLeft(6, '0')}';
       }
     } catch (e) {
-      print('⚠️ Error parseando color: $value ($e)');
+      print('⚠️ Error parseando color a hex: $value ($e)');
     }
     
     return null;
+  }
+
+  /// Validar si un string es hexadecimal válido
+  static bool _isValidHex(String hex) {
+    return RegExp(r'^[0-9A-Fa-f]+$').hasMatch(hex);
+  }
+
+  /// Convertir hex string a Color para uso en UI
+  static Color _hexToColor(String hexString) {
+    try {
+      final hex = hexString.replaceAll('#', '').toUpperCase();
+      
+      if (hex.length == 6) {
+        return Color(int.parse('FF$hex', radix: 16));
+      } else if (hex.length == 8) {
+        return Color(int.parse(hex, radix: 16));
+      }
+    } catch (e) {
+      print('⚠️ Error convirtiendo hex a Color: $hexString ($e)');
+    }
+    
+    // Fallback a azul
+    return const Color(0xFF2196F3);
   }
 
   /// Convertir a Map para Firestore

@@ -31,24 +31,61 @@ class OrganizationSettingsService {
   /// Obtener configuración actual (snapshot único)
   Future<OrganizationSettings?> getOrganizationSettings(String organizationId) async {
     try {
+      // print('🔍 Obteniendo settings para org: $organizationId');
+      
       final doc = await _firestore
           .collection('organizations')
           .doc(organizationId)
           .get();
 
-      if (!doc.exists) return null;
-
-      final data = doc.data();
-      if (data == null || !data.containsKey('settings')) {
+      if (!doc.exists) {
+        // print('⚠️ Organización no encontrada, devolviendo settings por defecto');
         return OrganizationSettings.defaultSettings();
       }
 
-      return OrganizationSettings.fromMap(
-        data['settings'] as Map<String, dynamic>,
-      );
-    } catch (e) {
-      print('Error al obtener configuración: $e');
-      return null;
+      final data = doc.data();
+      // print('📦 Data recibida: ${data?.keys.toList()}');
+
+      // Si no hay settings o está vacío, devolver defaults
+      if (data == null || !data.containsKey('settings')) {
+        // print('⚠️ No hay campo "settings", devolviendo defaults');
+        return OrganizationSettings.defaultSettings();
+      }
+
+      final settingsData = data['settings'];
+      
+      // Validar que settings no sea null
+      if (settingsData == null) {
+        // print('⚠️ Campo "settings" es null, devolviendo defaults');
+        return OrganizationSettings.defaultSettings();
+      }
+
+      // Convertir a Map y validar
+      if (settingsData is! Map<String, dynamic>) {
+        // print('❌ "settings" no es un Map válido, devolviendo defaults');
+        return OrganizationSettings.defaultSettings();
+      }
+
+      print('✅ Parseando settings: $settingsData');
+
+      // ✅ PARSEO SEGURO CON TRY-CATCH INTERNO
+      try {
+        return OrganizationSettings.fromMap(settingsData);
+      } catch (parseError, stackTrace) {
+        // print('❌ Error al parsear OrganizationSettings: $parseError');
+        // print('Stack: $stackTrace');
+        // print('Data problemática: $settingsData');
+        
+        // Devolver defaults si falla el parseo
+        return OrganizationSettings.defaultSettings();
+      }
+
+    } catch (e, stackTrace) {
+      // print('❌ Error crítico al obtener configuración: $e');
+      // print('Stack trace: $stackTrace');
+      
+      // En caso de error, devolver settings por defecto para no romper la app
+      return OrganizationSettings.defaultSettings();
     }
   }
 
@@ -88,20 +125,48 @@ class OrganizationSettingsService {
     }
   }
 
+    /// Stream de configuración en tiempo real
+  Stream<OrganizationSettings?> watchOrganizationSettings(String organizationId) {
+    return _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .snapshots()
+        .map((doc) {
+      if (!doc.exists || doc.data() == null) {
+        return OrganizationSettings.defaultSettings();
+      }
+
+      final data = doc.data()!;
+      
+      if (!data.containsKey('settings') || data['settings'] == null) {
+        return OrganizationSettings.defaultSettings();
+      }
+
+      try {
+        return OrganizationSettings.fromMap(
+          data['settings'] as Map<String, dynamic>,
+        );
+      } catch (e) {
+        print('Error al parsear settings en stream: $e');
+        return OrganizationSettings.defaultSettings();
+      }
+    });
+  }
+
   /// Actualizar solo configuración de idioma
-  Future<void> updateLanguageSettings({
-    required String organizationId,
-    required LanguageSettings languageSettings,
-  }) async {
+Future<void> updateLanguageSettings(
+    String organizationId,
+    LanguageSettings language,
+  ) async {
     try {
       await _firestore
           .collection('organizations')
           .doc(organizationId)
           .update({
-        'settings.language': languageSettings.toMap(),
+        'settings.language': language.toMap(),
       });
     } catch (e) {
-      print('Error al actualizar configuración de idioma: $e');
+      print('Error al actualizar idioma: $e');
       rethrow;
     }
   }
@@ -241,6 +306,23 @@ class OrganizationSettingsService {
       });
     } catch (e) {
       print('Error al actualizar nombre: $e');
+      rethrow;
+    }
+  }
+
+    Future<void> saveOrganizationSettings(
+    String organizationId,
+    OrganizationSettings settings,
+  ) async {
+    try {
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .update({
+        'settings': settings.toMap(),
+      });
+    } catch (e) {
+      print('Error al guardar configuración: $e');
       rethrow;
     }
   }
