@@ -8,14 +8,12 @@ class MessageService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// Obtener referencia a la colección de mensajes según el tipo de entidad
-  // Helper para construir la ruta correcta según el tipo de entidad
   CollectionReference _getMessagesCollection(
     String organizationId, 
     String entityType, 
     String entityId, 
     {String? parentId}
   ) {
-    // Base de la organización
     final orgRef = _firestore
     .collection('organizations')
     .doc(organizationId);
@@ -33,19 +31,16 @@ class MessageService {
         .doc(entityId)
         .collection('messages');
       
-      case 'batch_product': // Alias explícito
+      case 'batch_product':
         if (parentId == null) {
           throw ArgumentError('parentId (batchId) is required for batch products');
         }
-        // Asumimos que si estamos en contexto de lote, la ruta es:
-        // batches/{batchId}/products/{productId}/messages
         return orgRef
             .collection('production_batches')
             .doc(parentId)
             .collection('batch_products')
             .doc(entityId)
             .collection('messages');
-            
       
       case 'project_product':
         if (parentId == null) {
@@ -59,7 +54,6 @@ class MessageService {
             .collection('messages');
             
       default:
-        // Fallback genérico (probablemente causaba el error anterior)
         return orgRef.collection(entityType).doc(entityId).collection('messages');
     }
   }
@@ -77,7 +71,6 @@ class MessageService {
         .orderBy('createdAt', descending: true)
         .limit(limit);
 
-    // Filtrar mensajes internos si es necesario (para clientes)
     if (!includeInternal) {
       query = query.where('isInternal', isEqualTo: false);
     }
@@ -143,11 +136,11 @@ class MessageService {
       isInternal: isInternal,
       parentMessageId: parentMessageId,
       createdAt: DateTime.now(),
+      readBy: [currentUser.uid]
     );
 
     await messagesRef.doc(message.id).set(message.toMap());
 
-    // Si es respuesta, incrementar threadCount del mensaje padre
     if (parentMessageId != null) {
       await _incrementThreadCount(
         organizationId,
@@ -172,9 +165,8 @@ class MessageService {
     bool isInternal = true,
   }) async {
     final messagesRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId);
-
     final content = SystemEventType.getEventContent(eventType, eventData);
-print('message id: ${messagesRef.doc().id} ------------------------------------------');
+
     final message = MessageModel(
       id: messagesRef.doc().id,
       entityType: entityType,
@@ -189,7 +181,6 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     );
 
     await messagesRef.doc(message.id).set(message.toMap());
-
     return message.id;
   }
 
@@ -238,9 +229,9 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .doc(messageId);
 
+    // ✅ SOLO actualiza readBy, sin updatedAt
     await messageRef.update({
       'readBy': FieldValue.arrayUnion([userId]),
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
   }
 
@@ -254,19 +245,17 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
   }) async {
     final messagesRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId);
 
-    // Obtener mensajes no leídos
     final snapshot = await messagesRef
         .where('readBy', whereNotIn: [userId])
-        .limit(500) // Límite de Firestore
+        .limit(500)
         .get();
 
-    // Batch write para eficiencia
     final batch = _firestore.batch();
 
     for (var doc in snapshot.docs) {
+      // ✅ SOLO actualiza readBy, sin updatedAt
       batch.update(doc.reference, {
         'readBy': FieldValue.arrayUnion([userId]),
-        'updatedAt': Timestamp.fromDate(DateTime.now()),
       });
     }
 
@@ -312,13 +301,10 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
         .doc(messageId);
 
-    // Obtener el mensaje actual
     final doc = await messageRef.get();
     if (!doc.exists) return;
 
     final message = MessageModel.fromFirestore(doc);
-
-    // Filtrar la reacción del usuario
     final updatedReactions = message.reactions
         .where((r) => !(r.emoji == emoji && r.userId == userId))
         .toList();
@@ -389,8 +375,6 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String searchTerm,
     bool includeInternal = true,
   }) async {
-    // Firestore no tiene búsqueda full-text nativa
-    // Esta es una implementación básica que puede ser mejorada con Algolia
     final messagesRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId);
 
     Query query = messagesRef
@@ -402,8 +386,6 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     }
 
     final snapshot = await query.get();
-
-    // Filtrar en memoria (no óptimo para grandes datasets)
     final allMessages = snapshot.docs
         .map((doc) => MessageModel.fromFirestore(doc))
         .toList();
@@ -423,9 +405,37 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String userId,
   }) {
     return _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
-        .where('readBy', whereNotIn: [userId])
+        .orderBy('createdAt', descending: true)
+        .limit(50)
         .snapshots()
-        .map((snapshot) => snapshot.docs.length);
+        .map((snapshot) {
+          int count = 0;
+          for (var doc in snapshot.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final readBy = List<String>.from(data['readBy'] ?? []);
+            
+            if (!readBy.contains(userId)) {
+              count++;
+            }
+          }
+          return count;
+        });
+  }
+
+  /// Helper específico para productos de lote
+  Stream<int> getProductUnreadCount({
+    required String organizationId,
+    required String batchId,
+    required String productId,
+    required String userId,
+  }) {
+    return getUnreadCount(
+      organizationId: organizationId,
+      entityType: 'batch_product',
+      entityId: productId,
+      parentId: batchId,
+      userId: userId,
+    );
   }
 
   /// Incrementar threadCount del mensaje padre
@@ -454,10 +464,64 @@ print('message id: ${messagesRef.doc().id} -------------------------------------
     required String userId,
   }) async {
     final snapshot = await _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
-        .where('readBy', whereNotIn: [userId])
-        .limit(1)
+        .orderBy('createdAt', descending: true)
+        .limit(10) 
         .get();
 
-    return snapshot.docs.isNotEmpty;
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final readBy = List<String>.from(data['readBy'] ?? []);
+      
+      if (!readBy.contains(userId)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  Future<void> markMessagesAsRead({
+    required String organizationId,
+    required String entityType,
+    required String entityId,
+    String? parentId,
+    required String userId,
+  }) async {
+
+    final collection = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId);
+    
+    try {
+      final snapshot = await collection
+          .orderBy('createdAt', descending: true)
+          .limit(50)
+          .get();
+
+
+      final batch = _firestore.batch();
+      int updateCount = 0;
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final readBy = List<String>.from(data['readBy'] ?? []);
+
+        if (!readBy.contains(userId)) {
+          batch.update(doc.reference, {
+            'readBy': FieldValue.arrayUnion([userId]),
+            'updatedAt': FieldValue.serverTimestamp(), 
+          });
+          updateCount++;
+        }
+      }
+
+      if (updateCount > 0) {
+        await batch.commit();
+      } else {
+      }
+    } catch (e) {
+      if (e is FirebaseException) {
+        print('   Code: ${e.code}');
+        print('   Message: ${e.message}');
+      }
+    }
   }
 }
