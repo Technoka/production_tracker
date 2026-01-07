@@ -10,6 +10,7 @@ class ChatButton extends StatelessWidget {
   final String entityType; // 'batch', 'project', 'product'
   final String entityId;
   final String entityName;
+  final String? parentId;
   final UserModel user;
   final bool showInAppBar; // Si es true, es un IconButton, si no, FloatingActionButton
 
@@ -19,6 +20,7 @@ class ChatButton extends StatelessWidget {
     required this.entityType,
     required this.entityId,
     required this.entityName,
+    this.parentId,
     required this.user,
     this.showInAppBar = false,
   }) : super(key: key);
@@ -32,6 +34,7 @@ class ChatButton extends StatelessWidget {
         organizationId: organizationId,
         entityType: entityType,
         entityId: entityId,
+        parentId: parentId,
         userId: user.uid,
       ),
       builder: (context, unreadSnapshot) {
@@ -131,6 +134,7 @@ class ChatButton extends StatelessWidget {
           entityType: entityType,
           entityId: entityId,
           entityName: entityName,
+          parentId: parentId,
           showInternalMessages: true,
         ),
       ),
