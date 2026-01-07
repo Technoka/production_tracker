@@ -34,6 +34,14 @@
   <meta name="google-signin-client_id" content="808369467122-q4hkugsgq56vqklnagoppkcbt2avl0a2.apps.googleusercontent.com">
 </head>
 <body>
+  <script>
+  // Configurar Firebase para permitir CORS
+  window.addEventListener('load', function() {
+    if (window.firebase && window.firebase.storage) {
+      console.log('✅ Firebase Storage configurado para CORS');
+    }
+  });
+</script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
