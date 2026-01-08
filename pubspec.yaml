@@ -1,7 +1,7 @@
 name: gestion_produccion
 description: Sistema de gestión de producción para fabricantes y clientes
 publish_to: 'none'
-version: 1.0.0+1
+version: 0.8.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -39,6 +39,8 @@ dependencies:
   path_provider: ^2.1.5
   rxdart: ^0.28.0
   flex_color_picker: ^3.8.0
+  shared_preferences: ^2.5.4
+  package_info_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:
