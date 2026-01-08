@@ -7,7 +7,7 @@ import '../../services/organization_service.dart';
 import '../../models/organization_model.dart';
 import 'organization_members_screen.dart';
 import 'invite_member_screen.dart';
-import 'manage_phases_screen.dart';
+import '../phases/manage_phases_screen.dart';
 import '../../l10n/app_localizations.dart';
 
 class OrganizationDetailScreen extends StatelessWidget {
