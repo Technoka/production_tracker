@@ -14,6 +14,9 @@ import 'production/create_production_batch_screen.dart';
 import '../widgets/production_dashboard_widget.dart';
 import '../widgets/kanban_board_widget.dart';
 import '../widgets/bottom_nav_bar_widget.dart';
+import '../widgets/sla/sla_alert_badge.dart';
+import '../../screens/dashboard/metrics_dashboard_screen.dart';
+import '../../models/user_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,7 +43,8 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: user.organizationId != null
             ? StreamBuilder(
-                stream: organizationService.watchOrganization(user.organizationId!),
+                stream:
+                    organizationService.watchOrganization(user.organizationId!),
                 builder: (context, snapshot) {
                   if (snapshot.hasData && snapshot.data != null) {
                     return Text(snapshot.data!.name);
@@ -49,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               )
             : Text(l10n.appTitle),
+        actions: [],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -58,33 +63,40 @@ class _HomeScreenState extends State<HomeScreen> {
             // Saludo
             Row(
               children: [
-     IconButton(
-  padding: const EdgeInsets.all(8),
-  icon: CircleAvatar(
-    radius: 30, // Tamaño ajustado para AppBar
-    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-    backgroundImage: (user.photoURL != null && user.photoURL!.isNotEmpty)
-        ? NetworkImage(user.photoURL!) 
-        : null,
-    child: (user.photoURL == null || user.photoURL!.isEmpty)
-        ? Text(
-                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        fontSize: 25,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    )
-        : null,
-  ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              );
-            },
-            tooltip: l10n.profile,
-          ),
+                IconButton(
+                  padding: const EdgeInsets.all(8),
+                  icon: CircleAvatar(
+                    radius: 30, // Tamaño ajustado para AppBar
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.1),
+                    backgroundImage:
+                        (user.photoURL != null && user.photoURL!.isNotEmpty)
+                            ? NetworkImage(user.photoURL!)
+                            : null,
+                    child: (user.photoURL == null || user.photoURL!.isEmpty)
+                        ? Text(
+                            user.name.isNotEmpty
+                                ? user.name[0].toUpperCase()
+                                : '?',
+                            style: TextStyle(
+                              fontSize: 25,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          )
+                        : null,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const ProfileScreen()),
+                    );
+                  },
+                  tooltip: l10n.profile,
+                ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -92,9 +104,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Text(
                         '${l10n.welcome}, ${user.name}',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                       const SizedBox(height: 4),
                       RoleUtils.buildRoleBadge(user.role, compact: true),
@@ -121,11 +134,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      drawer: _buildDrawer(context, user, authService, organizationService, l10n),
+      drawer:
+          _buildDrawer(context, user, authService, organizationService, l10n),
       bottomNavigationBar: BottomNavBarWidget(currentIndex: 0, user: user),
-      floatingActionButton: user.canManageProduction && user.organizationId != null
-          ? _buildFloatingButtons(user, l10n)
-          : null,
+      floatingActionButton:
+          user.canManageProduction && user.organizationId != null
+              ? _buildFloatingButtons(user, l10n)
+              : null,
     );
   }
 
@@ -138,7 +153,8 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.view_kanban, color: Theme.of(context).colorScheme.primary),
+                Icon(Icons.view_kanban,
+                    color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   l10n.kanban,
@@ -186,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-Widget _buildFloatingButtons(user, AppLocalizations l10n) {
+  Widget _buildFloatingButtons(user, AppLocalizations l10n) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -208,7 +224,8 @@ Widget _buildFloatingButtons(user, AppLocalizations l10n) {
               );
             },
             icon: const Icon(Icons.add, size: 20),
-            label: Text(l10n.createBatchBtn, style: const TextStyle(fontSize: 13)),
+            label:
+                Text(l10n.createBatchBtn, style: const TextStyle(fontSize: 13)),
             backgroundColor: Theme.of(context).colorScheme.primary,
             extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
           ),
@@ -216,9 +233,10 @@ Widget _buildFloatingButtons(user, AppLocalizations l10n) {
       ],
     );
   }
+
   Widget _buildDrawer(
     BuildContext context,
-    user,
+    UserModel user,
     AuthService authService,
     OrganizationService organizationService,
     AppLocalizations l10n,
@@ -231,33 +249,33 @@ Widget _buildFloatingButtons(user, AppLocalizations l10n) {
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary,
             ),
-            currentAccountPicture: 
-          IconButton(
-            icon: 
-                    CircleAvatar(
-                      radius: 30,
-                      // backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                      backgroundImage: (user.photoURL != null && user.photoURL!.isNotEmpty) 
-                          ? NetworkImage(user.photoURL!) 
-                          : null,
-                      child: (user.photoURL == null || user.photoURL!.isEmpty)
-                          ? Text(
-                              user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            )
-                          : null,
-                    ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              );
-            },
-            tooltip: l10n.profile,
-          ),
+            currentAccountPicture: IconButton(
+              icon: CircleAvatar(
+                radius: 30,
+                // backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                backgroundImage:
+                    (user.photoURL != null && user.photoURL!.isNotEmpty)
+                        ? NetworkImage(user.photoURL!)
+                        : null,
+                child: (user.photoURL == null || user.photoURL!.isEmpty)
+                    ? Text(
+                        user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      )
+                    : null,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const ProfileScreen()),
+                );
+              },
+              tooltip: l10n.profile,
+            ),
             accountName: Text(user.name),
             accountEmail: Text(user.email),
           ),
@@ -296,7 +314,22 @@ Widget _buildFloatingButtons(user, AppLocalizations l10n) {
                 );
               },
             ),
-          ],          
+            ListTile(
+              leading: const Icon(Icons.align_vertical_bottom),
+              title: Text(l10n.slaAlerts),
+              onTap: () {
+                Navigator.pop(context);
+                if (user.organizationId == null) return;
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MetricsDashboardScreen(
+                          organizationId: user.organizationId!,
+                          currentUser: user),
+                    ));
+              },
+            ),
+          ],
           ListTile(
             leading: const Icon(Icons.business),
             title: Text(l10n.organization),
@@ -307,7 +340,8 @@ Widget _buildFloatingButtons(user, AppLocalizations l10n) {
                 if (count == 0) return const Icon(Icons.chevron_right);
 
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.red,
                     borderRadius: BorderRadius.circular(12),
