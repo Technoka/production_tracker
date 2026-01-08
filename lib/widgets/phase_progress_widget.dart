@@ -24,100 +24,115 @@ class PhaseProgressWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final phaseService = PhaseService();
 
-    return StreamBuilder<List<ProductPhaseProgress>>(
-      stream: phaseService.getProductPhaseProgressStream(
-        organizationId,
-        projectId,
-        productId,
-      ),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return StreamBuilder<List<ProductionPhase>>(
+      stream: phaseService.getActivePhasesStream(organizationId),
+      builder: (orgPhasesContext, orgPhasesSnapshot) {
+        final orgPhases = orgPhasesSnapshot.data ?? [];
+        
+        // Create a map for quick lookup
+        final orgPhasesMap = {
+          for (var phase in orgPhases) phase.id: phase
+        };
 
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
-        }
+        return StreamBuilder<List<ProductPhaseProgress>>(
+          stream: phaseService.getProductPhaseProgressStream(
+            organizationId,
+            projectId,
+            productId,
+          ),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        final phases = snapshot.data ?? [];
+            if (snapshot.hasError) {
+              return Center(
+                child: Text('Error: ${snapshot.error}'),
+              );
+            }
 
-        if (phases.isEmpty) {
-          return const Center(
-            child: Text('No hay fases configuradas'),
-          );
-        }
+            final phases = snapshot.data ?? [];
 
-        final completedCount = phases.where((p) => p.isCompleted).length;
-        final progressPercentage = (completedCount / phases.length) * 100;
+            if (phases.isEmpty) {
+              return const Center(
+                child: Text('No hay fases configuradas'),
+              );
+            }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Overall progress
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            final completedCount = phases.where((p) => p.isCompleted).length;
+            final progressPercentage = (completedCount / phases.length) * 100;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Overall progress
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Progreso General',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Progreso General',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '${progressPercentage.toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                        value: progressPercentage / 100,
+                        minHeight: 8,
+                        backgroundColor: Colors.grey[200],
+                      ),
+                      const SizedBox(height: 8),
                       Text(
-                        '${progressPercentage.toStringAsFixed(0)}%',
+                        '$completedCount de ${phases.length} fases completadas',
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).primaryColor,
+                          color: Colors.grey[600],
+                          fontSize: 14,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: progressPercentage / 100,
-                    minHeight: 8,
-                    backgroundColor: Colors.grey[200],
+                ),
+                const Divider(),
+                // Phase list
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: phases.length,
+                    itemBuilder: (context, index) {
+                      final phase = phases[index];
+                      final orgPhase = orgPhasesMap[phase.phaseId];
+                      
+                      return PhaseProgressCard(
+                        phase: phase,
+                        orgPhase: orgPhase,
+                        organizationId: organizationId,
+                        projectId: projectId,
+                        productId: productId,
+                        currentUser: currentUser,
+                        isReadOnly: isReadOnly,
+                        canMoveToNext: index < phases.length - 1,
+                      );
+                    },
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '$completedCount de ${phases.length} fases completadas',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(),
-            // Phase list
-            Expanded(
-              child: ListView.builder(
-                itemCount: phases.length,
-                itemBuilder: (context, index) {
-                  final phase = phases[index];
-                  return PhaseProgressCard(
-                    phase: phase,
-                    organizationId: organizationId,
-                    projectId: projectId,
-                    productId: productId,
-                    currentUser: currentUser,
-                    isReadOnly: isReadOnly,
-                    canMoveToNext: index < phases.length - 1,
-                  );
-                },
-              ),
-            ),
-          ],
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -126,6 +141,7 @@ class PhaseProgressWidget extends StatelessWidget {
 
 class PhaseProgressCard extends StatelessWidget {
   final ProductPhaseProgress phase;
+  final ProductionPhase? orgPhase; // Fase de organización con personalización
   final String organizationId;
   final String projectId;
   final String productId;
@@ -136,6 +152,7 @@ class PhaseProgressCard extends StatelessWidget {
   const PhaseProgressCard({
     Key? key,
     required this.phase,
+    this.orgPhase,
     required this.organizationId,
     required this.projectId,
     required this.productId,
@@ -153,6 +170,42 @@ class PhaseProgressCard extends StatelessWidget {
       case PhaseStatus.completed:
         return Colors.green;
     }
+  }
+
+  Color _getPhaseColor() {
+    if (orgPhase != null) {
+      try {
+        return Color(int.parse(orgPhase!.color.replaceAll('#', '0xFF')));
+      } catch (e) {
+        return Colors.blue;
+      }
+    }
+    return Colors.blue;
+  }
+
+  IconData _getPhaseIcon() {
+    if (orgPhase != null) {
+      final iconMap = {
+        'work': Icons.work,
+        'assignment': Icons.assignment,
+        'content_cut': Icons.content_cut,
+        'layers': Icons.layers,
+        'construction': Icons.construction,
+        'palette': Icons.palette,
+        'design_services': Icons.design_services,
+        'checkroom': Icons.checkroom,
+        'verified': Icons.verified,
+        'inventory': Icons.inventory,
+        'local_shipping': Icons.local_shipping,
+        'build': Icons.build,
+        'brush': Icons.brush,
+        'engineering': Icons.engineering,
+        'handyman': Icons.handyman,
+        'precision_manufacturing': Icons.precision_manufacturing,
+      };
+      return iconMap[orgPhase!.icon.toLowerCase()] ?? Icons.work;
+    }
+    return Icons.work;
   }
 
   IconData _getStatusIcon(PhaseStatus status) {
@@ -202,18 +255,58 @@ class PhaseProgressCard extends StatelessWidget {
 
     if (!context.mounted) return;
 
+    final phaseColor = _getPhaseColor();
+    
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: Text(phase.phaseName),
-              subtitle: const Text('Cambiar estado'),
+            // Header with phase info
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: phaseColor.withOpacity(0.1),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: phaseColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      _getPhaseIcon(),
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          phase.phaseName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const Text(
+                          'Cambiar estado',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const Divider(),
+            const Divider(height: 1),
             ListTile(
               leading: Icon(
                 Icons.radio_button_unchecked,
@@ -317,6 +410,7 @@ class PhaseProgressCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+    final phaseColor = _getPhaseColor();
     
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -329,10 +423,22 @@ class PhaseProgressCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(
-                    _getStatusIcon(phase.status),
-                    color: _getStatusColor(phase.status),
-                    size: 28,
+                  // Phase icon with custom color
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: phaseColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: phaseColor.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Icon(
+                      _getPhaseIcon(),
+                      color: phaseColor,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -346,12 +452,22 @@ class PhaseProgressCard extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        Text(
-                          phase.status.displayName,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: _getStatusColor(phase.status),
-                          ),
+                        Row(
+                          children: [
+                            Icon(
+                              _getStatusIcon(phase.status),
+                              color: _getStatusColor(phase.status),
+                              size: 16,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              phase.status.displayName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: _getStatusColor(phase.status),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
