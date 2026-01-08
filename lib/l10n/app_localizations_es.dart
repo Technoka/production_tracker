@@ -2029,4 +2029,303 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get personalDataUpdated => 'Datos personales actualizados';
+
+  @override
+  String get phaseCustomization => 'Personalización de Fases';
+
+  @override
+  String get colorPicker => 'Selector de Color';
+
+  @override
+  String get iconPicker => 'Selector de Icono';
+
+  @override
+  String get selectColor => 'Seleccionar Color';
+
+  @override
+  String get selectIcon => 'Seleccionar Icono';
+
+  @override
+  String get currentColor => 'Color actual';
+
+  @override
+  String get currentIcon => 'Icono actual';
+
+  @override
+  String get wipSettings => 'Configuración WIP';
+
+  @override
+  String get wipLimitLabel => 'Límite WIP';
+
+  @override
+  String get wipLimitHelper => 'Máximo de productos permitidos en esta fase';
+
+  @override
+  String get wipLimitError => 'El límite WIP debe ser mayor a 0';
+
+  @override
+  String get slaSettings => 'Configuración SLA';
+
+  @override
+  String get maxDurationLabel => 'Duración Máxima (horas)';
+
+  @override
+  String get maxDurationHelper => 'Tiempo máximo permitido en esta fase';
+
+  @override
+  String get warningThresholdLabel => 'Umbral de Advertencia (%)';
+
+  @override
+  String get warningThresholdHelper => 'Porcentaje para alerta temprana (ej: 80%)';
+
+  @override
+  String get slaNotConfigured => 'SLA no configurado';
+
+  @override
+  String get enableSLA => 'Activar SLA';
+
+  @override
+  String get disableSLA => 'Desactivar SLA';
+
+  @override
+  String get reorderPhases => 'Reordenar Fases';
+
+  @override
+  String get dragToReorder => 'Arrastra para reordenar';
+
+  @override
+  String get orderSaved => 'Orden guardado correctamente';
+
+  @override
+  String get invalidColorFormat => 'Formato de color inválido. Usa #RRGGBB';
+
+  @override
+  String get phaseInUse => 'Esta fase no se puede eliminar porque tiene productos asociados';
+
+  @override
+  String get confirmDeletePhase => '¿Eliminar fase permanentemente?';
+
+  @override
+  String get deletePhaseWarning => 'Esta acción no se puede deshacer';
+
+  @override
+  String get createPhaseTitle => 'Crear Fase Nueva';
+
+  @override
+  String get phaseNameLabel => 'Nombre de la Fase';
+
+  @override
+  String get orderLabel => 'Orden';
+
+  @override
+  String get advancedSettings => 'Configuración Avanzada';
+
+  @override
+  String get basicSettings => 'Configuración Básica';
+
+  @override
+  String get phaseCreatedSuccess => 'Fase creada correctamente';
+
+  @override
+  String get phaseDeletedSuccess => 'Fase eliminada correctamente';
+
+  @override
+  String get wipLimitReached => 'Límite WIP alcanzado';
+
+  @override
+  String get wipLimitExceeded => 'Se ha superado el límite WIP en';
+
+  @override
+  String get slaAlerts => 'Alertas SLA';
+
+  @override
+  String get activeAlerts => 'Alertas Activas';
+
+  @override
+  String get alertDetails => 'Detalles de la Alerta';
+
+  @override
+  String get acknowledge => 'Reconocer';
+
+  @override
+  String get resolve => 'Resolver';
+
+  @override
+  String get resolutionNotes => 'Notas de Resolución';
+
+  @override
+  String get alertAcknowledged => 'Alerta reconocida';
+
+  @override
+  String get alertResolved => 'Alerta resuelta';
+
+  @override
+  String get noAlertsActive => 'No hay alertas activas';
+
+  @override
+  String get slaExceeded => 'SLA Superado';
+
+  @override
+  String get slaWarning => 'Advertencia SLA';
+
+  @override
+  String get phaseBlocked => 'Fase Bloqueada';
+
+  @override
+  String get wipLimitExceededAlert => 'Límite WIP Superado';
+
+  @override
+  String get criticalSeverity => 'Crítico';
+
+  @override
+  String get warningSeverity => 'Advertencia';
+
+  @override
+  String excessHours(Object hours) {
+    return 'Exceso de ${hours}h';
+  }
+
+  @override
+  String get approachingLimit => 'Aproximándose al límite';
+
+  @override
+  String get viewAlert => 'Ver alerta';
+
+  @override
+  String get dismissAlert => 'Descartar alerta';
+
+  @override
+  String get alertsPanel => 'Panel de Alertas';
+
+  @override
+  String get filterBySeverity => 'Filtrar por severidad';
+
+  @override
+  String get filterByStatus => 'Filtrar por estado';
+
+  @override
+  String get allSeverities => 'Todas las severidades';
+
+  @override
+  String get allStatuses => 'Todos los estados';
+
+  @override
+  String get excess => 'Exceso de';
+
+  @override
+  String get hoursLetter => 'h';
+
+  @override
+  String get dashboard => 'Dashboard';
+
+  @override
+  String get metrics => 'Métricas';
+
+  @override
+  String get analytics => 'Analytics';
+
+  @override
+  String get overview => 'Resumen';
+
+  @override
+  String get performance => 'Rendimiento';
+
+  @override
+  String get trends => 'Tendencias';
+
+  @override
+  String get kpi => 'KPI';
+
+  @override
+  String get activeProjects => 'Proyectos Activos';
+
+  @override
+  String get completedProjects => 'Proyectos Completados';
+
+  @override
+  String get delayedProjects => 'Proyectos Retrasados';
+
+  @override
+  String get productsCompleted => 'Productos Completados';
+
+  @override
+  String get productsInProgress => 'Productos en Proceso';
+
+  @override
+  String get productsPending => 'Productos Pendientes';
+
+  @override
+  String get slaCompliance => 'Cumplimiento SLA';
+
+  @override
+  String get efficiencyScore => 'Puntuación de Eficiencia';
+
+  @override
+  String get averageTimePerPhase => 'Tiempo Promedio por Fase';
+
+  @override
+  String get productsPerPhase => 'Productos por Fase';
+
+  @override
+  String get bottlenecks => 'Cuellos de Botella';
+
+  @override
+  String get phasePerformance => 'Rendimiento de Fase';
+
+  @override
+  String get completionRate => 'Tasa de Finalización';
+
+  @override
+  String get productivity => 'Productividad';
+
+  @override
+  String get last7Days => 'Últimos 7 Días';
+
+  @override
+  String get last30Days => 'Últimos 30 Días';
+
+  @override
+  String get last3Months => 'Últimos 3 Meses';
+
+  @override
+  String get thisMonth => 'Este Mes';
+
+  @override
+  String get lastMonth => 'Mes Pasado';
+
+  @override
+  String get trendUp => 'Tendencia al alza';
+
+  @override
+  String get trendDown => 'Tendencia a la baja';
+
+  @override
+  String get trendStable => 'Tendencia estable';
+
+  @override
+  String get noDataAvailable => 'No hay datos disponibles';
+
+  @override
+  String get loadingMetrics => 'Cargando métricas...';
+
+  @override
+  String get refreshData => 'Actualizar datos';
+
+  @override
+  String get exportReport => 'Exportar reporte';
+
+  @override
+  String get viewDetails => 'Ver detalles';
+
+  @override
+  String get comparedToLastPeriod => 'Comparado con el período anterior';
+
+  @override
+  String get hours => 'horas';
+
+  @override
+  String get days => 'días';
+
+  @override
+  String get percentageChange => 'Cambio porcentual';
 }

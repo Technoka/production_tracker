@@ -4030,6 +4030,600 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Personal data updated'**
   String get personalDataUpdated;
+
+  /// No description provided for @phaseCustomization.
+  ///
+  /// In en, this message translates to:
+  /// **'Phase Customization'**
+  String get phaseCustomization;
+
+  /// No description provided for @colorPicker.
+  ///
+  /// In en, this message translates to:
+  /// **'Color Picker'**
+  String get colorPicker;
+
+  /// No description provided for @iconPicker.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon Picker'**
+  String get iconPicker;
+
+  /// No description provided for @selectColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Color'**
+  String get selectColor;
+
+  /// No description provided for @selectIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Icon'**
+  String get selectIcon;
+
+  /// No description provided for @currentColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Current color'**
+  String get currentColor;
+
+  /// No description provided for @currentIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Current icon'**
+  String get currentIcon;
+
+  /// No description provided for @wipSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'WIP Settings'**
+  String get wipSettings;
+
+  /// No description provided for @wipLimitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'WIP Limit'**
+  String get wipLimitLabel;
+
+  /// No description provided for @wipLimitHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum products allowed in this phase'**
+  String get wipLimitHelper;
+
+  /// No description provided for @wipLimitError.
+  ///
+  /// In en, this message translates to:
+  /// **'WIP limit must be greater than 0'**
+  String get wipLimitError;
+
+  /// No description provided for @slaSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'SLA Settings'**
+  String get slaSettings;
+
+  /// No description provided for @maxDurationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Duration (hours)'**
+  String get maxDurationLabel;
+
+  /// No description provided for @maxDurationHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum time allowed in this phase'**
+  String get maxDurationHelper;
+
+  /// No description provided for @warningThresholdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning Threshold (%)'**
+  String get warningThresholdLabel;
+
+  /// No description provided for @warningThresholdHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Percentage for early alert (e.g. 80%)'**
+  String get warningThresholdHelper;
+
+  /// No description provided for @slaNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'SLA not configured'**
+  String get slaNotConfigured;
+
+  /// No description provided for @enableSLA.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable SLA'**
+  String get enableSLA;
+
+  /// No description provided for @disableSLA.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable SLA'**
+  String get disableSLA;
+
+  /// No description provided for @reorderPhases.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder Phases'**
+  String get reorderPhases;
+
+  /// No description provided for @dragToReorder.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder'**
+  String get dragToReorder;
+
+  /// No description provided for @orderSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Order saved successfully'**
+  String get orderSaved;
+
+  /// No description provided for @invalidColorFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid color format. Use #RRGGBB'**
+  String get invalidColorFormat;
+
+  /// No description provided for @phaseInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'This phase cannot be deleted because it has associated products'**
+  String get phaseInUse;
+
+  /// No description provided for @confirmDeletePhase.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete phase permanently?'**
+  String get confirmDeletePhase;
+
+  /// No description provided for @deletePhaseWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone'**
+  String get deletePhaseWarning;
+
+  /// No description provided for @createPhaseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create New Phase'**
+  String get createPhaseTitle;
+
+  /// No description provided for @phaseNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phase Name'**
+  String get phaseNameLabel;
+
+  /// No description provided for @orderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Order'**
+  String get orderLabel;
+
+  /// No description provided for @advancedSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced Settings'**
+  String get advancedSettings;
+
+  /// No description provided for @basicSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Settings'**
+  String get basicSettings;
+
+  /// No description provided for @phaseCreatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Phase created successfully'**
+  String get phaseCreatedSuccess;
+
+  /// No description provided for @phaseDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Phase deleted successfully'**
+  String get phaseDeletedSuccess;
+
+  /// No description provided for @wipLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'WIP limit reached'**
+  String get wipLimitReached;
+
+  /// No description provided for @wipLimitExceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'WIP limit exceeded in'**
+  String get wipLimitExceeded;
+
+  /// No description provided for @slaAlerts.
+  ///
+  /// In en, this message translates to:
+  /// **'SLA Alerts'**
+  String get slaAlerts;
+
+  /// No description provided for @activeAlerts.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Alerts'**
+  String get activeAlerts;
+
+  /// No description provided for @alertDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Alert Details'**
+  String get alertDetails;
+
+  /// No description provided for @acknowledge.
+  ///
+  /// In en, this message translates to:
+  /// **'Acknowledge'**
+  String get acknowledge;
+
+  /// No description provided for @resolve.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve'**
+  String get resolve;
+
+  /// No description provided for @resolutionNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution Notes'**
+  String get resolutionNotes;
+
+  /// No description provided for @alertAcknowledged.
+  ///
+  /// In en, this message translates to:
+  /// **'Alert acknowledged'**
+  String get alertAcknowledged;
+
+  /// No description provided for @alertResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Alert resolved'**
+  String get alertResolved;
+
+  /// No description provided for @noAlertsActive.
+  ///
+  /// In en, this message translates to:
+  /// **'No active alerts'**
+  String get noAlertsActive;
+
+  /// No description provided for @slaExceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'SLA Exceeded'**
+  String get slaExceeded;
+
+  /// No description provided for @slaWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'SLA Warning'**
+  String get slaWarning;
+
+  /// No description provided for @phaseBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Phase Blocked'**
+  String get phaseBlocked;
+
+  /// No description provided for @wipLimitExceededAlert.
+  ///
+  /// In en, this message translates to:
+  /// **'WIP Limit Exceeded'**
+  String get wipLimitExceededAlert;
+
+  /// No description provided for @criticalSeverity.
+  ///
+  /// In en, this message translates to:
+  /// **'Critical'**
+  String get criticalSeverity;
+
+  /// No description provided for @warningSeverity.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning'**
+  String get warningSeverity;
+
+  /// No description provided for @excessHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Excess {hours}h'**
+  String excessHours(Object hours);
+
+  /// No description provided for @approachingLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Approaching limit'**
+  String get approachingLimit;
+
+  /// No description provided for @viewAlert.
+  ///
+  /// In en, this message translates to:
+  /// **'View alert'**
+  String get viewAlert;
+
+  /// No description provided for @dismissAlert.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss alert'**
+  String get dismissAlert;
+
+  /// No description provided for @alertsPanel.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts Panel'**
+  String get alertsPanel;
+
+  /// No description provided for @filterBySeverity.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by severity'**
+  String get filterBySeverity;
+
+  /// No description provided for @filterByStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by status'**
+  String get filterByStatus;
+
+  /// No description provided for @allSeverities.
+  ///
+  /// In en, this message translates to:
+  /// **'All severities'**
+  String get allSeverities;
+
+  /// No description provided for @allStatuses.
+  ///
+  /// In en, this message translates to:
+  /// **'All statuses'**
+  String get allStatuses;
+
+  /// No description provided for @excess.
+  ///
+  /// In en, this message translates to:
+  /// **'Excess'**
+  String get excess;
+
+  /// No description provided for @hoursLetter.
+  ///
+  /// In en, this message translates to:
+  /// **'h'**
+  String get hoursLetter;
+
+  /// No description provided for @dashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get dashboard;
+
+  /// No description provided for @metrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Metrics'**
+  String get metrics;
+
+  /// No description provided for @analytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytics'**
+  String get analytics;
+
+  /// No description provided for @overview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get overview;
+
+  /// No description provided for @performance.
+  ///
+  /// In en, this message translates to:
+  /// **'Performance'**
+  String get performance;
+
+  /// No description provided for @trends.
+  ///
+  /// In en, this message translates to:
+  /// **'Trends'**
+  String get trends;
+
+  /// No description provided for @kpi.
+  ///
+  /// In en, this message translates to:
+  /// **'KPI'**
+  String get kpi;
+
+  /// No description provided for @activeProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Projects'**
+  String get activeProjects;
+
+  /// No description provided for @completedProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed Projects'**
+  String get completedProjects;
+
+  /// No description provided for @delayedProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Delayed Projects'**
+  String get delayedProjects;
+
+  /// No description provided for @productsCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Products Completed'**
+  String get productsCompleted;
+
+  /// No description provided for @productsInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Products In Progress'**
+  String get productsInProgress;
+
+  /// No description provided for @productsPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Products Pending'**
+  String get productsPending;
+
+  /// No description provided for @slaCompliance.
+  ///
+  /// In en, this message translates to:
+  /// **'SLA Compliance'**
+  String get slaCompliance;
+
+  /// No description provided for @efficiencyScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Efficiency Score'**
+  String get efficiencyScore;
+
+  /// No description provided for @averageTimePerPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'Average Time per Phase'**
+  String get averageTimePerPhase;
+
+  /// No description provided for @productsPerPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'Products per Phase'**
+  String get productsPerPhase;
+
+  /// No description provided for @bottlenecks.
+  ///
+  /// In en, this message translates to:
+  /// **'Bottlenecks'**
+  String get bottlenecks;
+
+  /// No description provided for @phasePerformance.
+  ///
+  /// In en, this message translates to:
+  /// **'Phase Performance'**
+  String get phasePerformance;
+
+  /// No description provided for @completionRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Completion Rate'**
+  String get completionRate;
+
+  /// No description provided for @productivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Productivity'**
+  String get productivity;
+
+  /// No description provided for @last7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 Days'**
+  String get last7Days;
+
+  /// No description provided for @last30Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 Days'**
+  String get last30Days;
+
+  /// No description provided for @last3Months.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 3 Months'**
+  String get last3Months;
+
+  /// No description provided for @thisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This Month'**
+  String get thisMonth;
+
+  /// No description provided for @lastMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Month'**
+  String get lastMonth;
+
+  /// No description provided for @trendUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Upward trend'**
+  String get trendUp;
+
+  /// No description provided for @trendDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Downward trend'**
+  String get trendDown;
+
+  /// No description provided for @trendStable.
+  ///
+  /// In en, this message translates to:
+  /// **'Stable trend'**
+  String get trendStable;
+
+  /// No description provided for @noDataAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No data available'**
+  String get noDataAvailable;
+
+  /// No description provided for @loadingMetrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading metrics...'**
+  String get loadingMetrics;
+
+  /// No description provided for @refreshData.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh data'**
+  String get refreshData;
+
+  /// No description provided for @exportReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export report'**
+  String get exportReport;
+
+  /// No description provided for @viewDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View details'**
+  String get viewDetails;
+
+  /// No description provided for @comparedToLastPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Compared to last period'**
+  String get comparedToLastPeriod;
+
+  /// No description provided for @hours.
+  ///
+  /// In en, this message translates to:
+  /// **'hours'**
+  String get hours;
+
+  /// No description provided for @days.
+  ///
+  /// In en, this message translates to:
+  /// **'days'**
+  String get days;
+
+  /// No description provided for @percentageChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Percentage change'**
+  String get percentageChange;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
