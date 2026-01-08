@@ -35,6 +35,7 @@ enum PhaseStatus {
   }
 }
 
+/// Modelo principal de Fase de Producción (a nivel de organización)
 class ProductionPhase {
   final String id;
   final String name;
@@ -45,34 +46,55 @@ class ProductionPhase {
   final DateTime createdAt;
   final DateTime? updatedAt;
   
-  // Campos Kanban (FASE 6)
+  // ==================== PERSONALIZACIÓN VISUAL ====================
+  /// Color en formato hex (#RRGGBB)
   final String color;
+  
+  /// Nombre del icono (usamos Material Icons names)
   final String icon;
-  final int wipLimit;
+  
+  /// Posición en el Kanban (para reordenar columnas visualmente)
   final int kanbanPosition;
   
-  // Campos para SLA (FASE 5 - futuro)
+  // ==================== KANBAN WIP LIMITS ====================
+  /// Límite de Work-In-Progress (máximo de productos permitidos en esta fase)
+  final int wipLimit;
+  
+  // ==================== SLA Y ALERTAS ====================
+  /// Tiempo máximo permitido en horas para esta fase (SLA)
   final int? maxDurationHours;
+  
+  /// Umbral de advertencia como porcentaje del maxDurationHours (ej: 80 = alerta al 80%)
   final int? warningThresholdPercent;
+  
+  // ==================== MÉTRICAS CALCULADAS (Analytics) ====================
+  /// Tiempo promedio real de productos en esta fase (calculado por Cloud Functions)
   final double? averageDurationHours;
-  final int? minDurationHours;
-  final int? maxDurationHistoryHours;
+  
+  /// Tiempo mínimo registrado
+  final double? minDurationHours;
+  
+  /// Tiempo máximo registrado
+  final double? maxDurationHistoryHours;
 
   ProductionPhase({
     required this.id,
     required this.name,
     required this.description,
-    this.isActive = true,
     required this.order,
+    this.isActive = true,
     this.createdBy,
     required this.createdAt,
     this.updatedAt,
+    // Defaults para personalización
     this.color = '#2196F3',
     this.icon = 'work',
-    this.wipLimit = 10,
     this.kanbanPosition = 0,
+    this.wipLimit = 10,
+    // SLA opcionales
     this.maxDurationHours,
-    this.warningThresholdPercent,
+    this.warningThresholdPercent = 80,
+    // Métricas (calculadas externamente)
     this.averageDurationHours,
     this.minDurationHours,
     this.maxDurationHistoryHours,
@@ -86,34 +108,34 @@ class ProductionPhase {
       description: data['description'] ?? '',
       order: data['order'] ?? 0,
       isActive: data['isActive'] ?? true,
-      createdBy: data['createdBy'] ?? '',
+      createdBy: data['createdBy'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
       color: data['color'] ?? '#2196F3',
       icon: data['icon'] ?? 'work',
-      wipLimit: data['wipLimit'] ?? 10,
       kanbanPosition: data['kanbanPosition'] ?? 0,
+      wipLimit: data['wipLimit'] ?? 10,
       maxDurationHours: data['maxDurationHours'],
-      warningThresholdPercent: data['warningThresholdPercent'],
+      warningThresholdPercent: data['warningThresholdPercent'] ?? 80,
       averageDurationHours: data['averageDurationHours']?.toDouble(),
-      minDurationHours: data['minDurationHours'],
-      maxDurationHistoryHours: data['maxDurationHistoryHours'],
+      minDurationHours: data['minDurationHours']?.toDouble(),
+      maxDurationHistoryHours: data['maxDurationHistoryHours']?.toDouble(),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'name': name,
-      'isActive': isActive,
       'description': description,
       'order': order,
+      'isActive': isActive,
       'createdBy': createdBy,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'color': color,
       'icon': icon,
-      'wipLimit': wipLimit,
       'kanbanPosition': kanbanPosition,
+      'wipLimit': wipLimit,
       'maxDurationHours': maxDurationHours,
       'warningThresholdPercent': warningThresholdPercent,
       'averageDurationHours': averageDurationHours,
@@ -125,35 +147,35 @@ class ProductionPhase {
   ProductionPhase copyWith({
     String? id,
     String? name,
-    bool? isActive,
     String? description,
     int? order,
+    bool? isActive,
     String? createdBy,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? color,
     String? icon,
-    int? wipLimit,
     int? kanbanPosition,
+    int? wipLimit,
     int? maxDurationHours,
     int? warningThresholdPercent,
     double? averageDurationHours,
-    int? minDurationHours,
-    int? maxDurationHistoryHours,
+    double? minDurationHours,
+    double? maxDurationHistoryHours,
   }) {
     return ProductionPhase(
       id: id ?? this.id,
       name: name ?? this.name,
-      isActive: isActive ?? this.isActive,
       description: description ?? this.description,
       order: order ?? this.order,
+      isActive: isActive ?? this.isActive,
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       color: color ?? this.color,
       icon: icon ?? this.icon,
-      wipLimit: wipLimit ?? this.wipLimit,
       kanbanPosition: kanbanPosition ?? this.kanbanPosition,
+      wipLimit: wipLimit ?? this.wipLimit,
       maxDurationHours: maxDurationHours ?? this.maxDurationHours,
       warningThresholdPercent: warningThresholdPercent ?? this.warningThresholdPercent,
       averageDurationHours: averageDurationHours ?? this.averageDurationHours,
@@ -161,54 +183,100 @@ class ProductionPhase {
       maxDurationHistoryHours: maxDurationHistoryHours ?? this.maxDurationHistoryHours,
     );
   }
+
+  // ==================== HELPERS ====================
   
+  /// Calcula las horas de advertencia basado en el threshold
+  int? get warningHours {
+    if (maxDurationHours == null || warningThresholdPercent == null) return null;
+    return ((maxDurationHours! * warningThresholdPercent!) / 100).round();
+  }
+
+  /// Verifica si tiene SLA configurado
+  bool get hasSLA => maxDurationHours != null && maxDurationHours! > 0;
+
+  /// Valida si un color hex es válido
+  bool get hasValidColor {
+    final hexColor = color.replaceAll('#', '');
+    return hexColor.length == 6 && int.tryParse(hexColor, radix: 16) != null;
+  }
+
+  // ==================== FASES PREDETERMINADAS ====================
+  
+  /// Retorna las fases por defecto para una nueva organización
   static List<ProductionPhase> getDefaultPhases() {
     final now = DateTime.now();
     return [
       ProductionPhase(
         id: 'planned',
         name: 'Planned',
+        description: 'Planificación inicial del pedido',
         order: 1,
         isActive: true,
-        description: 'Planificación inicial del pedido',
         createdAt: now,
+        color: '#9E9E9E',
+        icon: 'assignment',
+        wipLimit: 15,
+        maxDurationHours: 24,
+        kanbanPosition: 1,
       ),
       ProductionPhase(
         id: 'cutting',
         name: 'Cutting',
+        description: 'Corte de materiales',
         order: 2,
         isActive: true,
-        description: 'Corte de materiales',
         createdAt: now,
+        color: '#FF9800',
+        icon: 'content_cut',
+        wipLimit: 10,
+        maxDurationHours: 48,
+        kanbanPosition: 2,
       ),
       ProductionPhase(
         id: 'skiving',
         name: 'Skiving',
+        description: 'Rebajado de piel',
         order: 3,
         isActive: true,
-        description: 'Rebajado de piel',
         createdAt: now,
+        color: '#2196F3',
+        icon: 'layers',
+        wipLimit: 8,
+        maxDurationHours: 36,
+        kanbanPosition: 3,
       ),
       ProductionPhase(
         id: 'assembly',
         name: 'Assembly',
+        description: 'Ensamblaje del producto',
         order: 4,
         isActive: true,
-        description: 'Ensamblaje del producto',
         createdAt: now,
+        color: '#4CAF50',
+        icon: 'construction',
+        wipLimit: 12,
+        maxDurationHours: 72,
+        kanbanPosition: 4,
       ),
       ProductionPhase(
         id: 'studio',
         name: 'Studio',
+        description: 'Finalización y revisión',
         order: 5,
         isActive: true,
-        description: 'Finalización',
         createdAt: now,
+        color: '#9C27B0',
+        icon: 'palette',
+        wipLimit: 10,
+        maxDurationHours: 24,
+        kanbanPosition: 5,
       ),
     ];
   }
 }
 
+/// Progreso de fase para un producto específico
 class ProductPhaseProgress {
   final String id;
   final String productId;
@@ -314,6 +382,8 @@ class ProductPhaseProgress {
     );
   }
 
+  // ==================== HELPERS ====================
+  
   double get progressPercentage {
     switch (status) {
       case PhaseStatus.pending:
@@ -328,4 +398,26 @@ class ProductPhaseProgress {
   bool get isPending => status == PhaseStatus.pending;
   bool get isInProgress => status == PhaseStatus.inProgress;
   bool get isCompleted => status == PhaseStatus.completed;
+
+  /// Calcula las horas transcurridas en la fase actual
+  int? get hoursInCurrentStatus {
+    DateTime? referenceDate;
+    
+    if (isCompleted && completedAt != null && startedAt != null) {
+      // Si está completada, calcular duración total
+      return completedAt!.difference(startedAt!).inHours;
+    } else if (isInProgress && startedAt != null) {
+      // Si está en progreso, calcular desde inicio hasta ahora
+      return DateTime.now().difference(startedAt!).inHours;
+    }
+    
+    return null;
+  }
+
+  /// Verifica si la fase está pendiente por más de X horas desde creación
+  bool isPendingTooLong(int maxPendingHours) {
+    if (!isPending) return false;
+    final hoursPending = DateTime.now().difference(createdAt).inHours;
+    return hoursPending > maxPendingHours;
+  }
 }

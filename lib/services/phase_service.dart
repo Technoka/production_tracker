@@ -59,6 +59,20 @@ class PhaseService {
     }
   }
 
+  /// Get active phases stream (real-time)
+  Stream<List<ProductionPhase>> getActivePhasesStream(String organizationId) {
+    return _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('phases')
+        .where('isActive', isEqualTo: true)
+        .orderBy('order')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ProductionPhase.fromFirestore(doc))
+            .toList());
+  }
+
   /// Initialize default phases for an organization
   Future<void> initializeDefaultPhases(String organizationId) async {
     try {
@@ -82,7 +96,7 @@ class PhaseService {
     }
   }
 
-  /// Update a phase
+  /// Update a phase with any fields
   Future<void> updatePhase(
     String organizationId,
     String phaseId,
@@ -132,6 +146,190 @@ class PhaseService {
       return docRef.id;
     } catch (e) {
       print('Error creating custom phase: $e');
+      rethrow;
+    }
+  }
+
+/// Delete a phase (solo si no tiene productos asociados)
+  Future<void> deletePhase(
+    String organizationId,
+    String phaseId,
+  ) async {
+    try {
+      // Verificar que no haya productos en esta fase antes de eliminar
+      final projectsSnapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('projects')
+          .get();
+
+      // Revisar todos los proyectos
+      for (final projectDoc in projectsSnapshot.docs) {
+        final productsInPhase = await getProductsInPhase(
+          organizationId,
+          projectDoc.id,
+          phaseId,
+        );
+
+        if (productsInPhase.isNotEmpty) {
+          throw Exception(
+            'Cannot delete phase: ${productsInPhase.length} product(s) are currently in this phase. '
+            'Move or complete these products before deleting the phase.'
+          );
+        }
+
+        // Verificar también si hay productos con esta fase en su progreso (aunque no estén activos en ella)
+        final productsSnapshot = await _firestore
+            .collection('organizations')
+            .doc(organizationId)
+            .collection('projects')
+            .doc(projectDoc.id)
+            .collection('products')
+            .get();
+
+        for (final productDoc in productsSnapshot.docs) {
+          final phaseProgressDoc = await _firestore
+              .collection('organizations')
+              .doc(organizationId)
+              .collection('projects')
+              .doc(projectDoc.id)
+              .collection('products')
+              .doc(productDoc.id)
+              .collection('phaseProgress')
+              .doc(phaseId)
+              .get();
+
+          if (phaseProgressDoc.exists) {
+            throw Exception(
+              'Cannot delete phase: This phase is part of existing product workflows. '
+              'Deactivate the phase instead to hide it from new products.'
+            );
+          }
+        }
+      }
+
+      // Si no hay productos, proceder a eliminar
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('phases')
+          .doc(phaseId)
+          .delete();
+    } catch (e) {
+      print('Error deleting phase: $e');
+      rethrow;
+    }
+  }
+
+  // ==================== PERSONALIZACIÓN AVANZADA ====================
+
+  /// Update phase visual settings (color, icon)
+  Future<void> updatePhaseVisuals(
+    String organizationId,
+    String phaseId, {
+    String? color,
+    String? icon,
+  }) async {
+    try {
+      final updates = <String, dynamic>{};
+      
+      if (color != null) {
+        // Validar formato hex
+        if (!color.startsWith('#') || color.length != 7) {
+          throw Exception('Invalid color format. Use #RRGGBB');
+        }
+        updates['color'] = color;
+      }
+      
+      if (icon != null) {
+        updates['icon'] = icon;
+      }
+      
+      if (updates.isNotEmpty) {
+        await updatePhase(organizationId, phaseId, updates);
+      }
+    } catch (e) {
+      print('Error updating phase visuals: $e');
+      rethrow;
+    }
+  }
+
+  /// Update WIP limit
+  Future<void> updateWipLimit(
+    String organizationId,
+    String phaseId,
+    int wipLimit,
+  ) async {
+    try {
+      if (wipLimit < 1) {
+        throw Exception('WIP limit must be at least 1');
+      }
+      
+      await updatePhase(organizationId, phaseId, {'wipLimit': wipLimit});
+    } catch (e) {
+      print('Error updating WIP limit: $e');
+      rethrow;
+    }
+  }
+
+  /// Update SLA settings
+  Future<void> updateSLASettings(
+    String organizationId,
+    String phaseId, {
+    int? maxDurationHours,
+    int? warningThresholdPercent,
+  }) async {
+    try {
+      final updates = <String, dynamic>{};
+      
+      if (maxDurationHours != null) {
+        if (maxDurationHours < 0) {
+          throw Exception('Max duration must be positive');
+        }
+        updates['maxDurationHours'] = maxDurationHours;
+      }
+      
+      if (warningThresholdPercent != null) {
+        if (warningThresholdPercent < 1 || warningThresholdPercent > 100) {
+          throw Exception('Warning threshold must be between 1 and 100');
+        }
+        updates['warningThresholdPercent'] = warningThresholdPercent;
+      }
+      
+      if (updates.isNotEmpty) {
+        await updatePhase(organizationId, phaseId, updates);
+      }
+    } catch (e) {
+      print('Error updating SLA settings: $e');
+      rethrow;
+    }
+  }
+
+  /// Reorder phases
+  Future<void> reorderPhases(
+    String organizationId,
+    List<String> orderedPhaseIds,
+  ) async {
+    try {
+      final batch = _firestore.batch();
+      
+      for (int i = 0; i < orderedPhaseIds.length; i++) {
+        final docRef = _firestore
+            .collection('organizations')
+            .doc(organizationId)
+            .collection('phases')
+            .doc(orderedPhaseIds[i]);
+        
+        batch.update(docRef, {
+          'order': i + 1,
+          'kanbanPosition': i + 1,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+      
+      await batch.commit();
+    } catch (e) {
+      print('Error reordering phases: $e');
       rethrow;
     }
   }
@@ -339,6 +537,8 @@ class PhaseService {
     }
   }
 
+  // ==================== ANALYTICS Y MÉTRICAS ====================
+
   /// Calculate overall product progress percentage
   Future<double> calculateProductProgress(
     String organizationId,
@@ -423,6 +623,95 @@ class PhaseService {
     }
   }
 
+  /// Get products in a specific phase (para Kanban)
+  Future<List<String>> getProductsInPhase(
+    String organizationId,
+    String projectId,
+    String phaseId,
+  ) async {
+    try {
+      final productsSnapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('projects')
+          .doc(projectId)
+          .collection('products')
+          .get();
+
+      final productsInPhase = <String>[];
+
+      for (final productDoc in productsSnapshot.docs) {
+        final phaseDoc = await _firestore
+            .collection('organizations')
+            .doc(organizationId)
+            .collection('projects')
+            .doc(projectId)
+            .collection('products')
+            .doc(productDoc.id)
+            .collection('phaseProgress')
+            .doc(phaseId)
+            .get();
+
+        if (phaseDoc.exists) {
+          final progress = ProductPhaseProgress.fromMap(phaseDoc);
+          if (progress.isInProgress) {
+            productsInPhase.add(productDoc.id);
+          }
+        }
+      }
+
+      return productsInPhase;
+    } catch (e) {
+      print('Error getting products in phase: $e');
+      return [];
+    }
+  }
+
+  /// Check WIP limit for a phase
+  Future<bool> isPhaseAtWipLimit(
+    String organizationId,
+    String phaseId,
+  ) async {
+    try {
+      // Get phase configuration
+      final phaseDoc = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('phases')
+          .doc(phaseId)
+          .get();
+
+      if (!phaseDoc.exists) return false;
+
+      final phase = ProductionPhase.fromFirestore(phaseDoc);
+
+      // Count products currently in this phase across all projects
+      final projectsSnapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('projects')
+          .get();
+
+      int currentCount = 0;
+
+      for (final projectDoc in projectsSnapshot.docs) {
+        final productsInPhase = await getProductsInPhase(
+          organizationId,
+          projectDoc.id,
+          phaseId,
+        );
+        currentCount += productsInPhase.length;
+      }
+
+      return currentCount >= phase.wipLimit;
+    } catch (e) {
+      print('Error checking WIP limit: $e');
+      return false;
+    }
+  }
+
+  // ==================== PHASE ASSIGNMENTS (Para Operarios) ====================
+
   /// Check if user can manage a specific phase (for operator role)
   Future<bool> canUserManagePhase(
     String userId,
@@ -446,7 +735,7 @@ class PhaseService {
       final data = assignmentDoc.data() as Map<String, dynamic>;
       final assignedPhases = List<String>.from(data['phases'] ?? []);
       
-      return assignedPhases.contains(phaseId);
+      return assignedPhases.isEmpty || assignedPhases.contains(phaseId);
     } catch (e) {
       print('Error checking phase permission: $e');
       return false;
@@ -472,6 +761,29 @@ class PhaseService {
     } catch (e) {
       print('Error assigning phases to user: $e');
       rethrow;
+    }
+  }
+
+  /// Get assigned phases for a user
+  Future<List<String>> getAssignedPhases(
+    String userId,
+    String organizationId,
+  ) async {
+    try {
+      final assignmentDoc = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('phaseAssignments')
+          .doc(userId)
+          .get();
+
+      if (!assignmentDoc.exists) return [];
+
+      final data = assignmentDoc.data() as Map<String, dynamic>;
+      return List<String>.from(data['phases'] ?? []);
+    } catch (e) {
+      print('Error getting assigned phases: $e');
+      return [];
     }
   }
 }
