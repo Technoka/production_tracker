@@ -5,6 +5,7 @@ import '../models/batch_product_model.dart';
 import '../models/phase_model.dart';
 import '../models/production_batch_model.dart';
 import '../services/auth_service.dart';
+import '../../widgets/sla/sla_status_indicator.dart';
 
 class DraggableProductCard extends StatelessWidget {
   final BatchProductModel product;
@@ -141,6 +142,12 @@ class DraggableProductCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  SLAStatusIndicator(
+                    organizationId: batch.organizationId,
+                    productId: product.id,
+                    compact: true, // Modo compacto para que salga solo el icono/badge
                   ),
                   const SizedBox(width: 8),
                   if (product.productStatus != ProductStatus.pending.value)
