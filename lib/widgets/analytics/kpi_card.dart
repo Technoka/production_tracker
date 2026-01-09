@@ -48,9 +48,9 @@ class KPICard extends StatelessWidget {
                   if (trend != null) _buildTrendIndicator(),
                 ],
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Valor principal
               Text(
                 value,
@@ -59,9 +59,9 @@ class KPICard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              
+
               const SizedBox(height: 4),
-              
+
               // Título
               Text(
                 title,
@@ -71,7 +71,7 @@ class KPICard extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              
+
               // Subtitle opcional
               if (subtitle != null) ...[
                 const SizedBox(height: 4),
@@ -200,9 +200,9 @@ class CircularKPICard extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Title
             Text(
               title,
@@ -212,7 +212,7 @@ class CircularKPICard extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            
+
             if (subtitle != null) ...[
               const SizedBox(height: 4),
               Text(
@@ -316,7 +316,7 @@ class ScoreGauge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scoreColor = _getScoreColor();
-    
+
     return Card(
       elevation: 2,
       child: Container(
@@ -330,49 +330,63 @@ class ScoreGauge extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
-            // Gauge visual
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 140,
-                  height: 140,
-                  child: CircularProgressIndicator(
-                    value: score / 100,
-                    strokeWidth: 12,
-                    backgroundColor: Colors.grey[200],
-                    valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
-                  ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
+
+            // ✅ SOLUCIÓN: Usar Expanded + AspectRatio
+            Expanded(
+              // 1. Expanded obliga a ocupar todo el espacio vertical sobrante
+              // (que se genera porque la tarjeta de al lado es más alta).
+              child: AspectRatio(
+                // 2. AspectRatio 1.0 fuerza a que el ancho sea igual al alto (cuadrado perfecto).
+                aspectRatio: 1.0,
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    Text(
-                      score.toStringAsFixed(0),
-                      style: TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        color: scoreColor,
+                    // 3. SizedBox.expand hace que el indicador llene todo el espacio del cuadrado
+                    SizedBox.expand(
+                      child: CircularProgressIndicator(
+                        value: score / 100,
+                        strokeWidth: 12,
+                        backgroundColor: Colors.grey[200],
+                        valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
                       ),
                     ),
-                    Text(
-                      _getScoreLabel(),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Usamos FittedBox para que el texto se encoja si el círculo es muy pequeño
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            score.toStringAsFixed(0),
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: scoreColor,
+                            ),
+                          ),
+                        ),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            _getScoreLabel(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Legend
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,

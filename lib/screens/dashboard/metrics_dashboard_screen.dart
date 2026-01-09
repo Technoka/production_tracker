@@ -163,26 +163,29 @@ class _MetricsDashboardScreenState extends State<MetricsDashboardScreen> {
     final efficiencyScore = _analyticsService.calculateEfficiencyScore(_currentMetrics!);
     final slaCompliance = _currentMetrics!['slaComplianceRate'] as double;
 
-    return Row(
-      children: [
-        Expanded(
-          child: ScoreGauge(
-            score: efficiencyScore,
-            label: l10n.efficiencyScore,
-          ),
+  return IntrinsicHeight( // 1. Calcula la altura del hijo más alto
+  child: Row(
+    crossAxisAlignment: CrossAxisAlignment.stretch, // 2. Estira ambos hijos para llenar esa altura
+    children: [
+      Expanded(
+        child: ScoreGauge(
+          score: efficiencyScore,
+          label: l10n.efficiencyScore,
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: CircularKPICard(
-            title: l10n.slaCompliance,
-            percentage: slaCompliance,
-            icon: Icons.schedule,
-            color: slaCompliance >= 90 ? Colors.green : Colors.orange,
-            subtitle: '${slaCompliance.toStringAsFixed(1)}% on time',
-          ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: CircularKPICard(
+          title: l10n.slaCompliance,
+          percentage: slaCompliance,
+          icon: Icons.schedule,
+          color: slaCompliance >= 90 ? Colors.green : Colors.orange,
+          subtitle: '${slaCompliance.toStringAsFixed(1)}% on time',
         ),
-      ],
-    );
+      ),
+    ],
+  ),
+);
   }
 
   Widget _buildProductionStatus(AppLocalizations l10n) {
