@@ -1,7 +1,7 @@
 name: gestion_produccion
 description: Sistema de gestión de producción para fabricantes y clientes
 publish_to: 'none'
-version: 0.8.0+1
+version: 0.8.2+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

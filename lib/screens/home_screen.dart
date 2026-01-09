@@ -8,7 +8,6 @@ import '../utils/role_utils.dart';
 import '../l10n/app_localizations.dart';
 import 'profile/profile_screen.dart';
 import 'organization/organization_home_screen.dart';
-import 'clients/clients_list_screen.dart';
 import 'production/production_screen.dart';
 import 'production/create_production_batch_screen.dart';
 import '../widgets/production_dashboard_widget.dart';
@@ -17,6 +16,8 @@ import '../widgets/bottom_nav_bar_widget.dart';
 import '../widgets/sla/sla_alert_badge.dart';
 import '../../screens/dashboard/metrics_dashboard_screen.dart';
 import '../../models/user_model.dart';
+import '../../services/update_service.dart';
+import '../../widgets/whats_new_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,6 +27,47 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
+    @override
+  void initState() {
+    super.initState();
+    // Ejecutar después del renderizado inicial para poder mostrar Dialog
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkUpdates();
+    });
+  }
+
+Future<void> _checkUpdates() async {
+    final updateService = UpdateService();
+    
+    // 1. Aquí ocurre la espera asíncrona
+    final releaseNote = await updateService.checkForUpdates();
+
+    // ✅ SOLUCIÓN: Verificar si el widget sigue vivo.
+    // Si el usuario cerró la pantalla mientras cargaba, paramos aquí.
+    if (!mounted) return;
+
+    // 2. Ahora ya es seguro usar 'context' porque sabemos que estamos 'mounted'
+    if (releaseNote != null) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => WhatsNewDialog(
+          note: releaseNote,
+          onClose: () async {
+            await updateService.markVersionAsSeen();
+            
+            // ✅ También aplicamos la seguridad aquí dentro del callback
+            // En versiones nuevas de Flutter usamos 'context.mounted' para contextos locales
+            if (!context.mounted) return; 
+            
+            Navigator.of(context).pop();
+          },
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
