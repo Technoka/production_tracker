@@ -1,0 +1,22 @@
+{
+  "version": "0.8.2",
+  "isActive": true,
+  "features": {
+    "es": [
+      "Nuevo sistema de novedades automaticas!"
+    ],
+    "en": [
+      "New system for automatic updates!"
+    ]
+  },
+  "fixes": {
+    "es": [
+      "Así no tengo que enviarte un whatsapp con cada cosa que añado",
+      "Esto es la polla jajaja"
+    ],
+    "en": [
+      "This way I don¡t have to send you a message every time I add something",
+      "Esto es la polla jajaja"
+    ]
+  }
+}
