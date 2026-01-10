@@ -1,4 +1,66 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+
+/// Permisos especiales para clientes
+/// 
+/// Permite dar acceso especial a ciertos clientes para que puedan
+/// crear lotes o productos con aprobación
+class ClientSpecialPermissions {
+  final bool canCreateBatches; // Puede crear lotes (con aprobación)
+  final bool canCreateProducts; // Puede crear productos personalizados (con aprobación)
+  final bool requiresApproval; // Si sus acciones requieren aprobación
+  final bool canViewAllProjects; // Puede ver todos los proyectos o solo los suyos
+
+  const ClientSpecialPermissions({
+    this.canCreateBatches = false,
+    this.canCreateProducts = false,
+    this.requiresApproval = true,
+    this.canViewAllProjects = false,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'canCreateBatches': canCreateBatches,
+      'canCreateProducts': canCreateProducts,
+      'requiresApproval': requiresApproval,
+      'canViewAllProjects': canViewAllProjects,
+    };
+  }
+
+  factory ClientSpecialPermissions.fromMap(Map<String, dynamic>? map) {
+    if (map == null) {
+      return const ClientSpecialPermissions();
+    }
+
+    return ClientSpecialPermissions(
+      canCreateBatches: map['canCreateBatches'] as bool? ?? false,
+      canCreateProducts: map['canCreateProducts'] as bool? ?? false,
+      requiresApproval: map['requiresApproval'] as bool? ?? true,
+      canViewAllProjects: map['canViewAllProjects'] as bool? ?? false,
+    );
+  }
+
+  ClientSpecialPermissions copyWith({
+    bool? canCreateBatches,
+    bool? canCreateProducts,
+    bool? requiresApproval,
+    bool? canViewAllProjects,
+  }) {
+    return ClientSpecialPermissions(
+      canCreateBatches: canCreateBatches ?? this.canCreateBatches,
+      canCreateProducts: canCreateProducts ?? this.canCreateProducts,
+      requiresApproval: requiresApproval ?? this.requiresApproval,
+      canViewAllProjects: canViewAllProjects ?? this.canViewAllProjects,
+    );
+  }
+
+  /// Cliente tiene algún permiso especial
+  bool get hasAnyPermission =>
+      canCreateBatches || canCreateProducts || canViewAllProjects;
+
+  /// Cliente no tiene permisos especiales
+  bool get isStandard => !hasAnyPermission;
+}
 
 class ClientModel {
   final String id;
@@ -17,6 +79,10 @@ class ClientModel {
   final DateTime? updatedAt;
   final bool isActive;
   final String? userId; // para portal del cliente
+  
+  // NUEVOS CAMPOS - Permisos especiales y UI
+  final String? color; // Color identificativo (hex)
+  final ClientSpecialPermissions specialPermissions; // Permisos especiales
 
   ClientModel({
     required this.id,
@@ -35,6 +101,8 @@ class ClientModel {
     this.updatedAt,
     this.isActive = true,
     this.userId,
+    this.color,
+    this.specialPermissions = const ClientSpecialPermissions(),
   });
 
   Map<String, dynamic> toMap() {
@@ -55,6 +123,8 @@ class ClientModel {
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'isActive': isActive,
       'userId': userId,
+      'color': color,
+      'specialPermissions': specialPermissions.toMap(),
     };
   }
 
@@ -75,7 +145,11 @@ class ClientModel {
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: map['updatedAt'] != null ? (map['updatedAt'] as Timestamp).toDate() : null,
       isActive: map['isActive'] as bool? ?? true,
-      userId: map['userId'] != null ? (map['userId'] as String) : null,
+      userId: map['userId'] as String?,
+      color: map['color'] as String?,
+      specialPermissions: ClientSpecialPermissions.fromMap(
+        map['specialPermissions'] as Map<String, dynamic>?,
+      ),
     );
   }
 
@@ -96,6 +170,8 @@ class ClientModel {
     DateTime? updatedAt,
     bool? isActive,
     String? userId,
+    String? color,
+    ClientSpecialPermissions? specialPermissions,
   }) {
     return ClientModel(
       id: id ?? this.id,
@@ -114,10 +190,13 @@ class ClientModel {
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,
       userId: userId ?? this.userId,
+      color: color ?? this.color,
+      specialPermissions: specialPermissions ?? this.specialPermissions,
     );
   }
 
-  // Getters útiles
+  // ==================== GETTERS EXISTENTES ====================
+  
   String get fullAddress {
     final parts = <String>[];
     if (address != null && address!.isNotEmpty) parts.add(address!);
@@ -143,6 +222,41 @@ class ClientModel {
     return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1))
         .toUpperCase();
   }
+
+  // ==================== NUEVOS GETTERS ====================
+
+  /// Obtener color como objeto Color (si existe)
+  Color? get colorValue {
+    if (color == null) return null;
+    try {
+      return Color(int.parse(color!.replaceAll('#', '0xFF')));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Cliente tiene cuenta de usuario activa
+  bool get hasUserAccount => userId != null;
+
+  /// Cliente tiene permisos especiales
+  bool get hasSpecialPermissions => specialPermissions.hasAnyPermission;
+
+  /// Cliente puede crear lotes
+  bool get canCreateBatches => specialPermissions.canCreateBatches;
+
+  /// Cliente puede crear productos personalizados
+  bool get canCreateProducts => specialPermissions.canCreateProducts;
+
+  /// Cliente requiere aprobación para sus acciones
+  bool get requiresApproval => specialPermissions.requiresApproval;
+
+  /// Cliente puede ver todos los proyectos
+  bool get canViewAllProjects => specialPermissions.canViewAllProjects;
+
+  /// Cliente es estándar (sin permisos especiales)
+  bool get isStandardClient => specialPermissions.isStandard;
+
+  // ==================== OPERADORES ====================
 
   //Arreglar dropdown con objetos repetidos
   @override
