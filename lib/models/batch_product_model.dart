@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'production_batch_model.dart';
 
-/// Estados del producto en el ciclo completo
+/// Estados del producto en el ciclo completo (LEGACY - mantener por compatibilidad)
 enum ProductStatus {
   pending('pending', 'Pendiente', Colors.grey),
   cao('cao', 'CAO', Colors.red),
@@ -21,6 +21,55 @@ enum ProductStatus {
     return ProductStatus.values.firstWhere(
       (status) => status.value == value.toLowerCase(),
       orElse: () => ProductStatus.pending,
+    );
+  }
+}
+
+/// Entrada en el historial de estados
+class StatusHistoryEntry {
+  final String statusId;
+  final String statusName;
+  final String statusColor;
+  final DateTime timestamp;
+  final String userId;
+  final String userName;
+  final Map<String, dynamic>? validationData; // Datos de la validación aplicada
+  final String? notes;
+
+  StatusHistoryEntry({
+    required this.statusId,
+    required this.statusName,
+    required this.statusColor,
+    required this.timestamp,
+    required this.userId,
+    required this.userName,
+    this.validationData,
+    this.notes,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'statusId': statusId,
+      'statusName': statusName,
+      'statusColor': statusColor,
+      'timestamp': Timestamp.fromDate(timestamp),
+      'userId': userId,
+      'userName': userName,
+      'validationData': validationData,
+      'notes': notes,
+    };
+  }
+
+  factory StatusHistoryEntry.fromMap(Map<String, dynamic> map) {
+    return StatusHistoryEntry(
+      statusId: map['statusId'] as String,
+      statusName: map['statusName'] as String,
+      statusColor: map['statusColor'] as String? ?? '#757575',
+      timestamp: (map['timestamp'] as Timestamp).toDate(),
+      userId: map['userId'] as String,
+      userName: map['userName'] as String,
+      validationData: map['validationData'] as Map<String, dynamic>?,
+      notes: map['notes'] as String?,
     );
   }
 }
@@ -58,7 +107,16 @@ class BatchProductModel {
   final double? actualDuration;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final String productStatus;
+  
+  // DEPRECAR GRADUALMENTE (mantener por compatibilidad)
+  final String productStatus; // "pending", "cao", "hold", "control", "ok"
+  
+  // NUEVOS CAMPOS - Estados personalizables
+  final String? statusId; // ID del estado personalizado
+  final String? statusName; // Nombre desnormalizado del estado
+  final String? statusColor; // Color desnormalizado (hex)
+  final List<StatusHistoryEntry> statusHistory; // Historial de cambios de estado
+  
   final DateTime? sentToClientAt;
   final DateTime? evaluatedAt;
   final int returnedCount;
@@ -101,6 +159,10 @@ class BatchProductModel {
     required this.createdAt,
     required this.updatedAt,
     this.productStatus = 'pending',
+    this.statusId,
+    this.statusName,
+    this.statusColor,
+    this.statusHistory = const [],
     this.sentToClientAt,
     this.evaluatedAt,
     this.returnedCount = 0,
@@ -144,7 +206,11 @@ class BatchProductModel {
       'actualDuration': actualDuration,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
-      'productStatus': productStatus,
+      'productStatus': productStatus, // Legacy
+      'statusId': statusId, // Nuevo
+      'statusName': statusName, // Nuevo
+      'statusColor': statusColor, // Nuevo
+      'statusHistory': statusHistory.map((e) => e.toMap()).toList(), // Nuevo
       'sentToClientAt': sentToClientAt != null ? Timestamp.fromDate(sentToClientAt!) : null,
       'evaluatedAt': evaluatedAt != null ? Timestamp.fromDate(evaluatedAt!) : null,
       'returnedCount': returnedCount,
@@ -158,6 +224,15 @@ class BatchProductModel {
   }
 
   factory BatchProductModel.fromMap(Map<String, dynamic> map) {
+    // Parsear historial de estados
+    List<StatusHistoryEntry> history = [];
+    if (map['statusHistory'] != null) {
+      final historyList = map['statusHistory'] as List;
+      history = historyList
+          .map((e) => StatusHistoryEntry.fromMap(e as Map<String, dynamic>))
+          .toList();
+    }
+
     return BatchProductModel(
       id: map['id'] as String,
       batchId: map['batchId'] as String,
@@ -174,7 +249,6 @@ class BatchProductModel {
       ),
       productNumber: map['productNumber'] as int? ?? 1,
       productCode: map['productCode'] as String? ?? '',
-      // ... resto de mapeos
       color: map['color'] as String?,
       material: map['material'] as String?,
       specialDetails: map['specialDetails'] as String?,
@@ -193,6 +267,10 @@ class BatchProductModel {
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
       productStatus: map['productStatus'] as String? ?? 'pending',
+      statusId: map['statusId'] as String?,
+      statusName: map['statusName'] as String?,
+      statusColor: map['statusColor'] as String?,
+      statusHistory: history,
       sentToClientAt: map['sentToClientAt'] != null ? (map['sentToClientAt'] as Timestamp).toDate() : null,
       evaluatedAt: map['evaluatedAt'] != null ? (map['evaluatedAt'] as Timestamp).toDate() : null,
       returnedCount: map['returnedCount'] as int? ?? 0,
@@ -237,6 +315,10 @@ class BatchProductModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? productStatus,
+    String? statusId,
+    String? statusName,
+    String? statusColorValue, // Renombrado el parámetro para evitar conflicto
+    List<StatusHistoryEntry>? statusHistory,
     DateTime? sentToClientAt,
     DateTime? evaluatedAt,
     int? returnedCount,
@@ -279,6 +361,10 @@ class BatchProductModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       productStatus: productStatus ?? this.productStatus,
+      statusId: statusId ?? this.statusId,
+      statusName: statusName ?? this.statusName,
+      statusColor: statusColorValue ?? this.statusColor, // Usar parámetro renombrado
+      statusHistory: statusHistory ?? this.statusHistory,
       sentToClientAt: sentToClientAt ?? this.sentToClientAt,
       evaluatedAt: evaluatedAt ?? this.evaluatedAt,
       returnedCount: returnedCount ?? this.returnedCount,
@@ -329,17 +415,50 @@ class BatchProductModel {
   /// Número total de fases
   int get totalPhasesCount => phaseProgress.length;
 
-  
+  // ==================== HELPERS DE ESTADO (LEGACY) ====================
   ProductStatus get statusEnum => ProductStatus.fromString(productStatus);
   String get statusDisplayName => statusEnum.displayName;
-  Color get statusColor => statusEnum.color;
+  Color get statusLegacyColor => statusEnum.color; // Renombrado para evitar conflicto
   
   bool get isPending => productStatus == 'pending';
   bool get isHold => productStatus == 'hold';
   bool get isCAO => productStatus == 'cao';
   bool get isControl => productStatus == 'control';
   bool get isOK => productStatus == 'ok';
+
+  // ==================== HELPERS DE ESTADO (NUEVO SISTEMA) ====================
   
+  /// Usar estado personalizado si existe, sino usar legacy
+  String get effectiveStatusName => statusName ?? statusDisplayName;
+  
+  /// Usar color personalizado si existe, sino usar legacy
+  Color get effectiveStatusColor {
+    if (statusColor != null) {
+      try {
+        return Color(int.parse(statusColor!.replaceAll('#', '0xFF')));
+      } catch (e) {
+        // Si falla el parsing, usar color legacy
+        return statusLegacyColor;
+      }
+    }
+    return statusLegacyColor;
+  }
+  
+  /// Si usa el nuevo sistema de estados
+  bool get usesCustomStatus => statusId != null;
+  
+  /// Obtener último cambio de estado del historial
+  StatusHistoryEntry? get lastStatusChange {
+    if (statusHistory.isEmpty) return null;
+    return statusHistory.last;
+  }
+  
+  /// Obtener todos los estados por los que ha pasado
+  List<String> get statusesVisited {
+    return statusHistory.map((e) => e.statusName).toList();
+  }
+  
+  // ==================== HELPERS EXISTENTES ====================
   bool get isInStudio => currentPhase == 'studio';
   bool get hasBeenSent => sentToClientAt != null;
   bool get hasBeenEvaluated => evaluatedAt != null;
