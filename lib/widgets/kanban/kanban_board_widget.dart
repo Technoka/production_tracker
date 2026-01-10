@@ -2,16 +2,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/batch_product_model.dart';
-import '../models/phase_model.dart';
-import '../models/production_batch_model.dart';
-import '../models/user_model.dart';
-import '../services/kanban_service.dart';
-import '../services/phase_service.dart';
-import '../services/production_batch_service.dart';
-import '../widgets/draggable_product_card.dart';
-import '../screens/production/batch_product_detail_screen.dart';
-import '../l10n/app_localizations.dart';
+import '../../models/batch_product_model.dart';
+import '../../models/phase_model.dart';
+import '../../models/production_batch_model.dart';
+import '../../models/user_model.dart';
+import '../../services/kanban_service.dart';
+import '../../services/phase_service.dart';
+import '../../services/production_batch_service.dart';
+import 'draggable_product_card.dart';
+import '../../screens/production/batch_product_detail_screen.dart';
+import '../../l10n/app_localizations.dart';
 
 class KanbanBoardWidget extends StatefulWidget {
   final String organizationId;

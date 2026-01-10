@@ -4,9 +4,9 @@ import '../../models/message_model.dart';
 import '../../models/user_model.dart';
 import '../../services/message_service.dart';
 import '../../services/auth_service.dart';
-import '../../widgets/message_bubble_widget.dart';
-import '../../widgets/message_input_widget.dart';
-import '../../widgets/message_search_delegate.dart';
+import '../../widgets/chat/message_bubble_widget.dart';
+import '../../widgets/chat/message_input_widget.dart';
+import '../../widgets/chat/message_search_delegate.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 

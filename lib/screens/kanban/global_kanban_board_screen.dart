@@ -9,7 +9,7 @@ import '../../services/kanban_service.dart';
 import '../../services/phase_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/production_batch_service.dart';
-import '../../widgets/draggable_product_card.dart';
+import '../../widgets/kanban/draggable_product_card.dart';
 import '../../utils/filter_utils.dart';
 import '../production/batch_product_detail_screen.dart';
 // IMPORTAR IDIOMA

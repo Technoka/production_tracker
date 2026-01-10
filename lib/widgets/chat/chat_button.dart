@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/user_model.dart';
-import '../services/message_service.dart';
-import '../screens/chat/chat_screen.dart';
+import '../../models/user_model.dart';
+import '../../services/message_service.dart';
+import '../../screens/chat/chat_screen.dart';
 
 /// Widget de botón de chat con badge reutilizable
 /// Funciona para batch, project, product

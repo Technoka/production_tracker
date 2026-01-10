@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:gestion_produccion/widgets/chat_button.dart';
+import 'package:gestion_produccion/widgets/chat/chat_button.dart';
 import 'package:provider/provider.dart';
-import '../models/batch_product_model.dart';
-import '../models/phase_model.dart';
-import '../models/production_batch_model.dart';
-import '../services/auth_service.dart';
-import '../../widgets/sla/sla_status_indicator.dart';
+import '../../models/batch_product_model.dart';
+import '../../models/phase_model.dart';
+import '../../models/production_batch_model.dart';
+import '../../services/auth_service.dart';
+import '../../../widgets/sla/sla_status_indicator.dart';
 
 class DraggableProductCard extends StatelessWidget {
   final BatchProductModel product;

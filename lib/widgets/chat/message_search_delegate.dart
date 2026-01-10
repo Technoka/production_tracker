@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../l10n/app_localizations.dart';
-import '../models/message_model.dart';
-import '../models/user_model.dart';
-import '../services/message_service.dart';
-import '../widgets/message_bubble_widget.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../models/message_model.dart';
+import '../../models/user_model.dart';
+import '../../services/message_service.dart';
+import 'message_bubble_widget.dart';
 
 /// Delegate para búsqueda de mensajes
 /// Implementa búsqueda en memoria (gratis, sin servicios externos)

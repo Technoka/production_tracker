@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/message_model.dart';
-import '../models/user_model.dart';
+import '../../models/message_model.dart';
+import '../../models/user_model.dart';
 
 /// Widget de burbuja de mensaje reutilizable
 /// Soporta mensajes de usuario y eventos del sistema

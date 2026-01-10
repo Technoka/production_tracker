@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/message_model.dart';
+import '../../models/message_model.dart';
 
 /// Widget de input para enviar mensajes
 /// Reutilizable con soporte para menciones, adjuntos y respuestas

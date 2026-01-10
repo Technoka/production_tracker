@@ -12,7 +12,7 @@ import 'create_production_batch_screen.dart';
 import 'production_batch_detail_screen.dart';
 import 'batch_product_detail_screen.dart';
 import '../../utils/filter_utils.dart';
-import '../../widgets/kanban_board_widget.dart';
+import '../../widgets/kanban/kanban_board_widget.dart';
 import '../../widgets/bottom_nav_bar_widget.dart';
 import '../../l10n/app_localizations.dart';
 

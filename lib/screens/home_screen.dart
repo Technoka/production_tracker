@@ -11,7 +11,7 @@ import 'organization/organization_home_screen.dart';
 import 'production/production_screen.dart';
 import 'production/create_production_batch_screen.dart';
 import '../widgets/production_dashboard_widget.dart';
-import '../widgets/kanban_board_widget.dart';
+import '../widgets/kanban/kanban_board_widget.dart';
 import '../widgets/bottom_nav_bar_widget.dart';
 import '../widgets/sla/sla_alert_badge.dart';
 import '../../screens/dashboard/metrics_dashboard_screen.dart';

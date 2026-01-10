@@ -12,9 +12,9 @@ import '../../models/project_product_model.dart';
 import '../../utils/role_utils.dart';
 import 'edit_project_screen.dart';
 import '../products/add_product_to_project_screen.dart';
-import '../products/project_product_detail_screen.dart';
+import '../catalog/product_catalog_detail_screen.dart';
 import '../../widgets/universal_loading_screen.dart';
-import '../../widgets/chat_button.dart';
+import '../../widgets/chat/chat_button.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final String projectId; // Cambiar a recibir solo el ID
@@ -535,10 +535,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
                         final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ProjectProductDetailScreen(
-                              projectId: project.id,
+                            builder: (context) => ProductCatalogDetailScreen(
                               productId: product.id,
                               currentUser: user,
+                              organizationId: user.organizationId!,
                             ),
                           ),
                         );

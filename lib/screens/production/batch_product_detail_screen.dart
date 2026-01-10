@@ -8,7 +8,7 @@ import '../../services/production_batch_service.dart';
 import '../../services/phase_service.dart';
 import '../../models/production_batch_model.dart';
 import 'production_batch_detail_screen.dart';
-import '../../widgets/chat_button.dart';
+import '../../widgets/chat/chat_button.dart';
 import '../../services/message_service.dart';
 import '../../screens/chat/chat_screen.dart';
 
