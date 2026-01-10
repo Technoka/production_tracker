@@ -175,6 +175,8 @@ Inbox central que consolida todas las conversaciones.
 
 2. **Filtros**
    - Por cliente
+   - Por proyecto
+   - Por producto
    - Por estado
    - Por prioridad
    - Solo no leídos
