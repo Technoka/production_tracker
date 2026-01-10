@@ -423,7 +423,7 @@ Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
             children: [
               Icon(
                 _getStatusIcon(product.productStatus),
-                color: product.statusColor,
+                color: product.statusLegacyColor,
               ),
               const SizedBox(width: 8),
               const Expanded(
@@ -443,15 +443,15 @@ Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: product.statusColor.withOpacity(0.1),
+              color: product.statusLegacyColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: product.statusColor, width: 2),
+              border: Border.all(color: product.statusLegacyColor, width: 2),
             ),
             child: Row(
               children: [
                 Icon(
                   _getStatusIcon(product.productStatus),
-                  color: product.statusColor,
+                  color: product.statusLegacyColor,
                   size: 32,
                 ),
                 const SizedBox(width: 12),
@@ -464,7 +464,7 @@ Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: product.statusColor,
+                          color: product.statusLegacyColor,
                         ),
                       ),
                       Text(

@@ -791,14 +791,14 @@ class _ProductionScreenState extends State<ProductionScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: product.statusColor.withOpacity(0.1),
+                      color: product.statusLegacyColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: product.statusColor.withOpacity(0.3)),
+                      border: Border.all(color: product.statusLegacyColor.withOpacity(0.3)),
                     ),
                     child: Text(
                       product.statusDisplayName,
                       style: TextStyle(
-                        color: product.statusColor,
+                        color: product.statusLegacyColor,
                         fontWeight: FontWeight.bold,
                         fontSize: 11,
                       ),

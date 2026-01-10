@@ -110,7 +110,7 @@ class DraggableProductCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: product.statusColor.withOpacity(0.2),
+                        color: product.statusLegacyColor.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -155,13 +155,13 @@ class DraggableProductCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: product.statusColor.withOpacity(0.2),
+                        color: product.statusLegacyColor.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         product.statusDisplayName,
                         style: TextStyle(
-                          color: product.statusColor,
+                          color: product.statusLegacyColor,
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
                         ),
