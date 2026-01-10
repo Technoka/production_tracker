@@ -67,7 +67,7 @@ class MyApp extends StatelessWidget {
             // Solo log una vez, sin setState para evitar rebuild
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (themeProvider.branding == null) {
-                print('⚠️ Branding es null, aplicando defaults');
+                // print('⚠️ Branding es null, aplicando defaults');
                 themeProvider.updateBranding(OrganizationBranding.defaultBranding());
               }
             });
@@ -180,13 +180,13 @@ class _OrganizationSettingsWrapperState
   Future<void> _loadUserConfiguration() async {
     // ✅ GUARD: Evitar ejecuciones múltiples
     if (_hasLoaded) {
-      print('⚠️ Configuración ya cargada, ignorando...');
+      // print('⚠️ Configuración ya cargada, ignorando...');
       return;
     }
     _hasLoaded = true;
 
     try {
-      print('🚀 Iniciando carga de configuración...');
+      // print('🚀 Iniciando carga de configuración...');
 
       final user = _authService.currentUser;
       if (user == null) {
@@ -200,12 +200,12 @@ class _OrganizationSettingsWrapperState
         return;
       }
 
-      print('✅ Usuario autenticado: ${user.uid}');
+      // print('✅ Usuario autenticado: ${user.uid}');
 
       // Obtener datos del usuario
       final userData = await _authService.getUserData();
       if (userData == null) {
-        print('❌ No se pudieron cargar los datos del usuario');
+        // print('❌ No se pudieron cargar los datos del usuario');
         if (mounted) {
           setState(() {
             _error = 'No se pudieron cargar los datos del usuario';
@@ -215,34 +215,34 @@ class _OrganizationSettingsWrapperState
         return;
       }
 
-      print('✅ Datos de usuario obtenidos: ${userData.name}');
+      // print('✅ Datos de usuario obtenidos: ${userData.name}');
 
       final organizationId = userData.organizationId;
 
       if (organizationId == null || organizationId.isEmpty) {
-        print('⚠️ Usuario sin organizationId, usando configuración por defecto');
+        // print('⚠️ Usuario sin organizationId, usando configuración por defecto');
         if (mounted) {
           setState(() => _isLoading = false);
         }
         return;
       }
 
-      print('✅ OrganizationId encontrado: $organizationId');
+      // print('✅ OrganizationId encontrado: $organizationId');
 
       // Cargar configuración de organización
       final orgSettings =
           await _orgSettingsService.getOrganizationSettings(organizationId);
 
-      print('📦 Settings recibidos: ${orgSettings != null ? "✅ OK" : "❌ NULL"}');
+      // print('📦 Settings recibidos: ${orgSettings != null ? "✅ OK" : "❌ NULL"}');
 
       if (orgSettings != null && mounted) {
-        print('🎨 Aplicando branding...');
+        // print('🎨 Aplicando branding...');
 
         // Aplicar branding al tema
         Provider.of<ThemeProvider>(context, listen: false)
             .updateBranding(orgSettings.branding);
 
-        print('🌍 Cargando locale del usuario...');
+        // print('🌍 Cargando locale del usuario...');
 
         // Cargar locale efectivo del usuario
         final systemLocale = WidgetsBinding.instance.platformDispatcher.locale;
@@ -253,9 +253,9 @@ class _OrganizationSettingsWrapperState
           systemLocale: systemLocale,
         );
 
-        print('✅ Configuración aplicada correctamente');
+        // print('✅ Configuración aplicada correctamente');
       } else if (!mounted) {
-        print('⚠️ Widget desmontado, cancelando aplicación de settings');
+        // print('⚠️ Widget desmontado, cancelando aplicación de settings');
         return; // ✅ IMPORTANTE: Return para no ejecutar setState
       }
 
