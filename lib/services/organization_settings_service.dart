@@ -66,23 +66,23 @@ class OrganizationSettingsService {
         return OrganizationSettings.defaultSettings();
       }
 
-      print('✅ Parseando settings: $settingsData');
+      // print('✅ Parseando settings: $settingsData');
 
       // ✅ PARSEO SEGURO CON TRY-CATCH INTERNO
       try {
         return OrganizationSettings.fromMap(settingsData);
       } catch (parseError, stackTrace) {
-        // print('❌ Error al parsear OrganizationSettings: $parseError');
-        // print('Stack: $stackTrace');
-        // print('Data problemática: $settingsData');
+        print('❌ Error al parsear OrganizationSettings: $parseError');
+        print('Stack: $stackTrace');
+        print('Data problemática: $settingsData');
         
         // Devolver defaults si falla el parseo
         return OrganizationSettings.defaultSettings();
       }
 
     } catch (e, stackTrace) {
-      // print('❌ Error crítico al obtener configuración: $e');
-      // print('Stack trace: $stackTrace');
+      print('❌ Error crítico al obtener configuración: $e');
+      print('Stack trace: $stackTrace');
       
       // En caso de error, devolver settings por defecto para no romper la app
       return OrganizationSettings.defaultSettings();
