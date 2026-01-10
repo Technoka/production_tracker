@@ -12,6 +12,10 @@ class OrganizationModel {
   final DateTime? updatedAt;
   final bool isActive;
   final String? logoUrl;
+  
+  // NUEVOS CAMPOS - Sistema de estados personalizables
+  final List<String> defaultStatuses; // IDs de estados predeterminados de la org
+  final bool statusesInitialized; // Flag de inicialización de estados
 
   OrganizationModel({
     required this.id,
@@ -25,6 +29,8 @@ class OrganizationModel {
     this.updatedAt,
     this.isActive = true,
     this.logoUrl,
+    this.defaultStatuses = const [],
+    this.statusesInitialized = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -40,6 +46,8 @@ class OrganizationModel {
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'isActive': isActive,
       'logoUrl': logoUrl,
+      'defaultStatuses': defaultStatuses,
+      'statusesInitialized': statusesInitialized,
     };
   }
 
@@ -58,6 +66,10 @@ class OrganizationModel {
           : null,
       isActive: map['isActive'] as bool? ?? true,
       logoUrl: map['logoUrl'],
+      defaultStatuses: map['defaultStatuses'] != null
+          ? List<String>.from(map['defaultStatuses'] as List)
+          : [],
+      statusesInitialized: map['statusesInitialized'] as bool? ?? false,
     );
   }
 
@@ -73,6 +85,8 @@ class OrganizationModel {
     DateTime? updatedAt,
     bool? isActive,
     String? logoUrl,
+    List<String>? defaultStatuses,
+    bool? statusesInitialized,
   }) {
     return OrganizationModel(
       id: id ?? this.id,
@@ -86,16 +100,30 @@ class OrganizationModel {
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,
       logoUrl: logoUrl ?? this.logoUrl,
+      defaultStatuses: defaultStatuses ?? this.defaultStatuses,
+      statusesInitialized: statusesInitialized ?? this.statusesInitialized,
     );
   }
 
-  // Verificaciones de permisos
+  // ==================== VERIFICACIONES DE PERMISOS ====================
+  
   bool isOwner(String userId) => ownerId == userId;
   bool isAdmin(String userId) => adminIds.contains(userId) || isOwner(userId);
   bool isMember(String userId) => memberIds.contains(userId);
   
   int get totalMembers => memberIds.length;
   int get totalAdmins => adminIds.length;
+  
+  // ==================== NUEVOS HELPERS ====================
+  
+  /// Si la organización tiene estados configurados
+  bool get hasDefaultStatuses => defaultStatuses.isNotEmpty;
+  
+  /// Si la organización necesita inicializar estados
+  bool get needsStatusInitialization => !statusesInitialized;
+  
+  /// Cantidad de estados predeterminados
+  int get defaultStatusesCount => defaultStatuses.length;
 }
 
 // Modelo para invitaciones pendientes
