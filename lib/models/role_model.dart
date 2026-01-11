@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'permission_model.dart';
-import 'permission_registry.dart';
+import 'permission_registry_model.dart';
 
 /// Modelo de Rol
 /// Define un rol con sus permisos asociados usando el sistema dinámico

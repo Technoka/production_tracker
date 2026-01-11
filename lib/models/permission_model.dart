@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'permission_registry.dart';
+import 'permission_registry_model.dart';
 
 /// Re-exportar tipos del registry para fácil acceso
-export 'permission_registry.dart' show PermissionScope, PermissionActionType;
+export 'permission_registry_model.dart' show PermissionScope, PermissionActionType;
 
 /// Modelo simplificado de Permisos usando el Registry dinámico
 /// 

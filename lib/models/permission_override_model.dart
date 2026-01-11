@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'permission_model.dart';
-import 'permission_registry.dart';
+import 'permission_registry_model.dart';
 
 // Re-exportar PermissionScope para acceso fácil
-export 'permission_registry.dart' show PermissionScope;
+export 'permission_registry_model.dart' show PermissionScope;
 
 /// Tipo de override de permiso
 enum OverrideType {
