@@ -8,6 +8,9 @@ import '../../services/product_catalog_service.dart';
 import '../../services/production_batch_service.dart';
 import '../../services/phase_service.dart';
 import '../../utils/filter_utils.dart';
+import '../../services/organization_member_service.dart';
+import '../../models/organization_member_model.dart';
+import '../../services/auth_service.dart';
 
 class AddProductToBatchScreen extends StatefulWidget {
   final String organizationId;
@@ -20,12 +23,13 @@ class AddProductToBatchScreen extends StatefulWidget {
   });
 
   @override
-  State<AddProductToBatchScreen> createState() => _AddProductToBatchScreenState();
+  State<AddProductToBatchScreen> createState() =>
+      _AddProductToBatchScreenState();
 }
 
 class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Controladores
   final _quantityController = TextEditingController(text: '1');
   final _unitPriceController = TextEditingController();
@@ -38,7 +42,7 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
   String _productSearchQuery = '';
   String _productUrgencyLevel = 'medium';
   DateTime? _productExpectedDelivery;
-  
+
   // Datos del lote
   String? _batchClientId;
   String? _batchProjectId;
@@ -48,37 +52,59 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
   // NUEVO: Lista de productos pendientes de guardar
   final List<Map<String, dynamic>> _pendingProducts = [];
 
+  //RBAC
+  OrganizationMemberWithUser? _currentMember;
+
   @override
   void initState() {
     super.initState();
+    _loadCurrentMember();
     _loadBatchInfo();
-    
+
     // Inicializar fecha por defecto
     _productExpectedDelivery = DateTime.now().add(const Duration(days: 21));
 
     // Inicializar Stream aquí para evitar recargas al hacer setState
-    _existingProductsStream = Provider.of<ProductionBatchService>(context, listen: false)
-        .watchBatchProducts(widget.organizationId, widget.batchId);
+    _existingProductsStream =
+        Provider.of<ProductionBatchService>(context, listen: false)
+            .watchBatchProducts(widget.organizationId, widget.batchId);
 
     _productSearchController.addListener(() {
       setState(() {
         _productSearchQuery = _productSearchController.text;
       });
     });
-    // Fecha por defecto: 3 semanas
-    _productExpectedDelivery = DateTime.now().add(const Duration(days: 21));
   }
 
-    void _removeProductFromList(int index) {
+  Future<void> _loadCurrentMember() async {
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+
+    final member = await memberService.getCurrentMember(
+      widget.organizationId,
+      authService.currentUser!.uid,
+    );
+
+    if (mounted) {
+      setState(() {
+        _currentMember = member;
+      });
+    }
+  }
+
+  void _removeProductFromList(int index) {
     setState(() {
       _pendingProducts.removeAt(index);
     });
   }
 
   Future<void> _loadBatchInfo() async {
-    final batchService = Provider.of<ProductionBatchService>(context, listen: false);
-    final batch = await batchService.getBatch(widget.organizationId, widget.batchId);
-    
+    final batchService =
+        Provider.of<ProductionBatchService>(context, listen: false);
+    final batch =
+        await batchService.getBatchById(widget.organizationId, widget.batchId);
+
     if (batch != null && mounted) {
       setState(() {
         _batchData = batch;
@@ -100,7 +126,8 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
   Future<void> _selectProductDeliveryDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _productExpectedDelivery ?? DateTime.now().add(const Duration(days: 21)),
+      initialDate: _productExpectedDelivery ??
+          DateTime.now().add(const Duration(days: 21)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       helpText: 'Fecha de entrega del producto',
@@ -125,7 +152,8 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
     }
 
     // Validar límite total (Existentes + Pendientes)
-    final currentTotal = (_batchData?.totalProducts ?? 0) + _pendingProducts.length;
+    final currentTotal =
+        (_batchData?.totalProducts ?? 0) + _pendingProducts.length;
     if (currentTotal >= 10) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('El límite es de 10 productos por lote')),
@@ -166,56 +194,103 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
   }
 
   Future<void> _saveAllProducts() async {
-    if (_pendingProducts.isEmpty) return;
+  if (_pendingProducts.isEmpty) return;
 
-    setState(() => _isLoading = true);
-    final batchService = Provider.of<ProductionBatchService>(context, listen: false);
-    final phaseService = Provider.of<PhaseService>(context, listen: false);
+  setState(() => _isLoading = true);
+  
+  final authService = Provider.of<AuthService>(context, listen: false);
+  final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+  final phaseService = Provider.of<PhaseService>(context, listen: false);
 
-    try {
-      final phases = await phaseService.getOrganizationPhases(widget.organizationId);
-      if (phases.isEmpty) throw Exception('No hay fases configuradas');
-      phases.sort((a, b) => a.order.compareTo(b.order));
+  try {
+    // Obtener fases de la organización
+    final phases = await phaseService.getOrganizationPhases(widget.organizationId);
+    if (phases.isEmpty) {
+      throw Exception('No hay fases configuradas');
+    }
+    phases.sort((a, b) => a.order.compareTo(b.order));
 
-      // Guardar secuencialmente
-      for (final item in _pendingProducts) {
-        final product = item['product'] as ProductCatalogModel;
-        
-        await batchService.addProductToBatch(
-          organizationId: widget.organizationId,
-          batchId: widget.batchId,
-          productCatalogId: product.id,
-          productName: product.name,
-          productReference: product.reference,
-          description: product.description,
-          quantity: item['quantity'],
-          phases: phases,
-          unitPrice: item['unitPrice'],
-          expectedDeliveryDate: item['expectedDeliveryDate'],
-          urgencyLevel: item['urgencyLevel'],
-          notes: item['notes'].isNotEmpty ? item['notes'] : null,
+    // ✅ CONSTRUIR LISTA DE BatchProductModel
+    final List<BatchProductModel> batchProducts = [];
+    
+    for (final item in _pendingProducts) {
+      final product = item['product'] as ProductCatalogModel;
+      
+      // Crear progreso de fases inicial
+      final Map<String, PhaseProgressData> phaseProgress = {};
+      for (var phase in phases) {
+        phaseProgress[phase.id] = PhaseProgressData(
+          status: phase.id == phases.first.id ? 'in_progress' : 'pending',
+          startedAt: phase.id == phases.first.id ? DateTime.now() : null,
         );
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${_pendingProducts.length} productos añadidos exitosamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      // Construir BatchProductModel
+      final batchProduct = BatchProductModel(
+        id: '', // Se asignará en el servicio
+        batchId: widget.batchId,
+        productCatalogId: product.id,
+        productName: product.name,
+        productReference: product.reference,
+        family: item['family'],
+        description: product.description,
+        quantity: item['quantity'],
+        currentPhase: phases.first.id,
+        currentPhaseName: phases.first.name,
+        phaseProgress: phaseProgress,
+        productNumber: 0, // Se asignará en el servicio (secuencial)
+        productCode: '', // Se generará en el servicio
+        unitPrice: item['unitPrice'],
+        totalPrice: item['unitPrice'] != null 
+            ? item['unitPrice'] * item['quantity'] 
+            : null,
+        expectedDeliveryDate: item['expectedDeliveryDate'],
+        urgencyLevel: item['urgencyLevel'],
+        productNotes: item['notes'].isNotEmpty ? item['notes'] : null,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      batchProducts.add(batchProduct);
+    }
+
+    // ✅ LLAMAR A addProductsToBatch CON LA LISTA
+    final success = await batchService.addProductsToBatch(
+      organizationId: widget.organizationId,
+      batchId: widget.batchId,
+      products: batchProducts,
+      userId: authService.currentUser!.uid,
+      userName: authService.currentUser!.displayName ?? 'Usuario',
+    );
+
+    if (!success) {
+      throw Exception('Error al añadir productos: ${batchService.error}');
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_pendingProducts.length} productos añadidos exitosamente'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
 
   // --- UI ---
 
@@ -228,7 +303,8 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
       );
     }
 
-    final totalCount = (_batchData?.totalProducts ?? 0) + _pendingProducts.length;
+    final totalCount =
+        (_batchData?.totalProducts ?? 0) + _pendingProducts.length;
 
     return Scaffold(
       appBar: AppBar(
@@ -238,7 +314,8 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
             const Text('Añadir Producto al Lote'),
             Text(
               _batchData!.batchNumber,
-              style: const TextStyle(fontSize: 14), // Tamaño más pequeño para el subtítulo
+              style: const TextStyle(
+                  fontSize: 14), // Tamaño más pequeño para el subtítulo
             ),
           ],
         ),
@@ -253,7 +330,8 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
           // 2. Formulario Nuevo Producto
           Card(
             elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Form(
@@ -264,11 +342,14 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Añadir Productos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text('$totalCount/10', style: TextStyle(
-                          color: totalCount >= 10 ? Colors.red : Colors.grey,
-                          fontWeight: FontWeight.bold
-                        )),
+                        const Text('Añadir Productos',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text('$totalCount/10',
+                            style: TextStyle(
+                                color:
+                                    totalCount >= 10 ? Colors.red : Colors.grey,
+                                fontWeight: FontWeight.bold)),
                       ],
                     ),
                     const Divider(height: 24),
@@ -297,7 +378,8 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                           child: FilterUtils.buildUrgencySelector(
                             context: context,
                             urgencyLevel: _productUrgencyLevel,
-                            onChanged: (v) => setState(() => _productUrgencyLevel = v),
+                            onChanged: (v) =>
+                                setState(() => _productUrgencyLevel = v),
                           ),
                         ),
                       ],
@@ -308,7 +390,8 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                     InkWell(
                       onTap: _selectProductDeliveryDate,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
@@ -316,7 +399,8 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.calendar_today, size: 20, color: Colors.grey.shade600),
+                            Icon(Icons.calendar_today,
+                                size: 20, color: Colors.grey.shade600),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -343,21 +427,23 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                            Icon(Icons.chevron_right,
+                                color: Colors.grey.shade400),
                           ],
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 12),
-                    
+
                     // Notas del producto (NUEVO)
                     TextFormField(
                       controller: _productNotesController,
                       maxLines: 2,
                       decoration: InputDecoration(
                         labelText: 'Notas (opcional)',
-                        hintText: 'Añade detalles específicos de este producto...',
+                        hintText:
+                            'Añade detalles específicos de este producto...',
                         border: const OutlineInputBorder(),
                         prefixIcon: const Icon(Icons.notes),
                         alignLabelWithHint: true,
@@ -372,10 +458,16 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _quantityController,
-                            decoration: const InputDecoration(labelText: 'Cantidad *', border: OutlineInputBorder()),
+                            decoration: const InputDecoration(
+                                labelText: 'Cantidad *',
+                                border: OutlineInputBorder()),
                             keyboardType: TextInputType.number,
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            validator: (v) => (int.tryParse(v ?? '') ?? 0) > 0 ? null : 'Inválido',
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
+                            validator: (v) => (int.tryParse(v ?? '') ?? 0) > 0
+                                ? null
+                                : 'Inválido',
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -389,9 +481,11 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                               prefixIcon: Icon(Icons.euro),
                               suffixText: '€',
                             ),
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             inputFormatters: [
-                              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                              FilteringTextInputFormatter.allow(
+                                  RegExp(r'^\d+\.?\d{0,2}')),
                             ],
                           ),
                         ),
@@ -403,15 +497,17 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: totalCount >= 10 ? null : _addProductToPendingList,
+                        onPressed:
+                            totalCount >= 10 ? null : _addProductToPendingList,
                         icon: const Icon(Icons.add_circle_outline),
                         label: const Text('Añadir a la lista'),
-                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                        style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14)),
                       ),
                     ),
-                    
-          const SizedBox(height: 24),
-                              // Lista de productos añadidos
+
+                    const SizedBox(height: 24),
+                    // Lista de productos añadidos
                     if (_pendingProducts.isEmpty)
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -434,18 +530,25 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                         separatorBuilder: (_, __) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final item = _pendingProducts[index];
-                          final product = item['product'] as ProductCatalogModel;
+                          final product =
+                              item['product'] as ProductCatalogModel;
                           final quantity = item['quantity'] as int;
-                          final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
-                          final urgency = item['urgencyLevel'] as String? ?? 'medium';
+                          final deliveryDate =
+                              item['expectedDeliveryDate'] as DateTime?;
+                          final urgency =
+                              item['urgencyLevel'] as String? ?? 'medium';
                           final notes = item['notes'] as String?;
-                          final sequence = index + 1 + (_batchData?.totalProducts ?? 0);
+                          final sequence =
+                              index + 1 + (_batchData?.totalProducts ?? 0);
 
-  return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                              border: Border(
+                                  bottom:
+                                      BorderSide(color: Colors.grey.shade200)),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -454,11 +557,15 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                                 // 1. LEADING: Avatar con número
                                 CircleAvatar(
                                   radius: 18,
-                                  backgroundColor: UrgencyLevel.fromString(urgency).color.withOpacity(0.2),
+                                  backgroundColor:
+                                      UrgencyLevel.fromString(urgency)
+                                          .color
+                                          .withOpacity(0.2),
                                   child: Text(
                                     '#$sequence',
                                     style: TextStyle(
-                                      color: UrgencyLevel.fromString(urgency).color,
+                                      color: UrgencyLevel.fromString(urgency)
+                                          .color,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                     ),
@@ -469,7 +576,8 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                                 // 2. CENTRO: Información del producto
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         product.name,
@@ -491,16 +599,20 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                                         const SizedBox(height: 2),
                                         Text(
                                           'Entrega: ${_formatDate(deliveryDate)}',
-                                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[600]),
                                         ),
                                       ],
-                                      if (notes != null && notes.isNotEmpty) ...[
+                                      if (notes != null &&
+                                          notes.isNotEmpty) ...[
                                         const SizedBox(height: 4),
                                         Container(
                                           padding: const EdgeInsets.all(6),
                                           decoration: BoxDecoration(
                                             color: Colors.blue.shade50,
-                                            borderRadius: BorderRadius.circular(4),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
                                           ),
                                           child: Text(
                                             'Notas: $notes',
@@ -520,39 +632,58 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                                 // 3. DERECHA: Chip arriba, Acciones abajo
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     // ARRIBA: Chip de urgencia
-                                    if (UrgencyLevel.fromString(urgency).value == UrgencyLevel.urgent.value)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: UrgencyLevel.fromString(urgency).color.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: UrgencyLevel.fromString(urgency).color.withOpacity(0.3)),
-                                      ),
-                                      child: Text(
-                                        UrgencyLevel.fromString(urgency).displayName,
-                                        style: TextStyle(
-                                          color: UrgencyLevel.fromString(urgency).color,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
+                                    if (UrgencyLevel.fromString(urgency)
+                                            .value ==
+                                        UrgencyLevel.urgent.value)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              UrgencyLevel.fromString(urgency)
+                                                  .color
+                                                  .withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(
+                                              color: UrgencyLevel.fromString(
+                                                      urgency)
+                                                  .color
+                                                  .withOpacity(0.3)),
+                                        ),
+                                        child: Text(
+                                          UrgencyLevel.fromString(urgency)
+                                              .displayName,
+                                          style: TextStyle(
+                                            color:
+                                                UrgencyLevel.fromString(urgency)
+                                                    .color,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    
-                                    const SizedBox(height: 12), // Espacio en medio
-                                    
+
+                                    const SizedBox(
+                                        height: 12), // Espacio en medio
+
                                     // ABAJO: Cantidad y Borrar
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 2),
                                           decoration: BoxDecoration(
                                             color: Colors.grey[100],
-                                            borderRadius: BorderRadius.circular(4),
-                                            border: Border.all(color: Colors.grey.shade300),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                            border: Border.all(
+                                                color: Colors.grey.shade300),
                                           ),
                                           child: Text(
                                             'x$quantity',
@@ -564,11 +695,14 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                                         ),
                                         const SizedBox(width: 4),
                                         InkWell(
-                                          onTap: () => _removeProductFromList(index),
-                                          borderRadius: BorderRadius.circular(20),
+                                          onTap: () =>
+                                              _removeProductFromList(index),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
                                           child: const Padding(
                                             padding: EdgeInsets.all(6.0),
-                                            child: Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                            child: Icon(Icons.delete_outline,
+                                                color: Colors.red, size: 20),
                                           ),
                                         ),
                                       ],
@@ -588,27 +722,34 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
 
           const SizedBox(height: 24),
 
- 
-            const SizedBox(height: 24),
-          
+          const SizedBox(height: 24),
         ],
       ),
       bottomNavigationBar: _pendingProducts.isNotEmpty
           ? Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
-                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: const Offset(0, -2))],
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 4,
+                      offset: Offset(0, -2))
+                ],
               ),
               child: FilledButton(
-                onPressed: _isLoading ? null : _saveAllProducts,
+                onPressed: (_isLoading || _currentMember == null) ? null : _saveAllProducts,
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.green[700],
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: _isLoading 
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text('Guardar ${_pendingProducts.length} Productos'),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2))
+                    : const Text('Guardar productos'),
               ),
             )
           : null,
@@ -627,171 +768,188 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Productos en el Lote', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                Text('${_batchData!.totalProducts} guardados', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                const Text('Productos en el Lote',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text('${_batchData!.totalProducts} guardados',
+                    style: const TextStyle(color: Colors.grey, fontSize: 12)),
               ],
             ),
           ),
           const Divider(height: 1),
-          
+
           StreamBuilder<List<BatchProductModel>>(
             stream: _existingProductsStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()));
+                return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator()));
               }
               final products = snapshot.data ?? [];
               if (products.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(16),
-                  child: Text('No hay productos guardados.', style: TextStyle(color: Colors.grey)),
+                  child: Text('No hay productos guardados.',
+                      style: TextStyle(color: Colors.grey)),
                 );
               }
 
               return ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                padding: EdgeInsets.zero, // Padding eliminado para reducir espacio
+                padding:
+                    EdgeInsets.zero, // Padding eliminado para reducir espacio
                 itemCount: products.length,
                 separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final product = products[index];
-                  
-                          final urgency = product.urgencyLevel as String? ?? 'medium';
-                          
-         return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-                              borderRadius: BorderRadius.circular(8),
+
+                  final urgency = product.urgencyLevel as String? ?? 'medium';
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                          bottom: BorderSide(color: Colors.grey.shade200)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // 1. LEADING: Avatar con número
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor:
+                              product.urgencyColor.withOpacity(0.2),
+                          child: Text(
+                            '#${product.productNumber}',
+                            style: TextStyle(
+                              color: product.urgencyColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
                             ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                // 1. LEADING: Avatar con número
-                                CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: product.urgencyColor.withOpacity(0.2),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+
+                        // 2. CENTRO: Información del producto
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product.productName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'SKU: ${product.productReference}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[700],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (product.expectedDeliveryDate != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Entrega: ${_formatDate(product.expectedDeliveryDate!)}',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey[600]),
+                                ),
+                              ],
+                              if (product.productNotes != null &&
+                                  product.productNotes!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
                                   child: Text(
-                                    '#${product.productNumber}',
+                                    'Notas: ${product.productNotes}',
                                     style: TextStyle(
-                                      color: product.urgencyColor,
+                                      fontSize: 11,
+                                      color: Colors.blue[800],
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // 3. DERECHA: Chip arriba, Acciones abajo
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // ARRIBA: Chip de urgencia
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: product.urgencyColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color:
+                                        product.urgencyColor.withOpacity(0.3)),
+                              ),
+                              child: Text(
+                                UrgencyLevel.fromString(urgency).displayName,
+                                style: TextStyle(
+                                  color: product.urgencyColor,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 12), // Espacio en medio
+
+                            // ABAJO: Cantidad y Borrar
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(4),
+                                    border:
+                                        Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  child: Text(
+                                    'x${product.quantity}',
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 12,
+                                      fontSize: 13,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-
-                                // 2. CENTRO: Información del producto
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        product.productName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'SKU: ${product.productReference}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[700],
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      if (product.expectedDeliveryDate != null) ...[
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Entrega: ${_formatDate(product.expectedDeliveryDate!)}',
-                                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                                        ),
-                                      ],
-                                      if (product.productNotes != null && product.productNotes!.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: Colors.blue.shade50,
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            'Notas: ${product.productNotes}',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.blue[800],
-                                              fontStyle: FontStyle.italic,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-
-                                // 3. DERECHA: Chip arriba, Acciones abajo
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    // ARRIBA: Chip de urgencia
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: product.urgencyColor.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: product.urgencyColor.withOpacity(0.3)),
-                                      ),
-                                      child: Text(
-                                        UrgencyLevel.fromString(urgency).displayName,
-                                        style: TextStyle(
-                                          color: product.urgencyColor,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    
-                                    const SizedBox(height: 12), // Espacio en medio
-                                    
-                                    // ABAJO: Cantidad y Borrar
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey[100],
-                                            borderRadius: BorderRadius.circular(4),
-                                            border: Border.all(color: Colors.grey.shade300),
-                                          ),
-                                          child: Text(
-                                            'x${product.quantity}',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
                                 ),
                               ],
                             ),
-                          );
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
                 },
               );
             },
           ),
           // Pequeño espacio final opcional
-          const SizedBox(height: 4), 
+          const SizedBox(height: 4),
         ],
       ),
     );
@@ -804,26 +962,32 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
       stream: Provider.of<ProductCatalogService>(context, listen: false)
           .getOrganizationProductsStream(widget.organizationId),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox(height: 50, child: Center(child: LinearProgressIndicator()));
+        if (!snapshot.hasData)
+          return const SizedBox(
+              height: 50, child: Center(child: LinearProgressIndicator()));
 
         var allProducts = snapshot.data ?? [];
-        
+
         // 1. Filtrar por cliente
-        var products = allProducts.where((p) => p.isPublic || p.clientId == _batchClientId).toList();
+        var products = allProducts
+            .where((p) => p.isPublic || p.clientId == _batchClientId)
+            .toList();
 
         // 2. Filtrar por búsqueda
         if (_productSearchQuery.isNotEmpty) {
           final query = _productSearchQuery.toLowerCase();
-          products = products.where((p) =>
-            p.name.toLowerCase().contains(query) ||
-            (p.reference?.toLowerCase().contains(query) ?? false)
-          ).toList();
+          products = products
+              .where((p) =>
+                  p.name.toLowerCase().contains(query) ||
+                  (p.reference?.toLowerCase().contains(query) ?? false))
+              .toList();
         }
 
         // --- SOLUCIÓN ERROR "BAD STATE" ---
         // Verificamos si la selección actual sigue siendo válida en la lista filtrada
-        final isSelectionValid = _selectedProduct != null && products.any((p) => p.id == _selectedProduct!.id);
-        
+        final isSelectionValid = _selectedProduct != null &&
+            products.any((p) => p.id == _selectedProduct!.id);
+
         // Si no es válida, pasamos null al dropdown (visual), pero mantenemos el estado si queremos
         // O según tu petición: "se elimine el producto seleccionado"
         final dropdownValue = isSelectionValid ? _selectedProduct!.id : null;
@@ -848,7 +1012,8 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
             setState(() {
               _selectedProduct = products.firstWhere((p) => p.id == productId);
               if (_selectedProduct!.basePrice != null) {
-                _unitPriceController.text = _selectedProduct!.basePrice!.toStringAsFixed(2);
+                _unitPriceController.text =
+                    _selectedProduct!.basePrice!.toStringAsFixed(2);
               }
             });
           },

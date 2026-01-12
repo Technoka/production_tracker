@@ -1,15 +1,26 @@
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../models/production_batch_model.dart';
 import '../models/batch_product_model.dart';
-import '../models/phase_model.dart';
-import '../../services/phase_service.dart';
-import '../../utils/message_events_helper.dart';
-import '../../models/batch_product_model.dart';
+import '../models/product_status_model.dart';
+import '../models/status_transition_model.dart';
+import '../models/validation_config_model.dart';
+import '../models/role_model.dart';
+import '../models/permission_model.dart';
+import '../models/permission_override_model.dart';
+import '../models/permission_registry_model.dart';
+import 'product_status_service.dart';
+import 'status_transition_service.dart';
+import 'organization_member_service.dart';
 
+/// Servicio para gestión de Lotes de Producción con soporte completo
+/// de roles, permisos (incluyendo overrides) y validaciones de estado
 class ProductionBatchService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ProductStatusService _statusService;
+  final StatusTransitionService _transitionService;
+  final OrganizationMemberService _memberService;
   final _uuid = const Uuid();
 
   List<ProductionBatchModel> _batches = [];
@@ -21,484 +32,234 @@ class ProductionBatchService extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
-  // ==================== GENERAR NÚMERO DE LOTE ====================
+  ProductionBatchService({
+    required ProductStatusService statusService,
+    required StatusTransitionService transitionService,
+    required OrganizationMemberService memberService,
+  })  : _statusService = statusService,
+        _transitionService = transitionService,
+        _memberService = memberService;
 
-/// Formato: XXXYYWW (ej: FL12601)
-  Future<String> generateBatchNumber(String prefix) async {
-    return BatchNumberHelper.generateBatchNumber(prefix);
-  }
+// ==================== VALIDACIÓN DE TRANSICIONES DE ESTADO ====================
 
-
-
-  // ==================== GESTIÓN DE FASES (sin cambios) ====================
-
-  Future<bool> updateProductPhaseWithRollback({
+  /// Valida si una transición de estado es permitida y si los datos proporcionados cumplen los requisitos.
+  ///
+  /// Retorna un mapa con:
+  /// - 'isValid': bool
+  /// - 'error': String? (si falla)
+  /// - 'requiresValidation': bool (si necesita datos extra)
+  /// - 'validationType': String? (tipo de validación requerida)
+  /// - 'validationConfig': Map? (configuración para el UI)
+  /// - 'requiresApproval': bool (si la lógica condicional pide aprobación)
+  /// - 'requiredApprovers': List<String>? (roles que deben aprobar)
+  Future<Map<String, dynamic>> validateStatusTransition({
     required String organizationId,
-    required String batchId,
-    required String productId,
-    required String newPhaseId,
-    required String newPhaseName,
-    required String userId,
+    required String fromStatusId,
+    required String toStatusId,
     required String userName,
-    required bool isRollback,
-    String? notes,
+    required String userId,
+    Map<String, dynamic>? validationData,
   }) async {
     try {
-      final product = await getBatchProduct(organizationId, batchId, productId);
-      if (product == null) return false;
-
-      final updatedProgress = Map<String, PhaseProgressData>.from(product.phaseProgress);
-
-      String newStatus = product.productStatus;
-
-      if (isRollback) {
-
-      // NUEVO: Al retroceder, marcar como pendiente la fase objetivo Y todas las posteriores
-      // Obtener todas las fases ordenadas
-        newStatus = 'pending';
-        final phaseService = PhaseService();
-        final allPhases = await phaseService.getOrganizationPhases(organizationId);
-        allPhases.sort((a, b) => a.order.compareTo(b.order));
-        
-      // Encontrar el índice de la fase objetivo
-        final targetIndex = allPhases.indexWhere((p) => p.id == newPhaseId);
-        
-        if (targetIndex != -1) {
-        // Marcar como pendiente desde la fase objetivo hacia adelante
-          for (int i = targetIndex; i < allPhases.length; i++) {
-            final phaseId = allPhases[i].id;
-            if (updatedProgress.containsKey(phaseId)) {
-              updatedProgress[phaseId] = PhaseProgressData(
-                status: 'pending',
-                notes: i == targetIndex ? notes : null,
-              );
-            }
-          }
-          
-        // Marcar la fase objetivo como en progreso
-          updatedProgress[newPhaseId] = PhaseProgressData(
-            status: 'in_progress',
-            startedAt: DateTime.now(),
-            notes: notes,
-          );
-        }
-      } else {
-      // Avance normal (código existente)
-        if (updatedProgress.containsKey(product.currentPhase)) {
-          updatedProgress[product.currentPhase] = updatedProgress[product.currentPhase]!.copyWith(
-            status: 'completed',
-            completedAt: DateTime.now(),
-            completedBy: userId,
-            completedByName: userName,
-            notes: notes,
-          );
-        }
-
-        if (updatedProgress.containsKey(newPhaseId)) {
-          updatedProgress[newPhaseId] = updatedProgress[newPhaseId]!.copyWith(
-            status: 'in_progress',
-            startedAt: DateTime.now(),
-          );
-        }
-      }
-
-    // Si llega a Studio, completar automáticamente
-      if (newPhaseId == 'studio' && !isRollback) {
-        updatedProgress['studio'] = updatedProgress['studio']!.copyWith(
-          status: 'completed',
-          completedAt: DateTime.now(),
-          completedBy: userId,
-          completedByName: userName,
-        );
-      }
-      
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .doc(productId)
-          .update({
-        'currentPhase': newPhaseId,
-        'currentPhaseName': newPhaseName,
-        'phaseProgress': updatedProgress.map(
-          (key, value) => MapEntry(key, value.toMap()),
-        ),
-        'productStatus': newStatus,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      final allCompleted = updatedProgress.values.every((p) => p.status == 'completed');
-      if (allCompleted && !isRollback) {
-        await _incrementCompletedProducts(organizationId, batchId);
-      }
-
-      return true;
-    } catch (e) {
-      _error = 'Error al actualizar fase: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-
-  // ==================== GESTIÓN DE ESTADOS (mantener código existente) ====================
-
-// AÑADIR validación antes de cambiar estado:
-  Future<bool> _canChangeStatus(String organizationId, String batchId, String productId) async {
-    final product = await getBatchProduct(organizationId, batchId, productId);
-    if (product == null) return false;
-  
-  // Solo puede cambiar de estado si está en Studio
-    return product.isInStudio;
-  }
-
-
-// AÑADIR métodos para gestionar estados del producto:
-
-// ACTUALIZAR sendProductToClient con validación:
-  Future<bool> sendProductToClient({
-    required String organizationId,
-    required String batchId,
-    required String productId,
-  }) async {
-    try {
-    // Validar que esté en Studio
-      if (!await _canChangeStatus(organizationId, batchId, productId)) {
-        _error = 'El producto debe estar en fase Studio para cambiar de estado';
-        notifyListeners();
-        return false;
-      }
-      
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .doc(productId)
-          .update({
-        'productStatus': 'hold',
-        'sentToClientAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return true;
-    } catch (e) {
-      _error = 'Error al enviar producto: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-
-// NUEVO: Método para aprobar directamente desde Studio
-  Future<bool> approveProductDirectly({
-    required String organizationId,
-    required String batchId,
-    required String productId,
-  }) async {
-    try {
-      if (!await _canChangeStatus(organizationId, batchId, productId)) {
-        _error = 'El producto debe estar en fase Studio';
-        notifyListeners();
-        return false;
-      }
-      
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .doc(productId)
-          .update({
-        'productStatus': 'ok',
-        'sentToClientAt': FieldValue.serverTimestamp(),
-        'evaluatedAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return true;
-    } catch (e) {
-      _error = 'Error al aprobar producto: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-
-// NUEVO: Rechazar directamente desde Studio
-  Future<bool> rejectProductDirectly({
-    required String organizationId,
-    required String batchId,
-    required String productId,
-    required int returnedCount,
-    required String returnReason,
-  }) async {
-    try {
-      if (!await _canChangeStatus(organizationId, batchId, productId)) {
-        _error = 'El producto debe estar en fase Studio';
-        notifyListeners();
-        return false;
-      }
-      
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .doc(productId)
-          .update({
-        'productStatus': 'cao',
-        'sentToClientAt': FieldValue.serverTimestamp(),
-        'evaluatedAt': FieldValue.serverTimestamp(),
-        'returnedCount': returnedCount,
-        'returnReason': returnReason,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return true;
-    } catch (e) {
-      _error = 'Error al rechazar producto: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-
-
-
-/// Aprobar producto (Hold → OK o Control → OK)
-  Future<bool> approveProduct({
-    required String organizationId,
-    required String batchId,
-    required String productId,
-  }) async {
-    try {
-      final product = await getBatchProduct(organizationId, batchId, productId);
-      if (product == null) return false;
-      
-    // Puede aprobar desde Hold o Control
-      if (!product.isHold && !product.isControl) {
-        _error = 'El producto debe estar en Hold o Control';
-        notifyListeners();
-        return false;
-      }
-      
-    // Si está en Control, DEBE tener clasificación
-      if (product.isControl && !product.isReturnBalanced) {
-        _error = 'Debes clasificar las devoluciones primero';
-        notifyListeners();
-        return false;
-      }
-      
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .doc(productId)
-          .update({
-        'productStatus': 'ok',
-        'evaluatedAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return true;
-    } catch (e) {
-      _error = 'Error al aprobar producto: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-/// Rechazar producto (Hold -> CAO)
-  Future<bool> rejectProduct({
-    required String organizationId,
-    required String batchId,
-    required String productId,
-    required int returnedCount,
-    required String returnReason,
-  }) async {
-    try {
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .doc(productId)
-          .update({
-        'productStatus': 'cao',
-        'evaluatedAt': FieldValue.serverTimestamp(),
-        'returnedCount': returnedCount,
-        'returnReason': returnReason,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return true;
-    } catch (e) {
-      _error = 'Error al rechazar producto: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-
-// MANTENER classifyReturns pero SOLO funciona en Control:
-/// Clasificar productos devueltos (solo en Control)
-  Future<bool> classifyReturns({
-    required String organizationId,
-    required String batchId,
-    required String productId,
-    required int repairedCount,
-    required int discardedCount,
-  }) async {
-    try {
-      final product = await getBatchProduct(organizationId, batchId, productId);
-      if (product == null) return false;
-      
-    // CAMBIO: Solo permitir clasificar en Control
-      if (!product.isControl) {
-        _error = 'El producto debe estar en Control para clasificar';
-        notifyListeners();
-        return false;
-      }
-      
-    // Validar que sumen correctamente
-      if ((repairedCount + discardedCount) != product.returnedCount) {
-        _error = 'La suma de reparados y descartados debe ser igual a devueltos';
-        notifyListeners();
-        return false;
-      }
-
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .doc(productId)
-          .update({
-        'repairedCount': repairedCount,
-        'discardedCount': discardedCount,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return true;
-    } catch (e) {
-      _error = 'Error al clasificar devoluciones: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-
-/// Pasar producto a Control (desde CAO)
-  Future<bool> moveToControl({
-    required String organizationId,
-    required String batchId,
-    required String productId,
-  }) async {
-    try {
-      final product = await getBatchProduct(organizationId, batchId, productId);
-      if (product == null || !product.isCAO) {
-        _error = 'El producto debe estar en estado CAO';
-        notifyListeners();
-        return false;
-      }
-    
-    // YA NO se requiere clasificación previa
-    // Se clasifica DESPUÉS de estar en Control
-      
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .doc(productId)
-          .update({
-        'productStatus': 'control',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      return true;
-    } catch (e) {
-      _error = 'Error al mover a control: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-
-    // ==================== CREAR LOTE DE PRODUCCIÓN ====================
-
-  /// ACTUALIZADO: Sin priority, con productSequenceCounter
-  Future<String?> createProductionBatch({
-    required String organizationId,
-    required String projectId,
-    required String projectName,
-    required String clientId,
-    required String clientName,
-    required String createdBy,
-    required String batchPrefix,
-    String? notes,
-    String urgencyLevel = 'medium', // SOLO urgencia
-    DateTime? expectedCompletionDate,
-  }) async {
-    try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
-
-      final batchId = _uuid.v4();
-      final batchNumber = await generateBatchNumber(batchPrefix);
-
-      final batch = ProductionBatchModel(
-        id: batchId,
-        batchNumber: batchNumber,
-        batchPrefix: batchPrefix,
-        projectId: projectId,
-        projectName: projectName,
-        clientId: clientId,
-        clientName: clientName,
+      // 1. Obtener la regla de transición definida
+      final transition = await _transitionService.getTransitionBetweenStatuses(
         organizationId: organizationId,
-        status: BatchStatus.pending.value,
-        notes: notes,
-        totalProducts: 0,
-        completedProducts: 0,
-        createdBy: createdBy,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        urgencyLevel: urgencyLevel,
-        expectedCompletionDate: expectedCompletionDate,
-        productSequenceCounter: 0, // NUEVO
+        fromStatusId: fromStatusId,
+        toStatusId: toStatusId,
       );
 
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .set(batch.toMap());
+      // Si no existe una transición definida, no se permite (regla estricta)
+      if (transition == null) {
+        return {
+          'isValid': false,
+          'error': 'No existe una transición válida entre estos estados.',
+          'requiresValidation': false,
+        };
+      }
 
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('projects')
-          .doc(projectId)
-          .update({
-        'batchCount': FieldValue.increment(1),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      // 2. Verificar Roles permitidos (Nivel 1: Lista de roles en la transición)
+      if (!transition.allowedRoles.contains(_memberService.currentRole!.id)) {
+        return {
+          'isValid': false,
+          'error':
+              'Tu rol (${_memberService.currentRole!.name}) no está autorizado para realizar esta transición.',
+          'requiresValidation': false,
+        };
+      }
 
-      _isLoading = false;
-      notifyListeners();
-      return batchId;
+      // 3. Verificar Permisos Granulares (Nivel 2: Sistema de permisos dinámicos)
+      // Si la transición requiere un permiso específico (ej: "products.changeUrgency")
+      if (transition.requiresPermission != null) {
+        final parts = transition.requiresPermission!.split('.');
+        if (parts.length == 2) {
+          final canChangeStatus =
+              await _memberService.can('batch_products', 'changeStatus');
+          if (!canChangeStatus) {
+            return {
+              'isValid': false,
+              'error':
+                  'No tienes el permiso requerido: ${transition.requiresPermission}',
+            };
+          }
+        }
+      }
+
+      // 4. Evaluar Lógica Condicional (Si existe)
+      // Ej: Si quantity > 5 entonces requiere aprobación de Admin
+      if (transition.hasConditionalLogic && validationData != null) {
+        // Evaluamos usando los datos proporcionados (ej: cantidad defectuosa ingresada)
+        final conditionMet =
+            transition.conditionalLogic!.evaluate(validationData);
+
+        if (conditionMet) {
+          final action = transition.conditionalLogic!.action;
+
+          switch (action.type) {
+            case ConditionalActionType.blockTransition:
+              return {
+                'isValid': false,
+                'error': action.parameters?['reason'] ??
+                    'Transición bloqueada por reglas de negocio.',
+                'requiresValidation': false,
+              };
+
+            case ConditionalActionType.showWarning:
+              // Solo añadimos warning, pero permitimos continuar si los datos son válidos
+              // El return final manejará la validación de datos
+              break; // Continuamos al paso 5
+
+            case ConditionalActionType.requireApproval:
+              // Retornamos válido PERO indicamos que se requiere un flujo de aprobación
+              // El UI debe detectar 'requiresApproval' y cambiar el flujo.
+              return {
+                'isValid': true,
+                'requiresValidation':
+                    transition.validationType != ValidationType.simpleApproval,
+                'validationType': transition.validationType.value,
+                'validationConfig': transition.validationConfig.toMap(),
+                'requiresApproval': true,
+                'requiredApprovers': action.parameters?['requiredRoles'] ?? [],
+              };
+
+            case ConditionalActionType.requireAdditionalField:
+              // Podríamos forzar un error si el campo no está, o manejarlo en UI.
+              break;
+          }
+        }
+      }
+
+      // 5. Validar Datos de Entrada (Si la transición requiere datos)
+      // Si validationType NO es simpleApproval, necesitamos validar los datos.
+      if (transition.validationType != ValidationType.simpleApproval) {
+        // Si no hay datos, indicamos que se requieren
+        if (validationData == null) {
+          return {
+            'isValid': false,
+            'requiresValidation': true, // UI debe mostrar formulario
+            'validationType': transition.validationType.value,
+            'validationConfig': transition.validationConfig.toMap(),
+          };
+        }
+
+        // Si hay datos, validamos su contenido
+        final validationError = _validateTransitionData(
+          validationType: transition.validationType,
+          config: transition.validationConfig,
+          data: validationData,
+        );
+
+        if (validationError != null) {
+          return {
+            'isValid': false,
+            'error': validationError,
+            'requiresValidation': true,
+            'validationType': transition.validationType.value,
+            'validationConfig': transition.validationConfig.toMap(),
+          };
+        }
+      }
+
+      // 6. Todo correcto
+      return {
+        'isValid': true,
+        'requiresValidation':
+            transition.validationType != ValidationType.simpleApproval,
+        'validationType': transition.validationType.value,
+        'validationConfig': transition.validationConfig.toMap(),
+      };
     } catch (e) {
-      _error = 'Error al crear lote: $e';
-      _isLoading = false;
-      notifyListeners();
-      return null;
+      debugPrint('Error en validateStatusTransition: $e');
+      return {
+        'isValid': false,
+        'error': 'Error interno validando la transición: $e',
+        'requiresValidation': false,
+      };
     }
   }
 
-  // ==================== AÑADIR PRODUCTOS AL LOTE ====================
+  /// Valida los datos recibidos contra la configuración (ValidationConfigModel).
+  /// Retorna null si es válido, o un String con el mensaje de error.
+  String? _validateTransitionData({
+    required ValidationType validationType,
+    required ValidationConfigModel config,
+    required Map<String, dynamic> data,
+  }) {
+    switch (validationType) {
+      case ValidationType.simpleApproval:
+        return null; // No requiere datos
 
+      case ValidationType.textRequired:
+        return config.validateText(data['text'] as String?);
 
+      case ValidationType.textOptional:
+        // Solo valida si se escribió algo (ej: longitud max), si es null/vacío es válido
+        final text = data['text'] as String?;
+        if (text != null && text.isNotEmpty) {
+          return config.validateText(text);
+        }
+        return null;
 
-  // ==================== OBTENER LOTES Y PRODUCTOS ====================
+      case ValidationType.quantityAndText:
+        // Validar cantidad
+        final qty = data['quantity'] is int
+            ? data['quantity'] as int
+            : int.tryParse(data['quantity'].toString());
 
+        final qtyError = config.validateQuantity(qty);
+        if (qtyError != null) return qtyError;
+
+        // Validar texto
+        return config.validateText(data['text'] as String?);
+
+      case ValidationType.checklist:
+        // Extraer mapa de respuestas. ValidationDataModel usa 'checklistAnswers'
+        final rawAnswers = data['checklistAnswers'] ?? data['checkedItems'];
+        final Map<String, bool> answers =
+            rawAnswers != null ? Map<String, bool>.from(rawAnswers) : {};
+
+        return config.validateChecklist(answers);
+
+      case ValidationType.photoRequired:
+        final photos = data['photoUrls'] as List?;
+        final count = photos?.length ?? 0;
+        return config.validatePhotos(count);
+
+      case ValidationType.multiApproval:
+        // Validar si hay suficientes aprobaciones en el array 'approvedBy'
+        final approvedBy = data['approvedBy'] as List?;
+        final count = approvedBy?.length ?? 0;
+        final min = config.minApprovals ?? 1;
+
+        if (count < min) {
+          return 'Se requieren al menos $min aprobaciones (actuales: $count).';
+        }
+        return null;
+    }
+  }
+
+  // ==================== LECTURA DE LOTES ====================
+
+  /// Stream de lotes por organización
   Stream<List<ProductionBatchModel>> watchBatches(String organizationId) {
     return _firestore
         .collection('organizations')
@@ -514,42 +275,22 @@ class ProductionBatchService extends ChangeNotifier {
     });
   }
 
-  /// Stream de lotes por proyecto
-  Stream<List<ProductionBatchModel>> watchProjectBatches(
-    String organizationId,
-    String projectId,
-  ) {
-    return _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('production_batches')
-        .where('projectId', isEqualTo: projectId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ProductionBatchModel.fromMap(doc.data()))
-            .toList());
-  }
-
-  /// Stream de un lote específico
-  Stream<ProductionBatchModel?> watchBatch(
-    String organizationId,
-    String batchId,
-  ) {
+  /// Stream de lote por id
+  Stream<ProductionBatchModel?> watchBatch(String organizationId, String batchId) {
     return _firestore
         .collection('organizations')
         .doc(organizationId)
         .collection('production_batches')
         .doc(batchId)
         .snapshots()
-        .map((doc) {
-      if (!doc.exists || doc.data() == null) return null;
-      return ProductionBatchModel.fromMap(doc.data()!);
+        .map((snapshot) {
+        if (!snapshot.exists || snapshot.data() == null) return null;
+          return ProductionBatchModel.fromMap(snapshot.data()!);
     });
   }
 
-  /// Obtener lote específico (one-time)
-  Future<ProductionBatchModel?> getBatch(
+  /// Obtener lote por ID
+  Future<ProductionBatchModel?> getBatchById(
     String organizationId,
     String batchId,
   ) async {
@@ -561,10 +302,8 @@ class ProductionBatchService extends ChangeNotifier {
           .doc(batchId)
           .get();
 
-      if (doc.exists && doc.data() != null) {
-        return ProductionBatchModel.fromMap(doc.data()!);
-      }
-      return null;
+      if (!doc.exists) return null;
+      return ProductionBatchModel.fromMap(doc.data()!);
     } catch (e) {
       _error = 'Error al obtener lote: $e';
       notifyListeners();
@@ -572,225 +311,199 @@ class ProductionBatchService extends ChangeNotifier {
     }
   }
 
-  /// Stream de un producto específico (para tiempo real)
-  Stream<BatchProductModel?> watchBatchProduct(
+  /// Obtener lotes por estado
+  Future<List<ProductionBatchModel>> getBatchesByStatus(
     String organizationId,
-    String batchId,
-    String productId,
-  ) {
-    return _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('production_batches')
-        .doc(batchId)
-        .collection('batch_products')
-        .doc(productId)
-        .snapshots()
-        .map((doc) {
-      if (!doc.exists || doc.data() == null) return null;
-      return BatchProductModel.fromMap(doc.data()!);
-    });
-  }
-
-  // ==================== ACTUALIZAR LOTE ====================
-
-  /// ACTUALIZADO: Sin priority
-  Future<bool> updateBatch({
-    required String organizationId,
-    required String batchId,
-    String? notes,
-    String? urgencyLevel,
-    DateTime? expectedCompletionDate,
-  }) async {
-    try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
-
-      final updates = <String, dynamic>{
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-      if (notes != null) updates['notes'] = notes;
-      if (urgencyLevel != null) updates['urgencyLevel'] = urgencyLevel;
-      if (expectedCompletionDate != null) {
-        updates['expectedCompletionDate'] = Timestamp.fromDate(expectedCompletionDate);
-      }
-
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .update(updates);
-
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _error = 'Error al actualizar lote: $e';
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  /// Actualizar estado del lote
-  Future<bool> updateBatchStatus(
-    String organizationId,
-    String batchId,
-    String newStatus,
+    BatchStatus status,
   ) async {
     try {
-      final updates = <String, dynamic>{
-        'status': newStatus,
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-      // Si pasa a "in_progress" por primera vez, registrar startedAt
-      if (newStatus == BatchStatus.inProgress.value) {
-        final batch = await getBatch(organizationId, batchId);
-        if (batch?.startedAt == null) {
-          updates['startedAt'] = FieldValue.serverTimestamp();
-        }
-      }
-
-      // Si se completa, registrar actualCompletionDate
-      if (newStatus == BatchStatus.completed.value) {
-        updates['actualCompletionDate'] = FieldValue.serverTimestamp();
-      }
-
-      await _firestore
+      final snapshot = await _firestore
           .collection('organizations')
           .doc(organizationId)
           .collection('production_batches')
-          .doc(batchId)
-          .update(updates);
+          .where('status', isEqualTo: status.value)
+          .orderBy('createdAt', descending: true)
+          .get();
 
-      return true;
+      return snapshot.docs
+          .map((doc) => ProductionBatchModel.fromMap(doc.data()))
+          .toList();
     } catch (e) {
-      _error = 'Error al actualizar estado: $e';
+      _error = 'Error al obtener lotes: $e';
       notifyListeners();
-      return false;
+      return [];
     }
   }
 
- /// ACTUALIZADO: Con urgencia y notas por producto
-  Future<String?> addProductToBatch({
+  // ==================== CREACIÓN DE LOTES ====================
+
+  /// Crear un nuevo lote
+  Future<String?> createBatch({
     required String organizationId,
-    required String batchId,
-    required String productCatalogId,
-    required String productName,
-    String? productReference,
-    String? description,
-    required int quantity,
-    required List<ProductionPhase> phases,
-    String? color,
-    String? material,
-    String? specialDetails,
-    double? unitPrice,
-    DateTime? expectedDeliveryDate,
-    String urgencyLevel = 'medium', // NUEVO: Urgencia por producto
-    String? notes, // NUEVO: Notas por producto
-    String? family,
+    required String userId,
+    required String batchNumber,
+    required String batchPrefix,
+    required String projectId,
+    required String projectName,
+    required String clientId,
+    required String clientName,
+    required String createdBy,
+    String? notes,
   }) async {
     try {
       _isLoading = true;
       _error = null;
       notifyListeners();
 
-      // Obtener el lote para generar número secuencial
-      final batch = await getBatch(organizationId, batchId);
-      if (batch == null) {
-        throw Exception('Lote no encontrado');
-      }
-
-      // Verificar límite de 10 productos
-      if (!batch.canAddMoreProducts) {
-        _error = 'El lote ha alcanzado el límite de 10 productos';
+      // ✅ Verificar permisos
+      final canCreate = await _memberService.can('batches', 'create');
+      if (!canCreate) {
+        _error = 'No tienes permisos para crear lotes';
         _isLoading = false;
         notifyListeners();
         return null;
       }
 
-      final productId = _uuid.v4();
-      final productNumber = batch.productSequenceCounter + 1;
-      final productCode = '${batch.batchNumber}-$productNumber';
-
-      // Inicializar progreso de fases
-      final phaseProgress = <String, PhaseProgressData>{};
-      for (var phase in phases) {
-        phaseProgress[phase.id] = PhaseProgressData(status: 'pending');
-      }
-
-      // Primera fase activa
-      final firstPhase = phases.first;
-
-      final product = BatchProductModel(
-        id: productId,
-        batchId: batchId,
-        productCatalogId: productCatalogId,
-        productName: productName,
-        productReference: productReference,
-        description: description,
-        quantity: quantity,
-        currentPhase: firstPhase.id,
-        currentPhaseName: firstPhase.name,
-        phaseProgress: phaseProgress,
-        productNumber: productNumber,
-        productCode: productCode,
-        color: color,
-        material: material,
-        specialDetails: specialDetails,
-        unitPrice: unitPrice,
-        totalPrice: unitPrice != null ? unitPrice * quantity : null,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        expectedDeliveryDate: expectedDeliveryDate,
-        urgencyLevel: urgencyLevel, // NUEVO
-        productNotes: notes, // NUEVO
-        family: family,
-      );
-
-      // Batch write para atomicidad
-      final batchWrite = _firestore.batch();
-
-      // Crear producto
-      final productRef = _firestore
+      final docRef = _firestore
           .collection('organizations')
           .doc(organizationId)
           .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .doc(productId);
+          .doc();
 
-      batchWrite.set(productRef, product.toMap());
+      final batchId = _uuid.v4();
+      final batch = ProductionBatchModel(
+        id: batchId,
+        organizationId: organizationId,
+        status: BatchStatus.pending.value,
+        createdBy: userId,
+        createdAt: DateTime.now(),
+        batchNumber: batchNumber,
+        batchPrefix: batchPrefix,
+        projectId: projectId,
+        projectName: projectName,
+        clientId: clientId,
+        clientName: clientName,
+        updatedAt: DateTime.now(),
+        totalProducts: 0,
+        completedProducts: 0,
+        notes: notes,
+      );
 
-      // Actualizar contador en lote
-      final batchRef = _firestore
+      await docRef.set(batch.toMap());
+
+      _isLoading = false;
+      notifyListeners();
+      return docRef.id;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  // ==================== GESTIÓN DE PRODUCTOS EN LOTE ====================
+
+  /// Añadir productos al lote
+  Future<bool> addProductsToBatch({
+    required String organizationId,
+    required String batchId,
+    required List<BatchProductModel> products,
+    required String userId,
+    required String userName,
+  }) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      // ✅ Verificar permisos
+      final canEdit = await _memberService.can('batches', 'edit');
+      if (!canEdit) {
+        _error = 'No tienes permisos para editar lotes';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      // Verificar que el lote existe
+      final batch = await getBatchById(organizationId, batchId);
+      if (batch == null) {
+        throw Exception('Lote no encontrado');
+      }
+
+      // // Verificar que el lote está en draft
+      // if (batch.status != BatchStatus.draft) {
+      //   throw Exception('Solo se pueden añadir productos a lotes en borrador');
+      // }
+
+      // Obtener estado por defecto (Pendiente)
+      final defaultStatus = await _statusService.getStatusById(
+        organizationId,
+        'pending',
+      );
+
+      if (defaultStatus == null) {
+        throw Exception(
+            'Estado por defecto no encontrado. Inicializa los estados primero.');
+      }
+
+      final productsBatch = _firestore.batch();
+
+      for (final product in products) {
+        final productDocRef = _firestore
+            .collection('organizations')
+            .doc(organizationId)
+            .collection('production_batches')
+            .doc(batchId)
+            .collection('products')
+            .doc();
+
+        // Asignar estado inicial y crear historial
+        final productWithStatus = product.copyWith(
+          id: productDocRef.id,
+          statusId: defaultStatus.id,
+          statusName: defaultStatus.name,
+          statusColorValue: defaultStatus.color,
+          statusHistory: [
+            StatusHistoryEntry(
+              statusId: defaultStatus.id,
+              statusName: defaultStatus.name,
+              statusColor: defaultStatus.color,
+              timestamp: DateTime.now(),
+              userId: userId,
+              userName: userName,
+            ),
+          ],
+        );
+
+        productsBatch.set(productDocRef, productWithStatus.toMap());
+      }
+
+      // Actualizar timestamp del lote
+      final batchDocRef = _firestore
           .collection('organizations')
           .doc(organizationId)
           .collection('production_batches')
           .doc(batchId);
 
-      batchWrite.update(batchRef, {
-        'totalProducts': FieldValue.increment(1),
-        'productSequenceCounter': productNumber,
+      productsBatch.update(batchDocRef, {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      await batchWrite.commit();
+      await productsBatch.commit();
 
       _isLoading = false;
       notifyListeners();
-      return productId;
+      return true;
     } catch (e) {
-      _error = 'Error al añadir producto: $e';
+      _error = e.toString();
       _isLoading = false;
       notifyListeners();
-      return null;
+      return false;
     }
-  } 
+  }
+
   /// Stream de productos de un lote
   Stream<List<BatchProductModel>> watchBatchProducts(
     String organizationId,
@@ -801,15 +514,17 @@ class ProductionBatchService extends ChangeNotifier {
         .doc(organizationId)
         .collection('production_batches')
         .doc(batchId)
-        .collection('batch_products')
-        .orderBy('productNumber') // Ordenar por número secuencial
+        .collection('products')
+        .orderBy('createdAt')
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => BatchProductModel.fromMap(doc.data()))
-            .toList());
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => BatchProductModel.fromMap(doc.data()))
+          .toList();
+    });
   }
 
-  /// Obtener producto específico
+  /// Obtener producto de lote por ID
   Future<BatchProductModel?> getBatchProduct(
     String organizationId,
     String batchId,
@@ -821,14 +536,12 @@ class ProductionBatchService extends ChangeNotifier {
           .doc(organizationId)
           .collection('production_batches')
           .doc(batchId)
-          .collection('batch_products')
+          .collection('products')
           .doc(productId)
           .get();
 
-      if (doc.exists && doc.data() != null) {
-        return BatchProductModel.fromMap(doc.data()!);
-      }
-      return null;
+      if (!doc.exists) return null;
+      return BatchProductModel.fromMap(doc.data()!);
     } catch (e) {
       _error = 'Error al obtener producto: $e';
       notifyListeners();
@@ -836,315 +549,418 @@ class ProductionBatchService extends ChangeNotifier {
     }
   }
 
-  /// Actualizar fase de un producto
-  Future<bool> updateProductPhase({
+  // ==================== CAMBIO DE ESTADO DE PRODUCTO ====================
+
+  /// Cambiar estado de un producto con validaciones completas
+  Future<bool> changeProductStatus({
     required String organizationId,
     required String batchId,
     required String productId,
-    required String newPhaseId,
-    required String newPhaseName,
+    required String toStatusId,
     required String userId,
     required String userName,
+    Map<String, dynamic>? validationData,
     String? notes,
   }) async {
-    try {
-      // Obtener producto actual
-      final product = await getBatchProduct(organizationId, batchId, productId);
-      if (product == null) return false;
-
-      // Actualizar progreso de fases
-      final updatedProgress = Map<String, PhaseProgressData>.from(product.phaseProgress);
-
-      // Marcar fase anterior como completada
-      if (updatedProgress.containsKey(product.currentPhase)) {
-        updatedProgress[product.currentPhase] = updatedProgress[product.currentPhase]!.copyWith(
-          status: 'completed',
-          completedAt: DateTime.now(),
-          completedBy: userId,
-          completedByName: userName,
-          notes: notes,
-        );
-      }
-
-      // Marcar nueva fase como en progreso
-      if (updatedProgress.containsKey(newPhaseId)) {
-        updatedProgress[newPhaseId] = updatedProgress[newPhaseId]!.copyWith(
-          status: 'in_progress',
-          startedAt: DateTime.now(),
-        );
-      }
-
-      // Actualizar producto
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .doc(productId)
-          .update({
-        'currentPhase': newPhaseId,
-        'currentPhaseName': newPhaseName,
-        'phaseProgress': updatedProgress.map(
-          (key, value) => MapEntry(key, value.toMap()),
-        ),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      // Verificar si el producto se completó
-      final allCompleted = updatedProgress.values.every((p) => p.status == 'completed');
-      if (allCompleted) {
-        await _incrementCompletedProducts(organizationId, batchId);
-      }
-
-      return true;
-    } catch (e) {
-      _error = 'Error al actualizar fase: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-
-  /// Actualizar fase desde Kanban con actualización de fases posteriores
-Future<bool> updateProductPhaseFromKanban({
-  required String organizationId,
-  required String batchId,
-  required String productId,
-  required String newPhaseId,
-  required String newPhaseName,
-  required String userId,
-  required String userName,
-  required List<ProductionPhase> allPhases,
-}) async {
-  try {
-    final product = await getBatchProduct(organizationId, batchId, productId);
-    if (product == null) return false;
-
-    final updatedProgress = Map<String, PhaseProgressData>.from(product.phaseProgress);
-
-    // Ordenar fases por orden
-    final sortedPhases = List<ProductionPhase>.from(allPhases)
-      ..sort((a, b) => a.order.compareTo(b.order));
-
-    // Encontrar índices de fase actual y nueva
-    final currentPhaseIndex = sortedPhases.indexWhere((p) => p.id == product.currentPhase);
-    final newPhaseIndex = sortedPhases.indexWhere((p) => p.id == newPhaseId);
-
-    if (currentPhaseIndex == -1 || newPhaseIndex == -1) return false;
-
-    // Determinar si es avance o retroceso
-    final isForward = newPhaseIndex > currentPhaseIndex;
-
-    if (isForward) {
-      // AVANCE: Completar fase actual y todas las intermedias
-      for (int i = currentPhaseIndex; i < newPhaseIndex; i++) {
-        final phaseId = sortedPhases[i].id;
-        if (updatedProgress.containsKey(phaseId)) {
-          updatedProgress[phaseId] = PhaseProgressData(
-            status: 'completed',
-            completedAt: DateTime.now(),
-            completedBy: userId,
-            completedByName: userName,
-          );
-
-                // Si se completó una fase
-        await MessageEventsHelper.onPhaseCompleted(
-          organizationId: organizationId,
-          batchId: batchId,
-          productId: productId,
-          phaseName: phaseId,
-          completedBy: userName,
-          productName: product.productName,
-        );
-      
-        }
-      }
-
-      // Marcar nueva fase como en progreso
-      if (updatedProgress.containsKey(newPhaseId)) {
-        updatedProgress[newPhaseId] = PhaseProgressData(
-          status: 'in_progress',
-          startedAt: DateTime.now(),
-        );
-      }
-
-      // Si es Studio, completarla automáticamente
-      if (newPhaseId == 'studio') {
-        updatedProgress['studio'] = PhaseProgressData(
-          status: 'completed',
-          completedAt: DateTime.now(),
-          completedBy: userId,
-          completedByName: userName,
-        );
-      }
-    } else {
-      // RETROCESO: Marcar como pendiente la nueva fase y todas las posteriores
-      for (int i = newPhaseIndex; i < sortedPhases.length; i++) {
-        final phaseId = sortedPhases[i].id;
-        if (updatedProgress.containsKey(phaseId)) {
-          updatedProgress[phaseId] = PhaseProgressData(
-            status: 'pending',
-          );
-        }
-      }
-
-      // Generar evento de movimiento de fase
-      await MessageEventsHelper.onProductMoved(
-        organizationId: organizationId,
-        batchId: batchId,
-        productId: productId,
-        productName: product.productName,
-        oldPhase: product.currentPhaseName,
-        newPhase: newPhaseId,
-        movedBy: userName,
-      );
-
-      // Marcar nueva fase como en progreso
-      if (updatedProgress.containsKey(newPhaseId)) {
-        updatedProgress[newPhaseId] = PhaseProgressData(
-          status: 'in_progress',
-          startedAt: DateTime.now(),
-        );
-      }
-    }
-
-    // Actualizar producto
-    await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('production_batches')
-        .doc(batchId)
-        .collection('batch_products')
-        .doc(productId)
-        .update({
-      'currentPhase': newPhaseId,
-      'currentPhaseName': newPhaseName,
-      'phaseProgress': updatedProgress.map(
-        (key, value) => MapEntry(key, value.toMap()),
-      ),
-      'productStatus': isForward ? product.productStatus : 'pending',
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
-    // Si todas las fases están completadas, incrementar contador
-    final allCompleted = updatedProgress.values.every((p) => p.status == 'completed');
-    if (allCompleted && isForward) {
-      await _incrementCompletedProducts(organizationId, batchId);
-    }
-
-    return true;
-  } catch (e) {
-    _error = 'Error al actualizar fase: $e';
-    notifyListeners();
-    return false;
-  }
-}
-    
-  /// Stream de TODOS los productos de la organización (para vista global)
-  Stream<List<BatchProductModel>> watchAllProducts(String organizationId) {
-    return _firestore
-        .collectionGroup('batch_products')
-        .where('organizationId', isEqualTo: organizationId) // Necesitarás añadir este campo
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => BatchProductModel.fromMap(doc.data()))
-            .toList());
-  }
-
-  /// Incrementar contador de productos completados
-  Future<void> _incrementCompletedProducts(
-    String organizationId,
-    String batchId,
-  ) async {
-    await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('production_batches')
-        .doc(batchId)
-        .update({
-      'completedProducts': FieldValue.increment(1),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
-    // Verificar si el lote se completó
-    final batch = await getBatch(organizationId, batchId);
-    if (batch != null && batch.isComplete && batch.status != BatchStatus.completed.value) {
-      await updateBatchStatus(organizationId, batchId, BatchStatus.completed.value);
-    }
-  }
-
-  /// Eliminar producto del lote
-  Future<bool> deleteProductFromBatch(
-    String organizationId,
-    String batchId,
-    String productId,
-  ) async {
-    try {
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .doc(productId)
-          .delete();
-
-      // Decrementar contador
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .update({
-        'totalProducts': FieldValue.increment(-1),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      return true;
-    } catch (e) {
-      _error = 'Error al eliminar producto: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-
-  // ==================== ELIMINAR LOTE ====================
-
-  Future<bool> deleteBatch(String organizationId, String batchId) async {
     try {
       _isLoading = true;
       _error = null;
       notifyListeners();
 
-      // Obtener el lote para saber el projectId
-      final batch = await getBatch(organizationId, batchId);
-      
-      // Eliminar lote
+      // ✅ Verificar permisos con scope
+      final product = await getBatchProduct(organizationId, batchId, productId);
+      if (product == null) {
+        _error = 'Producto no encontrado';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final canChange = await _memberService.can(
+        'batch_products',
+        'changeStatus',
+      );
+
+      if (!canChange) {
+        _error = 'No tienes permisos para cambiar el estado de este producto';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final fromStatusId = product.statusId;
+
+      // Obtener el nuevo estado
+      final toStatus = await _statusService.getStatusById(
+        organizationId,
+        toStatusId,
+      );
+
+      if (toStatus == null) {
+        throw Exception('Estado destino no encontrado');
+      }
+
+      final validationResult = await validateStatusTransition(
+        organizationId: organizationId,
+        fromStatusId: fromStatusId!,
+        toStatusId: toStatusId,
+        userName: userName,
+        userId: userId,
+        validationData: validationData,
+      );
+
+      if (validationResult['isValid'] != true) {
+        throw Exception(validationResult['error'] ?? 'Transición no válida');
+      }
+
+      // Crear entrada de historial
+      final historyEntry = StatusHistoryEntry(
+        statusId: toStatusId,
+        statusName: toStatus.name,
+        statusColor: toStatus.color,
+        timestamp: DateTime.now(),
+        userId: userId,
+        userName: userName,
+        validationData: validationData,
+      );
+
+      // Actualizar producto
+      final updatedProduct = product.copyWith(
+        statusId: toStatusId,
+        statusName: toStatus.name,
+        statusColorValue: toStatus.color,
+        statusHistory: [...product.statusHistory, historyEntry],
+      );
+
       await _firestore
           .collection('organizations')
           .doc(organizationId)
           .collection('production_batches')
           .doc(batchId)
-          .delete();
+          .collection('products')
+          .doc(productId)
+          .update(updatedProduct.toMap());
 
-      // Decrementar contador en proyecto
-      if (batch != null) {
-        await _firestore
-            .collection('organizations')
-            .doc(organizationId)
-            .collection('projects')
-            .doc(batch.projectId)
-            .update({
-          'batchCount': FieldValue.increment(-1),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
+      // Actualizar timestamp del lote
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('production_batches')
+          .doc(batchId)
+          .update({
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _error = 'Error al eliminar lote: $e';
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ==================== CAMBIO DE ESTADO DE LOTE ====================
+
+  /// Cambiar estado del lote completo
+  Future<bool> changeBatchStatus({
+    required String organizationId,
+    required String batchId,
+    required BatchStatus newStatus,
+    required String userId,
+  }) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final canChange = await _memberService.can(
+        'batches',
+        'edit',
+      );
+
+      if (!canChange) {
+        _error = 'No tienes permisos para cambiar el estado de lotes';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final batch = await getBatchById(organizationId, batchId);
+      if (batch == null) {
+        throw Exception('Lote no encontrado');
+      }
+
+      // Validaciones según el nuevo estado
+      if (newStatus == BatchStatus.inProgress) {
+        // Verificar que tiene productos
+        final productsSnapshot = await _firestore
+            .collection('organizations')
+            .doc(organizationId)
+            .collection('production_batches')
+            .doc(batchId)
+            .collection('products')
+            .limit(1)
+            .get();
+
+        if (productsSnapshot.docs.isEmpty) {
+          throw Exception('No se puede iniciar un lote sin productos');
+        }
+      }
+
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('production_batches')
+          .doc(batchId)
+          .update({
+        'status': newStatus.value,
+        'updatedAt': FieldValue.serverTimestamp(),
+        if (newStatus == BatchStatus.inProgress && batch.startedAt == null)
+          'startedAt': FieldValue.serverTimestamp(),
+        if (newStatus == BatchStatus.completed)
+          'completedAt': FieldValue.serverTimestamp(),
+      });
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ==================== ACTUALIZACIÓN DE PRODUCTOS ====================
+
+  /// Actualizar un producto del lote
+  Future<bool> updateBatchProduct({
+    required String organizationId,
+    required String batchId,
+    required String productId,
+    required String userId,
+    int? quantity,
+    double? unitPrice,
+    String? notes,
+    Map<String, dynamic>? customization,
+  }) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final canEdit = await _memberService.can('batch_products', 'edit');
+      if (!canEdit) {
+        _error = 'No tienes permisos para editar productos';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final updates = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (quantity != null) updates['quantity'] = quantity;
+      if (unitPrice != null) {
+        updates['unitPrice'] = unitPrice;
+        if (quantity != null) {
+          updates['totalPrice'] = quantity * unitPrice;
+        }
+      }
+      if (notes != null) updates['notes'] = notes;
+      if (customization != null) updates['customization'] = customization;
+
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('production_batches')
+          .doc(batchId)
+          .collection('products')
+          .doc(productId)
+          .update(updates);
+
+      // Actualizar timestamp del lote
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('production_batches')
+          .doc(batchId)
+          .update({
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Eliminar producto del lote
+  Future<bool> removeBatchProduct({
+    required String organizationId,
+    required String batchId,
+    required String productId,
+    required String userId,
+  }) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final canDelete = await _memberService.can('batch_products', 'delete');
+      if (!canDelete) {
+        _error = 'No tienes permisos para eliminar productos de lote';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      // Verificar que el lote existe
+      final batch = await getBatchById(organizationId, batchId);
+      if (batch == null) {
+        throw Exception('Lote no encontrado');
+      }
+
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('production_batches')
+          .doc(batchId)
+          .collection('products')
+          .doc(productId)
+          .delete();
+
+      // Actualizar timestamp del lote
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('production_batches')
+          .doc(batchId)
+          .update({
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ==================== ELIMINACIÓN DE LOTE ====================
+
+  /// Eliminar un lote completo
+  Future<bool> deleteBatch({
+    required String organizationId,
+    required String batchId,
+    required String userId,
+  }) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final canDelete = await _memberService.can('batches', 'delete');
+      if (!canDelete) {
+        _error = 'No tienes permisos para eliminar lotes';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      // Eliminar todos los productos primero
+      final productsSnapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('production_batches')
+          .doc(batchId)
+          .collection('products')
+          .get();
+
+      final batch = _firestore.batch();
+
+      for (final doc in productsSnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // Eliminar el lote
+      final batchRef = _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('production_batches')
+          .doc(batchId);
+
+      batch.delete(batchRef);
+
+      await batch.commit();
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ==================== ACTUALIZACIÓN DE LOTE ====================
+
+  /// Actualizar información del lote
+  Future<bool> updateBatch({
+    required String organizationId,
+    required String batchId,
+    required String userId,
+    String? name,
+    String? notes,
+  }) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final canEdit = await _memberService.can('batches', 'edit');
+      if (!canEdit) {
+        _error = 'No tienes permisos para editar lotes';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final updates = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (name != null) updates['name'] = name;
+      if (notes != null) updates['notes'] = notes;
+
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('production_batches')
+          .doc(batchId)
+          .update(updates);
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
       _isLoading = false;
       notifyListeners();
       return false;
@@ -1153,25 +969,48 @@ Future<bool> updateProductPhaseFromKanban({
 
   // ==================== ESTADÍSTICAS ====================
 
-  /// Obtener estadísticas de lotes
-  Future<Map<String, dynamic>> getBatchStatistics(String organizationId) async {
+  /// Obtener estadísticas de un lote
+  Future<Map<String, dynamic>> getBatchStats(
+    String organizationId,
+    String batchId,
+  ) async {
     try {
-      final snapshot = await _firestore
+      final productsSnapshot = await _firestore
           .collection('organizations')
           .doc(organizationId)
           .collection('production_batches')
+          .doc(batchId)
+          .collection('products')
           .get();
 
-      final batches = snapshot.docs
-          .map((doc) => ProductionBatchModel.fromMap(doc.data()))
+      final products = productsSnapshot.docs
+          .map((doc) => BatchProductModel.fromMap(doc.data()))
           .toList();
 
+      // Agrupar por estado
+      final statusCount = <String, int>{};
+      for (final product in products) {
+        statusCount[product.statusDisplayName] =
+            (statusCount[product.statusName] ?? 0) + 1;
+      }
+
+      // Calcular totales
+      final totalQuantity = products.fold<int>(
+        0,
+        (sum, p) => sum + p.quantity,
+      );
+
+      // Corregir el error de tipo en totalPrice
+      final totalValue = products.fold<double>(
+        0.0,
+        (sum, p) => sum + (p.totalPrice ?? 0.0),
+      );
+
       return {
-        'total': batches.length,
-        'pending': batches.where((b) => b.isPending).length,
-        'inProgress': batches.where((b) => b.isInProgress).length,
-        'completed': batches.where((b) => b.isCompleted).length,
-        'delayed': batches.where((b) => b.isDelayed).length,
+        'totalProducts': products.length,
+        'totalQuantity': totalQuantity,
+        'totalValue': totalValue,
+        'statusDistribution': statusCount,
       };
     } catch (e) {
       _error = 'Error al obtener estadísticas: $e';
