@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/organization_member_model.dart';
 import '../models/role_model.dart';
 import '../models/permission_model.dart';
+import '../models/permission_override_model.dart';
 import 'role_service.dart';
 
 /// Servicio para gestión de Permisos y Miembros
@@ -110,11 +111,12 @@ class PermissionService extends ChangeNotifier {
   // ==================== GESTIÓN DE MIEMBROS ====================
 
   /// Añadir miembro a la organización
+  /// Corregido para aceptar PermissionOverridesModel
   Future<bool> addMember({
     required String userId,
     required String organizationId,
     required String roleId,
-    PermissionsModel? permissionOverrides,
+    PermissionOverridesModel? permissionOverrides, // Tipo corregido
     List<String>? assignedPhases,
   }) async {
     try {
@@ -122,7 +124,7 @@ class PermissionService extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      // Obtener rol para desnormalizar datos
+      // Obtener rol para desnormalizar datos (nombre y color)
       final role = await _roleService.getRoleById(organizationId, roleId);
       if (role == null) {
         _error = 'Rol no encontrado';
@@ -141,6 +143,7 @@ class PermissionService extends ChangeNotifier {
         assignedPhases: assignedPhases ?? [],
         canManageAllPhases: assignedPhases == null || assignedPhases.isEmpty,
         joinedAt: DateTime.now(),
+        isActive: true,
       );
 
       await _firestore
@@ -204,10 +207,11 @@ class PermissionService extends ChangeNotifier {
   }
 
   /// Actualizar overrides de permisos de un miembro
+  /// Corregido para aceptar PermissionOverridesModel
   Future<bool> updateMemberPermissionOverrides({
     required String userId,
     required String organizationId,
-    required PermissionsModel permissionOverrides,
+    required PermissionOverridesModel permissionOverrides, // Tipo corregido
   }) async {
     try {
       _isLoading = true;
@@ -222,6 +226,14 @@ class PermissionService extends ChangeNotifier {
           .update({
         'permissionOverrides': permissionOverrides.toMap(),
       });
+
+      // Si el usuario actualizado es el actual, recargar permisos
+      if (_currentMember?.userId == userId) {
+        await loadCurrentUserPermissions(
+          userId: userId, 
+          organizationId: organizationId,
+        );
+      }
 
       _isLoading = false;
       notifyListeners();
