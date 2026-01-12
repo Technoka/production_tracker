@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'permission_model.dart';
+import 'permission_override_model.dart';
 import 'role_model.dart';
 
 /// Modelo de Miembro de Organización
-/// Conecta un usuario con un rol y permite personalizar permisos
+/// Conecta un usuario con un rol y permite personalizar permisos mediante overrides
 class OrganizationMemberModel {
   final String userId;
   final String organizationId;
@@ -17,7 +18,7 @@ class OrganizationMemberModel {
   final String? legacyRole; // 'admin', 'operator', etc.
   
   // Permisos personalizados (overrides del rol base)
-  final PermissionsModel? permissionOverrides;
+  final PermissionOverridesModel? permissionOverrides;
   
   // Fases asignadas (para operarios)
   final List<String> assignedPhases;
@@ -55,7 +56,7 @@ class OrganizationMemberModel {
       roleColor: map['roleColor'] as String,
       legacyRole: map['role'] as String?, // Campo legacy
       permissionOverrides: map['permissionOverrides'] != null
-          ? PermissionsModel.fromMap(
+          ? PermissionOverridesModel.fromMap(
               map['permissionOverrides'] as Map<String, dynamic>,
             )
           : null,
@@ -96,7 +97,7 @@ class OrganizationMemberModel {
     String? roleName,
     String? roleColor,
     String? legacyRole,
-    PermissionsModel? permissionOverrides,
+    PermissionOverridesModel? permissionOverrides,
     List<String>? assignedPhases,
     bool? canManageAllPhases,
     DateTime? joinedAt,
@@ -131,16 +132,17 @@ class OrganizationMemberModel {
   }
 
   /// Verifica si tiene overrides de permisos
-  bool get hasPermissionOverrides => permissionOverrides != null;
+  bool get hasPermissionOverrides => 
+      permissionOverrides != null && permissionOverrides!.isNotEmpty;
 
-  /// Obtiene los permisos efectivos (rol + overrides)
+  /// Obtiene los permisos efectivos (rol base + overrides aplicados)
   PermissionsModel getEffectivePermissions(RoleModel role) {
-    if (permissionOverrides == null) {
+    if (permissionOverrides == null || permissionOverrides!.isEmpty) {
       return role.permissions;
     }
     
-    // Merge: Los overrides sobrescriben los permisos del rol
-    return role.permissions.mergeWithOverrides(permissionOverrides!);
+    // Aplicar overrides sobre los permisos del rol
+    return permissionOverrides!.applyTo(role.permissions);
   }
 
   /// Verifica si es propietario de la organización
@@ -196,6 +198,7 @@ class OrganizationMemberWithUser {
   String get roleColor => member.roleColor;
   DateTime get joinedAt => member.joinedAt;
   bool get isActive => member.isActive;
+  PermissionOverridesModel? get permissionOverrides => member.permissionOverrides;
   
   // Helpers
   bool get isAdmin => member.isAdmin;
@@ -212,6 +215,11 @@ class OrganizationMemberWithUser {
     return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1))
         .toUpperCase();
   }
+
+  /// Obtiene los permisos efectivos del usuario
+  PermissionsModel getEffectivePermissions(RoleModel role) {
+    return member.getEffectivePermissions(role);
+  }
 }
 
 /// Modelo para solicitudes de cambio de rol/permisos pendientes
@@ -226,7 +234,7 @@ class RoleChangeRequest {
   final String? currentRoleId;
   final String requestedRoleId;
   final String requestedRoleName;
-  final PermissionsModel? requestedPermissionOverrides;
+  final PermissionOverridesModel? requestedPermissionOverrides;
   
   // Razón del cambio
   final String reason;
@@ -271,7 +279,7 @@ class RoleChangeRequest {
       requestedRoleId: map['requestedRoleId'] as String,
       requestedRoleName: map['requestedRoleName'] as String,
       requestedPermissionOverrides: map['requestedPermissionOverrides'] != null
-          ? PermissionsModel.fromMap(
+          ? PermissionOverridesModel.fromMap(
               map['requestedPermissionOverrides'] as Map<String, dynamic>,
             )
           : null,
@@ -318,7 +326,7 @@ class RoleChangeRequest {
     String? currentRoleId,
     String? requestedRoleId,
     String? requestedRoleName,
-    PermissionsModel? requestedPermissionOverrides,
+    PermissionOverridesModel? requestedPermissionOverrides,
     String? reason,
     RequestStatus? status,
     String? requestedBy,
