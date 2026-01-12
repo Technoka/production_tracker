@@ -315,7 +315,7 @@ class KanbanService {
   }) async {
     try {
       // ✅ VALIDAR PERMISOS
-      final canBlock = await _memberService.can('products', 'changeStatus');
+      final canBlock = await _memberService.can('batch_products', 'changeStatus');
       if (!canBlock) {
         throw Exception('No tienes permisos para bloquear productos');
       }
@@ -349,7 +349,7 @@ class KanbanService {
   }) async {
     try {
       // ✅ VALIDAR PERMISOS
-      final canEdit = await _memberService.can('products', 'edit');
+      final canEdit = await _memberService.can('batch_products', 'edit');
       if (!canEdit) {
         throw Exception('No tienes permisos para editar productos');
       }
