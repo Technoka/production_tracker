@@ -131,6 +131,7 @@ class InvitationModel {
   final String id;
   final String organizationId;
   final String organizationName;
+  final String? roleId;
   final String email;
   final String invitedBy; // UID de quien envió la invitación
   final String invitedByName;
@@ -142,6 +143,7 @@ class InvitationModel {
     required this.id,
     required this.organizationId,
     required this.organizationName,
+    this.roleId,
     required this.email,
     required this.invitedBy,
     required this.invitedByName,
@@ -155,6 +157,7 @@ class InvitationModel {
       'id': id,
       'organizationId': organizationId,
       'organizationName': organizationName,
+      'roleId': roleId != null ? roleId : null,
       'email': email,
       'invitedBy': invitedBy,
       'invitedByName': invitedByName,
@@ -169,6 +172,7 @@ class InvitationModel {
       id: map['id'] as String,
       organizationId: map['organizationId'] as String,
       organizationName: map['organizationName'] as String,
+      roleId: map['roleId'] as String ?? null,
       email: map['email'] as String,
       invitedBy: map['invitedBy'] as String,
       invitedByName: map['invitedByName'] as String,
