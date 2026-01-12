@@ -1,10 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/product_status_model.dart';
+import 'organization_member_service.dart';
 
 /// Servicio para gestión de Estados de Producto
 class ProductStatusService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final OrganizationMemberService _memberService;
+
+  ProductStatusService({required OrganizationMemberService memberService})
+      : _memberService = memberService;
 
   List<ProductStatusModel> _statuses = [];
   List<ProductStatusModel> get statuses => _statuses;
@@ -97,7 +102,8 @@ class ProductStatusService extends ChangeNotifier {
   }
 
   /// Obtener solo estados activos
-  Future<List<ProductStatusModel>> getActiveStatuses(String organizationId) async {
+  Future<List<ProductStatusModel>> getActiveStatuses(
+      String organizationId) async {
     try {
       final snapshot = await _firestore
           .collection('organizations')
@@ -152,6 +158,14 @@ class ProductStatusService extends ChangeNotifier {
     required String createdBy,
   }) async {
     try {
+      // ✅ VALIDAR PERMISOS
+      final canCreate = await _memberService.can('settings', 'manageStatuses');
+      if (!canCreate) {
+        _error = 'No tienes permisos para crear estados';
+        notifyListeners();
+        return null;
+      }
+
       _isLoading = true;
       _error = null;
       notifyListeners();
@@ -211,6 +225,14 @@ class ProductStatusService extends ChangeNotifier {
     bool? isActive,
   }) async {
     try {
+      // ✅ VALIDAR PERMISOS
+      final canEdit = await _memberService.can('settings', 'manageStatuses');
+      if (!canEdit) {
+        _error = 'No tienes permisos para editar estados';
+        notifyListeners();
+        return false;
+      }
+
       _isLoading = true;
       _error = null;
       notifyListeners();
@@ -274,11 +296,35 @@ class ProductStatusService extends ChangeNotifier {
     String statusId,
     bool isActive,
   ) async {
-    return updateStatus(
+    try {
+      
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+      
+      // ✅ VALIDAR PERMISOS
+      final canEdit = await _memberService.can('settings', 'manageStatuses');
+      if (!canEdit) {
+        _error = 'No tienes permisos para reordenar estados';
+        notifyListeners();
+        return false;
+      }
+
+    
+
+      _isLoading = false;
+      notifyListeners();
+      return updateStatus(
       organizationId: organizationId,
       statusId: statusId,
       isActive: isActive,
     );
+    } catch (e) {
+      _error = 'Error al activar/desactivar estado: $e';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   /// Reordenar estados
@@ -287,6 +333,14 @@ class ProductStatusService extends ChangeNotifier {
     List<String> orderedStatusIds,
   ) async {
     try {
+      // ✅ VALIDAR PERMISOS
+      final canEdit = await _memberService.can('settings', 'manageStatuses');
+      if (!canEdit) {
+        _error = 'No tienes permisos para reordenar estados';
+        notifyListeners();
+        return false;
+      }
+
       _isLoading = true;
       _error = null;
       notifyListeners();
@@ -327,6 +381,14 @@ class ProductStatusService extends ChangeNotifier {
     String statusId,
   ) async {
     try {
+      // ✅ VALIDAR PERMISOS
+      final canDelete = await _memberService.can('settings', 'manageStatuses');
+      if (!canDelete) {
+        _error = 'No tienes permisos para eliminar estados';
+        notifyListeners();
+        return false;
+      }
+
       _isLoading = true;
       _error = null;
       notifyListeners();

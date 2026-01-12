@@ -1,13 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:uuid/uuid.dart';
 import '../models/client_model.dart';
 import '../models/project_model.dart';
+import '../models/permission_registry_model.dart';
+import 'organization_member_service.dart';
 
 class ClientService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _uuid = const Uuid();
+  final OrganizationMemberService _memberService;
+
+  ClientService({required OrganizationMemberService memberService})
+      : _memberService = memberService;
 
   List<ClientModel> _clients = [];
   List<ClientModel> get clients => _clients;
@@ -38,12 +43,19 @@ class ClientService extends ChangeNotifier {
     String? userId, // Para portal del cliente (Fase 12)
   }) async {
     try {
+      // ✅ VALIDAR PERMISOS
+      final canCreate = await _memberService.can('clients', 'create');
+      if (!canCreate) {
+        _error = 'No tienes permisos para crear clientes';
+        notifyListeners();
+        return null;
+      }
+
       _isLoading = true;
       _error = null;
       notifyListeners();
 
       final clientId = _uuid.v4();
-      
       final now = DateTime.now();
 
       final client = ClientModel(
@@ -54,6 +66,9 @@ class ClientService extends ChangeNotifier {
         company: company,
         phone: phone,
         address: address,
+        city: city,
+        postalCode: postalCode,
+        country: country,
         notes: notes,
         userId: userId,
         createdBy: createdBy,
@@ -61,7 +76,7 @@ class ClientService extends ChangeNotifier {
         updatedAt: now,
       );
 
-      final docRef = await _firestore
+      await _firestore
           .collection('organizations')
           .doc(organizationId)
           .collection('clients')
@@ -72,7 +87,6 @@ class ClientService extends ChangeNotifier {
       notifyListeners();
 
       return clientId;
-      
     } on FirebaseException catch (e) {
       _error = 'Error al crear cliente: ${e.message}';
       _isLoading = false;
@@ -88,7 +102,7 @@ class ClientService extends ChangeNotifier {
 
   // ==================== OBTENER CLIENTES ====================
 
-  // Stream de clientes de una organización
+  /// Stream de clientes de una organización
   Stream<List<ClientModel>> watchClients(String organizationId) {
     return _firestore
         .collection('organizations')
@@ -99,14 +113,15 @@ class ClientService extends ChangeNotifier {
         .snapshots()
         .map((snapshot) {
       _clients = snapshot.docs
-            .map((doc) => ClientModel.fromMap(doc.data()))
+          .map((doc) => ClientModel.fromMap(doc.data()))
           .toList();
       return _clients;
     });
   }
 
   /// Obtener clientes (one-time)
-  Future<List<ClientModel>> getOrganizationClients(String organizationId) async {
+  Future<List<ClientModel>> getOrganizationClients(
+      String organizationId) async {
     try {
       _isLoading = true;
       _error = null;
@@ -116,6 +131,7 @@ class ClientService extends ChangeNotifier {
           .collection('organizations')
           .doc(organizationId)
           .collection('clients')
+          .where('isActive', isEqualTo: true)
           .orderBy('name')
           .get();
 
@@ -167,7 +183,7 @@ class ClientService extends ChangeNotifier {
       if (!doc.exists) return null;
       return ClientModel.fromMap(doc.data()!);
     } catch (e) {
-      print('Error getting client: $e');
+      debugPrint('Error getting client: $e');
       return null;
     }
   }
@@ -189,26 +205,26 @@ class ClientService extends ChangeNotifier {
       if (snapshot.docs.isEmpty) return null;
       return ClientModel.fromMap(snapshot.docs.first.data());
     } catch (e) {
-      print('Error getting client by userId: $e');
+      debugPrint('Error getting client by userId: $e');
       return null;
     }
   }
 
-  
-  // Obtener proyectos del cliente
-Stream<List<ProjectModel>> getClientProjects(String organizationId, String clientId) {
-  return _firestore
-      .collection('organizations')
-      .doc(organizationId)
-      .collection('projects')
-      .where('clientId', isEqualTo: clientId)
-      .where('isActive', isEqualTo: true) // Recomendado: filtrar solo activos
-      .orderBy('createdAt', descending: true)
-      .snapshots()
-      .map((snapshot) => snapshot.docs
-          .map((doc) => ProjectModel.fromMap(doc.data()))
-          .toList());
-}
+  /// Obtener proyectos del cliente
+  Stream<List<ProjectModel>> getClientProjects(
+      String organizationId, String clientId) {
+    return _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('projects')
+        .where('clientId', isEqualTo: clientId)
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ProjectModel.fromMap(doc.data()))
+            .toList());
+  }
 
   // ==================== ACTUALIZAR CLIENTE ====================
 
@@ -216,7 +232,7 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
     required String organizationId,
     required String clientId,
     String? name,
-    String? company,    
+    String? company,
     String? email,
     String? phone,
     String? address,
@@ -227,6 +243,14 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
     String? userId,
   }) async {
     try {
+      // ✅ VALIDAR PERMISOS
+      final canEdit = await _memberService.can('clients', 'edit');
+      if (!canEdit) {
+        _error = 'No tienes permisos para editar clientes';
+        notifyListeners();
+        return false;
+      }
+
       _isLoading = true;
       _error = null;
       notifyListeners();
@@ -276,9 +300,18 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
     String clientId,
   ) async {
     try {
+      // ✅ VALIDAR PERMISOS
+      final canDelete = await _memberService.can('clients', 'delete');
+      if (!canDelete) {
+        _error = 'No tienes permisos para eliminar clientes';
+        notifyListeners();
+        return false;
+      }
+
       _isLoading = true;
       _error = null;
       notifyListeners();
+
       // Verificar si tiene proyectos asociados
       final projectsSnapshot = await _firestore
           .collection('organizations')
@@ -289,20 +322,23 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
           .get();
 
       if (projectsSnapshot.docs.isNotEmpty) {
-        _error = 'Cannot delete client with associated projects';
-        
+        _error = 'No se puede eliminar un cliente con proyectos asociados';
         _isLoading = false;
         notifyListeners();
         return false;
       }
 
+      // Soft delete
       await _firestore
           .collection('organizations')
           .doc(organizationId)
           .collection('clients')
           .doc(clientId)
-          .delete();
-          
+          .update({
+        'isActive': false,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
       _isLoading = false;
       notifyListeners();
       return true;
@@ -315,23 +351,35 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
       _error = 'Error inesperado al eliminar cliente: $e';
       _isLoading = false;
       notifyListeners();
-      return false;      
+      return false;
     }
   }
 
-  // Eliminación física (permanente) - solo para casos especiales
-  Future<bool> permanentlyDeleteClient(String organizationId, String clientId) async {
+  /// Eliminación física (permanente) - solo para casos especiales
+  Future<bool> permanentlyDeleteClient(
+      String organizationId, String clientId) async {
     try {
+      // ✅ VALIDAR PERMISOS (solo admins con scope all)
+      final canDelete = await _memberService.can('clients', 'delete');
+      final scope = await _memberService.getScope('clients', 'delete');
+
+      if (!canDelete || scope != PermissionScope.all) {
+        _error =
+            'Solo administradores pueden eliminar permanentemente clientes';
+        notifyListeners();
+        return false;
+      }
+
       _isLoading = true;
       _error = null;
       notifyListeners();
 
       await _firestore
-      .collection('organizations')
-      .doc(organizationId)
-      .collection('clients')
-      .doc(clientId)
-      .delete();
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .doc(clientId)
+          .delete();
 
       _isLoading = false;
       notifyListeners();
@@ -357,9 +405,9 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
   }
 
   void clearSearch() {
-  _searchQuery = '';
-  notifyListeners();
-}
+    _searchQuery = '';
+    notifyListeners();
+  }
 
   Future<List<ClientModel>> searchClients(
     String? organizationId,
@@ -375,17 +423,18 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
           .collection('organizations')
           .doc(organizationId)
           .collection('clients')
+          .where('isActive', isEqualTo: true)
           .get();
 
       return snapshot.docs
           .map((doc) => ClientModel.fromMap(doc.data()))
           .where((client) =>
               client.name.toLowerCase().contains(lowerQuery) ||
-              (client.email?.toLowerCase().contains(lowerQuery) ?? false) ||
-              (client.company?.toLowerCase().contains(lowerQuery) ?? false))
+              client.email.toLowerCase().contains(lowerQuery) ||
+              client.company.toLowerCase().contains(lowerQuery))
           .toList();
     } catch (e) {
-      print('Error searching clients: $e');
+      debugPrint('Error searching clients: $e');
       return [];
     }
   }
@@ -400,6 +449,7 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
           .collection('organizations')
           .doc(organizationId)
           .collection('clients')
+          .where('isActive', isEqualTo: true)
           .orderBy('name')
           .startAt([namePrefix])
           .endAt([namePrefix + '\uf8ff'])
@@ -409,7 +459,7 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
           .map((doc) => ClientModel.fromMap(doc.data()))
           .toList();
     } catch (e) {
-      print('Error searching clients by name: $e');
+      debugPrint('Error searching clients by name: $e');
       return [];
     }
   }
@@ -440,10 +490,12 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
         final status = projectDoc.data()['status'] as String?;
         final isDelayed = projectDoc.data()['isDelayed'] as bool? ?? false;
 
-        if (status == 'in_production' || status == 'in_preparation') {
+        if (status == ProjectStatus.production.value ||
+            status == ProjectStatus.preparation.value) {
           activeProjects++;
         }
-        if (status == 'completed' || status == 'delivered') {
+        if (status == ProjectStatus.completed.value ||
+            status == ProjectStatus.delivered.value) {
           completedProjects++;
         }
         if (isDelayed) {
@@ -458,7 +510,7 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
         'delayedProjects': delayedProjects,
       };
     } catch (e) {
-      print('Error getting client statistics: $e');
+      debugPrint('Error getting client statistics: $e');
       return {
         'totalProjects': 0,
         'activeProjects': 0,
@@ -476,6 +528,14 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
     String userId,
   ) async {
     try {
+      // ✅ VALIDAR PERMISOS
+      final canEdit = await _memberService.can('clients', 'edit');
+      if (!canEdit) {
+        _error = 'No tienes permisos para vincular usuarios';
+        notifyListeners();
+        return false;
+      }
+
       await _firestore
           .collection('organizations')
           .doc(organizationId)
@@ -488,7 +548,7 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
 
       return true;
     } catch (e) {
-      print('Error linking user to client: $e');
+      debugPrint('Error linking user to client: $e');
       return false;
     }
   }
@@ -498,6 +558,14 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
     String clientId,
   ) async {
     try {
+      // ✅ VALIDAR PERMISOS
+      final canEdit = await _memberService.can('clients', 'edit');
+      if (!canEdit) {
+        _error = 'No tienes permisos para desvincular usuarios';
+        notifyListeners();
+        return false;
+      }
+
       await _firestore
           .collection('organizations')
           .doc(organizationId)
@@ -510,7 +578,7 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
 
       return true;
     } catch (e) {
-      print('Error unlinking user from client: $e');
+      debugPrint('Error unlinking user from client: $e');
       return false;
     }
   }
@@ -541,12 +609,12 @@ Stream<List<ProjectModel>> getClientProjects(String organizationId, String clien
 
       return true;
     } catch (e) {
-      print('Error checking email: $e');
+      debugPrint('Error checking email: $e');
       return false;
     }
   }
 
-    // ==================== UTILIDADES ====================
+  // ==================== UTILIDADES ====================
 
   void clearError() {
     _error = null;

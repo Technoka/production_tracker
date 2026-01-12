@@ -3,10 +3,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/project_model.dart';
 import '../models/product_model.dart';
+import '../models/permission_model.dart';
+import 'organization_member_service.dart';
 
 class ProjectService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _uuid = const Uuid();
+  final OrganizationMemberService _memberService;
+
+  ProjectService({required OrganizationMemberService memberService})
+      : _memberService = memberService;
 
   List<ProjectModel> _projects = [];
   List<ProjectModel> get projects => _projects;
@@ -42,6 +48,14 @@ class ProjectService extends ChangeNotifier {
     double totalAmount = 0,
   }) async {
     try {
+      // ✅ VALIDAR PERMISOS
+      final canCreate = await _memberService.can('projects', 'create');
+      if (!canCreate) {
+        _error = 'No tienes permisos para crear proyectos';
+        notifyListeners();
+        return null;
+      }
+
       _isLoading = true;
       _error = null;
       notifyListeners();
@@ -68,7 +82,6 @@ class ProjectService extends ChangeNotifier {
         createdBy: createdBy,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        // Inicialización de nuevos campos
         priority: priority,
         urgencyLevel: urgencyLevel,
         tags: tags,
@@ -80,7 +93,6 @@ class ProjectService extends ChangeNotifier {
         delayHours: 0,
       );
 
-      // ✅ NUEVA RUTA: dentro de organizations
       await _firestore
           .collection('organizations')
           .doc(organizationId)
@@ -104,9 +116,55 @@ class ProjectService extends ChangeNotifier {
     }
   }
 
-  // ==================== OBTENER PROYECTOS ====================
+  // ==================== OBTENER PROYECTOS CON SCOPE ====================
 
-  /// Stream de proyectos de una organización
+  /// Stream de proyectos con scope-awareness (NUEVO)
+  /// Reemplaza a watchProjects y watchUserProjects
+  Stream<List<ProjectModel>> watchProjectsWithScope(
+    String organizationId,
+    String userId,
+  ) async* {
+    try {
+      // Obtener scope del permiso
+      final scope = await _memberService.getScope('projects', 'view');
+
+      Query<Map<String, dynamic>> query = _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('projects')
+          .where('isActive', isEqualTo: true);
+
+      // Aplicar filtro según scope
+      switch (scope) {
+        case PermissionScope.all:
+          // Sin filtro adicional - ver todos
+          break;
+        case PermissionScope.assigned:
+          // Solo proyectos asignados
+          query = query.where('assignedMembers', arrayContains: userId);
+          break;
+        case PermissionScope.none:
+          // Sin acceso
+          yield [];
+          return;
+      }
+
+      query = query.orderBy('createdAt', descending: true);
+
+      yield* query.snapshots().map((snapshot) {
+        _projects = snapshot.docs
+            .map((doc) => ProjectModel.fromMap(doc.data()))
+            .toList();
+        return _projects;
+      });
+    } catch (e) {
+      debugPrint('Error en watchProjectsWithScope: $e');
+      yield [];
+    }
+  }
+
+  /// @deprecated Usar watchProjectsWithScope en su lugar
+  @Deprecated('Usar watchProjectsWithScope para scope-awareness')
   Stream<List<ProjectModel>> watchProjects(String organizationId) {
     return _firestore
         .collection('organizations')
@@ -123,8 +181,10 @@ class ProjectService extends ChangeNotifier {
     });
   }
 
-  /// Stream de proyectos asignados a un usuario
-  Stream<List<ProjectModel>> watchUserProjects(String userId, String organizationId) {
+  /// @deprecated Usar watchProjectsWithScope en su lugar
+  @Deprecated('Usar watchProjectsWithScope para scope-awareness')
+  Stream<List<ProjectModel>> watchUserProjects(
+      String userId, String organizationId) {
     return _firestore
         .collection('organizations')
         .doc(organizationId)
@@ -138,7 +198,7 @@ class ProjectService extends ChangeNotifier {
             .toList());
   }
 
-    /// Estadísticas por cliente
+  /// Proyectos por cliente (sin filtro de scope)
   Future<List<ProjectModel>?> getClientProjects(
     String organizationId,
     String clientId,
@@ -158,16 +218,16 @@ class ProjectService extends ChangeNotifier {
 
       return projects;
     } catch (e) {
-      _error = 'Error al obtener productos del cliente: $e';
+      _error = 'Error al obtener proyectos del cliente: $e';
       notifyListeners();
       return null;
     }
   }
 
   /// Stream de proyectos por cliente
-  Stream<List<ProjectModel>> watchClientProjects(String clientId, String organizationId) {
-
-    final clientProjects = _firestore
+  Stream<List<ProjectModel>> watchClientProjects(
+      String clientId, String organizationId) {
+    return _firestore
         .collection('organizations')
         .doc(organizationId)
         .collection('projects')
@@ -178,10 +238,6 @@ class ProjectService extends ChangeNotifier {
         .map((snapshot) => snapshot.docs
             .map((doc) => ProjectModel.fromMap(doc.data()))
             .toList());
-
-    // print('clientId: ${clientId}, organizationId: ${organizationId} -> projects: ${clientProjects.length}');
-
-    return clientProjects;
   }
 
   /// Stream de un proyecto específico
@@ -199,7 +255,8 @@ class ProjectService extends ChangeNotifier {
   }
 
   /// Obtener un proyecto específico (one-time)
-  Future<ProjectModel?> getProject(String organizationId, String projectId) async {
+  Future<ProjectModel?> getProject(
+      String organizationId, String projectId) async {
     try {
       final doc = await _firestore
           .collection('organizations')
@@ -207,7 +264,7 @@ class ProjectService extends ChangeNotifier {
           .collection('projects')
           .doc(projectId)
           .get();
-      
+
       if (doc.exists && doc.data() != null) {
         return ProjectModel.fromMap(doc.data()!);
       }
@@ -245,12 +302,12 @@ class ProjectService extends ChangeNotifier {
   Future<bool> updateProject({
     required String organizationId,
     required String projectId,
+    required String userId,
     String? name,
     String? description,
     DateTime? startDate,
     DateTime? estimatedEndDate,
     List<String>? assignedMembers,
-    // Nuevos campos actualizables
     int? priority,
     String? urgencyLevel,
     List<String>? tags,
@@ -265,6 +322,27 @@ class ProjectService extends ChangeNotifier {
     double? delayHours,
   }) async {
     try {
+      // ✅ VALIDAR PERMISOS CON SCOPE
+      final project = await getProject(organizationId, projectId);
+      if (project == null) {
+        _error = 'Proyecto no encontrado';
+        notifyListeners();
+        return false;
+      }
+
+      final isAssigned = project.assignedMembers.contains(userId);
+      final canEdit = await _memberService.canWithScope(
+        'projects',
+        'edit',
+        isAssignedToUser: isAssigned,
+      );
+
+      if (!canEdit) {
+        _error = 'No tienes permisos para editar este proyecto';
+        notifyListeners();
+        return false;
+      }
+
       _isLoading = true;
       _error = null;
       notifyListeners();
@@ -273,29 +351,25 @@ class ProjectService extends ChangeNotifier {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      // Campos básicos
       if (name != null) updates['name'] = name;
       if (description != null) updates['description'] = description;
-      if (startDate != null) updates['startDate'] = Timestamp.fromDate(startDate);
+      if (startDate != null) {
+        updates['startDate'] = Timestamp.fromDate(startDate);
+      }
       if (estimatedEndDate != null) {
         updates['estimatedEndDate'] = Timestamp.fromDate(estimatedEndDate);
       }
       if (assignedMembers != null) updates['assignedMembers'] = assignedMembers;
-
-      // Campos de Kanban y Prioridad
       if (priority != null) updates['priority'] = priority;
       if (urgencyLevel != null) updates['urgencyLevel'] = urgencyLevel;
       if (tags != null) updates['tags'] = tags;
-
-      // Campos de SLA
       if (totalSlaHours != null) updates['totalSlaHours'] = totalSlaHours;
       if (expectedCompletionDate != null) {
-        updates['expectedCompletionDate'] = Timestamp.fromDate(expectedCompletionDate);
+        updates['expectedCompletionDate'] =
+            Timestamp.fromDate(expectedCompletionDate);
       }
       if (isDelayed != null) updates['isDelayed'] = isDelayed;
       if (delayHours != null) updates['delayHours'] = delayHours;
-
-      // Campos Financieros
       if (invoiceStatus != null) updates['invoiceStatus'] = invoiceStatus;
       if (invoiceId != null) updates['invoiceId'] = invoiceId;
       if (totalAmount != null) updates['totalAmount'] = totalAmount;
@@ -331,9 +405,33 @@ class ProjectService extends ChangeNotifier {
   Future<bool> updateProjectStatus(
     String organizationId,
     String projectId,
-    String newStatus,
-  ) async {
+    String newStatus, {
+    String? userId, // Opcional para validación
+  }) async {
     try {
+      // ✅ VALIDAR PERMISOS SI SE PROPORCIONA userId
+      if (userId != null) {
+        final project = await getProject(organizationId, projectId);
+        if (project == null) {
+          _error = 'Proyecto no encontrado';
+          notifyListeners();
+          return false;
+        }
+
+        final isAssigned = project.assignedMembers.contains(userId);
+        final canEdit = await _memberService.canWithScope(
+          'projects',
+          'edit',
+          isAssignedToUser: isAssigned,
+        );
+
+        if (!canEdit) {
+          _error = 'No tienes permisos para cambiar el estado del proyecto';
+          notifyListeners();
+          return false;
+        }
+      }
+
       _isLoading = true;
       _error = null;
       notifyListeners();
@@ -349,17 +447,16 @@ class ProjectService extends ChangeNotifier {
         final now = FieldValue.serverTimestamp();
         updates['actualEndDate'] = now;
         updates['actualCompletionDate'] = now;
-      } 
-      // Si se vuelve a un estado anterior (reabrir), limpiamos las fechas de finalización
-      else if (newStatus == ProjectStatus.preparation.value || 
-               newStatus == ProjectStatus.production.value) {
+      }
+      // Si se vuelve a un estado anterior (reabrir), limpiamos las fechas
+      else if (newStatus == ProjectStatus.preparation.value ||
+          newStatus == ProjectStatus.production.value) {
         updates['actualEndDate'] = null;
         updates['actualCompletionDate'] = null;
       }
-      
+
       // Registrar fecha de inicio real si pasa a producción por primera vez
       if (newStatus == ProjectStatus.production.value) {
-        // Verificar si ya tiene startedAt
         final project = await getProject(organizationId, projectId);
         if (project?.startedAt == null) {
           updates['startedAt'] = FieldValue.serverTimestamp();
@@ -388,16 +485,27 @@ class ProjectService extends ChangeNotifier {
   Future<bool> assignMember(
     String organizationId,
     String projectId,
-    String userId,
-  ) async {
+    String userIdToAssign, {
+    String? currentUserId, // Para validar permisos
+  }) async {
     try {
+      // ✅ VALIDAR PERMISOS
+      if (currentUserId != null) {
+        final canAssign = await _memberService.can('projects', 'assignMembers');
+        if (!canAssign) {
+          _error = 'No tienes permisos para asignar miembros';
+          notifyListeners();
+          return false;
+        }
+      }
+
       await _firestore
           .collection('organizations')
           .doc(organizationId)
           .collection('projects')
           .doc(projectId)
           .update({
-        'assignedMembers': FieldValue.arrayUnion([userId]),
+        'assignedMembers': FieldValue.arrayUnion([userIdToAssign]),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       return true;
@@ -412,16 +520,27 @@ class ProjectService extends ChangeNotifier {
   Future<bool> unassignMember(
     String organizationId,
     String projectId,
-    String userId,
-  ) async {
+    String userIdToRemove, {
+    String? currentUserId, // Para validar permisos
+  }) async {
     try {
+      // ✅ VALIDAR PERMISOS
+      if (currentUserId != null) {
+        final canAssign = await _memberService.can('projects', 'assignMembers');
+        if (!canAssign) {
+          _error = 'No tienes permisos para remover miembros';
+          notifyListeners();
+          return false;
+        }
+      }
+
       await _firestore
           .collection('organizations')
           .doc(organizationId)
           .collection('projects')
           .doc(projectId)
           .update({
-        'assignedMembers': FieldValue.arrayRemove([userId]),
+        'assignedMembers': FieldValue.arrayRemove([userIdToRemove]),
         'updatedAt': FieldValue.serverTimestamp(),
       });
       return true;
@@ -434,8 +553,35 @@ class ProjectService extends ChangeNotifier {
 
   // ==================== ELIMINAR PROYECTO ====================
 
-  Future<bool> deleteProject(String organizationId, String projectId) async {
+  Future<bool> deleteProject(
+    String organizationId,
+    String projectId, {
+    String? userId, // Para validar permisos
+  }) async {
     try {
+      // ✅ VALIDAR PERMISOS CON SCOPE
+      if (userId != null) {
+        final project = await getProject(organizationId, projectId);
+        if (project == null) {
+          _error = 'Proyecto no encontrado';
+          notifyListeners();
+          return false;
+        }
+
+        final isAssigned = project.assignedMembers.contains(userId);
+        final canDelete = await _memberService.canWithScope(
+          'projects',
+          'delete',
+          isAssignedToUser: isAssigned,
+        );
+
+        if (!canDelete) {
+          _error = 'No tienes permisos para eliminar este proyecto';
+          notifyListeners();
+          return false;
+        }
+      }
+
       _isLoading = true;
       _error = null;
       notifyListeners();
@@ -465,15 +611,27 @@ class ProjectService extends ChangeNotifier {
   /// Hard delete (eliminar permanentemente)
   Future<bool> permanentlyDeleteProject(
     String organizationId,
-    String projectId,
-  ) async {
+    String projectId, {
+    String? userId, // Para validar permisos
+  }) async {
     try {
+      // ✅ VALIDAR PERMISOS (solo admins)
+      if (userId != null) {
+        final canDelete = await _memberService.can('projects', 'delete');
+        final scope = await _memberService.getScope('projects', 'delete');
+
+        if (!canDelete || scope != PermissionScope.all) {
+          _error =
+              'Solo administradores pueden eliminar permanentemente proyectos';
+          notifyListeners();
+          return false;
+        }
+      }
+
       _isLoading = true;
       _error = null;
       notifyListeners();
 
-      // Nota: Esto NO elimina subcolecciones (products, messages, etc.)
-      // Para eliminación completa, considera Cloud Functions
       await _firestore
           .collection('organizations')
           .doc(organizationId)
@@ -513,21 +671,21 @@ class ProjectService extends ChangeNotifier {
   List<ProjectModel> get filteredProjects {
     var filtered = _projects;
 
-    // Filtro por búsqueda
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((project) {
         final nameMatch = project.name.toLowerCase().contains(_searchQuery);
-        final descMatch = project.description.toLowerCase().contains(_searchQuery);
-        final tagMatch = project.tags?.any(
-          (tag) => tag.toLowerCase().contains(_searchQuery)
-        ) ?? false;
+        final descMatch =
+            project.description.toLowerCase().contains(_searchQuery);
+        final tagMatch =
+            project.tags?.any((tag) => tag.toLowerCase().contains(_searchQuery)) ??
+                false;
         return nameMatch || descMatch || tagMatch;
       }).toList();
     }
 
-    // Filtro por estado
     if (_statusFilter != null && _statusFilter!.isNotEmpty) {
-      filtered = filtered.where((project) => project.status == _statusFilter).toList();
+      filtered =
+          filtered.where((project) => project.status == _statusFilter).toList();
     }
 
     return filtered;
@@ -555,21 +713,24 @@ class ProjectService extends ChangeNotifier {
 
   /// Proyectos urgentes (prioridad alta)
   List<ProjectModel> get urgentProjects {
-    return _projects.where((project) => 
-      project.priority <= 2 || project.urgencyLevel == 'high' || project.urgencyLevel == 'critical'
-    ).toList();
+    return _projects
+        .where((project) =>
+            project.priority <= 2 ||
+            project.urgencyLevel == 'high' ||
+            project.urgencyLevel == 'critical')
+        .toList();
   }
 
   // ==================== BÚSQUEDA AVANZADA ====================
 
-  /// Buscar proyectos en Firebase (más eficiente para grandes datasets)
+  /// Buscar proyectos en Firebase
   Future<List<ProjectModel>> searchProjects(
     String organizationId,
     String query,
   ) async {
     try {
       final lowerQuery = query.toLowerCase();
-      
+
       final snapshot = await _firestore
           .collection('organizations')
           .doc(organizationId)
@@ -582,7 +743,9 @@ class ProjectService extends ChangeNotifier {
           .where((project) =>
               project.name.toLowerCase().contains(lowerQuery) ||
               project.description.toLowerCase().contains(lowerQuery) ||
-              (project.tags?.any((tag) => tag.toLowerCase().contains(lowerQuery)) ?? false))
+              (project.tags
+                      ?.any((tag) => tag.toLowerCase().contains(lowerQuery)) ??
+                  false))
           .toList();
     } catch (e) {
       _error = 'Error al buscar proyectos: $e';
@@ -637,16 +800,19 @@ class ProjectService extends ChangeNotifier {
       }
 
       if (startDateFrom != null) {
-        projects = projects.where((p) => p.startDate.isAfter(startDateFrom)).toList();
+        projects =
+            projects.where((p) => p.startDate.isAfter(startDateFrom)).toList();
       }
 
       if (startDateTo != null) {
-        projects = projects.where((p) => p.startDate.isBefore(startDateTo)).toList();
+        projects =
+            projects.where((p) => p.startDate.isBefore(startDateTo)).toList();
       }
 
       if (tags != null && tags.isNotEmpty) {
-        projects = projects.where((p) =>
-            p.tags?.any((tag) => tags.contains(tag)) ?? false).toList();
+        projects = projects
+            .where((p) => p.tags?.any((tag) => tags.contains(tag)) ?? false)
+            .toList();
       }
 
       return projects;
@@ -683,41 +849,45 @@ class ProjectService extends ChangeNotifier {
   }
 
   int get overdueCount => overdueProjects.length;
-  
+
   int get delayedCount => delayedProjects.length;
-  
-  /// Total facturado (suma de totalAmount de todos los proyectos)
+
   double get totalRevenue {
     return _projects.fold(0, (sum, project) => sum + project.totalAmount);
   }
 
-  /// Total cobrado (suma de paidAmount)
   double get totalPaid {
     return _projects.fold(0, (sum, project) => sum + project.paidAmount);
   }
 
-  /// Total pendiente de cobro
   double get totalPending {
     return totalRevenue - totalPaid;
   }
 
   /// Obtener estadísticas completas
-  Future<Map<String, dynamic>> getProjectStatistics(String organizationId) async {
+  Future<Map<String, dynamic>> getProjectStatistics(
+      String organizationId) async {
     try {
       final projects = await getProjects(organizationId);
 
       final stats = {
         'total': projects.length,
-        'preparation': projects.where((p) => p.status == ProjectStatus.preparation.value).length,
-        'production': projects.where((p) => p.status == ProjectStatus.production.value).length,
-        'completed': projects.where((p) => p.status == ProjectStatus.completed.value).length,
-        'delivered': projects.where((p) => p.status == ProjectStatus.delivered.value).length,
+        'preparation':
+            projects.where((p) => p.status == ProjectStatus.preparation.value).length,
+        'production':
+            projects.where((p) => p.status == ProjectStatus.production.value).length,
+        'completed':
+            projects.where((p) => p.status == ProjectStatus.completed.value).length,
+        'delivered':
+            projects.where((p) => p.status == ProjectStatus.delivered.value).length,
         'overdue': projects.where((p) => p.isOverdue).length,
         'delayed': projects.where((p) => p.isDelayed).length,
         'urgent': projects.where((p) => p.priority <= 2).length,
-        'totalRevenue': projects.fold<double>(0, (sum, p) => sum + p.totalAmount),
+        'totalRevenue':
+            projects.fold<double>(0, (sum, p) => sum + p.totalAmount),
         'totalPaid': projects.fold<double>(0, (sum, p) => sum + p.paidAmount),
-        'pendingPayment': projects.fold<double>(0, (sum, p) => sum + (p.totalAmount - p.paidAmount)),
+        'pendingPayment': projects.fold<double>(
+            0, (sum, p) => sum + (p.totalAmount - p.paidAmount)),
       };
 
       return stats;
@@ -748,11 +918,15 @@ class ProjectService extends ChangeNotifier {
 
       return {
         'total': projects.length,
-        'active': projects.where((p) => 
-          p.status == ProjectStatus.production.value || 
-          p.status == ProjectStatus.preparation.value).length,
-        'completed': projects.where((p) => p.status == ProjectStatus.completed.value).length,
-        'totalRevenue': projects.fold<double>(0, (sum, p) => sum + p.totalAmount),
+        'active': projects
+            .where((p) =>
+                p.status == ProjectStatus.production.value ||
+                p.status == ProjectStatus.preparation.value)
+            .length,
+        'completed':
+            projects.where((p) => p.status == ProjectStatus.completed.value).length,
+        'totalRevenue':
+            projects.fold<double>(0, (sum, p) => sum + p.totalAmount),
         'totalPaid': projects.fold<double>(0, (sum, p) => sum + p.paidAmount),
       };
     } catch (e) {
