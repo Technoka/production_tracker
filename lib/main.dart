@@ -22,6 +22,10 @@ import 'services/production_batch_service.dart';
 import 'services/product_catalog_service.dart';
 import 'services/phase_service.dart';
 import 'services/message_service.dart';
+import 'services/status_transition_service.dart';
+import 'services/product_status_service.dart';
+import 'services/organization_member_service.dart';
+import 'services/kanban_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,16 +53,97 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Servicios de lógica de negocio
+        // ==================== SERVICIOS BASE (Sin dependencias) ====================
+
         ChangeNotifierProvider(create: (_) => AuthService()),
-        ChangeNotifierProvider(create: (_) => OrganizationService()),
-        ChangeNotifierProvider(create: (_) => ClientService()),
-        ChangeNotifierProvider(create: (_) => ProjectService()),
-        ChangeNotifierProvider(create: (_) => ProductionBatchService()),
+
+        // ✅ OrganizationMemberService - SERVICIO CENTRAL RBAC
+        ChangeNotifierProvider(create: (_) => OrganizationMemberService()),
+
+        // Servicios sin dependencias RBAC
         Provider<ProductCatalogService>(create: (_) => ProductCatalogService()),
         Provider<PhaseService>(create: (_) => PhaseService()),
         Provider<MessageService>(create: (_) => MessageService()),
+
+        // ==================== SERVICIOS CON DEPENDENCIA DE OrganizationMemberService ====================
+
+        // OrganizationService
+        ChangeNotifierProxyProvider<OrganizationMemberService,
+            OrganizationService>(
+          create: (context) => OrganizationService(
+            memberService: context.read<OrganizationMemberService>(),
+          ),
+          update: (context, memberService, previous) =>
+              previous ?? OrganizationService(memberService: memberService),
+        ),
+
+        // ClientService
+        ChangeNotifierProxyProvider<OrganizationMemberService, ClientService>(
+          create: (context) => ClientService(
+            memberService: context.read<OrganizationMemberService>(),
+          ),
+          update: (context, memberService, previous) =>
+              previous ?? ClientService(memberService: memberService),
+        ),
+
+        // ProjectService
+        ChangeNotifierProxyProvider<OrganizationMemberService, ProjectService>(
+          create: (context) => ProjectService(
+            memberService: context.read<OrganizationMemberService>(),
+          ),
+          update: (context, memberService, previous) =>
+              previous ?? ProjectService(memberService: memberService),
+        ),
+
+        // KanbanService (Provider normal, no ChangeNotifier)
+        ProxyProvider<OrganizationMemberService, KanbanService>(
+          create: (context) => KanbanService(
+            memberService: context.read<OrganizationMemberService>(),
+          ),
+          update: (context, memberService, previous) =>
+              previous ?? KanbanService(memberService: memberService),
+        ),
+
+        // ProductStatusService
+        ChangeNotifierProxyProvider<OrganizationMemberService,
+            ProductStatusService>(
+          create: (context) => ProductStatusService(
+            memberService: context.read<OrganizationMemberService>(),
+          ),
+          update: (context, memberService, previous) =>
+              previous ?? ProductStatusService(memberService: memberService),
+        ),
+
+        // StatusTransitionService (sin dependencias RBAC por ahora)
+        ChangeNotifierProvider(create: (_) => StatusTransitionService()),
+
+        // ==================== SERVICIOS COMPLEJOS CON MÚLTIPLES DEPENDENCIAS ====================
+
+        // ProductionBatchService depende de:
+        // - ProductStatusService
+        // - StatusTransitionService
+        // - OrganizationMemberService
+        ChangeNotifierProxyProvider3<
+            ProductStatusService,
+            StatusTransitionService,
+            OrganizationMemberService,
+            ProductionBatchService>(
+          create: (context) => ProductionBatchService(
+            statusService: context.read<ProductStatusService>(),
+            transitionService: context.read<StatusTransitionService>(),
+            memberService: context.read<OrganizationMemberService>(),
+          ),
+          update:
+              (_, statusService, transitionService, memberService, previous) =>
+                  previous ??
+                  ProductionBatchService(
+                    statusService: statusService,
+                    transitionService: transitionService,
+                    memberService: memberService,
+                  ),
+        ),
       ],
+
       // ✅ SOLO UN Consumer2 - No duplicado
       child: Consumer2<ThemeProvider, LocaleProvider>(
         builder: (context, themeProvider, localeProvider, child) {
@@ -67,8 +152,8 @@ class MyApp extends StatelessWidget {
             // Solo log una vez, sin setState para evitar rebuild
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (themeProvider.branding == null) {
-                // print('⚠️ Branding es null, aplicando defaults');
-                themeProvider.updateBranding(OrganizationBranding.defaultBranding());
+                themeProvider
+                    .updateBranding(OrganizationBranding.defaultBranding());
               }
             });
           }
@@ -180,17 +265,14 @@ class _OrganizationSettingsWrapperState
   Future<void> _loadUserConfiguration() async {
     // ✅ GUARD: Evitar ejecuciones múltiples
     if (_hasLoaded) {
-      // print('⚠️ Configuración ya cargada, ignorando...');
       return;
     }
     _hasLoaded = true;
 
     try {
-      // print('🚀 Iniciando carga de configuración...');
-
       final user = _authService.currentUser;
       if (user == null) {
-        print('❌ Usuario no autenticado');
+        debugPrint('❌ Usuario no autenticado');
         if (mounted) {
           setState(() {
             _error = 'Usuario no autenticado';
@@ -200,12 +282,9 @@ class _OrganizationSettingsWrapperState
         return;
       }
 
-      // print('✅ Usuario autenticado: ${user.uid}');
-
       // Obtener datos del usuario
       final userData = await _authService.getUserData();
       if (userData == null) {
-        // print('❌ No se pudieron cargar los datos del usuario');
         if (mounted) {
           setState(() {
             _error = 'No se pudieron cargar los datos del usuario';
@@ -215,34 +294,23 @@ class _OrganizationSettingsWrapperState
         return;
       }
 
-      // print('✅ Datos de usuario obtenidos: ${userData.name}');
-
       final organizationId = userData.organizationId;
 
       if (organizationId == null || organizationId.isEmpty) {
-        // print('⚠️ Usuario sin organizationId, usando configuración por defecto');
         if (mounted) {
           setState(() => _isLoading = false);
         }
         return;
       }
 
-      // print('✅ OrganizationId encontrado: $organizationId');
-
       // Cargar configuración de organización
       final orgSettings =
           await _orgSettingsService.getOrganizationSettings(organizationId);
 
-      // print('📦 Settings recibidos: ${orgSettings != null ? "✅ OK" : "❌ NULL"}');
-
       if (orgSettings != null && mounted) {
-        // print('🎨 Aplicando branding...');
-
         // Aplicar branding al tema
         Provider.of<ThemeProvider>(context, listen: false)
             .updateBranding(orgSettings.branding);
-
-        // print('🌍 Cargando locale del usuario...');
 
         // Cargar locale efectivo del usuario
         final systemLocale = WidgetsBinding.instance.platformDispatcher.locale;
@@ -252,10 +320,7 @@ class _OrganizationSettingsWrapperState
           organizationId: organizationId,
           systemLocale: systemLocale,
         );
-
-        // print('✅ Configuración aplicada correctamente');
       } else if (!mounted) {
-        // print('⚠️ Widget desmontado, cancelando aplicación de settings');
         return; // ✅ IMPORTANTE: Return para no ejecutar setState
       }
 
@@ -263,11 +328,10 @@ class _OrganizationSettingsWrapperState
       if (mounted) {
         setState(() => _isLoading = false);
       }
-      
     } catch (e, stackTrace) {
-      print('❌ ERROR CRÍTICO al cargar configuración: $e');
-      print('📍 Stack trace completo:');
-      print(stackTrace);
+      debugPrint('❌ ERROR CRÍTICO al cargar configuración: $e');
+      debugPrint('📋 Stack trace completo:');
+      debugPrint(stackTrace.toString());
 
       // ✅ Solo setState si mounted
       if (mounted) {
@@ -312,7 +376,8 @@ class _OrganizationSettingsWrapperState
                   if (mounted) {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const LoginScreen()),
                     );
                   }
                 },
