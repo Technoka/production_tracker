@@ -1,5 +1,5 @@
 import '../models/permission_model.dart';
-import '../models/permission_registry.dart';
+import '../models/permission_registry_model.dart';
 import '../models/organization_member_model.dart';
 import '../models/role_model.dart';
 
@@ -175,14 +175,14 @@ class PermissionUtils {
     required RoleModel role,
     required bool isAssignedToUser,
   }) {
-    if (!can(member: member, role: role, module: 'products', action: 'changeStatus')) {
+    if (!can(member: member, role: role, module: 'batch_products', action: 'changeStatus')) {
       return false;
     }
 
     final scope = getScope(
       member: member,
       role: role,
-      module: 'products',
+      module: 'batch_products',
       action: 'changeStatus',
     );
 
@@ -194,14 +194,14 @@ class PermissionUtils {
     required RoleModel role,
     required bool isAssignedToUser,
   }) {
-    if (!can(member: member, role: role, module: 'products', action: 'changeUrgency')) {
+    if (!can(member: member, role: role, module: 'batch_products', action: 'changeUrgency')) {
       return false;
     }
 
     final scope = getScope(
       member: member,
       role: role,
-      module: 'products',
+      module: 'batch_products',
       action: 'changeUrgency',
     );
 

@@ -119,17 +119,17 @@ class PermissionsModel {
   bool get canCompleteBatch => can('batches', 'completeBatch');
 
   /// PRODUCTS
-  bool get canViewProducts => can('products', 'view');
-  PermissionScope get viewProductsScope => getScope('products', 'view');
-  bool get canCreateProducts => can('products', 'create');
-  bool get canEditProducts => can('products', 'edit');
-  PermissionScope get editProductsScope => getScope('products', 'edit');
-  bool get canDeleteProducts => can('products', 'delete');
-  PermissionScope get deleteProductsScope => getScope('products', 'delete');
-  bool get canChangeProductStatus => can('products', 'changeStatus');
-  PermissionScope get changeProductStatusScope => getScope('products', 'changeStatus');
-  bool get canChangeProductUrgency => can('products', 'changeUrgency');
-  PermissionScope get changeProductUrgencyScope => getScope('products', 'changeUrgency');
+  bool get canViewProducts => can('batch_products', 'view');
+  PermissionScope get viewProductsScope => getScope('batch_products', 'view');
+  bool get canCreateProducts => can('batch_products', 'create');
+  bool get canEditProducts => can('batch_products', 'edit');
+  PermissionScope get editProductsScope => getScope('batch_products', 'edit');
+  bool get canDeleteProducts => can('batch_products', 'delete');
+  PermissionScope get deleteProductsScope => getScope('batch_products', 'delete');
+  bool get canChangeProductStatus => can('batch_products', 'changeStatus');
+  PermissionScope get changeProductStatusScope => getScope('batch_products', 'changeStatus');
+  bool get canChangeProductUrgency => can('batch_products', 'changeUrgency');
+  PermissionScope get changeProductUrgencyScope => getScope('batch_products', 'changeUrgency');
 
   /// PROJECTS
   bool get canViewProjects => can('projects', 'view');
@@ -148,10 +148,10 @@ class PermissionsModel {
   bool get canDeleteClients => can('clients', 'delete');
 
   /// CATALOG
-  bool get canViewCatalog => can('catalog', 'view');
-  bool get canCreateCatalogItems => can('catalog', 'create');
-  bool get canEditCatalogItems => can('catalog', 'edit');
-  bool get canDeleteCatalogItems => can('catalog', 'delete');
+  bool get canViewCatalog => can('product_catalog', 'view');
+  bool get canCreateCatalogItems => can('product_catalog', 'create');
+  bool get canEditCatalogItems => can('product_catalog', 'edit');
+  bool get canDeleteCatalogItems => can('product_catalog', 'delete');
 
   /// CHAT
   bool get canViewChat => can('chat', 'view');

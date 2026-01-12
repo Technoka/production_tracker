@@ -149,9 +149,9 @@ class PermissionRegistry {
       ],
     ),
 
-    // PRODUCTOS
+    // PRODUCTOS DE LOTE
     PermissionModule(
-      key: 'products',
+      key: 'batch_products',
       displayName: 'Productos',
       icon: 'category',
       description: 'Gestión de productos en producción',
@@ -206,7 +206,7 @@ class PermissionRegistry {
 
     // CATÁLOGO
     PermissionModule(
-      key: 'catalog',
+      key: 'product_catalog',
       displayName: 'Catálogo',
       icon: 'shopping_bag',
       description: 'Catálogo de productos',
@@ -411,16 +411,16 @@ class PermissionRegistry {
   /// Agrupar módulos por categoría (para UI organizada)
   static Map<String, List<PermissionModule>> get modulesByCategory {
     return {
-      'Producción': modules.where((m) => 
-        ['kanban', 'phases', 'batches', 'products'].contains(m.key)
+      'production': modules.where((m) => 
+        ['kanban', 'phases', 'batches', 'batch_products'].contains(m.key)
       ).toList(),
-      'Gestión': modules.where((m) => 
-        ['projects', 'clients', 'catalog'].contains(m.key)
+      'management': modules.where((m) => 
+        ['projects', 'clients', 'product_catalog'].contains(m.key)
       ).toList(),
-      'Comunicación': modules.where((m) => 
+      'communication': modules.where((m) => 
         ['chat'].contains(m.key)
       ).toList(),
-      'Administración': modules.where((m) => 
+      'administration': modules.where((m) => 
         ['organization', 'reports'].contains(m.key)
       ).toList(),
     };

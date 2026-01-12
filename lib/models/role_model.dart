@@ -287,7 +287,7 @@ class RoleModel {
         'startProduction': true,
         'completeBatch': true,
       },
-      'products': {
+      'batch_products': {
         'view': true,
         'viewScope': PermissionScope.all.value,
         'create': true,
@@ -316,7 +316,7 @@ class RoleModel {
         'edit': true,
         'delete': false,
       },
-      'catalog': {
+      'product_catalog': {
         'view': true,
         'create': true,
         'edit': true,
@@ -373,7 +373,7 @@ class RoleModel {
         'startProduction': false,
         'completeBatch': false,
       },
-      'products': {
+      'batch_products': {
         'view': true,
         'viewScope': PermissionScope.assigned.value,
         'create': false,
@@ -402,7 +402,7 @@ class RoleModel {
         'edit': false,
         'delete': false,
       },
-      'catalog': {
+      'product_catalog': {
         'view': true,
         'create': false,
         'edit': false,
@@ -459,7 +459,7 @@ class RoleModel {
         'startProduction': false,
         'completeBatch': false,
       },
-      'products': {
+      'batch_products': {
         'view': true,
         'viewScope': PermissionScope.all.value,
         'create': false,
@@ -488,7 +488,7 @@ class RoleModel {
         'edit': false,
         'delete': false,
       },
-      'catalog': {
+      'product_catalog': {
         'view': true,
         'create': false,
         'edit': false,
@@ -545,7 +545,7 @@ class RoleModel {
         'startProduction': false,
         'completeBatch': false,
       },
-      'products': {
+      'batch_products': {
         'view': true,
         'viewScope': PermissionScope.assigned.value, // Solo sus productos
         'create': false, // Se puede habilitar con permisos especiales
@@ -574,7 +574,7 @@ class RoleModel {
         'edit': false,
         'delete': false,
       },
-      'catalog': {
+      'product_catalog': {
         'view': true, // Puede ver catálogo para pedir productos
         'create': false,
         'edit': false,
