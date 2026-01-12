@@ -2328,4 +2328,352 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get percentageChange => 'Cambio porcentual';
+
+  @override
+  String get roles => 'Roles';
+
+  @override
+  String get permissions => 'Permisos';
+
+  @override
+  String get roleManagement => 'Gestión de Roles';
+
+  @override
+  String get assignRole => 'Asignar Rol';
+
+  @override
+  String get changeRole => 'Cambiar Rol';
+
+  @override
+  String get roleUpdated => 'Rol actualizado';
+
+  @override
+  String get roleUpdateError => 'Error al actualizar rol';
+
+  @override
+  String get roleOwner => 'Propietario';
+
+  @override
+  String get roleAdmin => 'Administrador';
+
+  @override
+  String get roleProductionManager => 'Jefe de Producción';
+
+  @override
+  String get roleQualityControl => 'Control de Calidad';
+
+  @override
+  String get roleOwnerDesc => 'Acceso completo a toda la organización';
+
+  @override
+  String get roleAdminDesc => 'Gestión completa excepto eliminación de organización';
+
+  @override
+  String get roleProductionManagerDesc => 'Gestión completa de producción y lotes';
+
+  @override
+  String get roleOperatorDesc => 'Operación de fases asignadas';
+
+  @override
+  String get roleQualityControlDesc => 'Gestión de estados y calidad de productos';
+
+  @override
+  String get roleClientDesc => 'Visualización de sus proyectos y productos';
+
+  @override
+  String get moduleKanban => 'Kanban';
+
+  @override
+  String get moduleBatches => 'Lotes';
+
+  @override
+  String get moduleProducts => 'Productos';
+
+  @override
+  String get moduleProjects => 'Proyectos';
+
+  @override
+  String get moduleClients => 'Clientes';
+
+  @override
+  String get moduleCatalog => 'Catálogo';
+
+  @override
+  String get modulePhases => 'Fases';
+
+  @override
+  String get moduleChat => 'Chat';
+
+  @override
+  String get moduleOrganization => 'Organización';
+
+  @override
+  String get moduleReports => 'Reportes';
+
+  @override
+  String get actionView => 'Ver';
+
+  @override
+  String get actionCreate => 'Crear';
+
+  @override
+  String get actionEdit => 'Editar';
+
+  @override
+  String get actionDelete => 'Eliminar';
+
+  @override
+  String get actionMove => 'Mover';
+
+  @override
+  String get actionAssign => 'Asignar';
+
+  @override
+  String get actionManage => 'Gestionar';
+
+  @override
+  String get actionExport => 'Exportar';
+
+  @override
+  String get actionGenerate => 'Generar';
+
+  @override
+  String get scopeAll => 'Todos';
+
+  @override
+  String get scopeAssigned => 'Solo asignados';
+
+  @override
+  String get scopeNone => 'Ninguno';
+
+  @override
+  String get scopeAllDesc => 'Puede ver/editar todos los recursos';
+
+  @override
+  String get scopeAssignedDesc => 'Solo recursos asignados';
+
+  @override
+  String get scopeNoneDesc => 'Sin acceso';
+
+  @override
+  String get productStatuses => 'Estados de Producto';
+
+  @override
+  String get statusManagement => 'Gestión de Estados';
+
+  @override
+  String get createStatus => 'Crear Estado';
+
+  @override
+  String get editStatus => 'Editar Estado';
+
+  @override
+  String get statusCreated => 'Estado creado';
+
+  @override
+  String get statusUpdated => 'Estado actualizado';
+
+  @override
+  String get statusDeleted => 'Estado eliminado';
+
+  @override
+  String get statusCreateError => 'Error al crear estado';
+
+  @override
+  String get statusDeleteError => 'Error al eliminar estado';
+
+  @override
+  String get statusPending => 'Pendiente';
+
+  @override
+  String get statusHold => 'Hold';
+
+  @override
+  String get statusCAO => 'CAO';
+
+  @override
+  String get statusControl => 'Control';
+
+  @override
+  String get statusOK => 'OK';
+
+  @override
+  String get statusPendingDesc => 'Producto en espera de iniciar producción';
+
+  @override
+  String get statusHoldDesc => 'Producto enviado al cliente para evaluación';
+
+  @override
+  String get statusCAODesc => 'Producto con defectos reportados por el cliente';
+
+  @override
+  String get statusControlDesc => 'Producto en control de calidad para clasificación';
+
+  @override
+  String get statusOKDesc => 'Producto aprobado y finalizado';
+
+  @override
+  String get statusTransitions => 'Transiciones de Estado';
+
+  @override
+  String get transition => 'Transición';
+
+  @override
+  String get fromStatus => 'Desde';
+
+  @override
+  String get toStatus => 'Hacia';
+
+  @override
+  String get allowedTransitions => 'Transiciones Permitidas';
+
+  @override
+  String get configureTransition => 'Configurar Transición';
+
+  @override
+  String get transitionCreated => 'Transición creada';
+
+  @override
+  String get transitionUpdated => 'Transición actualizada';
+
+  @override
+  String get transitionDeleted => 'Transición eliminada';
+
+  @override
+  String get validations => 'Validaciones';
+
+  @override
+  String get validationType => 'Tipo de Validación';
+
+  @override
+  String get validationRequired => 'Validación Requerida';
+
+  @override
+  String get validationText => 'Texto obligatorio';
+
+  @override
+  String get validationNumber => 'Número requerido';
+
+  @override
+  String get validationDefectiveQuantity => 'Cantidad defectuosa';
+
+  @override
+  String get validationApproval => 'Requiere aprobación';
+
+  @override
+  String get validationFile => 'Archivo obligatorio';
+
+  @override
+  String get conditionalLogic => 'Lógica Condicional';
+
+  @override
+  String get condition => 'Condición';
+
+  @override
+  String get action => 'Acción';
+
+  @override
+  String get ifCondition => 'Si';
+
+  @override
+  String get thenAction => 'Entonces';
+
+  @override
+  String get defectiveGreaterThan => 'Defectuosos mayor que';
+
+  @override
+  String get requiresApprovalFrom => 'Requiere aprobación de';
+
+  @override
+  String get blockTransition => 'Bloquear transición';
+
+  @override
+  String get showWarning => 'Mostrar advertencia';
+
+  @override
+  String get notifyRoles => 'Notificar roles';
+
+  @override
+  String get statusHistory => 'Historial de Estados';
+
+  @override
+  String get changedTo => 'Cambió a';
+
+  @override
+  String get changedBy => 'Cambiado por';
+
+  @override
+  String get changedAt => 'Fecha de cambio';
+
+  @override
+  String get validationData => 'Datos de validación';
+
+  @override
+  String get noStatusHistory => 'Sin historial de cambios';
+
+  @override
+  String get specialPermissions => 'Permisos Especiales';
+
+  @override
+  String get clientPermissions => 'Permisos del Cliente';
+
+  @override
+  String get canCreateBatches => 'Puede crear lotes';
+
+  @override
+  String get canCreateProducts => 'Puede crear productos';
+
+  @override
+  String get requiresApproval => 'Requiere aprobación';
+
+  @override
+  String get canViewAllProjects => 'Ver todos los proyectos';
+
+  @override
+  String get standardClient => 'Cliente estándar';
+
+  @override
+  String get privilegedClient => 'Cliente privilegiado';
+
+  @override
+  String get initializingRoles => 'Inicializando roles...';
+
+  @override
+  String get initializingStatuses => 'Inicializando estados...';
+
+  @override
+  String get rolesInitialized => 'Roles inicializados correctamente';
+
+  @override
+  String get statusesInitialized => 'Estados inicializados correctamente';
+
+  @override
+  String get initializationComplete => 'Inicialización completada';
+
+  @override
+  String get initializationError => 'Error en la inicialización';
+
+  @override
+  String get insufficientPermissions => 'Permisos insuficientes';
+
+  @override
+  String get permissionDenied => 'Permiso denegado';
+
+  @override
+  String get roleNotFound => 'Rol no encontrado';
+
+  @override
+  String get statusNotFound => 'Estado no encontrado';
+
+  @override
+  String get invalidTransition => 'Transición no válida';
+
+  @override
+  String get validationFailed => 'Validación fallida';
+
+  @override
+  String get approvalRequired => 'Se requiere aprobación';
+
+  @override
+  String get contactAdminForPermissions => 'Contacta con un administrador para obtener permisos';
 }

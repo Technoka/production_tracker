@@ -2396,7 +2396,7 @@ abstract class AppLocalizations {
   /// No description provided for @statusUpdateError.
   ///
   /// In en, this message translates to:
-  /// **'Error al actualizar estado'**
+  /// **'Error updating status'**
   String get statusUpdateError;
 
   /// No description provided for @detailsAndNotes.
@@ -4624,6 +4624,702 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Percentage change'**
   String get percentageChange;
+
+  /// No description provided for @roles.
+  ///
+  /// In en, this message translates to:
+  /// **'Roles'**
+  String get roles;
+
+  /// No description provided for @permissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Permissions'**
+  String get permissions;
+
+  /// No description provided for @roleManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Role Management'**
+  String get roleManagement;
+
+  /// No description provided for @assignRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign Role'**
+  String get assignRole;
+
+  /// No description provided for @changeRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Role'**
+  String get changeRole;
+
+  /// No description provided for @roleUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Role updated'**
+  String get roleUpdated;
+
+  /// No description provided for @roleUpdateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating role'**
+  String get roleUpdateError;
+
+  /// No description provided for @roleOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner'**
+  String get roleOwner;
+
+  /// No description provided for @roleAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Administrator'**
+  String get roleAdmin;
+
+  /// No description provided for @roleProductionManager.
+  ///
+  /// In en, this message translates to:
+  /// **'Production Manager'**
+  String get roleProductionManager;
+
+  /// No description provided for @roleQualityControl.
+  ///
+  /// In en, this message translates to:
+  /// **'Quality Control'**
+  String get roleQualityControl;
+
+  /// No description provided for @roleOwnerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Full access to the entire organization'**
+  String get roleOwnerDesc;
+
+  /// No description provided for @roleAdminDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete management except organization deletion'**
+  String get roleAdminDesc;
+
+  /// No description provided for @roleProductionManagerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete production and batch management'**
+  String get roleProductionManagerDesc;
+
+  /// No description provided for @roleOperatorDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation of assigned phases'**
+  String get roleOperatorDesc;
+
+  /// No description provided for @roleQualityControlDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Product status and quality management'**
+  String get roleQualityControlDesc;
+
+  /// No description provided for @roleClientDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'View their projects and products'**
+  String get roleClientDesc;
+
+  /// No description provided for @moduleKanban.
+  ///
+  /// In en, this message translates to:
+  /// **'Kanban'**
+  String get moduleKanban;
+
+  /// No description provided for @moduleBatches.
+  ///
+  /// In en, this message translates to:
+  /// **'Batches'**
+  String get moduleBatches;
+
+  /// No description provided for @moduleProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Products'**
+  String get moduleProducts;
+
+  /// No description provided for @moduleProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Projects'**
+  String get moduleProjects;
+
+  /// No description provided for @moduleClients.
+  ///
+  /// In en, this message translates to:
+  /// **'Clients'**
+  String get moduleClients;
+
+  /// No description provided for @moduleCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Catalog'**
+  String get moduleCatalog;
+
+  /// No description provided for @modulePhases.
+  ///
+  /// In en, this message translates to:
+  /// **'Phases'**
+  String get modulePhases;
+
+  /// No description provided for @moduleChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get moduleChat;
+
+  /// No description provided for @moduleOrganization.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization'**
+  String get moduleOrganization;
+
+  /// No description provided for @moduleReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports'**
+  String get moduleReports;
+
+  /// No description provided for @actionView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get actionView;
+
+  /// No description provided for @actionCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get actionCreate;
+
+  /// No description provided for @actionEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get actionEdit;
+
+  /// No description provided for @actionDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get actionDelete;
+
+  /// No description provided for @actionMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get actionMove;
+
+  /// No description provided for @actionAssign.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign'**
+  String get actionAssign;
+
+  /// No description provided for @actionManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get actionManage;
+
+  /// No description provided for @actionExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get actionExport;
+
+  /// No description provided for @actionGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate'**
+  String get actionGenerate;
+
+  /// No description provided for @scopeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get scopeAll;
+
+  /// No description provided for @scopeAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned only'**
+  String get scopeAssigned;
+
+  /// No description provided for @scopeNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get scopeNone;
+
+  /// No description provided for @scopeAllDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Can view/edit all resources'**
+  String get scopeAllDesc;
+
+  /// No description provided for @scopeAssignedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Only assigned resources'**
+  String get scopeAssignedDesc;
+
+  /// No description provided for @scopeNoneDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'No access'**
+  String get scopeNoneDesc;
+
+  /// No description provided for @productStatuses.
+  ///
+  /// In en, this message translates to:
+  /// **'Product Statuses'**
+  String get productStatuses;
+
+  /// No description provided for @statusManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Status Management'**
+  String get statusManagement;
+
+  /// No description provided for @createStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Status'**
+  String get createStatus;
+
+  /// No description provided for @editStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Status'**
+  String get editStatus;
+
+  /// No description provided for @statusCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Status created'**
+  String get statusCreated;
+
+  /// No description provided for @statusUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Status updated'**
+  String get statusUpdated;
+
+  /// No description provided for @statusDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Status deleted'**
+  String get statusDeleted;
+
+  /// No description provided for @statusCreateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error creating status'**
+  String get statusCreateError;
+
+  /// No description provided for @statusDeleteError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error deleting status'**
+  String get statusDeleteError;
+
+  /// No description provided for @statusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get statusPending;
+
+  /// No description provided for @statusHold.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold'**
+  String get statusHold;
+
+  /// No description provided for @statusCAO.
+  ///
+  /// In en, this message translates to:
+  /// **'CAO'**
+  String get statusCAO;
+
+  /// No description provided for @statusControl.
+  ///
+  /// In en, this message translates to:
+  /// **'Control'**
+  String get statusControl;
+
+  /// No description provided for @statusOK.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get statusOK;
+
+  /// No description provided for @statusPendingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Product waiting to start production'**
+  String get statusPendingDesc;
+
+  /// No description provided for @statusHoldDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Product sent to client for evaluation'**
+  String get statusHoldDesc;
+
+  /// No description provided for @statusCAODesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Product with defects reported by client'**
+  String get statusCAODesc;
+
+  /// No description provided for @statusControlDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Product in quality control for classification'**
+  String get statusControlDesc;
+
+  /// No description provided for @statusOKDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Product approved and finished'**
+  String get statusOKDesc;
+
+  /// No description provided for @statusTransitions.
+  ///
+  /// In en, this message translates to:
+  /// **'Status Transitions'**
+  String get statusTransitions;
+
+  /// No description provided for @transition.
+  ///
+  /// In en, this message translates to:
+  /// **'Transition'**
+  String get transition;
+
+  /// No description provided for @fromStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get fromStatus;
+
+  /// No description provided for @toStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get toStatus;
+
+  /// No description provided for @allowedTransitions.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed Transitions'**
+  String get allowedTransitions;
+
+  /// No description provided for @configureTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure Transition'**
+  String get configureTransition;
+
+  /// No description provided for @transitionCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Transition created'**
+  String get transitionCreated;
+
+  /// No description provided for @transitionUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Transition updated'**
+  String get transitionUpdated;
+
+  /// No description provided for @transitionDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Transition deleted'**
+  String get transitionDeleted;
+
+  /// No description provided for @validations.
+  ///
+  /// In en, this message translates to:
+  /// **'Validations'**
+  String get validations;
+
+  /// No description provided for @validationType.
+  ///
+  /// In en, this message translates to:
+  /// **'Validation Type'**
+  String get validationType;
+
+  /// No description provided for @validationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Validation Required'**
+  String get validationRequired;
+
+  /// No description provided for @validationText.
+  ///
+  /// In en, this message translates to:
+  /// **'Required text'**
+  String get validationText;
+
+  /// No description provided for @validationNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Required number'**
+  String get validationNumber;
+
+  /// No description provided for @validationDefectiveQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Defective quantity'**
+  String get validationDefectiveQuantity;
+
+  /// No description provided for @validationApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Requires approval'**
+  String get validationApproval;
+
+  /// No description provided for @validationFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Required file'**
+  String get validationFile;
+
+  /// No description provided for @conditionalLogic.
+  ///
+  /// In en, this message translates to:
+  /// **'Conditional Logic'**
+  String get conditionalLogic;
+
+  /// No description provided for @condition.
+  ///
+  /// In en, this message translates to:
+  /// **'Condition'**
+  String get condition;
+
+  /// No description provided for @action.
+  ///
+  /// In en, this message translates to:
+  /// **'Action'**
+  String get action;
+
+  /// No description provided for @ifCondition.
+  ///
+  /// In en, this message translates to:
+  /// **'If'**
+  String get ifCondition;
+
+  /// No description provided for @thenAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Then'**
+  String get thenAction;
+
+  /// No description provided for @defectiveGreaterThan.
+  ///
+  /// In en, this message translates to:
+  /// **'Defective greater than'**
+  String get defectiveGreaterThan;
+
+  /// No description provided for @requiresApprovalFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Requires approval from'**
+  String get requiresApprovalFrom;
+
+  /// No description provided for @blockTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Block transition'**
+  String get blockTransition;
+
+  /// No description provided for @showWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Show warning'**
+  String get showWarning;
+
+  /// No description provided for @notifyRoles.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify roles'**
+  String get notifyRoles;
+
+  /// No description provided for @statusHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Status History'**
+  String get statusHistory;
+
+  /// No description provided for @changedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed to'**
+  String get changedTo;
+
+  /// No description provided for @changedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed by'**
+  String get changedBy;
+
+  /// No description provided for @changedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Change date'**
+  String get changedAt;
+
+  /// No description provided for @validationData.
+  ///
+  /// In en, this message translates to:
+  /// **'Validation data'**
+  String get validationData;
+
+  /// No description provided for @noStatusHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No change history'**
+  String get noStatusHistory;
+
+  /// No description provided for @specialPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Special Permissions'**
+  String get specialPermissions;
+
+  /// No description provided for @clientPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Client Permissions'**
+  String get clientPermissions;
+
+  /// No description provided for @canCreateBatches.
+  ///
+  /// In en, this message translates to:
+  /// **'Can create batches'**
+  String get canCreateBatches;
+
+  /// No description provided for @canCreateProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Can create products'**
+  String get canCreateProducts;
+
+  /// No description provided for @requiresApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Requires approval'**
+  String get requiresApproval;
+
+  /// No description provided for @canViewAllProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'View all projects'**
+  String get canViewAllProjects;
+
+  /// No description provided for @standardClient.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard client'**
+  String get standardClient;
+
+  /// No description provided for @privilegedClient.
+  ///
+  /// In en, this message translates to:
+  /// **'Privileged client'**
+  String get privilegedClient;
+
+  /// No description provided for @initializingRoles.
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing roles...'**
+  String get initializingRoles;
+
+  /// No description provided for @initializingStatuses.
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing statuses...'**
+  String get initializingStatuses;
+
+  /// No description provided for @rolesInitialized.
+  ///
+  /// In en, this message translates to:
+  /// **'Roles initialized successfully'**
+  String get rolesInitialized;
+
+  /// No description provided for @statusesInitialized.
+  ///
+  /// In en, this message translates to:
+  /// **'Statuses initialized successfully'**
+  String get statusesInitialized;
+
+  /// No description provided for @initializationComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Initialization complete'**
+  String get initializationComplete;
+
+  /// No description provided for @initializationError.
+  ///
+  /// In en, this message translates to:
+  /// **'Initialization error'**
+  String get initializationError;
+
+  /// No description provided for @insufficientPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Insufficient permissions'**
+  String get insufficientPermissions;
+
+  /// No description provided for @permissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission denied'**
+  String get permissionDenied;
+
+  /// No description provided for @roleNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Role not found'**
+  String get roleNotFound;
+
+  /// No description provided for @statusNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Status not found'**
+  String get statusNotFound;
+
+  /// No description provided for @invalidTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid transition'**
+  String get invalidTransition;
+
+  /// No description provided for @validationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Validation failed'**
+  String get validationFailed;
+
+  /// No description provided for @approvalRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Approval required'**
+  String get approvalRequired;
+
+  /// No description provided for @contactAdminForPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact an administrator for permissions'**
+  String get contactAdminForPermissions;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -1192,7 +1192,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusUpdatedSuccess => 'Estado actualizado correctamente';
 
   @override
-  String get statusUpdateError => 'Error al actualizar estado';
+  String get statusUpdateError => 'Error updating status';
 
   @override
   String get detailsAndNotes => 'Detalles y Notas';
@@ -2328,4 +2328,352 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get percentageChange => 'Percentage change';
+
+  @override
+  String get roles => 'Roles';
+
+  @override
+  String get permissions => 'Permissions';
+
+  @override
+  String get roleManagement => 'Role Management';
+
+  @override
+  String get assignRole => 'Assign Role';
+
+  @override
+  String get changeRole => 'Change Role';
+
+  @override
+  String get roleUpdated => 'Role updated';
+
+  @override
+  String get roleUpdateError => 'Error updating role';
+
+  @override
+  String get roleOwner => 'Owner';
+
+  @override
+  String get roleAdmin => 'Administrator';
+
+  @override
+  String get roleProductionManager => 'Production Manager';
+
+  @override
+  String get roleQualityControl => 'Quality Control';
+
+  @override
+  String get roleOwnerDesc => 'Full access to the entire organization';
+
+  @override
+  String get roleAdminDesc => 'Complete management except organization deletion';
+
+  @override
+  String get roleProductionManagerDesc => 'Complete production and batch management';
+
+  @override
+  String get roleOperatorDesc => 'Operation of assigned phases';
+
+  @override
+  String get roleQualityControlDesc => 'Product status and quality management';
+
+  @override
+  String get roleClientDesc => 'View their projects and products';
+
+  @override
+  String get moduleKanban => 'Kanban';
+
+  @override
+  String get moduleBatches => 'Batches';
+
+  @override
+  String get moduleProducts => 'Products';
+
+  @override
+  String get moduleProjects => 'Projects';
+
+  @override
+  String get moduleClients => 'Clients';
+
+  @override
+  String get moduleCatalog => 'Catalog';
+
+  @override
+  String get modulePhases => 'Phases';
+
+  @override
+  String get moduleChat => 'Chat';
+
+  @override
+  String get moduleOrganization => 'Organization';
+
+  @override
+  String get moduleReports => 'Reports';
+
+  @override
+  String get actionView => 'View';
+
+  @override
+  String get actionCreate => 'Create';
+
+  @override
+  String get actionEdit => 'Edit';
+
+  @override
+  String get actionDelete => 'Delete';
+
+  @override
+  String get actionMove => 'Move';
+
+  @override
+  String get actionAssign => 'Assign';
+
+  @override
+  String get actionManage => 'Manage';
+
+  @override
+  String get actionExport => 'Export';
+
+  @override
+  String get actionGenerate => 'Generate';
+
+  @override
+  String get scopeAll => 'All';
+
+  @override
+  String get scopeAssigned => 'Assigned only';
+
+  @override
+  String get scopeNone => 'None';
+
+  @override
+  String get scopeAllDesc => 'Can view/edit all resources';
+
+  @override
+  String get scopeAssignedDesc => 'Only assigned resources';
+
+  @override
+  String get scopeNoneDesc => 'No access';
+
+  @override
+  String get productStatuses => 'Product Statuses';
+
+  @override
+  String get statusManagement => 'Status Management';
+
+  @override
+  String get createStatus => 'Create Status';
+
+  @override
+  String get editStatus => 'Edit Status';
+
+  @override
+  String get statusCreated => 'Status created';
+
+  @override
+  String get statusUpdated => 'Status updated';
+
+  @override
+  String get statusDeleted => 'Status deleted';
+
+  @override
+  String get statusCreateError => 'Error creating status';
+
+  @override
+  String get statusDeleteError => 'Error deleting status';
+
+  @override
+  String get statusPending => 'Pending';
+
+  @override
+  String get statusHold => 'Hold';
+
+  @override
+  String get statusCAO => 'CAO';
+
+  @override
+  String get statusControl => 'Control';
+
+  @override
+  String get statusOK => 'OK';
+
+  @override
+  String get statusPendingDesc => 'Product waiting to start production';
+
+  @override
+  String get statusHoldDesc => 'Product sent to client for evaluation';
+
+  @override
+  String get statusCAODesc => 'Product with defects reported by client';
+
+  @override
+  String get statusControlDesc => 'Product in quality control for classification';
+
+  @override
+  String get statusOKDesc => 'Product approved and finished';
+
+  @override
+  String get statusTransitions => 'Status Transitions';
+
+  @override
+  String get transition => 'Transition';
+
+  @override
+  String get fromStatus => 'From';
+
+  @override
+  String get toStatus => 'To';
+
+  @override
+  String get allowedTransitions => 'Allowed Transitions';
+
+  @override
+  String get configureTransition => 'Configure Transition';
+
+  @override
+  String get transitionCreated => 'Transition created';
+
+  @override
+  String get transitionUpdated => 'Transition updated';
+
+  @override
+  String get transitionDeleted => 'Transition deleted';
+
+  @override
+  String get validations => 'Validations';
+
+  @override
+  String get validationType => 'Validation Type';
+
+  @override
+  String get validationRequired => 'Validation Required';
+
+  @override
+  String get validationText => 'Required text';
+
+  @override
+  String get validationNumber => 'Required number';
+
+  @override
+  String get validationDefectiveQuantity => 'Defective quantity';
+
+  @override
+  String get validationApproval => 'Requires approval';
+
+  @override
+  String get validationFile => 'Required file';
+
+  @override
+  String get conditionalLogic => 'Conditional Logic';
+
+  @override
+  String get condition => 'Condition';
+
+  @override
+  String get action => 'Action';
+
+  @override
+  String get ifCondition => 'If';
+
+  @override
+  String get thenAction => 'Then';
+
+  @override
+  String get defectiveGreaterThan => 'Defective greater than';
+
+  @override
+  String get requiresApprovalFrom => 'Requires approval from';
+
+  @override
+  String get blockTransition => 'Block transition';
+
+  @override
+  String get showWarning => 'Show warning';
+
+  @override
+  String get notifyRoles => 'Notify roles';
+
+  @override
+  String get statusHistory => 'Status History';
+
+  @override
+  String get changedTo => 'Changed to';
+
+  @override
+  String get changedBy => 'Changed by';
+
+  @override
+  String get changedAt => 'Change date';
+
+  @override
+  String get validationData => 'Validation data';
+
+  @override
+  String get noStatusHistory => 'No change history';
+
+  @override
+  String get specialPermissions => 'Special Permissions';
+
+  @override
+  String get clientPermissions => 'Client Permissions';
+
+  @override
+  String get canCreateBatches => 'Can create batches';
+
+  @override
+  String get canCreateProducts => 'Can create products';
+
+  @override
+  String get requiresApproval => 'Requires approval';
+
+  @override
+  String get canViewAllProjects => 'View all projects';
+
+  @override
+  String get standardClient => 'Standard client';
+
+  @override
+  String get privilegedClient => 'Privileged client';
+
+  @override
+  String get initializingRoles => 'Initializing roles...';
+
+  @override
+  String get initializingStatuses => 'Initializing statuses...';
+
+  @override
+  String get rolesInitialized => 'Roles initialized successfully';
+
+  @override
+  String get statusesInitialized => 'Statuses initialized successfully';
+
+  @override
+  String get initializationComplete => 'Initialization complete';
+
+  @override
+  String get initializationError => 'Initialization error';
+
+  @override
+  String get insufficientPermissions => 'Insufficient permissions';
+
+  @override
+  String get permissionDenied => 'Permission denied';
+
+  @override
+  String get roleNotFound => 'Role not found';
+
+  @override
+  String get statusNotFound => 'Status not found';
+
+  @override
+  String get invalidTransition => 'Invalid transition';
+
+  @override
+  String get validationFailed => 'Validation failed';
+
+  @override
+  String get approvalRequired => 'Approval required';
+
+  @override
+  String get contactAdminForPermissions => 'Contact an administrator for permissions';
 }
