@@ -38,30 +38,33 @@ class RoleModel {
     this.updatedAt,
   });
 
-  factory RoleModel.fromMap(Map<String, dynamic> map, {String? docId}) {
-    // Normalizar permisos usando el registry
-    final permissionsMap = map['permissions'] as Map<String, dynamic>?;
-    final normalizedPermissions = permissionsMap != null
-        ? PermissionRegistry.normalizePermissions(permissionsMap)
-        : PermissionRegistry.createEmptyPermissions();
+  // PARCHE TEMPORAL PARA RoleModel.fromMap
+// Este código debe reemplazar el método fromMap en role_model.dart (líneas 41-64)
+
+factory RoleModel.fromMap(Map<String, dynamic> map, {String? docId}) {
+  // Normalizar permisos usando el registry
+  final permissionsMap = map['permissions'] as Map<String, dynamic>?;
+  final normalizedPermissions = permissionsMap != null
+      ? PermissionRegistry.normalizePermissions(permissionsMap)
+      : PermissionRegistry.createEmptyPermissions();
 
     return RoleModel(
       id: docId ?? map['id'] as String,
       name: map['name'] as String,
       description: map['description'] as String? ?? '',
-      color: map['color'] as String,
-      icon: map['icon'] as String,
+      color: map['color'] as String? ?? '#2196F3',
+      icon: map['icon'] as String ?? 'person',
       isDefault: map['isDefault'] as bool? ?? false,
       isCustom: map['isCustom'] as bool? ?? false,
-      permissions: PermissionsModel.fromMap(normalizedPermissions),
+    permissions: PermissionsModel.fromMap(normalizedPermissions),
       organizationId: map['organizationId'] as String,
       createdBy: map['createdBy'] as String,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: map['updatedAt'] != null
           ? (map['updatedAt'] as Timestamp).toDate()
           : null,
-    );
-  }
+  );
+}
 
   Map<String, dynamic> toMap() {
     return {
