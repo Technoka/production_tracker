@@ -6,6 +6,7 @@ import '../../models/user_model.dart';
 import '../../services/product_catalog_service.dart';
 import '../../models/client_model.dart';
 import '../../services/client_service.dart';
+import 'package:provider/provider.dart';
 
 class CreateProductCatalogScreen extends StatefulWidget {
   final String organizationId;
@@ -194,6 +195,7 @@ class _CreateProductCatalogScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final clientService = Provider.of<ClientService>(context, listen: false);
 
     return Scaffold(
       appBar: AppBar(
@@ -325,7 +327,7 @@ class _CreateProductCatalogScreenState
             // Selector de cliente
             if (!_isPublic) ...[
               StreamBuilder<List<ClientModel>>(
-                stream: ClientService().watchClients(widget.organizationId),
+                stream: clientService.watchClients(widget.organizationId),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const LinearProgressIndicator();
