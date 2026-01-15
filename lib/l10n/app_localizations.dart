@@ -1994,7 +1994,7 @@ abstract class AppLocalizations {
   /// No description provided for @unsavedChanges.
   ///
   /// In en, this message translates to:
-  /// **'Unsaved'**
+  /// **'Unsaved changes'**
   String get unsavedChanges;
 
   /// No description provided for @unsavedChangesTitle.
@@ -2006,7 +2006,7 @@ abstract class AppLocalizations {
   /// No description provided for @unsavedChangesMessage.
   ///
   /// In en, this message translates to:
-  /// **'Do you want to discard changes?'**
+  /// **'Do you want to discard the changes made?'**
   String get unsavedChangesMessage;
 
   /// No description provided for @discard.
@@ -4856,7 +4856,7 @@ abstract class AppLocalizations {
   /// No description provided for @scopeNone.
   ///
   /// In en, this message translates to:
-  /// **'None'**
+  /// **'No access'**
   String get scopeNone;
 
   /// No description provided for @scopeAllDesc.
@@ -5320,6 +5320,486 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contact an administrator for permissions'**
   String get contactAdminForPermissions;
+
+  /// No description provided for @editProjectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Project'**
+  String get editProjectTitle;
+
+  /// No description provided for @projectInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Project Information'**
+  String get projectInformation;
+
+  /// No description provided for @clientInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Client Information'**
+  String get clientInformation;
+
+  /// No description provided for @accessControl.
+  ///
+  /// In en, this message translates to:
+  /// **'Access Control'**
+  String get accessControl;
+
+  /// No description provided for @accessControlDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage who can view and work with this project'**
+  String get accessControlDescription;
+
+  /// No description provided for @projectClient.
+  ///
+  /// In en, this message translates to:
+  /// **'Project Client'**
+  String get projectClient;
+
+  /// No description provided for @clientCannotBeChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Client cannot be changed'**
+  String get clientCannotBeChanged;
+
+  /// No description provided for @contactClient.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Client'**
+  String get contactClient;
+
+  /// No description provided for @cannotEditProject.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to edit this project'**
+  String get cannotEditProject;
+
+  /// No description provided for @cannotEditProjectDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Only assigned members or administrators can edit this project'**
+  String get cannotEditProjectDesc;
+
+  /// No description provided for @projectIsCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'This project is completed'**
+  String get projectIsCompleted;
+
+  /// No description provided for @projectIsCompletedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed projects cannot be edited'**
+  String get projectIsCompletedDesc;
+
+  /// No description provided for @projectIsCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'This project is cancelled'**
+  String get projectIsCancelled;
+
+  /// No description provided for @projectIsCancelledDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled projects cannot be edited'**
+  String get projectIsCancelledDesc;
+
+  /// No description provided for @automaticAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic access (no assignment needed)'**
+  String get automaticAccess;
+
+  /// No description provided for @assignAdditionalMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign additional members'**
+  String get assignAdditionalMembers;
+
+  /// No description provided for @allMembersHaveAutoAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'All members have automatic access'**
+  String get allMembersHaveAutoAccess;
+
+  /// No description provided for @you.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get you;
+
+  /// No description provided for @removeMemberFromProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from project?'**
+  String get removeMemberFromProject;
+
+  /// No description provided for @removeMemberFromProjectDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to remove {memberName} from this project?'**
+  String removeMemberFromProjectDesc(Object memberName);
+
+  /// No description provided for @memberHasProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'This member has assigned products'**
+  String get memberHasProducts;
+
+  /// No description provided for @memberHasProductsWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Removing them may affect production tracking'**
+  String get memberHasProductsWarning;
+
+  /// No description provided for @memberRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Member removed from project'**
+  String get memberRemoved;
+
+  /// No description provided for @memberAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Member added to project'**
+  String get memberAdded;
+
+  /// No description provided for @projectUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Project updated successfully'**
+  String get projectUpdatedSuccess;
+
+  /// No description provided for @projectUpdateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating project'**
+  String get projectUpdateError;
+
+  /// No description provided for @savingChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving changes...'**
+  String get savingChanges;
+
+  /// No description provided for @discardChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes'**
+  String get discardChanges;
+
+  /// No description provided for @unsavedChangesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes. Do you want to discard them?'**
+  String get unsavedChangesDesc;
+
+  /// No description provided for @viewClientDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View client details'**
+  String get viewClientDetails;
+
+  /// No description provided for @clientContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Client contact'**
+  String get clientContact;
+
+  /// No description provided for @loadingClientInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading client information...'**
+  String get loadingClientInfo;
+
+  /// No description provided for @required.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get required;
+
+  /// No description provided for @viewByPhases.
+  ///
+  /// In en, this message translates to:
+  /// **'View by Phases'**
+  String get viewByPhases;
+
+  /// No description provided for @viewByStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'View by Status'**
+  String get viewByStatus;
+
+  /// No description provided for @switchView.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch view'**
+  String get switchView;
+
+  /// No description provided for @phaseView.
+  ///
+  /// In en, this message translates to:
+  /// **'Production Phases'**
+  String get phaseView;
+
+  /// No description provided for @statusView.
+  ///
+  /// In en, this message translates to:
+  /// **'Quality States'**
+  String get statusView;
+
+  /// No description provided for @cannotMoveToPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot move products to this phase'**
+  String get cannotMoveToPhase;
+
+  /// No description provided for @cannotMoveFromPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot move products from this phase'**
+  String get cannotMoveFromPhase;
+
+  /// No description provided for @onlyAssignedPhases.
+  ///
+  /// In en, this message translates to:
+  /// **'You can only manage your assigned phases'**
+  String get onlyAssignedPhases;
+
+  /// No description provided for @phaseReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Read only'**
+  String get phaseReadOnly;
+
+  /// No description provided for @noAccessToPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'No access to this phase'**
+  String get noAccessToPhase;
+
+  /// No description provided for @cannotChangeStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to change status'**
+  String get cannotChangeStatus;
+
+  /// No description provided for @statusTransitionNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'This status transition is not allowed'**
+  String get statusTransitionNotAllowed;
+
+  /// No description provided for @tooManyProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many products to display'**
+  String get tooManyProducts;
+
+  /// No description provided for @tooManyProductsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing only the first 100 products. Apply filters to see specific results.'**
+  String get tooManyProductsDesc;
+
+  /// No description provided for @applyFiltersPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply filters to reduce results'**
+  String get applyFiltersPrompt;
+
+  /// No description provided for @showingProductsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {count} products'**
+  String showingProductsCount(Object count);
+
+  /// No description provided for @productsInPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products in this phase'**
+  String productsInPhase(Object count);
+
+  /// No description provided for @productsInStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products in this status'**
+  String productsInStatus(Object count);
+
+  /// No description provided for @newStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'New Status'**
+  String get newStatus;
+
+  /// No description provided for @statusTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Status Transition'**
+  String get statusTransition;
+
+  /// No description provided for @confirmStatusChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm status change'**
+  String get confirmStatusChange;
+
+  /// No description provided for @statusChangedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Status changed successfully'**
+  String get statusChangedSuccess;
+
+  /// No description provided for @statusChangeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error changing status'**
+  String get statusChangeError;
+
+  /// No description provided for @fillRequiredFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill required fields'**
+  String get fillRequiredFields;
+
+  /// No description provided for @defectDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Defect Description'**
+  String get defectDescription;
+
+  /// No description provided for @enterQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter quantity'**
+  String get enterQuantity;
+
+  /// No description provided for @enterDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the problem'**
+  String get enterDescription;
+
+  /// No description provided for @approvalRequiredDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'This change requires approval from {roles}'**
+  String approvalRequiredDesc(Object roles);
+
+  /// No description provided for @pendingApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending Approval'**
+  String get pendingApproval;
+
+  /// No description provided for @loadingPhases.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading phases...'**
+  String get loadingPhases;
+
+  /// No description provided for @loadingStatuses.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading statuses...'**
+  String get loadingStatuses;
+
+  /// No description provided for @loadingProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading products...'**
+  String get loadingProducts;
+
+  /// No description provided for @loadingPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking permissions...'**
+  String get loadingPermissions;
+
+  /// No description provided for @timeInPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'{time} in this phase'**
+  String timeInPhase(Object time);
+
+  /// No description provided for @timeInStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'{time} in this status'**
+  String timeInStatus(Object time);
+
+  /// No description provided for @daysSingular.
+  ///
+  /// In en, this message translates to:
+  /// **'day'**
+  String get daysSingular;
+
+  /// No description provided for @daysPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'days'**
+  String get daysPlural;
+
+  /// No description provided for @hoursSingular.
+  ///
+  /// In en, this message translates to:
+  /// **'hour'**
+  String get hoursSingular;
+
+  /// No description provided for @hoursPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'hours'**
+  String get hoursPlural;
+
+  /// No description provided for @managePermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Permissions'**
+  String get managePermissions;
+
+  /// No description provided for @permissionsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Permissions saved successfully'**
+  String get permissionsSaved;
+
+  /// No description provided for @baseRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Base role'**
+  String get baseRole;
+
+  /// No description provided for @customizations.
+  ///
+  /// In en, this message translates to:
+  /// **'customizations'**
+  String get customizations;
+
+  /// No description provided for @roleAllowsButUserDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Role allows but this user has denied'**
+  String get roleAllowsButUserDenied;
+
+  /// No description provided for @roleDeniesButUserAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Role denies but this user has allowed'**
+  String get roleDeniesButUserAllowed;
+
+  /// No description provided for @roleScope.
+  ///
+  /// In en, this message translates to:
+  /// **'Role scope'**
+  String get roleScope;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

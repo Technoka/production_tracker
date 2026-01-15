@@ -987,7 +987,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get notesHint => 'Observaciones opcionales';
 
   @override
-  String get unsavedChanges => 'Sin guardar';
+  String get unsavedChanges => 'Cambios sin guardar';
 
   @override
   String get unsavedChangesTitle => 'Cambios sin guardar';
@@ -2444,7 +2444,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get scopeAssigned => 'Solo asignados';
 
   @override
-  String get scopeNone => 'Ninguno';
+  String get scopeNone => 'Sin acceso';
 
   @override
   String get scopeAllDesc => 'Puede ver/editar todos los recursos';
@@ -2672,8 +2672,262 @@ class AppLocalizationsEs extends AppLocalizations {
   String get validationFailed => 'Validación fallida';
 
   @override
-  String get approvalRequired => 'Se requiere aprobación';
+  String get approvalRequired => 'Requiere aprobación';
 
   @override
   String get contactAdminForPermissions => 'Contacta con un administrador para obtener permisos';
+
+  @override
+  String get editProjectTitle => 'Editar Proyecto';
+
+  @override
+  String get projectInformation => 'Información del Proyecto';
+
+  @override
+  String get clientInformation => 'Información del Cliente';
+
+  @override
+  String get accessControl => 'Control de Acceso';
+
+  @override
+  String get accessControlDescription => 'Gestiona quiénes pueden ver y trabajar con este proyecto';
+
+  @override
+  String get projectClient => 'Cliente del Proyecto';
+
+  @override
+  String get clientCannotBeChanged => 'El cliente no puede modificarse';
+
+  @override
+  String get contactClient => 'Contactar Cliente';
+
+  @override
+  String get cannotEditProject => 'No tienes permisos para editar este proyecto';
+
+  @override
+  String get cannotEditProjectDesc => 'Solo miembros asignados o administradores pueden editar este proyecto';
+
+  @override
+  String get projectIsCompleted => 'Este proyecto está completado';
+
+  @override
+  String get projectIsCompletedDesc => 'Los proyectos completados no pueden editarse';
+
+  @override
+  String get projectIsCancelled => 'Este proyecto está cancelado';
+
+  @override
+  String get projectIsCancelledDesc => 'Los proyectos cancelados no pueden editarse';
+
+  @override
+  String get automaticAccess => 'Acceso automático (no necesitan asignación)';
+
+  @override
+  String get assignAdditionalMembers => 'Asignar miembros adicionales';
+
+  @override
+  String get allMembersHaveAutoAccess => 'Todos los miembros tienen acceso automático';
+
+  @override
+  String get you => 'Tú';
+
+  @override
+  String get removeMemberFromProject => '¿Quitar del proyecto?';
+
+  @override
+  String removeMemberFromProjectDesc(Object memberName) {
+    return '¿Estás seguro de quitar a $memberName de este proyecto?';
+  }
+
+  @override
+  String get memberHasProducts => 'Este miembro tiene productos asignados';
+
+  @override
+  String get memberHasProductsWarning => 'Quitarlo puede afectar el seguimiento de producción';
+
+  @override
+  String get memberRemoved => 'Miembro eliminado del proyecto';
+
+  @override
+  String get memberAdded => 'Miembro agregado al proyecto';
+
+  @override
+  String get projectUpdatedSuccess => 'Proyecto actualizado exitosamente';
+
+  @override
+  String get projectUpdateError => 'Error al actualizar el proyecto';
+
+  @override
+  String get savingChanges => 'Guardando cambios...';
+
+  @override
+  String get discardChanges => 'Descartar cambios';
+
+  @override
+  String get unsavedChangesDesc => 'Tienes cambios sin guardar. ¿Deseas descartarlos?';
+
+  @override
+  String get viewClientDetails => 'Ver detalles del cliente';
+
+  @override
+  String get clientContact => 'Contacto del cliente';
+
+  @override
+  String get loadingClientInfo => 'Cargando información del cliente...';
+
+  @override
+  String get required => 'Requerido';
+
+  @override
+  String get viewByPhases => 'Vista por Fases';
+
+  @override
+  String get viewByStatus => 'Vista por Estados';
+
+  @override
+  String get switchView => 'Cambiar vista';
+
+  @override
+  String get phaseView => 'Fases de Producción';
+
+  @override
+  String get statusView => 'Estados de Calidad';
+
+  @override
+  String get cannotMoveToPhase => 'No puedes mover productos a esta fase';
+
+  @override
+  String get cannotMoveFromPhase => 'No puedes mover productos desde esta fase';
+
+  @override
+  String get onlyAssignedPhases => 'Solo puedes gestionar tus fases asignadas';
+
+  @override
+  String get phaseReadOnly => 'Solo lectura';
+
+  @override
+  String get noAccessToPhase => 'Sin acceso a esta fase';
+
+  @override
+  String get cannotChangeStatus => 'No tienes permisos para cambiar el estado';
+
+  @override
+  String get statusTransitionNotAllowed => 'Esta transición de estado no está permitida';
+
+  @override
+  String get tooManyProducts => 'Demasiados productos para mostrar';
+
+  @override
+  String get tooManyProductsDesc => 'Se muestran solo los primeros 100 productos. Aplica filtros para ver resultados específicos.';
+
+  @override
+  String get applyFiltersPrompt => 'Aplica filtros para reducir resultados';
+
+  @override
+  String showingProductsCount(Object count) {
+    return 'Mostrando $count productos';
+  }
+
+  @override
+  String productsInPhase(Object count) {
+    return '$count productos en esta fase';
+  }
+
+  @override
+  String productsInStatus(Object count) {
+    return '$count productos en este estado';
+  }
+
+  @override
+  String get newStatus => 'Nuevo Estado';
+
+  @override
+  String get statusTransition => 'Transición de Estado';
+
+  @override
+  String get confirmStatusChange => 'Confirmar cambio de estado';
+
+  @override
+  String get statusChangedSuccess => 'Estado cambiado exitosamente';
+
+  @override
+  String get statusChangeError => 'Error al cambiar el estado';
+
+  @override
+  String get fillRequiredFields => 'Completa los campos requeridos';
+
+  @override
+  String get defectDescription => 'Descripción del Defecto';
+
+  @override
+  String get enterQuantity => 'Ingresa la cantidad';
+
+  @override
+  String get enterDescription => 'Describe el problema';
+
+  @override
+  String approvalRequiredDesc(Object roles) {
+    return 'Este cambio requiere aprobación de $roles';
+  }
+
+  @override
+  String get pendingApproval => 'Pendiente de Aprobación';
+
+  @override
+  String get loadingPhases => 'Cargando fases...';
+
+  @override
+  String get loadingStatuses => 'Cargando estados...';
+
+  @override
+  String get loadingProducts => 'Cargando productos...';
+
+  @override
+  String get loadingPermissions => 'Verificando permisos...';
+
+  @override
+  String timeInPhase(Object time) {
+    return '$time en esta fase';
+  }
+
+  @override
+  String timeInStatus(Object time) {
+    return '$time en este estado';
+  }
+
+  @override
+  String get daysSingular => 'día';
+
+  @override
+  String get daysPlural => 'días';
+
+  @override
+  String get hoursSingular => 'hora';
+
+  @override
+  String get hoursPlural => 'horas';
+
+  @override
+  String get managePermissions => 'Gestionar Permisos';
+
+  @override
+  String get permissionsSaved => 'Permisos guardados correctamente';
+
+  @override
+  String get baseRole => 'Rol base';
+
+  @override
+  String get customizations => 'personalizaciones';
+
+  @override
+  String get roleAllowsButUserDenied => 'El rol permite, pero este usuario tiene denegado';
+
+  @override
+  String get roleDeniesButUserAllowed => 'El rol deniega, pero este usuario tiene permitido';
+
+  @override
+  String get roleScope => 'Alcance del rol';
+
+  @override
+  String get retry => 'Reintentar';
 }
