@@ -26,8 +26,6 @@ class ProjectDetailScreen extends StatefulWidget {
 }
 
 class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTickerProviderStateMixin {
-  final ProjectProductService _productService = ProjectProductService();
-  final ProjectService _projectService = ProjectService();
   late TabController _tabController;
   int _selectedTab = 0; // 0: Detalles, 1: Productos
 
@@ -55,6 +53,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserData;
+    final projectService = Provider.of<ProjectService>(context, listen: false);
 
     if (user == null) {
       return const UniversalLoadingScreen();
@@ -62,7 +61,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
 
     // Usar StreamBuilder para actualización en tiempo real
     return StreamBuilder<ProjectModel?>(
-      stream: _projectService.watchProjects(user.organizationId ?? '').map(
+      stream: projectService.watchProjects(user.organizationId ?? '').map(
         (projects) => projects.firstWhere(
           (p) => p.id == widget.projectId,
           orElse: () => projects.isNotEmpty ? projects.first : throw Exception('Project not found'),
@@ -434,6 +433,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
   }
 
   Widget _buildProductsTab(BuildContext context, UserModel user, ProjectModel project) {
+    final productService = Provider.of<ProjectProductService>(context, listen: false);
     final canViewPrices = RoleUtils.canViewFinancials(user.role);
 
     return RefreshIndicator(
@@ -441,7 +441,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
         setState(() {});
       },
       child: StreamBuilder<List<ProjectProductModel>>(
-        stream: _productService.watchProjectProducts(project.organizationId, project.id),
+        stream: productService.watchProjectProducts(project.organizationId, project.id),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
