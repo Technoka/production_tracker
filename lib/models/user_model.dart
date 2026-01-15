@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/organization_service.dart';
 
 // Enum para roles del sistema
 enum UserRole {
@@ -25,7 +26,10 @@ class UserModel {
   final String uid;
   final String email;
   final String name;
+
+  @deprecated
   final String role;
+
   final String? phone;
   final String? organizationId;
   final DateTime createdAt;
