@@ -71,6 +71,7 @@ class ProductionBatchModel {
   
   // NUEVO: Contador de productos para generar números secuenciales
   final int productSequenceCounter; // Último número usado
+  final List<String> assignedMembers; // UIDs de miembros asignados
 
   ProductionBatchModel({
     required this.id,
@@ -95,6 +96,7 @@ class ProductionBatchModel {
     this.startedAt,
     this.actualCompletionDate,
     this.productSequenceCounter = 0,
+    required this.assignedMembers,
   });
 
   Map<String, dynamic> toMap() {
@@ -125,6 +127,7 @@ class ProductionBatchModel {
           ? Timestamp.fromDate(actualCompletionDate!) 
           : null,
       'productSequenceCounter': productSequenceCounter,
+      'assignedMembers': assignedMembers,
     };
   }
 
@@ -158,6 +161,7 @@ class ProductionBatchModel {
           ? (map['actualCompletionDate'] as Timestamp).toDate()
           : null,
       productSequenceCounter: map['productSequenceCounter'] as int? ?? 0,
+      assignedMembers: List<String>.from(map['assignedMembers'] as List),
     );
   }
 
@@ -184,6 +188,7 @@ class ProductionBatchModel {
     DateTime? startedAt,
     DateTime? actualCompletionDate,
     int? productSequenceCounter,
+    List<String>? assignedMembers,
   }) {
     return ProductionBatchModel(
       id: id ?? this.id,
@@ -208,6 +213,7 @@ class ProductionBatchModel {
       startedAt: startedAt ?? this.startedAt,
       actualCompletionDate: actualCompletionDate ?? this.actualCompletionDate,
       productSequenceCounter: productSequenceCounter ?? this.productSequenceCounter,
+      assignedMembers: assignedMembers ?? this.assignedMembers,
     );
   }
 
@@ -242,6 +248,11 @@ class ProductionBatchModel {
   
   /// Verificar si se puede añadir más productos (límite 10)
   bool get canAddMoreProducts => totalProducts < 10;
+  
+  bool get isAssigned => assignedMembers.isNotEmpty;
+  int get memberCount => assignedMembers.length;
+
+  bool isAssignedTo(String userId) => assignedMembers.contains(userId);
 }
 
 // Mantener helper para generar el número de lote
