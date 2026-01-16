@@ -259,24 +259,58 @@ class ProductionBatchService extends ChangeNotifier {
 
   // ==================== LECTURA DE LOTES ====================
 
-  /// Stream de lotes por organización
-  Stream<List<ProductionBatchModel>> watchBatches(String organizationId) {
-    return _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('production_batches')
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      _batches = snapshot.docs
-          .map((doc) => ProductionBatchModel.fromMap(doc.data()))
-          .toList();
-      return _batches;
-    });
+  /// Stream de lotes con scope-awareness
+  Stream<List<ProductionBatchModel>> watchBatches(String organizationId,
+      {String? userId}) async* {
+    try {
+      // Obtener scope del permiso
+      final scope = await _memberService.getScope('batches', 'view');
+      
+      Query<Map<String, dynamic>> query = _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('production_batches');
+
+      // Aplicar filtro según scope
+      switch (scope) {
+        case PermissionScope.all:
+          // Sin filtro adicional - ver todos
+          break;
+        case PermissionScope.assigned:
+          // Solo lotes asignados
+          if (userId != null) {
+            query = query.where('assignedMembers', arrayContains: userId);
+          } else {
+            // Sin userId, no puede ver nada con scope assigned
+            yield [];
+            return;
+          }
+          break;
+        case PermissionScope.none:
+          // Sin acceso
+          yield [];
+          return;
+      }
+
+      yield* query
+          .orderBy('createdAt', descending: true)
+          .snapshots()
+          .map((snapshot) {
+        _batches = snapshot.docs
+            .map((doc) => ProductionBatchModel.fromMap(doc.data()))
+            .toList();
+            // print('lista de batches: ${_batches}');
+        return _batches;
+      });
+    } catch (e) {
+      debugPrint('Error watching batches: $e');
+      yield [];
+    }
   }
 
   /// Stream de lote por id
-  Stream<ProductionBatchModel?> watchBatch(String organizationId, String batchId) {
+  Stream<ProductionBatchModel?> watchBatch(
+      String organizationId, String batchId) {
     return _firestore
         .collection('organizations')
         .doc(organizationId)
@@ -284,8 +318,8 @@ class ProductionBatchService extends ChangeNotifier {
         .doc(batchId)
         .snapshots()
         .map((snapshot) {
-        if (!snapshot.exists || snapshot.data() == null) return null;
-          return ProductionBatchModel.fromMap(snapshot.data()!);
+      if (!snapshot.exists || snapshot.data() == null) return null;
+      return ProductionBatchModel.fromMap(snapshot.data()!);
     });
   }
 
@@ -348,6 +382,7 @@ class ProductionBatchService extends ChangeNotifier {
     required String clientId,
     required String clientName,
     required String createdBy,
+    List<String>? assignedMembers,
     String? notes,
   }) async {
     try {
@@ -387,6 +422,7 @@ class ProductionBatchService extends ChangeNotifier {
         totalProducts: 0,
         completedProducts: 0,
         notes: notes,
+        assignedMembers: assignedMembers ?? [createdBy],
       );
 
       await docRef.set(batch.toMap());
@@ -413,24 +449,30 @@ class ProductionBatchService extends ChangeNotifier {
     required String userName,
   }) async {
     try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
-
-      // ✅ Verificar permisos
-      final canEdit = await _memberService.can('batches', 'edit');
-      if (!canEdit) {
-        _error = 'No tienes permisos para editar lotes';
-        _isLoading = false;
+      // ✅ VALIDAR PERMISOS (AÑADIR ESTO)
+      final batch = await getBatchById(organizationId, batchId);
+      if (batch == null) {
+        _error = 'Lote no encontrado';
         notifyListeners();
         return false;
       }
 
-      // Verificar que el lote existe
-      final batch = await getBatchById(organizationId, batchId);
-      if (batch == null) {
-        throw Exception('Lote no encontrado');
+      final isAssigned = batch.assignedMembers.contains(userId);
+      final canAdd = await _memberService.canWithScope(
+        'batches',
+        'addProducts',
+        isAssignedToUser: isAssigned,
+      );
+
+      if (!canAdd) {
+        _error = 'No tienes permisos para añadir productos a este lote';
+        notifyListeners();
+        return false;
       }
+
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
 
       // // Verificar que el lote está en draft
       // if (batch.status != BatchStatus.draft) {
@@ -456,7 +498,7 @@ class ProductionBatchService extends ChangeNotifier {
             .doc(organizationId)
             .collection('production_batches')
             .doc(batchId)
-            .collection('products')
+            .collection('batch_products')
             .doc();
 
         // Asignar estado inicial y crear historial
@@ -514,7 +556,7 @@ class ProductionBatchService extends ChangeNotifier {
         .doc(organizationId)
         .collection('production_batches')
         .doc(batchId)
-        .collection('products')
+        .collection('batch_products')
         .orderBy('createdAt')
         .snapshots()
         .map((snapshot) {
@@ -536,7 +578,7 @@ class ProductionBatchService extends ChangeNotifier {
           .doc(organizationId)
           .collection('production_batches')
           .doc(batchId)
-          .collection('products')
+          .collection('batch_products')
           .doc(productId)
           .get();
 
@@ -637,7 +679,7 @@ class ProductionBatchService extends ChangeNotifier {
           .doc(organizationId)
           .collection('production_batches')
           .doc(batchId)
-          .collection('products')
+          .collection('batch_products')
           .doc(productId)
           .update(updatedProduct.toMap());
 
@@ -676,22 +718,15 @@ class ProductionBatchService extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      final canChange = await _memberService.can(
-        'batches',
-        'edit',
-      );
-
-      if (!canChange) {
-        _error = 'No tienes permisos para cambiar el estado de lotes';
-        _isLoading = false;
+      final batch = await getBatchById(organizationId, batchId);
+      if (batch == null) {
+        _error = 'Lote no encontrado';
         notifyListeners();
         return false;
       }
 
-      final batch = await getBatchById(organizationId, batchId);
-      if (batch == null) {
-        throw Exception('Lote no encontrado');
-      }
+      final isAssigned = batch.assignedMembers.contains(userId);
+      final scope = await _memberService.getScope('batches', 'edit');
 
       // Validaciones según el nuevo estado
       if (newStatus == BatchStatus.inProgress) {
@@ -701,14 +736,46 @@ class ProductionBatchService extends ChangeNotifier {
             .doc(organizationId)
             .collection('production_batches')
             .doc(batchId)
-            .collection('products')
+            .collection('batch_products')
             .limit(1)
             .get();
 
         if (productsSnapshot.docs.isEmpty) {
           throw Exception('No se puede iniciar un lote sin productos');
         }
+      } else if (newStatus == BatchStatus.inProgress) {
+        // start batch
+        final canStart = await _memberService.can('batches', 'startProduction');
+        if (!canStart) {
+          _error = 'No tienes permisos para iniciar producción';
+          notifyListeners();
+          return false;
+        }
+
+        // Validar scope
+        if (scope == PermissionScope.assigned && !isAssigned) {
+          _error = 'No estás asignado a este lote';
+          notifyListeners();
+          return false;
+        }
+      } else if (newStatus == BatchStatus.completed) {
+        final canComplete =
+            await _memberService.can('batches', 'completeBatch');
+        if (!canComplete) {
+          _error = 'No tienes permisos para completar lotes';
+          notifyListeners();
+          return false;
+        }
+        if (scope == PermissionScope.assigned && !isAssigned) {
+          _error = 'No estás asignado a este lote';
+          notifyListeners();
+          return false;
+        }
       }
+
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
 
       await _firestore
           .collection('organizations')
@@ -780,7 +847,7 @@ class ProductionBatchService extends ChangeNotifier {
           .doc(organizationId)
           .collection('production_batches')
           .doc(batchId)
-          .collection('products')
+          .collection('batch_products')
           .doc(productId)
           .update(updates);
 
@@ -836,7 +903,7 @@ class ProductionBatchService extends ChangeNotifier {
           .doc(organizationId)
           .collection('production_batches')
           .doc(batchId)
-          .collection('products')
+          .collection('batch_products')
           .doc(productId)
           .delete();
 
@@ -870,17 +937,30 @@ class ProductionBatchService extends ChangeNotifier {
     required String userId,
   }) async {
     try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
-
-      final canDelete = await _memberService.can('batches', 'delete');
-      if (!canDelete) {
-        _error = 'No tienes permisos para eliminar lotes';
-        _isLoading = false;
+      // ✅ VALIDAR PERMISOS CON SCOPE (AÑADIR ESTO)
+      final batch = await getBatchById(organizationId, batchId);
+      if (batch == null) {
+        _error = 'Lote no encontrado';
         notifyListeners();
         return false;
       }
+
+      final isAssigned = batch.assignedMembers.contains(userId);
+      final canDelete = await _memberService.canWithScope(
+        'batches',
+        'delete',
+        isAssignedToUser: isAssigned,
+      );
+
+      if (!canDelete) {
+        _error = 'No tienes permisos para eliminar este lote';
+        notifyListeners();
+        return false;
+      }
+
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
 
       // Eliminar todos los productos primero
       final productsSnapshot = await _firestore
@@ -888,13 +968,13 @@ class ProductionBatchService extends ChangeNotifier {
           .doc(organizationId)
           .collection('production_batches')
           .doc(batchId)
-          .collection('products')
+          .collection('batch_products')
           .get();
 
-      final batch = _firestore.batch();
+      final productsList = _firestore.batch();
 
       for (final doc in productsSnapshot.docs) {
-        batch.delete(doc.reference);
+        productsList.delete(doc.reference);
       }
 
       // Eliminar el lote
@@ -904,9 +984,11 @@ class ProductionBatchService extends ChangeNotifier {
           .collection('production_batches')
           .doc(batchId);
 
-      batch.delete(batchRef);
+      productsList.delete(batchRef);
 
-      await batch.commit();
+      await productsList.commit();
+
+      batchRef.delete(); // delete the actual batch document
 
       _isLoading = false;
       notifyListeners();
@@ -930,17 +1012,31 @@ class ProductionBatchService extends ChangeNotifier {
     String? notes,
   }) async {
     try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
-
-      final canEdit = await _memberService.can('batches', 'edit');
-      if (!canEdit) {
-        _error = 'No tienes permisos para editar lotes';
-        _isLoading = false;
+      // ✅ VALIDAR PERMISOS CON SCOPE (AÑADIR ESTO)
+      final batch = await getBatchById(organizationId, batchId);
+      if (batch == null) {
+        _error = 'Lote no encontrado';
         notifyListeners();
         return false;
       }
+
+      // Verificar si el usuario está asignado
+      final isAssigned = batch.assignedMembers.contains(userId);
+      final canEdit = await _memberService.canWithScope(
+        'batches',
+        'edit',
+        isAssignedToUser: isAssigned,
+      );
+
+      if (!canEdit) {
+        _error = 'No tienes permisos para editar este lote';
+        notifyListeners();
+        return false;
+      }
+
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
 
       final updates = <String, dynamic>{
         'updatedAt': FieldValue.serverTimestamp(),
@@ -980,7 +1076,7 @@ class ProductionBatchService extends ChangeNotifier {
           .doc(organizationId)
           .collection('production_batches')
           .doc(batchId)
-          .collection('products')
+          .collection('batch_products')
           .get();
 
       final products = productsSnapshot.docs
