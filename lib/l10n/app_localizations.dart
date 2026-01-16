@@ -2006,7 +2006,7 @@ abstract class AppLocalizations {
   /// No description provided for @unsavedChangesMessage.
   ///
   /// In en, this message translates to:
-  /// **'Do you want to discard the changes made?'**
+  /// **'Do you want to discard changes?'**
   String get unsavedChangesMessage;
 
   /// No description provided for @discard.
@@ -4856,7 +4856,7 @@ abstract class AppLocalizations {
   /// No description provided for @scopeNone.
   ///
   /// In en, this message translates to:
-  /// **'No access'**
+  /// **'None'**
   String get scopeNone;
 
   /// No description provided for @scopeAllDesc.
@@ -5800,6 +5800,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get retry;
+
+  /// No description provided for @noProductionAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have access to production'**
+  String get noProductionAccess;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

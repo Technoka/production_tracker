@@ -1076,12 +1076,7 @@
 "roleAllowsButUserDenied": "Role allows but this user has denied",
 "roleDeniesButUserAllowed": "Role denies but this user has allowed",
 "roleScope": "Role scope",
-"scopeNone": "No access",
-"scopeAssigned": "Assigned only",
-"scopeAll": "All",
-"unsavedChanges": "Unsaved changes",
-"unsavedChangesMessage": "Do you want to discard the changes made?",
-"discard": "Discard",
-"retry": "Retry"
+"retry": "Retry",
+"noProductionAccess": "You don't have access to production"
 
 }

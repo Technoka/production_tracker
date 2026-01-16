@@ -2444,7 +2444,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get scopeAssigned => 'Solo asignados';
 
   @override
-  String get scopeNone => 'Sin acceso';
+  String get scopeNone => 'Ninguno';
 
   @override
   String get scopeAllDesc => 'Puede ver/editar todos los recursos';
@@ -2930,4 +2930,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get retry => 'Reintentar';
+
+  @override
+  String get noProductionAccess => 'No tienes acceso a producción';
 }

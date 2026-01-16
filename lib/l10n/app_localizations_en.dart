@@ -993,7 +993,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unsavedChangesTitle => 'Unsaved changes';
 
   @override
-  String get unsavedChangesMessage => 'Do you want to discard the changes made?';
+  String get unsavedChangesMessage => 'Do you want to discard changes?';
 
   @override
   String get discard => 'Discard';
@@ -2444,7 +2444,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scopeAssigned => 'Assigned only';
 
   @override
-  String get scopeNone => 'No access';
+  String get scopeNone => 'None';
 
   @override
   String get scopeAllDesc => 'Can view/edit all resources';
@@ -2930,4 +2930,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retry => 'Retry';
+
+  @override
+  String get noProductionAccess => 'You don\'t have access to production';
 }

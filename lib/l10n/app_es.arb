@@ -1078,11 +1078,6 @@
 "roleAllowsButUserDenied": "El rol permite, pero este usuario tiene denegado",
 "roleDeniesButUserAllowed": "El rol deniega, pero este usuario tiene permitido",
 "roleScope": "Alcance del rol",
-"scopeNone": "Sin acceso",
-"scopeAssigned": "Solo asignados",
-"scopeAll": "Todos",
-"unsavedChanges": "Cambios sin guardar",
-"unsavedChangesMessage": "¿Deseas descartar los cambios realizados?",
-"discard": "Descartar",
-"retry": "Reintentar"
+"retry": "Reintentar",
+"noProductionAccess": "No tienes acceso a producción"
 }
