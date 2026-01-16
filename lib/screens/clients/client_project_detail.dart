@@ -5,7 +5,9 @@ import '../../models/project_model.dart';
 import '../../models/product_model.dart';
 import '../../services/project_service.dart';
 import 'client_product_detail.dart';
+import 'package:provider/provider.dart';
 
+@Deprecated('no se usa.')
 class ClientProjectDetail extends StatelessWidget {
   final ProjectModel project;
   final String organizationId;
@@ -14,7 +16,7 @@ class ClientProjectDetail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final projectService = ProjectService();
+    final projectService = Provider.of<ProjectService>(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(

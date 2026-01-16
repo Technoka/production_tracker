@@ -7,6 +7,7 @@ import '../../services/auth_service.dart';
 import '../../services/client_service.dart';
 import 'client_project_detail.dart';
 
+@Deprecated('no se usa.')
 class ClientDashboard extends StatelessWidget {
   final UserModel userData;
 

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/product_model.dart';
 
+@Deprecated('no se usa.')
 class ClientProductDetail extends StatelessWidget {
   final ProductModel product;
 
