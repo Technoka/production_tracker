@@ -15,6 +15,8 @@ class DraggableProductCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onDragStarted;
   final VoidCallback? onDragEnd;
+  final bool showStatus;
+  final String? statusName;
 
   const DraggableProductCard({
     Key? key,
@@ -25,6 +27,8 @@ class DraggableProductCard extends StatelessWidget {
     this.onTap,
     this.onDragStarted,
     this.onDragEnd,
+    required this.showStatus,
+    this.statusName,
   }) : super(key: key);
 
   @override
