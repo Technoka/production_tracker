@@ -107,10 +107,22 @@ class RoleService extends ChangeNotifier {
           .doc(roleId)
           .get();
 
-      if (!doc.exists) return null;
-      return RoleModel.fromMap(doc.data()!, docId: doc.id);
-    } catch (e) {
+      if (!doc.exists) {
+        print('Rol no encontrado: $roleId en org: $organizationId');
+        return null;
+      }
+      
+      final data = doc.data();
+      if (data == null) {
+        print('Datos del rol son null para roleId: $roleId');
+        return null;
+      }
+      
+      return RoleModel.fromMap(data, docId: doc.id);
+    } catch (e, stackTrace) {
       _error = 'Error al obtener rol: $e';
+      print('Error obteniendo rol $roleId: $e');
+      print('StackTrace: $stackTrace');
       notifyListeners();
       return null;
     }
