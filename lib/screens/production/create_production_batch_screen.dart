@@ -18,6 +18,12 @@ import '../../services/organization_member_service.dart';
 import '../../utils/filter_utils.dart';
 import '../../models/batch_product_model.dart';
 import '../../models/organization_member_model.dart';
+import '../../widgets/access_control_widget.dart';
+import '../../models/permission_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../models/role_model.dart';
+
+// TODO: comprobar que se usa scope y assignedMembers correctamente
 
 class CreateProductionBatchScreen extends StatefulWidget {
   final String organizationId;
@@ -61,6 +67,7 @@ class _CreateProductionBatchScreenState
 
   // RBAC
   OrganizationMemberWithUser? _currentMember;
+  List<String> _selectedMembers = [];
   // -------------------------------------------
 
   @override
@@ -77,19 +84,56 @@ class _CreateProductionBatchScreenState
   }
 
   Future<void> _loadCurrentMember() async {
-    final memberService =
-        Provider.of<OrganizationMemberService>(context, listen: false);
-    final authService = Provider.of<AuthService>(context, listen: false);
+    try {
+      final memberService =
+          Provider.of<OrganizationMemberService>(context, listen: false);
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final currentUserId = authService.currentUser!.uid;
 
-    final member = await memberService.getCurrentMember(
-      widget.organizationId,
-      authService.currentUser!.uid,
-    );
+      // 1. Obtener el miembro (Async) -> FUERA del setState
+      final member = await memberService.getCurrentMember(
+        widget.organizationId,
+        currentUserId,
+      );
 
-    if (mounted) {
-      setState(() {
-        _currentMember = member;
-      });
+      bool shouldPreselectUser = false;
+
+      // 2. Si hay miembro, obtener Rol y calcular permisos (Async) -> FUERA del setState
+      if (member != null) {
+        final roleDoc = await FirebaseFirestore.instance
+            .collection('organizations')
+            .doc(member.organizationId)
+            .collection('roles')
+            .doc(member.member.roleId)
+            .get();
+
+        if (roleDoc.exists) {
+          final role = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
+
+          // Asumo que tu modelo tiene este método helper o similar
+          final permissions = member.member.getEffectivePermissions(role);
+
+          // Evaluar lógica
+          if (member.member.roleId == 'admin' ||
+              permissions.viewBatchesScope == PermissionScope.all) {
+            shouldPreselectUser = true;
+          }
+        }
+      }
+
+      // 3. Actualizar la UI (Sync) -> DENTRO del setState
+      if (mounted) {
+        setState(() {
+          _currentMember = member;
+
+          if (shouldPreselectUser) {
+            _selectedMembers.add(currentUserId);
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error getting loading current member: $e');
+      return;
     }
   }
 
@@ -110,23 +154,23 @@ class _CreateProductionBatchScreenState
     super.dispose();
   }
 
-Future<void> _loadProject() async {
-  final projectService = Provider.of<ProjectService>(context, listen: false);
-  final authService = Provider.of<AuthService>(context, listen: false);
-  
-  // TODO: falta añadir canWithScope ('projects', 'view')
+  Future<void> _loadProject() async {
+    final projectService = Provider.of<ProjectService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
 
-  final project = await projectService.getProject(
-    widget.organizationId,
-    widget.projectId!,
-  );
-  
-  if (project != null && mounted) {
-    setState(() {
-      _selectedProject = project;
-    });
+    // TODO: falta añadir canWithScope ('projects', 'view')
+
+    final project = await projectService.getProject(
+      widget.organizationId,
+      widget.projectId!,
+    );
+
+    if (project != null && mounted) {
+      setState(() {
+        _selectedProject = project;
+      });
+    }
   }
-}
 
   // --- MÉTODOS PARA GESTIÓN DE PRODUCTOS ---
   void _addProductToList() {
@@ -330,6 +374,8 @@ Future<void> _loadProject() async {
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context, listen: false);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nuevo Lote de Producción'),
@@ -970,6 +1016,34 @@ Future<void> _loadProject() async {
 
             const SizedBox(height: 24),
 
+            // Card de Control de Acceso
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: AccessControlWidget(
+                  organizationId: widget.organizationId,
+                  currentUserId: authService.currentUser!.uid,
+                  selectedMembers: _selectedMembers,
+                  onMembersChanged: (members) {
+                    setState(() {
+                      _selectedMembers = members;
+                    });
+                  },
+                  readOnly: false,
+                  showTitle: true,
+                  resourceType: 'batch',
+                  customTitle: 'Control de Acceso al Lote',
+                  customDescription:
+                      'Gestiona quiénes pueden ver y trabajar con este lote',
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
             // Botón Crear Lote
             FilledButton.icon(
               onPressed: _isLoading ? null : _createBatch,
@@ -1058,7 +1132,8 @@ Future<void> _loadProject() async {
   Widget _buildProjectSelector() {
     return StreamBuilder<List<ProjectModel>>(
       stream: Provider.of<ProjectService>(context, listen: false)
-          .watchProjectsWithScope(widget.organizationId, _currentMember!.userId),
+          .watchProjectsWithScope(
+              widget.organizationId, _currentMember!.userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -1166,149 +1241,157 @@ Future<void> _loadProject() async {
   }
 
   Future<void> _createBatch() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  if (_selectedProject == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Debes seleccionar un proyecto')),
-    );
-    return;
-  }
-
-  setState(() => _isLoading = true);
-
-  final authService = Provider.of<AuthService>(context, listen: false);
-  final batchService = Provider.of<ProductionBatchService>(context, listen: false);
-  final clientService = Provider.of<ClientService>(context, listen: false);
-  final phaseService = Provider.of<PhaseService>(context, listen: false);
-
-  try {
-    final client = await clientService.getClient(
-      widget.organizationId,
-      _selectedProject!.clientId,
-    );
-
-    if (client == null) {
-      throw Exception('No se pudo obtener la información del cliente');
+    if (_selectedProject == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Debes seleccionar un proyecto')),
+      );
+      return;
     }
 
-    // 1. Crear el Lote
-    final batchId = await batchService.createBatch(
-      organizationId: widget.organizationId,
-      userId: authService.currentUser!.uid,
-      projectId: _selectedProject!.id,
-      projectName: _selectedProject!.name,
-      clientId: client.id,
-      clientName: client.name,
-      createdBy: authService.currentUser!.uid,
-      batchPrefix: _prefixController.text.toUpperCase(),
-      batchNumber: _batchNumberPreview.value,
-      notes: _notesController.text.trim().isEmpty
-          ? null
-          : _notesController.text.trim(),
-    );
+    setState(() => _isLoading = true);
 
-    if (batchId == null) {
-      throw Exception(batchService.error ?? 'Error desconocido al crear lote');
-    }
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final batchService =
+        Provider.of<ProductionBatchService>(context, listen: false);
+    final clientService = Provider.of<ClientService>(context, listen: false);
+    final phaseService = Provider.of<PhaseService>(context, listen: false);
 
-    // 2. Si hay productos en la lista, añadirlos en batch
-    if (_productsToAdd.isNotEmpty) {
-      // Obtener fases de la organización (necesarias para crear productos)
-      final phases = await phaseService.getOrganizationPhases(widget.organizationId);
-      
-      if (phases.isEmpty) {
-        debugPrint('Advertencia: No hay fases configuradas, no se pudieron añadir productos.');
-      } else {
-        phases.sort((a, b) => a.order.compareTo(b.order));
+    try {
+      final client = await clientService.getClient(
+        widget.organizationId,
+        _selectedProject!.clientId,
+      );
 
-        // ✅ CONSTRUIR LISTA DE BatchProductModel
-        final List<BatchProductModel> batchProducts = [];
-        
-        for (int i = 0; i < _productsToAdd.length; i++) {
-          final item = _productsToAdd[i];
-          final product = item['product'] as ProductCatalogModel;
-          final quantity = item['quantity'] as int;
-          final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
-          final urgency = item['urgencyLevel'] as String? ?? 'medium';
-          final notes = item['notes'] as String?;
-          final family = item['family'];
+      if (client == null) {
+        throw Exception('No se pudo obtener la información del cliente');
+      }
 
-          // Crear progreso de fases inicial
-          final Map<String, PhaseProgressData> phaseProgress = {};
-          for (var phase in phases) {
-            phaseProgress[phase.id] = PhaseProgressData(
-              status: phase.id == phases.first.id ? 'in_progress' : 'pending',
-              startedAt: phase.id == phases.first.id ? DateTime.now() : null,
+      // 1. Crear el Lote
+      final batchId = await batchService.createBatch(
+        organizationId: widget.organizationId,
+        userId: authService.currentUser!.uid,
+        projectId: _selectedProject!.id,
+        projectName: _selectedProject!.name,
+        clientId: client.id,
+        clientName: client.name,
+        createdBy: authService.currentUser!.uid,
+        batchPrefix: _prefixController.text.toUpperCase(),
+        batchNumber: _batchNumberPreview.value,
+        assignedMembers: _selectedMembers, // ← NUEVO
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
+      );
+
+      if (batchId == null) {
+        throw Exception(
+            batchService.error ?? 'Error desconocido al crear lote');
+      }
+
+      // 2. Si hay productos en la lista, añadirlos en batch
+      if (_productsToAdd.isNotEmpty) {
+        // Obtener fases de la organización (necesarias para crear productos)
+        final phases =
+            await phaseService.getOrganizationPhases(widget.organizationId);
+
+        if (phases.isEmpty) {
+          debugPrint(
+              'Advertencia: No hay fases configuradas, no se pudieron añadir productos.');
+        } else {
+          phases.sort((a, b) => a.order.compareTo(b.order));
+
+          // ✅ CONSTRUIR LISTA DE BatchProductModel
+          final List<BatchProductModel> batchProducts = [];
+
+          for (int i = 0; i < _productsToAdd.length; i++) {
+            final item = _productsToAdd[i];
+            final product = item['product'] as ProductCatalogModel;
+            final quantity = item['quantity'] as int;
+            final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
+            final urgency = item['urgencyLevel'] as String? ?? 'medium';
+            final notes = item['notes'] as String?;
+            final family = item['family'];
+
+            // Crear progreso de fases inicial
+            final Map<String, PhaseProgressData> phaseProgress = {};
+            for (var phase in phases) {
+              phaseProgress[phase.id] = PhaseProgressData(
+                status: phase.id == phases.first.id ? 'in_progress' : 'pending',
+                startedAt: phase.id == phases.first.id ? DateTime.now() : null,
+              );
+            }
+
+            // Construir BatchProductModel
+            final batchProduct = BatchProductModel(
+              id: '', // Se asignará en el servicio
+              batchId: batchId,
+              productCatalogId: product.id,
+              productName: product.name,
+              productReference: product.reference,
+              family: family,
+              description: product.description,
+              quantity: quantity,
+              currentPhase: phases.first.id,
+              currentPhaseName: phases.first.name,
+              phaseProgress: phaseProgress,
+              productNumber: 0, // Se asignará en el servicio (secuencial)
+              productCode: '', // Se generará en el servicio
+              unitPrice: product.basePrice,
+              totalPrice: product.basePrice != null
+                  ? product.basePrice! * quantity
+                  : null,
+              expectedDeliveryDate: deliveryDate,
+              urgencyLevel: urgency,
+              productNotes: notes,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
             );
+
+            batchProducts.add(batchProduct);
           }
 
-          // Construir BatchProductModel
-          final batchProduct = BatchProductModel(
-            id: '', // Se asignará en el servicio
+          // ✅ LLAMAR A addProductsToBatch CON LA LISTA
+          final success = await batchService.addProductsToBatch(
+            organizationId: widget.organizationId,
             batchId: batchId,
-            productCatalogId: product.id,
-            productName: product.name,
-            productReference: product.reference,
-            family: family,
-            description: product.description,
-            quantity: quantity,
-            currentPhase: phases.first.id,
-            currentPhaseName: phases.first.name,
-            phaseProgress: phaseProgress,
-            productNumber: 0, // Se asignará en el servicio (secuencial)
-            productCode: '', // Se generará en el servicio
-            unitPrice: product.basePrice,
-            totalPrice: product.basePrice != null ? product.basePrice! * quantity : null,
-            expectedDeliveryDate: deliveryDate,
-            urgencyLevel: urgency,
-            productNotes: notes,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
+            products: batchProducts,
+            userId: authService.currentUser!.uid,
+            userName: authService.currentUser!.displayName ?? 'Usuario',
           );
 
-          batchProducts.add(batchProduct);
-        }
-
-        // ✅ LLAMAR A addProductsToBatch CON LA LISTA
-        final success = await batchService.addProductsToBatch(
-          organizationId: widget.organizationId,
-          batchId: batchId,
-          products: batchProducts,
-          userId: authService.currentUser!.uid,
-          userName: authService.currentUser!.displayName ?? 'Usuario',
-        );
-
-        if (!success) {
-          throw Exception('Error al añadir productos: ${batchService.error}');
+          if (!success) {
+            throw Exception('Error al añadir productos: ${batchService.error}');
+          }
         }
       }
-    }
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lote ${_batchNumberPreview.value} creado con ${_productsToAdd.length} productos.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pop(context, batchId);
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al crear lote: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Lote ${_batchNumberPreview.value} creado con ${_productsToAdd.length} productos.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context, batchId);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al crear lote: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
-}
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
