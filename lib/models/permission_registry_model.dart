@@ -266,6 +266,19 @@ class PermissionRegistry {
         PermissionAction.boolean(key: 'export', displayName: 'Exportar reportes'),
       ],
     ),
+
+    // SLA
+    PermissionModule(
+      key: 'sla',
+      displayName: 'SLA',
+      icon: 'align_vertical_bottom',
+      description: 'Métricas y análisis',
+      actions: [
+        PermissionAction.boolean(key: 'view', displayName: 'Ver métricas'),
+        PermissionAction.boolean(key: 'configure', displayName: 'Configurar métricas'),
+        PermissionAction.boolean(key: 'acknowledge', displayName: 'Confirmar lectura de métricas'),
+      ],
+    ),
   ];
 
   // ==================== MÉTODOS DE BÚSQUEDA ====================
@@ -421,7 +434,7 @@ class PermissionRegistry {
         ['chat'].contains(m.key)
       ).toList(),
       'administration': modules.where((m) => 
-        ['organization', 'reports'].contains(m.key)
+        ['organization', 'reports', 'sla'].contains(m.key)
       ).toList(),
     };
   }
