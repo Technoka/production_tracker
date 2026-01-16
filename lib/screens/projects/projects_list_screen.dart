@@ -8,6 +8,7 @@ import 'create_project_screen.dart';
 import 'project_detail_screen.dart';
 import '../../widgets/bottom_nav_bar_widget.dart';
 
+@Deprecated('Ya no se usa. Se deja por si hace falta en el futuro.')
 class ProjectsListScreen extends StatefulWidget {
   const ProjectsListScreen({super.key});
 
