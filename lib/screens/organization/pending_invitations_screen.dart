@@ -123,14 +123,15 @@ class PendingInvitationsScreen extends StatelessWidget {
 
   Future<void> _handleAccept(
     BuildContext context,
-    OrganizationService service,
+    OrganizationService organizationService,
     AuthService auth,
     InvitationModel invitation,
   ) async {
-    final success = await service.acceptInvitation(
+    final success = await organizationService.acceptInvitation(
       context: context,
       invitationId: invitation.id,
       userId: auth.currentUser!.uid,
+      organizationId: organizationService.currentOrganization!.id,
     );
 
     if (success && context.mounted) {
@@ -146,11 +147,11 @@ class PendingInvitationsScreen extends StatelessWidget {
 
   Future<void> _handleReject(
     BuildContext context,
-    OrganizationService service,
+    OrganizationService organizationService,
     String invitationId,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    final success = await service.rejectInvitation(invitationId);
+    final success = await organizationService.rejectInvitation(invitationId, organizationService.currentOrganization!.id);
     if (success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.invitationRejectedMsg)),
