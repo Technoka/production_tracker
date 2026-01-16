@@ -3,11 +3,11 @@ import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/organization_service.dart';
 import '../../l10n/app_localizations.dart';
-import '../../models/permission_model.dart';
 import '../../models/organization_member_model.dart';
 import '../../services/permission_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'member_permissions_screen.dart';
+import 'invite_member_screen.dart';
 
 class OrganizationMembersScreen extends StatefulWidget {
   const OrganizationMembersScreen({super.key});
@@ -21,7 +21,7 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
   List<OrganizationMemberWithUser> _members = [];
   bool _isLoading = true;
   String? _errorMessage;
-  
+
   @override
   void initState() {
     super.initState();
@@ -33,9 +33,10 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
   /// Carga los miembros y sus datos de usuario combinados
   Future<void> _loadData() async {
     final orgService = Provider.of<OrganizationService>(context, listen: false);
-    final permissionService = Provider.of<PermissionService>(context, listen: false);
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-    
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
     final organizationId = orgService.currentOrganization?.id;
 
     if (organizationId == null) {
@@ -50,17 +51,16 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
 
     try {
       // 1. Obtener la lista base de miembros (roles, permisos, IDs)
-      final rawMembers = await permissionService.getOrganizationMembers(organizationId);
+      final rawMembers =
+          await permissionService.getOrganizationMembers(organizationId);
 
       // 2. Obtener detalles de usuario (Nombre, Email, Foto) para cada miembro
       // Esto es necesario porque OrganizationMemberModel solo tiene el userId
       final membersWithUserFuture = rawMembers.map((member) async {
         try {
-          final userDoc = await _firestore
-              .collection('users')
-              .doc(member.userId)
-              .get();
-          
+          final userDoc =
+              await _firestore.collection('users').doc(member.userId).get();
+
           final userData = userDoc.data() ?? {};
 
           return OrganizationMemberWithUser(
@@ -98,10 +98,11 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
     }
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
     final orgService = Provider.of<OrganizationService>(context);
     final authService = Provider.of<AuthService>(context);
+    final permissionService = Provider.of<PermissionService>(context, listen: false);
     final l10n = AppLocalizations.of(context)!; // Descomenta si usas l10n
 
     final organization = orgService.currentOrganization;
@@ -115,20 +116,20 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
 
     // Clonar y ordenar lista
     final sortedMembers = List<OrganizationMemberWithUser>.from(_members);
-    
+
     sortedMembers.sort((a, b) {
       // 1. El dueÃ±o va primero
       final aIsOwner = a.userId == organization.ownerId;
       final bIsOwner = b.userId == organization.ownerId;
       if (aIsOwner) return -1;
       if (bIsOwner) return 1;
-      
+
       // 2. Los admins van segundo
       final aIsAdmin = a.isAdmin;
       final bIsAdmin = b.isAdmin;
       if (aIsAdmin && !bIsAdmin) return -1;
       if (!aIsAdmin && bIsAdmin) return 1;
-      
+
       // 3. Orden alfabÃ©tico
       return a.userName.compareTo(b.userName);
     });
@@ -147,11 +148,16 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
           ],
         ),
         actions: [
+          if (permissionService.hasPermission('organization', 'manageMembers'))
           IconButton(
             icon: const Icon(Icons.person_add_outlined),
             onPressed: () {
-               // Navegar a pantalla de invitar miembros
-               // Navigator.pushNamed(context, '/invite_member');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const InviteMemberScreen(),
+                ),
+              );
             },
           ),
         ],
@@ -210,8 +216,8 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: _getRoleColor(member.roleId),
-        backgroundImage: member.userPhotoUrl != null 
-            ? NetworkImage(member.userPhotoUrl!) 
+        backgroundImage: member.userPhotoUrl != null
+            ? NetworkImage(member.userPhotoUrl!)
             : null,
         child: member.userPhotoUrl == null
             ? Text(member.initials, style: const TextStyle(color: Colors.white))
@@ -225,35 +231,36 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
       trailing: _buildActionsMenu(context, member, currentUserId, ownerId),
       onTap: () async {
         // Solo el owner y admin pueden gestionar permisos de otros usuarios
-        final permissionService = Provider.of<PermissionService>(context, listen: false);
+        final permissionService =
+            Provider.of<PermissionService>(context, listen: false);
         final canManagePermissions = permissionService.hasPermission('organization', 'manageRoles');
-        print("can manage permissions: ${canManagePermissions} =====================");
-        
+
         // No se puede editar al propietario
         if (member.userId == ownerId) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('No se pueden modificar los permisos del propietario'),
+              content:
+                  Text('No se pueden modificar los permisos del propietario'),
               backgroundColor: Colors.orange,
             ),
           );
           return;
         }
 
-// TODO: descomentar esto !!!!!!!!!! SUPER IMPORTANTE !!!!!!!!! quitado solo para pruebas
         // Verificar permisos
-        // if (!canManagePermissions && member.userId != currentUserId) {
-        //   ScaffoldMessenger.of(context).showSnackBar(
-        //     const SnackBar(
-        //       content: Text('No tienes permisos para gestionar usuarios'),
-        //       backgroundColor: Colors.red,
-        //     ),
-        //   );
-        //   return;
-        // }
+        if (!canManagePermissions && member.userId != currentUserId) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No tienes permisos para gestionar usuarios'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
 
         // Navegar a la pantalla de gestión de permisos
-        final orgService = Provider.of<OrganizationService>(context, listen: false);
+        final orgService =
+            Provider.of<OrganizationService>(context, listen: false);
         final organizationId = orgService.currentOrganization?.id;
 
         if (organizationId == null) return;
@@ -274,22 +281,24 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
     );
   }
 
-Widget? _buildActionsMenu(
+  Widget? _buildActionsMenu(
     BuildContext context,
     OrganizationMemberWithUser member,
     String currentUserId,
     String ownerId,
   ) {
-    final permissionService = Provider.of<PermissionService>(context, listen: false);
-    
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
+
     // Reglas bÃ¡sicas de visualizaciÃ³n de menÃº:
     // 1. No puedes editarte a ti mismo desde esta lista (usualmente)
     if (member.userId == currentUserId) return null;
 
     // 2. Solo Admin o Owner pueden gestionar (verificar permisos reales)
-    final canManageMembers = permissionService.hasPermission('organization', 'manageRoles') ||
-                             permissionService.hasPermission('organization', 'removeMembers');
-    
+    final canManageMembers =
+        permissionService.hasPermission('organization', 'manageRoles') ||
+            permissionService.hasPermission('organization', 'removeMembers');
+
     if (!canManageMembers) return null;
 
     // 3. No puedes editar al DueÃ±o
@@ -298,9 +307,9 @@ Widget? _buildActionsMenu(
     return PopupMenuButton<String>(
       onSelected: (value) async {
         if (value == 'edit_role') {
-           // Abrir diÃ¡logo de cambio de rol
+          // Abrir diÃ¡logo de cambio de rol
         } else if (value == 'remove') {
-           // Confirmar eliminaciÃ³n
+          // Confirmar eliminaciÃ³n
         }
       },
       itemBuilder: (context) => [
