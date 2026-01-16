@@ -1079,5 +1079,6 @@
 "roleDeniesButUserAllowed": "El rol deniega, pero este usuario tiene permitido",
 "roleScope": "Alcance del rol",
 "retry": "Reintentar",
-"noProductionAccess": "No tienes acceso a producción"
+"noProductionAccess": "Sin acceso a producción",
+"manageMembers": "Gestionar miembros"
 }

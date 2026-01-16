@@ -5806,6 +5806,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You don\'t have access to production'**
   String get noProductionAccess;
+
+  /// No description provided for @manageMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage members'**
+  String get manageMembers;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

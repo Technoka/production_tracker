@@ -2932,5 +2932,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get retry => 'Reintentar';
 
   @override
-  String get noProductionAccess => 'No tienes acceso a producción';
+  String get noProductionAccess => 'Sin acceso a producción';
+
+  @override
+  String get manageMembers => 'Gestionar miembros';
 }

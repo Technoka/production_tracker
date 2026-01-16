@@ -2933,4 +2933,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noProductionAccess => 'You don\'t have access to production';
+
+  @override
+  String get manageMembers => 'Manage members';
 }

@@ -1077,6 +1077,7 @@
 "roleDeniesButUserAllowed": "Role denies but this user has allowed",
 "roleScope": "Role scope",
 "retry": "Retry",
-"noProductionAccess": "You don't have access to production"
+"noProductionAccess": "You don't have access to production",
+"manageMembers": "Manage members"
 
 }
