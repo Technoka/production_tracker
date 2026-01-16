@@ -151,7 +151,7 @@ class AnalyticsService {
             .doc(organizationId)
             .collection('projects')
             .doc(projectDoc.id)
-            .collection('products')
+            .collection('batch_products')
             .get();
 
         for (final productDoc in productsSnapshot.docs) {
