@@ -36,6 +36,24 @@ class OrganizationService extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
+
+/// Obtener una organización por ID
+Future<OrganizationModel?> getOrganization(String organizationId) async {
+  try {
+    final doc = await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .get();
+    
+    if (!doc.exists) return null;
+    
+    return OrganizationModel.fromMap(doc.data()!);
+  } catch (e) {
+    debugPrint('Error getting organization: $e');
+    return null;
+  }
+}
+
   // ==================== CREAR ORGANIZACIÓN ====================
 
   Future<String?> createOrganization({
