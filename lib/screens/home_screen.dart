@@ -18,6 +18,8 @@ import '../../screens/dashboard/metrics_dashboard_screen.dart';
 import '../../models/user_model.dart';
 import '../../services/update_service.dart';
 import '../../widgets/whats_new_dialog.dart';
+import '../../services/permission_service.dart';
+import '../../services/organization_member_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,19 +29,64 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  bool _permissionsLoaded = false; // ✅ NUEVO
+  String? _memberRoleName; // ✅ NUEVO
 
-    @override
+  @override
   void initState() {
     super.initState();
     // Ejecutar después del renderizado inicial para poder mostrar Dialog
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkUpdates();
+      _loadUserPermissions(); // ✅ NUEVO: Carga permisos primero
     });
   }
 
-Future<void> _checkUpdates() async {
+  /// ✅ NUEVO MÉTODO
+  Future<void> _loadUserPermissions() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+
+    final user = authService.currentUserData;
+
+    if (user == null || user.organizationId == null) {
+      setState(() => _permissionsLoaded = true);
+      return;
+    }
+
+    try {
+      // 1. Cargar permisos efectivos del usuario
+      await permissionService.loadCurrentUserPermissions(
+        userId: user.uid,
+        organizationId: user.organizationId!,
+      );
+
+      // 2. Obtener datos del miembro para mostrar el rol
+      final memberData = await memberService.getCurrentMember(
+        user.organizationId!,
+        user.uid,
+      );
+
+      if (mounted) {
+        setState(() {
+          _memberRoleName = memberData?.member.roleName ?? 'Usuario?';
+          _permissionsLoaded = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error cargando permisos en HomeScreen: $e');
+      if (mounted) {
+        setState(() => _permissionsLoaded = true);
+      }
+    }
+  }
+
+  Future<void> _checkUpdates() async {
     final updateService = UpdateService();
-    
+
     // 1. Aquí ocurre la espera asíncrona
     final releaseNote = await updateService.checkForUpdates();
 
@@ -56,11 +103,11 @@ Future<void> _checkUpdates() async {
           note: releaseNote,
           onClose: () async {
             await updateService.markVersionAsSeen();
-            
+
             // ✅ También aplicamos la seguridad aquí dentro del callback
             // En versiones nuevas de Flutter usamos 'context.mounted' para contextos locales
-            if (!context.mounted) return; 
-            
+            if (!context.mounted) return;
+
             Navigator.of(context).pop();
           },
         ),
@@ -74,6 +121,15 @@ Future<void> _checkUpdates() async {
     final authService = Provider.of<AuthService>(context);
     final organizationService = Provider.of<OrganizationService>(context);
     final user = authService.currentUserData;
+
+    final permissionService = Provider.of<PermissionService>(context);
+
+    // Verificar permisos específicos
+    final canViewKanban = permissionService.hasPermission('kanban', 'view');
+    final canViewBatches = permissionService.hasPermission('batches', 'view');
+    final canCreateBatches =
+        permissionService.hasPermission('batches', 'create');
+    final canAccessProduction = canViewKanban || canViewBatches;
 
     if (user == null) {
       return const Scaffold(
@@ -152,17 +208,35 @@ Future<void> _checkUpdates() async {
                                 ),
                       ),
                       const SizedBox(height: 4),
-                      RoleUtils.buildRoleBadge(user.role, compact: true),
+                      // RoleUtils.buildRoleBadge(user.role, compact: true),
+                      // ✅ NUEVO: Badge con el rol del usuario
+            if (_memberRoleName != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _memberRoleName!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
                     ],
                   ),
                 ),
               ],
             ),
 
+
             const SizedBox(height: 24),
 
             // Dashboard de Producción (si aplica)
-            if (user.canManageProduction && user.organizationId != null) ...[
+            if (canViewBatches && user.organizationId != null) ...[
               ProductionDashboardWidget(
                 organizationId: user.organizationId!,
               ),
@@ -170,19 +244,22 @@ Future<void> _checkUpdates() async {
             ],
 
             // Vista Kanban (si aplica)
-            if (user.canManageProduction && user.organizationId != null) ...[
+            if (canViewKanban && user.organizationId != null) ...[
               _buildKanbanSection(user, l10n),
             ],
+
+            // Nuevo: Mensaje cuando no tiene acceso
+            if (!canAccessProduction && user.organizationId != null)
+              _buildNoAccessCard(l10n),
           ],
         ),
       ),
       drawer:
           _buildDrawer(context, user, authService, organizationService, l10n),
       bottomNavigationBar: BottomNavBarWidget(currentIndex: 0, user: user),
-      floatingActionButton:
-          user.canManageProduction && user.organizationId != null
-              ? _buildFloatingButtons(user, l10n)
-              : null,
+      floatingActionButton: canCreateBatches && user.organizationId != null
+          ? _buildFloatingButtons(user, l10n)
+          : null,
     );
   }
 
@@ -244,7 +321,7 @@ Future<void> _checkUpdates() async {
     );
   }
 
-  Widget _buildFloatingButtons(user, AppLocalizations l10n) {
+  Widget _buildFloatingButtons(UserModel user, AppLocalizations l10n) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -283,6 +360,18 @@ Future<void> _checkUpdates() async {
     OrganizationService organizationService,
     AppLocalizations l10n,
   ) {
+    // ✅ Verificar permisos para cada opción del menú
+
+    final permissionService = Provider.of<PermissionService>(context);
+    final canAccessProduction =
+        permissionService.hasPermission('kanban', 'view') ||
+            permissionService.hasPermission('batches', 'view');
+    final canAccessManagement =
+        permissionService.hasPermission('projects', 'view') ||
+            permissionService.hasPermission('clients', 'view') ||
+            permissionService.hasPermission('catalog', 'view');
+    final canViewReports = permissionService.hasPermission('reports', 'view');
+
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -329,7 +418,7 @@ Future<void> _checkUpdates() async {
               Navigator.pop(context);
             },
           ),
-          if (user.canManageProduction) ...[
+          if (canAccessProduction) ...[
             ListTile(
               leading: const Icon(Icons.precision_manufacturing),
               title: Text(l10n.production),
@@ -343,6 +432,8 @@ Future<void> _checkUpdates() async {
                 );
               },
             ),
+          ],
+          if (canAccessManagement) ...[
             ListTile(
               leading: const Icon(Icons.manage_accounts),
               title: Text(l10n.management),
@@ -356,6 +447,8 @@ Future<void> _checkUpdates() async {
                 );
               },
             ),
+          ],
+          if (canViewReports && user.organizationId != null)
             ListTile(
               leading: const Icon(Icons.align_vertical_bottom),
               title: Text(l10n.slaAlerts),
@@ -371,34 +464,10 @@ Future<void> _checkUpdates() async {
                     ));
               },
             ),
-          ],
           ListTile(
             leading: const Icon(Icons.business),
             title: Text(l10n.organization),
-            trailing: StreamBuilder<List<dynamic>>(
-              stream: organizationService.getPendingInvitations(user.email),
-              builder: (context, snapshot) {
-                final count = snapshot.data?.length ?? 0;
-                if (count == 0) return const Icon(Icons.chevron_right);
-
-                return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '$count',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                );
-              },
-            ),
+            trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(
                 context,
@@ -451,7 +520,7 @@ Future<void> _checkUpdates() async {
             padding: EdgeInsets.symmetric(vertical: 24.0),
             child: Center(
               child: Text(
-                'Versión 0.7.0 - 7/1/25',
+                'Versión 0.9.0 - 15/1/25 - Permisos y Roles',
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 12,
@@ -463,6 +532,82 @@ Future<void> _checkUpdates() async {
       ),
     );
   }
+
+  /// ✅ NUEVO WIDGET
+  Widget _buildNoAccessCard(AppLocalizations l10n) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            Icon(
+              Icons.lock_outline,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.noProductionAccess,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.contactAdminForPermissions,
+              style: TextStyle(color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// ✅ MEJORADO
+Widget _buildUserHeader(UserModel user, AppLocalizations l10n) {
+  return Row(
+    children: [
+      // Avatar clickable
+      IconButton(
+        icon: CircleAvatar(
+          radius: 30,
+          child: Text(user.name[0].toUpperCase()),  // ✅ Usa el nuevo getter
+        ),
+        onPressed: () { /* ir a perfil */ },
+      ),
+      const SizedBox(width: 16),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${l10n.welcome}, ${user.name}'),
+            const SizedBox(height: 4),
+            // ✅ NUEVO: Badge con el rol del usuario
+            if (_memberRoleName != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _memberRoleName!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
 
   void _showLogoutDialog(AuthService authService, AppLocalizations l10n) {
     showDialog(
