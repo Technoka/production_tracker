@@ -320,7 +320,7 @@ class OrganizationDetailScreen extends StatelessWidget {
                               const Divider(height: 1),
                             ListTile(
                               leading: const Icon(Icons.people),
-                              title: Text(l10n.viewMembersAction),
+                              title: Text(l10n.manageMembers),
                               trailing: const Icon(Icons.chevron_right),
                               onTap: () {
                                 Navigator.push(
@@ -333,21 +333,6 @@ class OrganizationDetailScreen extends StatelessWidget {
                               },
                             ),
                             if (isAdmin) ...[
-                              const Divider(height: 1),
-                              ListTile(
-                                leading: const Icon(Icons.person_add),
-                                title: Text(l10n.inviteMemberAction),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const InviteMemberScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
                               const Divider(height: 1),
                               ListTile(
                                 leading: const Icon(Icons.settings),
