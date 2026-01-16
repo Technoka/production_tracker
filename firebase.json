@@ -41,5 +41,8 @@
         "value": "same-origin-allow-popups"
       } ]
     } ]
+  },
+  "firestore": {
+    "indexes": "firestore.indexes.json"
   }
 }
