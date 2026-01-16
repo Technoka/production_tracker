@@ -10,6 +10,9 @@ import 'batch_product_detail_screen.dart';
 import '../../services/organization_member_service.dart';
 import '../../models/organization_member_model.dart';
 
+// TODO: comprobar que se usa scope y assignedMembers correctamente
+
+
 class ProductionBatchDetailScreen extends StatefulWidget {
   final String organizationId;
   final String batchId;
