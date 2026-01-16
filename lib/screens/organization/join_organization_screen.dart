@@ -32,7 +32,7 @@ class _JoinOrganizationScreenState extends State<JoinOrganizationScreen> {
     final user = authService.currentUserData;
     if (user == null) return;
 
-    final success = await organizationService.joinByInviteCode(
+    final success = await organizationService.joinOrganizationWithCode(
       inviteCode: _codeController.text.trim(),
       userId: user.uid,
     );
