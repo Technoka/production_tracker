@@ -11,6 +11,17 @@ import 'production_batch_detail_screen.dart';
 import '../../widgets/chat/chat_button.dart';
 import '../../services/message_service.dart';
 import '../../screens/chat/chat_screen.dart';
+import '../../services/organization_member_service.dart';
+import '../../models/organization_member_model.dart';
+
+import '../../services/product_status_service.dart';
+import '../../services/status_transition_service.dart';
+import '../../models/product_status_model.dart';
+import '../../models/status_transition_model.dart';
+import '../../models/role_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+// TODO: comprobar que se usa scope y assignedMembers correctamente
 
 class BatchProductDetailScreen extends StatefulWidget {
   final String organizationId;
@@ -25,104 +36,181 @@ class BatchProductDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<BatchProductDetailScreen> createState() => _BatchProductDetailScreenState();
+  State<BatchProductDetailScreen> createState() =>
+      _BatchProductDetailScreenState();
 }
 
 class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
-  
+  OrganizationMemberWithUser? _currentMember;
+  bool _isLoadingPermissions = true;
+
   final MessageService _messageService = MessageService();
+
+  RoleModel? _currentRole; // ← NUEVO
+  List<ProductStatusModel> _availableStatuses = []; // ← NUEVO
+  List<StatusTransitionModel> _availableTransitions = []; // ← NUEVO
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPermissions();
+  }
+
+  // ✅ AÑADIR MÉTODO completo
+  Future<void> _loadPermissions() async {
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+
+    final member = await memberService.getCurrentMember(
+      widget.organizationId,
+      authService.currentUser!.uid,
+    );
+
+    // Cargar rol completo para validaciones
+    RoleModel? role;
+    if (member != null) {
+      try {
+        final roleDoc = await FirebaseFirestore.instance
+            .collection('organizations')
+            .doc(widget.organizationId)
+            .collection('roles')
+            .doc(member.member.roleId)
+            .get();
+
+        if (roleDoc.exists) {
+          role = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
+        }
+      } catch (e) {
+        debugPrint('Error loading role: $e');
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _currentMember = member;
+        _currentRole = role;
+        _isLoadingPermissions = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
+    final memberService = Provider.of<OrganizationMemberService>(context);
     final user = authService.currentUserData;
 
-    return StreamBuilder<List<BatchProductModel>>(
-  stream: Provider.of<ProductionBatchService>(context, listen: false)
-      .watchBatchProducts(widget.organizationId, widget.batchId),
-  builder: (context, productSnapshot) {
-    if (productSnapshot.connectionState == ConnectionState.waiting) {
+    // ✅ Mostrar loading mientras cargan permisos
+    if (_isLoadingPermissions) {
       return Scaffold(
         appBar: AppBar(title: const Text('Cargando...')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    if (productSnapshot.hasError || !productSnapshot.hasData) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Error')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error al cargar el producto: ${productSnapshot.error}'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Volver'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+    return StreamBuilder<List<BatchProductModel>>(
+      stream: Provider.of<ProductionBatchService>(context, listen: false)
+          .watchBatchProducts(widget.organizationId, widget.batchId),
+      builder: (context, productSnapshot) {
+        if (productSnapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Cargando...')),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
 
-    // Buscar el producto específico en la lista
-    final products = productSnapshot.data!;
-    final product = products.firstWhere(
-      (p) => p.id == widget.productId,
-      orElse: () => products.first, // Fallback si no se encuentra
-    );
-    
+        if (productSnapshot.hasError || !productSnapshot.hasData) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Error')),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('Error al cargar el producto: ${productSnapshot.error}'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Volver'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // Buscar el producto específico en la lista
+        final products = productSnapshot.data!;
+        final product = products.firstWhere(
+          (p) => p.id == widget.productId,
+          orElse: () => products.first, // Fallback si no se encuentra
+        );
+
         return Scaffold(
           appBar: AppBar(
             title: Text(product.productName),
             actions: [
-  // Botón de chat
-            // Botón de chat en el AppBar con badge
+              // Botón de chat en el AppBar con badge
               if (user != null)
-              ChatButton(
-                      organizationId: widget.organizationId,
-                      entityType: 'batch_product',
-                      entityId: product.id,
-                      parentId: product.batchId,
-                      entityName:
-                          '${product.productName} - ${product.productReference}',
-                      user: user,
-                      showInAppBar: true),
+                ChatButton(
+                    organizationId: widget.organizationId,
+                    entityType: 'batch_product',
+                    entityId: product.id,
+                    parentId: product.batchId,
+                    entityName:
+                        '${product.productName} - ${product.productReference}',
+                    user: user,
+                    showInAppBar: true),
 
-  if (user!.canManageProduction)
-    PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert),
-      onSelected: (value) => _handleAction(value, product),
-      itemBuilder: (context) => [
-        
-        const PopupMenuItem(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.delete, size: 20, color: Colors.red),
-              SizedBox(width: 8),
-              Text('Eliminar', style: TextStyle(color: Colors.red)),
-            ],
-          ),
-        ),
-      ],
-    ),
+              FutureBuilder<bool>(
+                future: memberService.can('batch_products', 'edit'),
+                builder: (context, snapshot) {
+                  final canEdit = snapshot.data ?? false;
+
+                  if (!canEdit) return const SizedBox.shrink();
+
+                  return PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (value) => _handleAction(value, product),
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 20),
+                            SizedBox(width: 8),
+                            Text('Editar Producto'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 20, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Eliminar',
+                                style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ],
           ),
           body: RefreshIndicator(
-            onRefresh: () async {
-            },
+            onRefresh: () async {},
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 // Información del producto
                 _buildProductInfoCard(product, user),
                 const SizedBox(height: 16),
-                
+
                 _buildProductStatusCard(product, user),
                 const SizedBox(height: 16),
 
@@ -144,8 +232,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }
 
   Widget _buildProductInfoCard(BatchProductModel product, UserModel? user) {
-    
-final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
+    final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
 
     return Card(
       child: Padding(
@@ -170,25 +257,26 @@ final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
 
             // Urgencia
             if (urgencyLevel == UrgencyLevel.urgent)
-                  Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: urgencyLevel.color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: urgencyLevel.color.withOpacity(0.3), // Usar color de urgencia para el borde
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: urgencyLevel.color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: urgencyLevel.color.withOpacity(
+                        0.3), // Usar color de urgencia para el borde
+                  ),
+                ),
+                child: Text(
+                  urgencyLevel.displayName,
+                  style: TextStyle(
+                    color: urgencyLevel.color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12, // Un poco más pequeño para que sea sutil
+                  ),
                 ),
               ),
-              child: Text(
-                urgencyLevel.displayName,
-                style: TextStyle(
-                  color: urgencyLevel.color,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12, // Un poco más pequeño para que sea sutil
-                ),
-              ),
-            ),
-              const SizedBox(height: 8),
+            const SizedBox(height: 8),
 
             // Nombre
             Text(
@@ -211,12 +299,13 @@ final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
               ),
               const SizedBox(height: 8),
             ],
-            
+
 // Lote (Obtenido asíncronamente)
             if (user?.organizationId != null)
               FutureBuilder<ProductionBatchModel?>(
-                future: Provider.of<ProductionBatchService>(context, listen: false)
-                    .getBatch(user!.organizationId!, product.batchId),
+                future:
+                    Provider.of<ProductionBatchService>(context, listen: false)
+                        .getBatchById(user!.organizationId!, product.batchId),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Text(
@@ -224,9 +313,9 @@ final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
                       style: TextStyle(fontSize: 14, color: Colors.grey[400]),
                     );
                   }
-                  
+
                   if (snapshot.hasError || !snapshot.hasData) {
-                     // Si falla o no encuentra el lote, mostramos el ID o un texto genérico
+                    // Si falla o no encuentra el lote, mostramos el ID o un texto genérico
                     return Text(
                       'Lote no disponible',
                       style: TextStyle(fontSize: 14, color: Colors.grey[700]),
@@ -253,7 +342,8 @@ final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => ProductionBatchDetailScreen(
+                                builder: (context) =>
+                                    ProductionBatchDetailScreen(
                                   organizationId: user.organizationId!,
                                   batchId: batch.id,
                                 ),
@@ -268,7 +358,7 @@ final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
                           child: const Text('Ver lote'),
                         ),
                       ),
-                      ],
+                    ],
                   );
                 },
               ),
@@ -285,8 +375,7 @@ final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
               ),
               const SizedBox(height: 8),
             ],
-            
-              
+
             // Notas
             if (product.productNotes != null) ...[
               Text(
@@ -412,195 +501,221 @@ final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
   }
 
 // ================= NUEVO CÓDIGO PARA ESTADOS DEL PRODUCTO =================
-Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
-  return Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                _getStatusIcon(product.productStatus),
-                color: product.statusLegacyColor,
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Estado del Producto',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const Divider(height: 24),
-
-          // Estado actual
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: product.statusLegacyColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: product.statusLegacyColor, width: 2),
-            ),
-            child: Row(
+  Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
                 Icon(
                   _getStatusIcon(product.productStatus),
                   color: product.statusLegacyColor,
-                  size: 32,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.statusDisplayName,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: product.statusLegacyColor,
-                        ),
-                      ),
-                      Text(
-                        _getStatusDescription(product.productStatus),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ],
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Estado del Producto',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
+            const Divider(height: 24),
 
-          // Información adicional según estado
-          const SizedBox(height: 16),
-
-          if (product.hasBeenSent) ...[
-            _buildInfoRow(
-              Icons.send,
-              'Enviado al cliente',
-              _formatDateTime(product.sentToClientAt!),
-            ),
-            const SizedBox(height: 8),
-          ],
-
-          if (product.hasBeenEvaluated) ...[
-            _buildInfoRow(
-              Icons.rate_review,
-              'Evaluado',
-              _formatDateTime(product.evaluatedAt!),
-            ),
-            const SizedBox(height: 8),
-          ],
-
-          if (product.isCAO || product.isControl) ...[
-            const Divider(),
-            const SizedBox(height: 8),
-            Text(
-              'Devoluciones',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.red[700],
+            // Estado actual
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: product.statusLegacyColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: product.statusLegacyColor, width: 2),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _getStatusIcon(product.productStatus),
+                    color: product.statusLegacyColor,
+                    size: 32,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.statusDisplayName,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: product.statusLegacyColor,
+                          ),
+                        ),
+                        Text(
+                          _getStatusDescription(product.productStatus),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            _buildInfoRow(
-              Icons.assignment_return,
-              'Devueltos',
-              '${product.returnedCount} unidades',
-            ),
-            if (product.returnReason != null) ...[
-              const SizedBox(height: 4),
+
+            // Información adicional según estado
+            const SizedBox(height: 16),
+
+            if (product.hasBeenSent) ...[
               _buildInfoRow(
-                Icons.comment,
-                'Motivo',
-                product.returnReason!,
+                Icons.send,
+                'Enviado al cliente',
+                _formatDateTime(product.sentToClientAt!),
               ),
+              const SizedBox(height: 8),
             ],
-            
-            // NUEVO: Mostrar estado de clasificación en Control
-            if (product.isControl) ...[
-              const SizedBox(height: 12),
+
+            if (product.hasBeenEvaluated) ...[
+              _buildInfoRow(
+                Icons.rate_review,
+                'Evaluado',
+                _formatDateTime(product.evaluatedAt!),
+              ),
+              const SizedBox(height: 8),
+            ],
+
+            if (product.isCAO || product.isControl) ...[
               const Divider(),
               const SizedBox(height: 8),
               Text(
-                'Clasificación',
+                'Devoluciones',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue[700],
+                  color: Colors.red[700],
                 ),
               ),
               const SizedBox(height: 8),
-              
-              if (product.isReturnBalanced) ...[
-                // Ya está clasificado
-                _buildInfoRow(
-                  Icons.build,
-                  'Reparados',
-                  '${product.repairedCount} unidades',
-                ),
+              _buildInfoRow(
+                Icons.assignment_return,
+                'Devueltos',
+                '${product.returnedCount} unidades',
+              ),
+              if (product.returnReason != null) ...[
                 const SizedBox(height: 4),
                 _buildInfoRow(
-                  Icons.delete_forever,
-                  'Descartados',
-                  '${product.discardedCount} unidades',
+                  Icons.comment,
+                  'Motivo',
+                  product.returnReason!,
                 ),
+              ],
+
+              // NUEVO: Mostrar estado de clasificación en Control
+              if (product.isControl) ...[
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 8),
+                Text(
+                  'Clasificación',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue[700],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (product.isReturnBalanced) ...[
+                  // Ya está clasificado
+                  _buildInfoRow(
+                    Icons.build,
+                    'Reparados',
+                    '${product.repairedCount} unidades',
+                  ),
+                  const SizedBox(height: 4),
+                  _buildInfoRow(
+                    Icons.delete_forever,
+                    'Descartados',
+                    '${product.discardedCount} unidades',
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green[700]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Clasificación completa. Listo para aprobar.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.green[900],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  // Pendiente de clasificar
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning, color: Colors.orange[700]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Pendiente de clasificar (Reparados/Basura)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.orange[900],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ] else if (product.isCAO) ...[
+                // En CAO, aún no está en Control
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.green[50],
+                    color: Colors.blue[50],
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.green[300]!),
+                    border: Border.all(color: Colors.blue[300]!),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green[700]),
+                      Icon(Icons.info_outline, color: Colors.blue[700]),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Clasificación completa. Listo para aprobar.',
+                          'Esperando recepción de productos devueltos',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.green[900],
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ] else ...[
-                // Pendiente de clasificar
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange[300]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.warning, color: Colors.orange[700]),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Pendiente de clasificar (Reparados/Basura)',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.orange[900],
-                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[900],
                           ),
                         ),
                       ),
@@ -608,159 +723,143 @@ Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
                   ),
                 ),
               ],
-            ] else if (product.isCAO) ...[
-              // En CAO, aún no está en Control
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue[300]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.blue[700]),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Esperando recepción de productos devueltos',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.blue[900],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
+            const SizedBox(height: 8),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            _buildProductStatusActions(product, user),
+            const SizedBox(height: 8),
           ],
-          const SizedBox(height: 8),
-          const Divider(height: 1),
-          const SizedBox(height: 8),
-          _buildProductStatusActions(product, user),
-          const SizedBox(height: 8),
-        ],
-      ),
-    ),
-  );
-}
-
-Widget _buildProductStatusActions(BatchProductModel product, UserModel? user) {
-    // Si no tiene permisos, no mostramos nada (ni siquiera el título)
-    if (user?.canManageProduction != true) return const SizedBox.shrink();
-
-    // 1. Preparamos la lista de acciones disponibles
-    final List<Widget> actions = [];
-
-    // FLUJO: Studio + Pending → OK directo o CAO
-    if (product.isInStudio && product.isPending) {
-      actions.add(_buildActionButton(
-        icon: Icons.check_circle,
-        label: 'Todo Correcto (→ OK)',
-        color: Colors.green,
-        onPressed: () => _handleAction('approve_directly', product),
-      ));
-      // Añadimos un pequeño espacio entre botones si hay varios
-      if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
-      
-      actions.add(_buildActionButton(
-        icon: Icons.cancel,
-        label: 'Hay Defectos (→ CAO)',
-        color: Colors.red,
-        onPressed: () => _handleAction('reject_directly', product),
-      ));
-    }
-    // Añadimos un pequeño espacio entre botones si hay varios
-    if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
-
-    // FLUJO: CAO → Control (sin clasificar)
-    if (product.isCAO && !product.isControl) {
-      actions.add(_buildActionButton(
-        icon: Icons.verified,
-        label: 'Recibir y Evaluar (→ Control)',
-        color: Colors.blue,
-        onPressed: () => _handleAction('move_to_control', product),
-      ));
-    }
-    // Añadimos un pequeño espacio entre botones si hay varios
-    if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
-    
-    // FLUJO: Control sin clasificar → Clasificar
-    if (product.isControl && !product.isReturnBalanced) {
-      actions.add(_buildActionButton(
-        icon: Icons.category,
-        label: 'Clasificar Devoluciones',
-        color: Colors.orange,
-        onPressed: () => _handleAction('classify_returns', product),
-      ));
-    }
-    // Añadimos un pequeño espacio entre botones si hay varios
-    if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
-    
-    // FLUJO: Control clasificado → OK
-    if (product.isControl && product.isReturnBalanced) {
-      actions.add(_buildActionButton(
-        icon: Icons.check_circle,
-        label: 'Finalizar (→ OK)',
-        color: Colors.green,
-        onPressed: () => _handleAction('approve', product),
-      ));
-    }
-    // Añadimos un pequeño espacio entre botones si hay varios
-    if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
-    
-      // FLUJO: Hold → OK o CAO
-    if (product.isHold) {
-      actions.add(_buildActionButton(
-        icon: Icons.check_circle,
-        label: 'Aprobar (→ OK)',
-        color: Colors.green,
-        onPressed: () => _handleAction('approve', product),
-      ));
-      // Añadimos un pequeño espacio entre botones si hay varios
-      if (actions.isNotEmpty) actions.add(const SizedBox(height: 8)); 
-      
-      actions.add(_buildActionButton(
-        icon: Icons.cancel,
-        label: 'Rechazar (→ CAO)',
-        color: Colors.red,
-        onPressed: () => _handleAction('reject', product),
-      ));
-    }
-    // Añadimos un pequeño espacio entre botones si hay varios
-    if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
-
-    // 2. Construimos la UI
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Acciones',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
         ),
-        const SizedBox(height: 12),
-        
-        // 3. Lógica para mostrar acciones o el mensaje de vacío
-        if (actions.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: Text(
-              'No hay acciones disponibles',
-              style: TextStyle(
-                color: Colors.grey,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          )
-        else
-          ...actions,
-      ],
+      ),
     );
+  }
+
+  // TODO: actualizar a sistema de estados de producto con validacion
+  Widget _buildProductStatusActions(
+      BatchProductModel product, UserModel? user) {
+    // Si no tiene permisos, no mostramos nada (ni siquiera el título)
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+
+    return FutureBuilder<bool>(
+        future: memberService.can('batch_products', 'changeStatus'),
+        builder: (context, snapshot) {
+          final canChangeStatus = snapshot.data ?? false;
+
+          if (!canChangeStatus) return const SizedBox.shrink();
+
+          // 1. Preparamos la lista de acciones disponibles
+          final List<Widget> actions = [];
+
+          // FLUJO: Studio + Pending → OK directo o CAO
+          if (product.isInStudio && product.isPending) {
+            actions.add(_buildActionButton(
+              icon: Icons.check_circle,
+              label: 'Todo Correcto (→ OK)',
+              color: Colors.green,
+              onPressed: () => _handleAction('approve_directly', product),
+            ));
+            // Añadimos un pequeño espacio entre botones si hay varios
+            if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
+
+            actions.add(_buildActionButton(
+              icon: Icons.cancel,
+              label: 'Hay Defectos (→ CAO)',
+              color: Colors.red,
+              onPressed: () => _handleAction('reject_directly', product),
+            ));
+          }
+          // Añadimos un pequeño espacio entre botones si hay varios
+          if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
+
+          // FLUJO: CAO → Control (sin clasificar)
+          if (product.isCAO && !product.isControl) {
+            actions.add(_buildActionButton(
+              icon: Icons.verified,
+              label: 'Recibir y Evaluar (→ Control)',
+              color: Colors.blue,
+              onPressed: () => _handleAction('move_to_control', product),
+            ));
+          }
+          // Añadimos un pequeño espacio entre botones si hay varios
+          if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
+
+          // FLUJO: Control sin clasificar → Clasificar
+          if (product.isControl && !product.isReturnBalanced) {
+            actions.add(_buildActionButton(
+              icon: Icons.category,
+              label: 'Clasificar Devoluciones',
+              color: Colors.orange,
+              onPressed: () => _handleAction('classify_returns', product),
+            ));
+          }
+          // Añadimos un pequeño espacio entre botones si hay varios
+          if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
+
+          // FLUJO: Control clasificado → OK
+          if (product.isControl && product.isReturnBalanced) {
+            actions.add(_buildActionButton(
+              icon: Icons.check_circle,
+              label: 'Finalizar (→ OK)',
+              color: Colors.green,
+              onPressed: () => _handleAction('approve', product),
+            ));
+          }
+          // Añadimos un pequeño espacio entre botones si hay varios
+          if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
+
+          // FLUJO: Hold → OK o CAO
+          if (product.isHold) {
+            actions.add(_buildActionButton(
+              icon: Icons.check_circle,
+              label: 'Aprobar (→ OK)',
+              color: Colors.green,
+              onPressed: () => _handleAction('approve', product),
+            ));
+            // Añadimos un pequeño espacio entre botones si hay varios
+            if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
+
+            actions.add(_buildActionButton(
+              icon: Icons.cancel,
+              label: 'Rechazar (→ CAO)',
+              color: Colors.red,
+              onPressed: () => _handleAction('reject', product),
+            ));
+          }
+          // Añadimos un pequeño espacio entre botones si hay varios
+          if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
+
+          // 2. Construimos la UI
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Acciones',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // 3. Lógica para mostrar acciones o el mensaje de vacío
+              if (actions.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    'No hay acciones disponibles',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                )
+              else
+                ...actions,
+            ],
+          );
+        });
   }
 
   // Helper para crear los botones de la lista con estilo uniforme
@@ -784,7 +883,8 @@ Widget _buildProductStatusActions(BatchProductModel product, UserModel? user) {
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             side: BorderSide(color: color.withOpacity(0.5)),
-            alignment: Alignment.centerLeft, // Alinea contenido a la izquierda como una lista
+            alignment: Alignment
+                .centerLeft, // Alinea contenido a la izquierda como una lista
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
@@ -815,7 +915,6 @@ Widget _buildProductStatusActions(BatchProductModel product, UserModel? user) {
               ],
             ),
             const Divider(height: 24),
-
             FutureBuilder<List<ProductionPhase>>(
               future: Provider.of<PhaseService>(context, listen: false)
                   .getOrganizationPhases(widget.organizationId),
@@ -835,7 +934,8 @@ Widget _buildProductStatusActions(BatchProductModel product, UserModel? user) {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: allPhases.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 8),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final phase = allPhases[index];
                     final phaseProgress = product.phaseProgress[phase.id];
@@ -860,62 +960,62 @@ Widget _buildProductStatusActions(BatchProductModel product, UserModel? user) {
     );
   }
 
-Widget _buildPhaseItem(
-  ProductionPhase phase,
-  PhaseProgressData? progress,
-  bool isCurrentPhase,
-  UserModel? user,
-  BatchProductModel product,
-  List<ProductionPhase> allPhases,
-  int currentIndex,
-) {
-  final isInProgress = progress?.isInProgress ?? false;
-  final isCompleted = progress?.isCompleted ?? false;
+  Widget _buildPhaseItem(
+    ProductionPhase phase,
+    PhaseProgressData? progress,
+    bool isCurrentPhase,
+    UserModel? user,
+    BatchProductModel product,
+    List<ProductionPhase> allPhases,
+    int currentIndex,
+  ) {
+    final isInProgress = progress?.isInProgress ?? false;
+    final isCompleted = progress?.isCompleted ?? false;
 
-  Color backgroundColor;
-  Color borderColor;
-  IconData icon;
+    Color backgroundColor;
+    Color borderColor;
+    IconData icon;
 
-  if (isCompleted) {
-    backgroundColor = Colors.green[50]!;
-    borderColor = Colors.green;
-    icon = Icons.check_circle;
-  } else if (isInProgress || isCurrentPhase) {
-    backgroundColor = Colors.blue[50]!;
-    borderColor = Colors.blue;
-    icon = Icons.play_circle;
-  } else {
-    backgroundColor = Colors.grey[100]!;
-    borderColor = Colors.grey;
-    icon = Icons.radio_button_unchecked;
-  }
+    if (isCompleted) {
+      backgroundColor = Colors.green[50]!;
+      borderColor = Colors.green;
+      icon = Icons.check_circle;
+    } else if (isInProgress || isCurrentPhase) {
+      backgroundColor = Colors.blue[50]!;
+      borderColor = Colors.blue;
+      icon = Icons.play_circle;
+    } else {
+      backgroundColor = Colors.grey[100]!;
+      borderColor = Colors.grey;
+      icon = Icons.radio_button_unchecked;
+    }
 
-  return Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: backgroundColor,
-      border: Border.all(color: borderColor, width: 2),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: borderColor, size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    phase.name,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: borderColor,
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border.all(color: borderColor, width: 2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: borderColor, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      phase.name,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: borderColor,
+                      ),
                     ),
-                  ),
                     Text(
                       phase.description!,
                       style: TextStyle(
@@ -923,14 +1023,14 @@ Widget _buildPhaseItem(
                         color: Colors.grey[600],
                       ),
                     ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            
-            // Botones de acción
-            if (user?.canManageProduction ?? false) ...[
-              // Retroceder (solo admin)
-              if ((user?.isAdmin ?? false) && (isCompleted)) ...[
+
+              // Botones de acción
+              if (user?.canManageProduction ?? false) ...[
+                // Retroceder (solo admin)
+                if ((user?.isAdmin ?? false) && (isCompleted)) ...[
                   IconButton(
                     icon: const Icon(Icons.undo, color: Colors.orange),
                     onPressed: () => _showRollbackDialog(
@@ -941,8 +1041,8 @@ Widget _buildPhaseItem(
                     tooltip: 'Retroceder fase',
                   ),
                 ],
-            ],
-              
+              ],
+
               // Avanzar
               if (isCurrentPhase && currentIndex < allPhases.length - 1) ...[
                 IconButton(
@@ -956,14 +1056,12 @@ Widget _buildPhaseItem(
                 ),
               ],
             ],
-          
-        ),
+          ),
           // Detalles de la fase
           if (progress != null) ...[
             const SizedBox(height: 8),
             const Divider(),
             const SizedBox(height: 8),
-
             if (progress.startedAt != null)
               Row(
                 children: [
@@ -975,7 +1073,6 @@ Widget _buildPhaseItem(
                   ),
                 ],
               ),
-
             if (progress.completedAt != null) ...[
               const SizedBox(height: 4),
               Row(
@@ -989,7 +1086,6 @@ Widget _buildPhaseItem(
                 ],
               ),
             ],
-
             if (progress.completedByName != null) ...[
               const SizedBox(height: 4),
               Row(
@@ -1003,7 +1099,6 @@ Widget _buildPhaseItem(
                 ],
               ),
             ],
-
             if (progress.notes != null && progress.notes!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
@@ -1017,97 +1112,113 @@ Widget _buildPhaseItem(
     );
   }
 
+// TODO: cambiar toda la logica de cambio de estados por el nuevo sistema con validaciones y estados en la organizacion.
+
   void _showRollbackDialog(
-  BatchProductModel product,
-  ProductionPhase previousPhase,
-  UserModel user,
-) {
-  final reasonController = TextEditingController();
+    BatchProductModel product,
+    ProductionPhase previousPhase,
+    UserModel user,
+  ) {
+    final reasonController = TextEditingController();
 
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Row(
-        children: [
-          Icon(Icons.warning, color: Colors.orange),
-          SizedBox(width: 8),
-          Text('Retroceder Fase'),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '¿Retroceder a "${previousPhase.name}"?',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Esta acción solo debe realizarse en casos excepcionales.',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: reasonController,
-            maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: 'Motivo del retroceso *',
-              border: OutlineInputBorder(),
-              hintText: 'Explica por qué se retrocede...',
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Retroceder Fase'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¿Retroceder a "${previousPhase.name}"?',
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 8),
+            const Text(
+              'Esta acción solo debe realizarse en casos excepcionales.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Motivo del retroceso *',
+                border: OutlineInputBorder(),
+                hintText: 'Explica por qué se retrocede...',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (reasonController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Debes indicar el motivo')),
+                );
+                return;
+              }
+
+              final batchService = Provider.of<ProductionBatchService>(
+                context,
+                listen: false,
+              );
+
+              Navigator.pop(context);
+
+              try {
+                await FirebaseFirestore.instance
+                    .collection('organizations')
+                    .doc(widget.organizationId)
+                    .collection('production_batches')
+                    .doc(widget.batchId)
+                    .collection('batch_products')
+                    .doc(widget.productId)
+                    .update({
+                  'currentPhase': previousPhase.id,
+                  'currentPhaseName': previousPhase.name,
+                  'updatedAt': FieldValue.serverTimestamp(),
+                  'phaseProgress.${product.currentPhase}.status': 'pending',
+                  'phaseProgress.${previousPhase.id}.status': 'in_progress',
+                });
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Retrocedido a: ${previousPhase.name}'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Retroceder'),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () async {
-            if (reasonController.text.trim().isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Debes indicar el motivo')),
-              );
-              return;
-            }
-
-            final batchService = Provider.of<ProductionBatchService>(
-              context,
-              listen: false,
-            );
-
-            Navigator.pop(context);
-
-            final success = await batchService.updateProductPhaseWithRollback(
-              organizationId: widget.organizationId,
-              batchId: widget.batchId,
-              productId: widget.productId,
-              newPhaseId: previousPhase.id,
-              newPhaseName: previousPhase.name,
-              userId: user.uid,
-              userName: user.name,
-              isRollback: true,
-              notes: reasonController.text.trim(),
-            );
-
-            if (success && mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Retrocedido a: ${previousPhase.name}'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-          },
-          style: FilledButton.styleFrom(backgroundColor: Colors.orange),
-          child: const Text('Retroceder'),
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildCustomizationCard(BatchProductModel product) {
     return Card(
@@ -1116,11 +1227,11 @@ Widget _buildPhaseItem(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.palette),
-                const SizedBox(width: 8),
-                const Text(
+                Icon(Icons.palette),
+                SizedBox(width: 8),
+                Text(
                   'Personalización',
                   style: TextStyle(
                     fontSize: 18,
@@ -1130,19 +1241,17 @@ Widget _buildPhaseItem(
               ],
             ),
             const Divider(height: 24),
-
             if (product.color != null) ...[
               _buildInfoRow(Icons.color_lens, 'Color', product.color!),
               const SizedBox(height: 8),
             ],
-
             if (product.material != null) ...[
               _buildInfoRow(Icons.texture, 'Material', product.material!),
               const SizedBox(height: 8),
             ],
-
             if (product.specialDetails != null) ...[
-              _buildInfoRow(Icons.notes, 'Detalles especiales', product.specialDetails!),
+              _buildInfoRow(
+                  Icons.notes, 'Detalles especiales', product.specialDetails!),
             ],
           ],
         ),
@@ -1150,7 +1259,8 @@ Widget _buildPhaseItem(
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, {bool isBold = false}) {
+  Widget _buildInfoRow(IconData icon, String label, String value,
+      {bool isBold = false}) {
     return Row(
       children: [
         Icon(icon, size: 18, color: Colors.grey[600]),
@@ -1215,40 +1325,48 @@ Widget _buildPhaseItem(
           ),
           FilledButton(
             onPressed: () async {
-              final batchService = Provider.of<ProductionBatchService>(
-                context,
-                listen: false,
-              );
-
               Navigator.pop(context); // Cerrar diálogo
 
-              final success = await batchService.updateProductPhase(
-                organizationId: widget.organizationId,
-                batchId: widget.batchId,
-                productId: widget.productId,
-                newPhaseId: nextPhase.id,
-                newPhaseName: nextPhase.name,
-                userId: user.uid,
-                userName: user.name,
-                notes: notesController.text.trim().isEmpty
-                    ? null
-                    : notesController.text.trim(),
-              );
+              try {
+                await FirebaseFirestore.instance
+                    .collection('organizations')
+                    .doc(widget.organizationId)
+                    .collection('production_batches')
+                    .doc(widget.batchId)
+                    .collection('batch_products')
+                    .doc(widget.productId)
+                    .update({
+                  'currentPhase': nextPhase.id,
+                  'currentPhaseName': nextPhase.name,
+                  'updatedAt': FieldValue.serverTimestamp(),
+                  'phaseProgress.${product.currentPhase}.status': 'completed',
+                  'phaseProgress.${product.currentPhase}.completedAt':
+                      FieldValue.serverTimestamp(),
+                  'phaseProgress.${product.currentPhase}.completedBy': user.uid,
+                  'phaseProgress.${product.currentPhase}.completedByName':
+                      user.name,
+                  'phaseProgress.${nextPhase.id}.status': 'in_progress',
+                  'phaseProgress.${nextPhase.id}.startedAt':
+                      FieldValue.serverTimestamp(),
+                });
 
-              if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Avanzado a fase: ${nextPhase.name}'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } else if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Error al avanzar fase'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Avanzado a: ${nextPhase.name}'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               }
             },
             child: const Text('Avanzar'),
@@ -1258,494 +1376,432 @@ Widget _buildPhaseItem(
     );
   }
 
-Future<void> _handleAction(
-  String action,
-  BatchProductModel product
-) async {
-  final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+  Future<void> _handleAction(String action, BatchProductModel product) async {
+    final batchService =
+        Provider.of<ProductionBatchService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserData;
 
-  switch (action) {
-    case 'approve_directly':
-      final confirm = await _showConfirmDialog(
-        'Aprobar Producto',
-        '¿Confirmar que el producto está correcto?\n\nPasará directamente a OK.',
+    if (user == null || _currentRole == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: No se pudo verificar los permisos del usuario'),
+          backgroundColor: Colors.red,
+        ),
       );
-      if (confirm == true) {
-        final success = await batchService.approveProductDirectly(
-          organizationId: widget.organizationId,
-          batchId: widget.batchId,
-          productId: widget.productId,
+      return;
+    }
+
+    switch (action) {
+      case 'approve_directly':
+        // HOLD → OK
+        await _handleStatusChange(
+          product: product,
+          fromStatusId: 'hold',
+          toStatusId: 'ok',
+          actionName: 'Aprobar Producto',
+          confirmMessage:
+              '¿Confirmar que el producto está correcto?\n\nPasará directamente a OK.',
         );
-        if (success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Producto aprobado'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else if (mounted && batchService.error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(batchService.error!),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-      break;
+        break;
 
-    case 'reject_directly':
-      _showRejectDirectlyDialog(product);
-      break;
-
-    case 'move_to_control':
-      final confirm = await _showConfirmDialog(
-        'Mover a Control',
-        '¿Confirmar que se han recibido los productos devueltos?\n\nSe moverán a Control para evaluación.',
-      );
-      if (confirm == true) {
-        final success = await batchService.moveToControl(
-          organizationId: widget.organizationId,
-          batchId: widget.batchId,
-          productId: widget.productId,
+      case 'reject_directly':
+        // HOLD → CAO
+        await _handleStatusChange(
+          product: product,
+          fromStatusId: 'hold',
+          toStatusId: 'cao',
+          actionName: 'Rechazar Producto',
+          confirmMessage: 'Indica la cantidad defectuosa y descripción',
+          requiresValidation: true,
         );
-        if (success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Movido a Control'),
-              backgroundColor: Colors.blue,
-            ),
-          );
-        } else if (mounted && batchService.error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(batchService.error!),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-      break;
+        break;
 
-    case 'classify_returns':
-      _showClassifyReturnsDialog(product);
-      break;
-
-    case 'approve':
-      final confirm = await _showConfirmDialog(
-        'Aprobar Producto',
-        '¿Aprobar este producto?\n\nEl estado cambiará a OK.',
-      );
-      if (confirm == true) {
-        final success = await batchService.approveProduct(
-          organizationId: widget.organizationId,
-          batchId: widget.batchId,
-          productId: widget.productId,
+      case 'move_to_control':
+        // CAO → CONTROL
+        await _handleStatusChange(
+          product: product,
+          fromStatusId: 'cao',
+          toStatusId: 'control',
+          actionName: 'Mover a Control',
+          confirmMessage:
+              '¿Confirmar que se han recibido los productos devueltos?\n\nSe moverán a Control para evaluación.',
         );
-        if (success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Producto aprobado'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else if (mounted && batchService.error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(batchService.error!),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-      break;
+        break;
 
-    case 'reject':
-      _showRejectDialog(product);
-      break;
+      case 'classify_returns':
+        // CONTROL → OK (con posible clasificación)
+        await _handleStatusChange(
+          product: product,
+          fromStatusId: 'control',
+          toStatusId: 'ok',
+          actionName: 'Clasificar Devoluciones',
+          confirmMessage: 'Clasifica los productos devueltos',
+          requiresValidation: false,
+        );
+        break;
 
-    case 'delete':
-      _showDeleteConfirmation(product);
-      break;
+      case 'approve':
+        // PENDING → OK
+        await _handleStatusChange(
+          product: product,
+          fromStatusId: product.statusId ?? 'pending',
+          toStatusId: 'ok',
+          actionName: 'Aprobar Producto',
+          confirmMessage: '¿Aprobar este producto?\n\nEl estado cambiará a OK.',
+        );
+        break;
+
+      case 'reject':
+        // ANY → CAO o similar (según configuración)
+        await _handleStatusChange(
+          product: product,
+          fromStatusId: product.statusId ?? 'pending',
+          toStatusId: 'cao',
+          actionName: 'Rechazar Producto',
+          confirmMessage: 'Indica la razón del rechazo',
+          requiresValidation: true,
+        );
+        break;
+
+      case 'delete':
+        _showDeleteConfirmation(product);
+        break;
+    }
   }
-}
 
-// AÑADIR nuevo diálogo para rechazo directo desde Studio:
+  Future<void> _handleStatusChange({
+    required BatchProductModel product,
+    required String fromStatusId,
+    required String toStatusId,
+    required String actionName,
+    required String confirmMessage,
+    bool requiresValidation = false,
+  }) async {
+    final batchService =
+        Provider.of<ProductionBatchService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserData;
 
-void _showRejectDirectlyDialog(BatchProductModel product) {
-  final returnedController = TextEditingController();
-  final reasonController = TextEditingController();
+    if (user == null || _currentRole == null || _currentMember == null) {
+      return;
+    }
 
-  showDialog(
-    context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setDialogState) {
-        final returned = int.tryParse(returnedController.text) ?? 0;
-        final isValidQuantity = returned >= 1 && returned <= product.quantity;
+    // 1. Validar transición
+    final validationResult = await batchService.validateStatusTransition(
+      organizationId: widget.organizationId,
+      fromStatusId: fromStatusId,
+      toStatusId: toStatusId,
+      userName: user.name,
+      userId: user.uid,
+    );
 
-        return AlertDialog(
-          title: const Text('Rechazar Producto (CAO)'),
-          content: SingleChildScrollView(
+    if (validationResult['isValid'] != true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text(validationResult['error'] ?? 'Transición no permitida'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // 2. Si requiere validación, mostrar formulario
+    if (validationResult['requiresValidation'] == true) {
+      await _showValidationDialog(
+        product: product,
+        fromStatusId: fromStatusId,
+        toStatusId: toStatusId,
+        actionName: actionName,
+        validationResult: validationResult,
+      );
+      return;
+    }
+
+    // 3. Confirmación simple
+    final confirm = await _showConfirmDialog(actionName, confirmMessage);
+    if (confirm != true) return;
+
+    // 4. Ejecutar cambio de estado
+    try {
+      final success = await batchService.changeProductStatus(
+        organizationId: widget.organizationId,
+        batchId: widget.batchId,
+        productId: widget.productId,
+        toStatusId: toStatusId,
+        userId: user.uid,
+        userName: user.name,
+      );
+
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Estado cambiado exitosamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(batchService.error ?? 'Error al cambiar estado'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showValidationDialog({
+    required BatchProductModel product,
+    required String fromStatusId,
+    required String toStatusId,
+    required String actionName,
+    required Map<String, dynamic> validationResult,
+  }) async {
+    final validationType = validationResult['validationType'];
+    final validationConfig = validationResult['validationConfig'];
+
+    final quantityController = TextEditingController();
+    final textController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final result = await showDialog<Map<String, dynamic>?>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(actionName),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'El producto será marcado como CAO (no conforme).',
-                  style: TextStyle(fontSize: 14),
-                ),
-                const SizedBox(height: 4),
                 Text(
-                  'Total de productos: ${product.quantity}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  product.productName,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: returnedController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Unidades con defectos *',
-                    border: const OutlineInputBorder(),
-                    helperText: 'Entre 1 y ${product.quantity}',
-                    errorText: returned > 0 && !isValidQuantity
-                        ? 'Debe ser entre 1 y ${product.quantity}'
-                        : null,
-                    suffixIcon: returned > 0
-                        ? Icon(
-                            isValidQuantity ? Icons.check_circle : Icons.error,
-                            color: isValidQuantity ? Colors.green : Colors.red,
-                          )
-                        : null,
+
+                // Campo de cantidad si es requerido
+                if (validationType == 'quantity_and_text' ||
+                    validationType == 'quantity_required') ...[
+                  TextFormField(
+                    controller: quantityController,
+                    decoration: InputDecoration(
+                      labelText: validationConfig['quantityLabel'] ??
+                          'Cantidad Defectuosa',
+                      hintText:
+                          validationConfig['quantityPlaceholder'] ?? 'Ej: 3',
+                      border: const OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Campo requerido';
+                      }
+                      final qty = int.tryParse(value);
+                      if (qty == null || qty < 1) {
+                        return 'Cantidad inválida';
+                      }
+                      final min = validationConfig['quantityMin'] ?? 1;
+                      if (qty < min) {
+                        return 'Mínimo $min unidades';
+                      }
+                      if (qty > product.quantity) {
+                        return 'Máximo ${product.quantity} unidades';
+                      }
+                      return null;
+                    },
                   ),
-                  onChanged: (_) => setDialogState(() {}),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: reasonController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Motivo del rechazo *',
-                    border: OutlineInputBorder(),
-                    hintText: 'Describe los defectos...',
+                  const SizedBox(height: 16),
+                ],
+
+                // Campo de texto si es requerido
+                if (validationType == 'quantity_and_text' ||
+                    validationType == 'text_required') ...[
+                  TextFormField(
+                    controller: textController,
+                    decoration: InputDecoration(
+                      labelText: validationConfig['textLabel'] ?? 'Descripción',
+                      hintText: validationConfig['textPlaceholder'] ??
+                          'Describe el problema',
+                      border: const OutlineInputBorder(),
+                    ),
+                    maxLines: 3,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Campo requerido';
+                      }
+                      final minLength = validationConfig['textMinLength'] ?? 10;
+                      if (value.length < minLength) {
+                        return 'Mínimo $minLength caracteres';
+                      }
+                      return null;
+                    },
                   ),
-                  onChanged: (_) => setDialogState(() {}),
-                ),
+                ],
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: !isValidQuantity || reasonController.text.trim().isEmpty
-                  ? null
-                  : () async {
-                      final batchService = Provider.of<ProductionBatchService>(
-                        context,
-                        listen: false,
-                      );
-
-                      Navigator.pop(context);
-
-                      final success = await batchService.rejectProductDirectly(
-                        organizationId: widget.organizationId,
-                        batchId: widget.batchId,
-                        productId: widget.productId,
-                        returnedCount: returned,
-                        returnReason: reasonController.text.trim(),
-                      );
-
-                      if (success && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Producto rechazado (CAO)'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    },
-              style: FilledButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Rechazar'),
-            ),
-          ],
-        );
-      },
-    ),
-  );
-}
-
-void _showRejectDialog(BatchProductModel product) {
-  final returnedController = TextEditingController();
-  final reasonController = TextEditingController();
-
-  showDialog(
-    context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setDialogState) {
-        final returned = int.tryParse(returnedController.text) ?? 0;
-        final isValidQuantity = returned >= 1 && returned <= product.quantity;
-
-        return AlertDialog(
-          title: const Text('Rechazar Producto'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Total de productos: ${product.quantity}'),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: returnedController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Unidades devueltas *',
-                    border: const OutlineInputBorder(),
-                    helperText: 'Entre 1 y ${product.quantity}',
-                    errorText: returned > 0 && !isValidQuantity
-                        ? 'Debe ser entre 1 y ${product.quantity}'
-                        : null,
-                    suffixIcon: returned > 0
-                        ? Icon(
-                            isValidQuantity ? Icons.check_circle : Icons.error,
-                            color: isValidQuantity ? Colors.green : Colors.red,
-                          )
-                        : null,
-                  ),
-                  onChanged: (_) => setDialogState(() {}),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: reasonController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Motivo del rechazo *',
-                    border: OutlineInputBorder(),
-                    hintText: 'Describe los defectos encontrados...',
-                  ),
-                ),
-              ],
-            ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('Cancelar'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: !isValidQuantity || reasonController.text.trim().isEmpty
-                  ? null
-                  : () async {
-                      final batchService = Provider.of<ProductionBatchService>(
-                        context,
-                        listen: false,
-                      );
-
-                      Navigator.pop(context);
-
-                      final success = await batchService.rejectProduct(
-                        organizationId: widget.organizationId,
-                        batchId: widget.batchId,
-                        productId: widget.productId,
-                        returnedCount: returned,
-                        returnReason: reasonController.text.trim(),
-                      );
-
-                      if (success && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Producto rechazado (CAO)'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        // No hace falta setState, el Stream se actualiza automáticamente
-                      }
-                    },
-              style: FilledButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Rechazar'),
-            ),
-          ],
-        );
-      },
-    ),
-  );
-}
-// AÑADIR diálogo para clasificar devoluciones:
-
-void _showClassifyReturnsDialog(BatchProductModel product) {
-  final repairedController = TextEditingController();
-  final discardedController = TextEditingController();
-
-  showDialog(
-    context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setDialogState) {
-        final repaired = int.tryParse(repairedController.text) ?? 0;
-        final discarded = int.tryParse(discardedController.text) ?? 0;
-        final total = repaired + discarded;
-        final isValid = total == product.returnedCount;
-
-        return AlertDialog(
-          title: const Text('Clasificar Devoluciones'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Total devueltos: ${product.returnedCount} unidades'),
-              const SizedBox(height: 16),
-              TextField(
-                controller: repairedController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Reparados',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.build),
-                ),
-                onChanged: (_) => setDialogState(() {}),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: discardedController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Descartados (basura)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.delete_forever),
-                ),
-                onChanged: (_) => setDialogState(() {}),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isValid ? Colors.green[50] : Colors.red[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isValid ? Colors.green : Colors.red,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      isValid ? Icons.check_circle : Icons.error,
-                      color: isValid ? Colors.green : Colors.red,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Total: $total / ${product.returnedCount}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: isValid ? Colors.green[900] : Colors.red[900],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                final validationData = <String, dynamic>{};
+                if (quantityController.text.isNotEmpty) {
+                  validationData['quantity'] =
+                      int.parse(quantityController.text);
+                }
+                if (textController.text.isNotEmpty) {
+                  validationData['text'] = textController.text;
+                }
+                Navigator.pop(context, validationData);
+              }
+            },
+            child: const Text('Confirmar'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      // Ejecutar cambio de estado con datos de validación
+      await _executeStatusChangeWithValidation(
+        product: product,
+        toStatusId: toStatusId,
+        validationData: result,
+      );
+    }
+  }
+
+  Future<void> _executeStatusChangeWithValidation({
+    required BatchProductModel product,
+    required String toStatusId,
+    required Map<String, dynamic> validationData,
+  }) async {
+    final batchService =
+        Provider.of<ProductionBatchService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserData;
+
+    if (user == null || _currentRole == null || _currentMember == null) {
+      return;
+    }
+
+    try {
+      final success = await batchService.changeProductStatus(
+        organizationId: widget.organizationId,
+        batchId: widget.batchId,
+        productId: widget.productId,
+        toStatusId: toStatusId,
+        userId: user.uid,
+        userName: user.name,
+        validationData: validationData,
+      );
+
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Estado cambiado exitosamente'),
+              backgroundColor: Colors.green,
             ),
-            FilledButton(
-              onPressed: !isValid
-                  ? null
-                  : () async {
-                      final batchService = Provider.of<ProductionBatchService>(
-                        context,
-                        listen: false,
-                      );
-
-                      Navigator.pop(context);
-
-                      final success = await batchService.classifyReturns(
-                        organizationId: widget.organizationId,
-                        batchId: widget.batchId,
-                        productId: widget.productId,
-                        repairedCount: repaired,
-                        discardedCount: discarded,
-                      );
-
-                      if (success && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Devoluciones clasificadas'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    },
-              child: const Text('Guardar'),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(batchService.error ?? 'Error al cambiar estado'),
+              backgroundColor: Colors.red,
             ),
-          ],
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
-      },
-    ),
-  );
-}
+      }
+    }
+  }
 
 // AÑADIR helpers:
 
-IconData _getStatusIcon(String status) {
-  switch (status) {
-    case 'pending':
-      return Icons.schedule;
-    case 'cao':
-      return Icons.error;
-    case 'hold':
-      return Icons.pause_circle;
-    case 'control':
-      return Icons.verified;
-    case 'ok':
-      return Icons.check_circle;
-    default:
-      return Icons.help_outline;
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'pending':
+        return Icons.schedule;
+      case 'cao':
+        return Icons.error;
+      case 'hold':
+        return Icons.pause_circle;
+      case 'control':
+        return Icons.verified;
+      case 'ok':
+        return Icons.check_circle;
+      default:
+        return Icons.help_outline;
+    }
   }
-}
 
-String _getStatusDescription(String status) {
-  switch (status) {
-    case 'pending':
-      return 'En proceso de fabricación';
-    case 'cao':
-      return 'No conforme - Devuelto por el cliente';
-    case 'hold':
-      return 'Enviado - Pendiente de evaluación del cliente';
-    case 'control':
-      return 'En evaluación - Clasificando devoluciones';
-    case 'ok':
-      return 'Aprobado por el cliente';
-    default:
-      return status;
+  String _getStatusDescription(String status) {
+    switch (status) {
+      case 'pending':
+        return 'En proceso de fabricación';
+      case 'cao':
+        return 'No conforme - Devuelto por el cliente';
+      case 'hold':
+        return 'Enviado - Pendiente de evaluación del cliente';
+      case 'control':
+        return 'En evaluación - Clasificando devoluciones';
+      case 'ok':
+        return 'Aprobado por el cliente';
+      default:
+        return status;
+    }
   }
-}
 
-Future<bool?> _showConfirmDialog(String title, String message) {
-  return showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(title),
-      content: Text(message),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text('Confirmar'),
-        ),
-      ],
-    ),
-  );
-}
+  Future<bool?> _showConfirmDialog(String title, String message) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _showDeleteConfirmation(BatchProductModel product) {
     showDialog(
@@ -1763,27 +1819,36 @@ Future<bool?> _showConfirmDialog(String title, String message) {
           ),
           FilledButton(
             onPressed: () async {
-              final batchService = Provider.of<ProductionBatchService>(
-                context,
-                listen: false,
-              );
-
               Navigator.pop(context); // Cerrar diálogo
 
-              final success = await batchService.deleteProductFromBatch(
-                widget.organizationId,
-                widget.batchId,
-                widget.productId,
-              );
+              try {
+                await FirebaseFirestore.instance
+                    .collection('organizations')
+                    .doc(widget.organizationId)
+                    .collection('production_batches')
+                    .doc(widget.batchId)
+                    .collection('batch_products')
+                    .doc(widget.productId)
+                    .delete();
 
-              if (success && mounted) {
-                Navigator.pop(context); // Volver a detalle del lote
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Producto eliminado'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                if (mounted) {
+                  Navigator.pop(context); // Volver a la pantalla anterior
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Producto eliminado'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               }
             },
             style: FilledButton.styleFrom(
@@ -1796,7 +1861,7 @@ Future<bool?> _showConfirmDialog(String title, String message) {
     );
   }
 
-    /// Abrir pantalla de chat
+  /// Abrir pantalla de chat
   void _openChat(BatchProductModel product) {
     Navigator.push(
       context,
@@ -1807,11 +1872,10 @@ Future<bool?> _showConfirmDialog(String title, String message) {
           entityId: product.id,
           parentId: product.batchId,
           entityName: '${product.productName} - ${product.productReference}',
-          showInternalMessages: true, // Mostrar mensajes internos para el equipo
+          showInternalMessages:
+              true, // Mostrar mensajes internos para el equipo
         ),
       ),
     );
   }
-
-  
 }
