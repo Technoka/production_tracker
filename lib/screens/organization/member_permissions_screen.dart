@@ -67,14 +67,12 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
           .doc(widget.memberData.member.roleId)
           .get();
 
-      debugPrint('RoleDoc exists: ${roleDoc.exists}');
 
       if (!roleDoc.exists) {
         throw Exception('Rol no encontrado');
       }
 
       final roleData = roleDoc.data();
-      debugPrint('RoleData: $roleData');
 
       if (roleData == null) {
         throw Exception('Datos del rol vacíos');
@@ -107,7 +105,6 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
       }
 
       final role = RoleModel.fromMap(roleData, docId: roleDoc.id);
-      debugPrint('Rol cargado: ${role.name}');
 
       // 2. Obtener overrides actuales del miembro
       final memberDoc = await _firestore
@@ -136,8 +133,7 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
         _memberRole = role;
         _roleBasePermissions = role.permissions;
         _currentOverrides = currentOverrides;
-        _pendingOverrides =
-            PermissionOverridesModel.fromMap(currentOverrides.toMap());
+        _pendingOverrides = PermissionOverridesModel.fromMap(currentOverrides.toMap());
         _isLoading = false;
       });
 
@@ -388,7 +384,6 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
                     ),
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: theme.highlightColor,
                       minimumSize: const Size(double.infinity, 50),
                     ),
                   ),
@@ -402,10 +397,10 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.error_outline, size: 64, color: Colors.red),
-                        SizedBox(height: 16),
+                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
                         Text(_errorMessage!),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: _loadPermissionsData,
                           child: Text(l10n.retry),
@@ -430,13 +425,13 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
 
   /// Widget del header con informaciÃ³n del rol base
   Widget _buildRoleHeader(ThemeProvider themeProvider) {
-    if (_memberRole == null) return SizedBox.shrink();
+    if (_memberRole == null) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context)!;
     final roleColor = _memberRole!.colorValue;
 
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: roleColor.withOpacity(0.1),
         border: Border(
@@ -450,19 +445,19 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
         children: [
           CircleAvatar(
             backgroundColor: roleColor,
-            child: Icon(
+            child: const Icon(
               Icons.shield_outlined,
               color: Colors.white,
             ),
           ),
-          SizedBox(width: 16),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '${l10n.baseRole}: ${_memberRole!.name}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
