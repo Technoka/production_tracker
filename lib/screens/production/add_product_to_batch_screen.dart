@@ -12,6 +12,8 @@ import '../../services/organization_member_service.dart';
 import '../../models/organization_member_model.dart';
 import '../../services/auth_service.dart';
 
+// TODO: comprobar que se usa scope y assignedMembers correctamente
+
 class AddProductToBatchScreen extends StatefulWidget {
   final String organizationId;
   final String batchId;
