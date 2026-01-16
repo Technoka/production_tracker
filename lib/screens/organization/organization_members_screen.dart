@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/organization_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/permission_model.dart';
+import '../../models/organization_member_model.dart';
+import '../../services/permission_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'member_permissions_screen.dart';
 
 class OrganizationMembersScreen extends StatefulWidget {
   const OrganizationMembersScreen({super.key});
@@ -14,6 +18,9 @@ class OrganizationMembersScreen extends StatefulWidget {
 }
 
 class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
+  List<OrganizationMemberWithUser> _members = [];
+  bool _isLoading = true;
+  String? _errorMessage;
   
   @override
   void initState() {
@@ -23,42 +30,107 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
     });
   }
 
+  /// Carga los miembros y sus datos de usuario combinados
   Future<void> _loadData() async {
-    await Provider.of<OrganizationService>(context, listen: false).loadOrganizationMembers();
+    final orgService = Provider.of<OrganizationService>(context, listen: false);
+    final permissionService = Provider.of<PermissionService>(context, listen: false);
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    
+    final organizationId = orgService.currentOrganization?.id;
+
+    if (organizationId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // 1. Obtener la lista base de miembros (roles, permisos, IDs)
+      final rawMembers = await permissionService.getOrganizationMembers(organizationId);
+
+      // 2. Obtener detalles de usuario (Nombre, Email, Foto) para cada miembro
+      // Esto es necesario porque OrganizationMemberModel solo tiene el userId
+      final membersWithUserFuture = rawMembers.map((member) async {
+        try {
+          final userDoc = await _firestore
+              .collection('users')
+              .doc(member.userId)
+              .get();
+          
+          final userData = userDoc.data() ?? {};
+
+          return OrganizationMemberWithUser(
+            member: member,
+            userName: userData['name'] as String? ?? 'Usuario Desconocido',
+            userEmail: userData['email'] as String? ?? 'Sin email',
+            userPhotoUrl: userData['photoURL'] as String?,
+          );
+        } catch (e) {
+          // Fallback si falla la carga de un usuario especÃ­fico
+          return OrganizationMemberWithUser(
+            member: member,
+            userName: 'Error cargando usuario',
+            userEmail: '---',
+          );
+        }
+      });
+
+      final loadedMembers = await Future.wait(membersWithUserFuture);
+
+      if (mounted) {
+        setState(() {
+          _members = loadedMembers;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error cargando miembros: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error al cargar los miembros.';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     final orgService = Provider.of<OrganizationService>(context);
     final authService = Provider.of<AuthService>(context);
-    final l10n = AppLocalizations.of(context)!;
-    
-    // Obtener datos actuales
+    final l10n = AppLocalizations.of(context)!; // Descomenta si usas l10n
+
     final organization = orgService.currentOrganization;
     final currentUser = authService.currentUserData;
-    final members = orgService.organizationMembers;
 
-    // Validaciones de seguridad
     if (organization == null || currentUser == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    // Clonamos la lista para ordenarla
-    final sortedMembers = List<UserModel>.from(members);
+    // Clonar y ordenar lista
+    final sortedMembers = List<OrganizationMemberWithUser>.from(_members);
     
     sortedMembers.sort((a, b) {
-      if (organization.ownerId == a.uid) return -1;
-      if (organization.ownerId == b.uid) return 1;
+      // 1. El dueÃ±o va primero
+      final aIsOwner = a.userId == organization.ownerId;
+      final bIsOwner = b.userId == organization.ownerId;
+      if (aIsOwner) return -1;
+      if (bIsOwner) return 1;
       
-      final aIsAdmin = organization.adminIds.contains(a.uid);
-      final bIsAdmin = organization.adminIds.contains(b.uid);
-      
+      // 2. Los admins van segundo
+      final aIsAdmin = a.isAdmin;
+      final bIsAdmin = b.isAdmin;
       if (aIsAdmin && !bIsAdmin) return -1;
       if (!aIsAdmin && bIsAdmin) return 1;
       
-      return a.name.compareTo(b.name);
+      // 3. Orden alfabÃ©tico
+      return a.userName.compareTo(b.userName);
     });
 
     return Scaffold(
@@ -67,192 +139,212 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(l10n.members),
-            Text(
-              '${sortedMembers.length} ${l10n.peopleLabel}',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            if (!_isLoading)
+              Text(
+                '${sortedMembers.length} ${l10n.peopleLabel}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add_outlined),
+            onPressed: () {
+               // Navegar a pantalla de invitar miembros
+               // Navigator.pushNamed(context, '/invite_member');
+            },
+          ),
+        ],
       ),
-      body: orgService.isLoading
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              child: sortedMembers.isEmpty 
-                ? Center(child: Text(l10n.noMembersFound))
-                : ListView.builder(
-                    itemCount: sortedMembers.length,
-                    itemBuilder: (context, index) {
-                      final member = sortedMembers[index];
-                      return _buildMemberTile(
-                        context,
-                        member,
-                        currentUser,
-                        organization.ownerId,
-                        organization.adminIds,
-                        orgService,
-                      );
-                    },
+          : _errorMessage != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(_errorMessage!),
+                      ElevatedButton(
+                        onPressed: _loadData,
+                        child: const Text('Reintentar'),
+                      )
+                    ],
                   ),
-            ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadData,
+                  child: sortedMembers.isEmpty
+                      ? Center(child: Text(l10n.noMembersFound))
+                      : ListView.separated(
+                          itemCount: sortedMembers.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final member = sortedMembers[index];
+                            return _buildMemberTile(
+                              context,
+                              member,
+                              currentUser.uid,
+                              organization.ownerId,
+                            );
+                          },
+                        ),
+                ),
     );
   }
 
   Widget _buildMemberTile(
     BuildContext context,
-    UserModel member,
-    UserModel currentUser,
+    OrganizationMemberWithUser member,
+    String currentUserId,
     String ownerId,
-    List<String> adminIds,
-    OrganizationService service,
   ) {
-    final l10n = AppLocalizations.of(context)!;
-    final isOwner = member.uid == ownerId;
-    final isAdmin = adminIds.contains(member.uid);
-    final isMe = member.uid == currentUser.uid;
+    // Determinar si es el usuario actual
+    final isMe = member.userId == currentUserId;
+    final isOwner = member.userId == ownerId;
 
-    final iAmOwner = currentUser.uid == ownerId;
-    final iAmAdmin = adminIds.contains(currentUser.uid);
-    
-    final canManage = !isMe && (iAmOwner || (iAmAdmin && !isOwner && !isAdmin));
+    // SubtÃ­tulo con el rol
+    String roleText = member.roleName;
+    if (isOwner) roleText = 'Dueño $roleText';
+    if (isMe) roleText += ' (Tú)';
 
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: isOwner
-            ? Colors.purple[100]
-            : (isAdmin ? Colors.blue[100] : Colors.grey[200]),
-        child: Text(
-          member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
-          style: TextStyle(
-            color: isOwner
-                ? Colors.purple[900]
-                : (isAdmin ? Colors.blue[900] : Colors.black87),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        backgroundColor: _getRoleColor(member.roleId),
+        backgroundImage: member.userPhotoUrl != null 
+            ? NetworkImage(member.userPhotoUrl!) 
+            : null,
+        child: member.userPhotoUrl == null
+            ? Text(member.initials, style: const TextStyle(color: Colors.white))
+            : null,
       ),
       title: Text(
-        member.name,
-        style: TextStyle(fontWeight: isMe ? FontWeight.bold : FontWeight.normal),
+        member.userName,
+        style: const TextStyle(fontWeight: FontWeight.w500),
       ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(member.email),
-          if (isOwner || isAdmin) ...[
-            const SizedBox(height: 4),
-            _buildRoleBadge(context, isOwner, isAdmin),
-          ]
-        ],
-      ),
-      trailing: canManage
-          ? PopupMenuButton<String>(
-              onSelected: (value) => _handleAction(value, member, service, isAdmin),
-              itemBuilder: (context) => [
-                // Opción Promover/Degradar
-                if (iAmOwner)
-                  PopupMenuItem(
-                    value: isAdmin ? 'demote' : 'promote',
-                    child: Row(
-                      children: [
-                        Icon(
-                          isAdmin ? Icons.remove_moderator : Icons.add_moderator,
-                          color: Colors.blue,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(isAdmin ? l10n.removeAdminAction : l10n.makeAdminAction),
-                      ],
-                    ),
-                  ),
-                // Opción Expulsar
-                PopupMenuItem(
-                  value: 'remove',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.person_remove, color: Colors.red, size: 20),
-                      const SizedBox(width: 8),
-                      Text(l10n.removeMemberAction, style: const TextStyle(color: Colors.red)),
-                    ],
-                  ),
-                ),
-              ],
-            )
-          : null,
+      subtitle: Text(roleText),
+      trailing: _buildActionsMenu(context, member, currentUserId, ownerId),
+      onTap: () async {
+        // Solo el owner y admin pueden gestionar permisos de otros usuarios
+        final permissionService = Provider.of<PermissionService>(context, listen: false);
+        final canManagePermissions = permissionService.hasPermission('organization', 'manageRoles');
+        print("can manage permissions: ${canManagePermissions} =====================");
+        
+        // No se puede editar al propietario
+        if (member.userId == ownerId) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pueden modificar los permisos del propietario'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+
+// TODO: descomentar esto !!!!!!!!!! SUPER IMPORTANTE !!!!!!!!! quitado solo para pruebas
+        // Verificar permisos
+        // if (!canManagePermissions && member.userId != currentUserId) {
+        //   ScaffoldMessenger.of(context).showSnackBar(
+        //     const SnackBar(
+        //       content: Text('No tienes permisos para gestionar usuarios'),
+        //       backgroundColor: Colors.red,
+        //     ),
+        //   );
+        //   return;
+        // }
+
+        // Navegar a la pantalla de gestión de permisos
+        final orgService = Provider.of<OrganizationService>(context, listen: false);
+        final organizationId = orgService.currentOrganization?.id;
+
+        if (organizationId == null) return;
+
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MemberPermissionsScreen(
+              memberData: member,
+              organizationId: organizationId,
+            ),
+          ),
+        );
+
+        // Recargar datos después de volver
+        _loadData();
+      },
     );
   }
 
-  Widget _buildRoleBadge(BuildContext context, bool isOwner, bool isAdmin) {
-    final l10n = AppLocalizations.of(context)!;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: isOwner ? Colors.purple[50] : Colors.blue[50],
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: isOwner ? Colors.purple[200]! : Colors.blue[200]!,
-        ),
-      ),
-      child: Text(
-        isOwner ? l10n.ownerRole : l10n.adminRole,
-        style: TextStyle(
-          fontSize: 10, 
-          color: isOwner ? Colors.purple[900] : Colors.blue[900],
-          fontWeight: FontWeight.bold
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleAction(
-    String action,
-    UserModel member,
-    OrganizationService service,
-    bool isCurrentlyAdmin,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    bool success = false;
+Widget? _buildActionsMenu(
+    BuildContext context,
+    OrganizationMemberWithUser member,
+    String currentUserId,
+    String ownerId,
+  ) {
+    final permissionService = Provider.of<PermissionService>(context, listen: false);
     
-    if (action == 'remove') {
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(l10n.removeMemberTitle),
-          content: Text('${l10n.removeMemberConfirmPart1} ${member.name} ${l10n.removeMemberConfirmPart2}'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.removeMemberAction),
-            ),
-          ],
-        ),
-      );
+    // Reglas bÃ¡sicas de visualizaciÃ³n de menÃº:
+    // 1. No puedes editarte a ti mismo desde esta lista (usualmente)
+    if (member.userId == currentUserId) return null;
 
-      if (confirm == true) {
-        success = await service.removeMember(member.uid);
-      } else {
-        return;
-      }
-    } 
-    else if (action == 'promote') {
-      success = await service.promoteToAdmin(member.uid);
-    } 
-    else if (action == 'demote') {
-      success = await service.demoteFromAdmin(member.uid);
-    }
+    // 2. Solo Admin o Owner pueden gestionar (verificar permisos reales)
+    final canManageMembers = permissionService.hasPermission('organization', 'manageRoles') ||
+                             permissionService.hasPermission('organization', 'removeMembers');
+    
+    if (!canManageMembers) return null;
 
-    if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.updateMemberError),
-          backgroundColor: Colors.red,
-        ),
-      );
+    // 3. No puedes editar al DueÃ±o
+    if (member.userId == ownerId) return null;
+
+    return PopupMenuButton<String>(
+      onSelected: (value) async {
+        if (value == 'edit_role') {
+           // Abrir diÃ¡logo de cambio de rol
+        } else if (value == 'remove') {
+           // Confirmar eliminaciÃ³n
+        }
+      },
+      itemBuilder: (context) => [
+        if (permissionService.hasPermission('organization', 'manageRoles'))
+          const PopupMenuItem(
+            value: 'edit_role',
+            child: Row(
+              children: [
+                Icon(Icons.admin_panel_settings_outlined, size: 20),
+                SizedBox(width: 8),
+                Text('Cambiar Rol'),
+              ],
+            ),
+          ),
+        if (permissionService.hasPermission('organization', 'removeMembers'))
+          const PopupMenuItem(
+            value: 'remove',
+            child: Row(
+              children: [
+                Icon(Icons.person_remove_outlined, color: Colors.red, size: 20),
+                SizedBox(width: 8),
+                Text('Eliminar', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  // Helper simple para colores de roles (puedes moverlo a utils)
+  Color _getRoleColor(String roleId) {
+    switch (roleId) {
+      case 'owner':
+        return Colors.purple;
+      case 'admin':
+        return Colors.blue;
+      case 'production_manager':
+        return Colors.orange;
+      case 'operator':
+        return Colors.green;
+      case 'client':
+        return Colors.teal;
+      default:
+        return Colors.grey;
     }
   }
 }
