@@ -232,8 +232,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }
 
   Widget _buildProductInfoCard(BatchProductModel product, UserModel? user) {
-    final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -254,29 +252,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               ],
             ),
             const Divider(height: 24),
-
-            // Urgencia
-            if (urgencyLevel == UrgencyLevel.urgent)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: urgencyLevel.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: urgencyLevel.color.withOpacity(
-                        0.3), // Usar color de urgencia para el borde
-                  ),
-                ),
-                child: Text(
-                  urgencyLevel.displayName,
-                  style: TextStyle(
-                    color: urgencyLevel.color,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12, // Un poco más pequeño para que sea sutil
-                  ),
-                ),
-              ),
-            const SizedBox(height: 8),
 
             // Nombre
             Text(
@@ -415,85 +390,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               ),
               const SizedBox(height: 8),
             ],
-
-            // Progreso general
-            const Divider(),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Progreso General',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            '${product.progressPercentage}%',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value: product.totalProgress,
-                        minHeight: 8,
-                        backgroundColor: Colors.grey[200],
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          product.isCompleted ? Colors.green : Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${product.completedPhasesCount} de ${product.totalPhasesCount} fases completadas',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            // Estado actual
-            const SizedBox(height: 12),
-            const Divider(),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.location_on, size: 18),
-                const SizedBox(width: 8),
-                const Text(
-                  'Fase actual: ',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    product.currentPhaseName,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
@@ -502,6 +398,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
 // ================= NUEVO CÓDIGO PARA ESTADOS DEL PRODUCTO =================
   Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
+    final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -527,7 +425,28 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               ],
             ),
             const Divider(height: 24),
-
+// Urgencia
+            if (urgencyLevel == UrgencyLevel.urgent)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: urgencyLevel.color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: urgencyLevel.color.withOpacity(
+                        0.3), // Usar color de urgencia para el borde
+                  ),
+                ),
+                child: Text(
+                  urgencyLevel.displayName,
+                  style: TextStyle(
+                    color: urgencyLevel.color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16, // Un poco más pequeño para que sea sutil
+                  ),
+                ),
+              ),
+            const SizedBox(height: 16),
             // Estado actual
             Container(
               padding: const EdgeInsets.all(12),
@@ -541,7 +460,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   Icon(
                     _getStatusIcon(product.productStatus),
                     color: product.statusLegacyColor,
-                    size: 32,
+                    size: 25,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -551,7 +470,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                         Text(
                           product.statusDisplayName,
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: product.statusLegacyColor,
                           ),
@@ -569,9 +488,33 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 ],
               ),
             ),
+            
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.location_on, size: 18),
+                const SizedBox(width: 8),
+                const Text(
+                  'Fase actual: ',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    product.currentPhaseName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
 
             // Información adicional según estado
-            const SizedBox(height: 16),
 
             if (product.hasBeenSent) ...[
               _buildInfoRow(
@@ -724,9 +667,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 ),
               ],
             ],
-            const SizedBox(height: 8),
-            const Divider(height: 1),
-            const SizedBox(height: 8),
+            const Divider(height: 24, thickness: 3,),
             _buildProductStatusActions(product, user),
             const SizedBox(height: 8),
           ],
