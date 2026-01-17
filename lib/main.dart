@@ -28,6 +28,7 @@ import 'services/product_status_service.dart';
 import 'services/organization_member_service.dart';
 import 'services/kanban_service.dart';
 import 'services/permission_service.dart';
+import 'services/role_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +63,7 @@ class MyApp extends StatelessWidget {
         // ✅ OrganizationMemberService - SERVICIO CENTRAL RBAC
         ChangeNotifierProvider(create: (_) => OrganizationMemberService()),
         ChangeNotifierProvider(create: (_) => PermissionService()),
+        ChangeNotifierProvider(create: (_) => RoleService()),
 
         // Servicios sin dependencias RBAC
         Provider<ProjectProductService>(create: (_) => ProjectProductService()),
