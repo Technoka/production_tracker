@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/organization_service.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:flutter/services.dart';
+import '../../models/organization_model.dart';
 
 class InviteMemberScreen extends StatefulWidget {
   const InviteMemberScreen({super.key});
@@ -67,6 +69,13 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
   Widget build(BuildContext context) {
     final organizationService = Provider.of<OrganizationService>(context);
     final l10n = AppLocalizations.of(context)!;
+    final organization = organizationService.currentOrganization;
+
+    if (organization == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -178,6 +187,8 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
                           ),
                   ),
                 ),
+                const SizedBox(height: 30),
+                _buildInviteCodeCard(context, organization, l10n),
               ],
             ),
           ),
@@ -201,6 +212,111 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Tarjeta de código de invitación
+  Widget _buildInviteCodeCard(
+    BuildContext context,
+    OrganizationModel org,
+    AppLocalizations l10n,
+  ) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.vpn_key),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.inviteCodeLabel,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        org.inviteCode,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: org.inviteCode));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.codeCopied),
+                        backgroundColor: Colors.green,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.copy),
+                  tooltip: l10n.copyCodeTooltip,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final organizationService =
+                        Provider.of<OrganizationService>(context,
+                            listen: false);
+
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text(l10n.regenerateCodeAction),
+                        content: Text(l10n.regenerateCodeWarning),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: Text(l10n.cancel),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: Text(l10n.confirm),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirmed == true && context.mounted) {
+                      final newCode = await organizationService
+                          .regenerateInviteCode(org.id);
+                      if (newCode != null && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(l10n.codeRegeneratedSuccess),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: Text(l10n.regenerateCodeAction),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
