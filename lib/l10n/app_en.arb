@@ -1089,8 +1089,13 @@
 "roleDistribution": "Role Distribution",
 "viewingOwnPermissions": "Viewing your permissions",
 "viewingOwnPermissionsDesc": "You are viewing your own permissions. You cannot modify organization permissions to avoid losing access.",
-"cannotModifyOrgPermissions": "Cannot modify organization permissions",
+"cannotModifyOrgPermissions": "Cannot modify own organization permissions",
 "readOnlyMode": "Read-only mode",
 "pullToRefresh": "Pull to refresh",
-"noClientsMessage": "No members registered as clients"
+"noClientsMessage": "No members registered as clients",
+
+"unknownUser": "Unknown user",
+"withoutEmail": "Without email",
+"errorLoadingUser": "Error loading user",
+"owner": "Owner"
 }

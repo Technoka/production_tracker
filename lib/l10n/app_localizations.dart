@@ -5870,7 +5870,7 @@ abstract class AppLocalizations {
   /// No description provided for @cannotModifyOrgPermissions.
   ///
   /// In en, this message translates to:
-  /// **'Cannot modify organization permissions'**
+  /// **'Cannot modify own organization permissions'**
   String get cannotModifyOrgPermissions;
 
   /// No description provided for @readOnlyMode.
@@ -5890,6 +5890,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No members registered as clients'**
   String get noClientsMessage;
+
+  /// No description provided for @unknownUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown user'**
+  String get unknownUser;
+
+  /// No description provided for @withoutEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Without email'**
+  String get withoutEmail;
+
+  /// No description provided for @errorLoadingUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading user'**
+  String get errorLoadingUser;
+
+  /// No description provided for @owner.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner'**
+  String get owner;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -1091,8 +1091,13 @@
 "roleDistribution": "Distribución por Rol",
 "viewingOwnPermissions": "Viendo tus permisos",
 "viewingOwnPermissionsDesc": "Estás viendo tus propios permisos. No puedes modificar los permisos de organización para evitar perder acceso.",
-"cannotModifyOrgPermissions": "No puedes modificar permisos de organización",
+"cannotModifyOrgPermissions": "No puedes modificar tus propios permisos de organización",
 "readOnlyMode": "Modo solo lectura",
 "pullToRefresh": "Desliza para actualizar",
-"noClientsMessage": "No hay miembros registrados como clientes"
+"noClientsMessage": "No hay miembros registrados como clientes",
+
+"unknownUser": "Usuario desconocido",
+"withoutEmail": "Sin email",
+"errorLoadingUser": "Error cargando usuario",
+"owner": "Propietario"
 }

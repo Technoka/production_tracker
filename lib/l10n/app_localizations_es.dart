@@ -2965,7 +2965,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get viewingOwnPermissionsDesc => 'Estás viendo tus propios permisos. No puedes modificar los permisos de organización para evitar perder acceso.';
 
   @override
-  String get cannotModifyOrgPermissions => 'No puedes modificar permisos de organización';
+  String get cannotModifyOrgPermissions => 'No puedes modificar tus propios permisos de organización';
 
   @override
   String get readOnlyMode => 'Modo solo lectura';
@@ -2975,4 +2975,16 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get noClientsMessage => 'No hay miembros registrados como clientes';
+
+  @override
+  String get unknownUser => 'Usuario desconocido';
+
+  @override
+  String get withoutEmail => 'Sin email';
+
+  @override
+  String get errorLoadingUser => 'Error cargando usuario';
+
+  @override
+  String get owner => 'Propietario';
 }
