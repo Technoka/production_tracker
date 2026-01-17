@@ -2936,4 +2936,43 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get manageMembers => 'Gestionar miembros';
+
+  @override
+  String get totalMembers => 'Total de Miembros';
+
+  @override
+  String get filterByRole => 'Filtrar por Rol';
+
+  @override
+  String get filterByName => 'Filtrar por nombre';
+
+  @override
+  String get allRoles => 'Todos los Roles';
+
+  @override
+  String get clientsCard => 'Clientes';
+
+  @override
+  String get totalClients => 'Total de Clientes';
+
+  @override
+  String get roleDistribution => 'Distribución por Rol';
+
+  @override
+  String get viewingOwnPermissions => 'Viendo tus permisos';
+
+  @override
+  String get viewingOwnPermissionsDesc => 'Estás viendo tus propios permisos. No puedes modificar los permisos de organización para evitar perder acceso.';
+
+  @override
+  String get cannotModifyOrgPermissions => 'No puedes modificar permisos de organización';
+
+  @override
+  String get readOnlyMode => 'Modo solo lectura';
+
+  @override
+  String get pullToRefresh => 'Desliza para actualizar';
+
+  @override
+  String get noClientsMessage => 'No hay miembros registrados como clientes';
 }

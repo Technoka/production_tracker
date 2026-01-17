@@ -1078,6 +1078,19 @@
 "roleScope": "Role scope",
 "retry": "Retry",
 "noProductionAccess": "You don't have access to production",
-"manageMembers": "Manage members"
+"manageMembers": "Manage members",
 
+"totalMembers": "Total Members",
+"filterByRole": "Filter by Role",
+"filterByName": "Filter by name",
+"allRoles": "All Roles",
+"clientsCard": "Clients",
+"totalClients": "Total Clients",
+"roleDistribution": "Role Distribution",
+"viewingOwnPermissions": "Viewing your permissions",
+"viewingOwnPermissionsDesc": "You are viewing your own permissions. You cannot modify organization permissions to avoid losing access.",
+"cannotModifyOrgPermissions": "Cannot modify organization permissions",
+"readOnlyMode": "Read-only mode",
+"pullToRefresh": "Pull to refresh",
+"noClientsMessage": "No members registered as clients"
 }

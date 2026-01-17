@@ -1080,5 +1080,19 @@
 "roleScope": "Alcance del rol",
 "retry": "Reintentar",
 "noProductionAccess": "Sin acceso a producción",
-"manageMembers": "Gestionar miembros"
+"manageMembers": "Gestionar miembros",
+
+"totalMembers": "Total de Miembros",
+"filterByRole": "Filtrar por Rol",
+"filterByName": "Filtrar por nombre",
+"allRoles": "Todos los Roles",
+"clientsCard": "Clientes",
+"totalClients": "Total de Clientes",
+"roleDistribution": "Distribución por Rol",
+"viewingOwnPermissions": "Viendo tus permisos",
+"viewingOwnPermissionsDesc": "Estás viendo tus propios permisos. No puedes modificar los permisos de organización para evitar perder acceso.",
+"cannotModifyOrgPermissions": "No puedes modificar permisos de organización",
+"readOnlyMode": "Modo solo lectura",
+"pullToRefresh": "Desliza para actualizar",
+"noClientsMessage": "No hay miembros registrados como clientes"
 }

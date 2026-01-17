@@ -5812,6 +5812,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Manage members'**
   String get manageMembers;
+
+  /// No description provided for @totalMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Members'**
+  String get totalMembers;
+
+  /// No description provided for @filterByRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by Role'**
+  String get filterByRole;
+
+  /// No description provided for @filterByName.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by name'**
+  String get filterByName;
+
+  /// No description provided for @allRoles.
+  ///
+  /// In en, this message translates to:
+  /// **'All Roles'**
+  String get allRoles;
+
+  /// No description provided for @clientsCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Clients'**
+  String get clientsCard;
+
+  /// No description provided for @totalClients.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Clients'**
+  String get totalClients;
+
+  /// No description provided for @roleDistribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Role Distribution'**
+  String get roleDistribution;
+
+  /// No description provided for @viewingOwnPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Viewing your permissions'**
+  String get viewingOwnPermissions;
+
+  /// No description provided for @viewingOwnPermissionsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'You are viewing your own permissions. You cannot modify organization permissions to avoid losing access.'**
+  String get viewingOwnPermissionsDesc;
+
+  /// No description provided for @cannotModifyOrgPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot modify organization permissions'**
+  String get cannotModifyOrgPermissions;
+
+  /// No description provided for @readOnlyMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-only mode'**
+  String get readOnlyMode;
+
+  /// No description provided for @pullToRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Pull to refresh'**
+  String get pullToRefresh;
+
+  /// No description provided for @noClientsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No members registered as clients'**
+  String get noClientsMessage;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
