@@ -11,11 +11,17 @@ import 'package:provider/provider.dart';
 class CreateProductCatalogScreen extends StatefulWidget {
   final String organizationId;
   final UserModel currentUser;
+  final String? initialClientId;
+  final String? initialProjectId;
+  final String? initialFamily;
 
   const CreateProductCatalogScreen({
     super.key,
     required this.organizationId,
     required this.currentUser,
+    this.initialClientId,
+    this.initialProjectId,
+    this.initialFamily
   });
 
   @override

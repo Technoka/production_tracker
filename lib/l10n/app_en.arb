@@ -109,6 +109,7 @@
   "newClient": "New Client",
   "searchClientsHint": "Search clients...",
   "noClientsRegistered": "No clients registered",
+  "noClientsFound": "No clients found",
   "errorLoadingClients": "Error loading clients",
   "tapToAddClient": "Tap the + button to add one",
   "noResultsFound": "No results found",
@@ -661,7 +662,7 @@
   "allPluralFeminine": "All",
   "allClients": "All clients",
   "batchesViewTitleLabel": "View batches",
-  "productsViewTitleLabel": "View products",
+  "productsViewTitleLabel": "View orders",
   "hello": "Hello",
   "management": "Management",
   "listView": "List",
@@ -1097,5 +1098,8 @@
 "unknownUser": "Unknown user",
 "withoutEmail": "Without email",
 "errorLoadingUser": "Error loading user",
-"owner": "Owner"
+"owner": "Owner",
+
+"createProduct": "Create product",
+"createProductFamily": "Create product family"
 }

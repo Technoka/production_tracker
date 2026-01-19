@@ -114,6 +114,7 @@
   "newClient": "Nuevo cliente",
   "searchClientsHint": "Buscar clientes...",
   "noClientsRegistered": "No hay clientes registrados",
+  "noClientsFound": "No se han encontrado clientes",
   "errorLoadingClients": "Error al cargar clientes",
   "tapToAddClient": "Toca el botón + para agregar uno",
   "noResultsFound": "No se encontraron resultados",
@@ -671,7 +672,7 @@
   "allPluralFeminine": "Todas",
   "allClients": "Todos los clientes",
   "batchesViewTitleLabel": "Vista por lotes",
-  "productsViewTitleLabel": "Vista por productos",
+  "productsViewTitleLabel": "Vista por pedidos",
   "hello": "Hola",
   "management": "Gestión",
   "listView": "Lista",
@@ -1099,5 +1100,8 @@
 "unknownUser": "Usuario desconocido",
 "withoutEmail": "Sin email",
 "errorLoadingUser": "Error cargando usuario",
-"owner": "Propietario"
+"owner": "Propietario",
+
+"createProduct": "Crear producto",
+"createProductFamily": "Crear familia de productos"
 }

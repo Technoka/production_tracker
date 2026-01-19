@@ -5,6 +5,8 @@ import '../models/project_model.dart';
 import '../models/product_model.dart';
 import '../models/permission_model.dart';
 import 'organization_member_service.dart';
+import '../models/organization_member_model.dart';
+import '../models/role_model.dart';
 
 class ProjectService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -223,6 +225,100 @@ class ProjectService extends ChangeNotifier {
       return null;
     }
   }
+
+/// Proyectos por cliente con scope de permisos (consulta filtrada directa)
+Future<List<ProjectModel>> getClientProjectsWithScope({
+  required String organizationId,
+  required String clientId,
+  required String userId,
+}) async {
+  try {
+    // 1. Obtener miembro de la organización
+    final memberDoc = await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('members')
+        .doc(userId)
+        .get();
+
+    if (!memberDoc.exists) {
+      _error = 'Usuario no es miembro de la organización';
+      notifyListeners();
+      return [];
+    }
+
+    final member = OrganizationMemberModel.fromMap(
+      memberDoc.data()!,
+      docId: memberDoc.id,
+    );
+
+    // 2. Obtener rol del miembro
+    final roleDoc = await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('roles')
+        .doc(member.roleId)
+        .get();
+
+    if (!roleDoc.exists) {
+      _error = 'Rol no encontrado';
+      notifyListeners();
+      return [];
+    }
+
+    final role = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
+
+    // 3. Calcular permisos efectivos (rol + overrides)
+    final effectivePermissions = member.getEffectivePermissions(role);
+
+    // 4. Verificar permiso básico de ver proyectos
+    if (!effectivePermissions.canViewProjects) {
+      _error = 'No tienes permiso para ver proyectos';
+      notifyListeners();
+      return [];
+    }
+
+    // 5. Obtener scope del permiso
+    final scope = effectivePermissions.viewProjectsScope;
+
+    // 6. Construir query base con filtro de cliente
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('projects')
+        .where('clientId', isEqualTo: clientId)
+        .where('isActive', isEqualTo: true);
+
+    // 7. Aplicar filtro según scope
+    switch (scope) {
+      case PermissionScope.all:
+        // Sin filtro adicional - ver todos los proyectos del cliente
+        break;
+        
+      case PermissionScope.assigned:
+        // Solo proyectos donde el usuario está asignado
+        query = query.where('assignedMembers', arrayContains: userId);
+        break;
+        
+      case PermissionScope.none:
+        // Sin acceso
+        return [];
+    }
+
+    // 8. Ejecutar query
+    final snapshot = await query.get();
+
+    final projects = snapshot.docs
+        .map((doc) => ProjectModel.fromMap(doc.data()))
+        .toList();
+
+    return projects;
+  } catch (e) {
+    _error = 'Error al obtener proyectos del cliente: $e';
+    notifyListeners();
+    return [];
+  }
+}
 
   /// Stream de proyectos por cliente
   Stream<List<ProjectModel>> watchClientProjects(

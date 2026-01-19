@@ -677,6 +677,12 @@ abstract class AppLocalizations {
   /// **'No clients registered'**
   String get noClientsRegistered;
 
+  /// No description provided for @noClientsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No clients found'**
+  String get noClientsFound;
+
   /// No description provided for @errorLoadingClients.
   ///
   /// In en, this message translates to:
@@ -3698,7 +3704,7 @@ abstract class AppLocalizations {
   /// No description provided for @productsViewTitleLabel.
   ///
   /// In en, this message translates to:
-  /// **'View products'**
+  /// **'View orders'**
   String get productsViewTitleLabel;
 
   /// No description provided for @hello.
@@ -5914,6 +5920,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Owner'**
   String get owner;
+
+  /// No description provided for @createProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Create product'**
+  String get createProduct;
+
+  /// No description provided for @createProductFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Create product family'**
+  String get createProductFamily;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

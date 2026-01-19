@@ -3,14 +3,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/client_model.dart';
-import '../../models/product_catalog_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/client_service.dart';
 import '../../services/product_catalog_service.dart';
+import '../../services/organization_member_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/management_view_types.dart';
 import '../../widgets/management/client_folder_card.dart';
 import '../../widgets/common_refresh.dart';
+import '../clients/create_client_screen.dart';
 
 class ManagementFoldersView extends StatelessWidget {
   final ManagementFilters filters;
@@ -71,21 +72,12 @@ class ManagementFoldersView extends StatelessWidget {
                   Text(
                     filters.hasActiveFilters
                         ? l10n.noResultsFound
-                        : l10n.noClientsRegistered,
+                        : l10n.noClientsFound,
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey.shade600,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  if (!filters.hasActiveFilters)
-                    Text(
-                      l10n.tapToAddClient,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -97,39 +89,74 @@ class ManagementFoldersView extends StatelessWidget {
             await Provider.of<ClientService>(context, listen: false)
                 .getOrganizationClients(user.organizationId!);
           },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: clients.length,
-            itemBuilder: (context, index) {
-              return FutureBuilder<_ClientStats>(
-                future: _getClientStats(
-                  context,
-                  user.organizationId!,
-                  clients[index].id,
-                  filters,
-                ),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Card(
+          child: FutureBuilder<bool>(
+            future: _canCreateClients(context, user.organizationId!, user.uid),
+            builder: (context, permissionSnapshot) {
+              final canCreateClients = permissionSnapshot.data ?? false;
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: (canCreateClients ? 1 : 0) +
+                    clients.length +
+                    (filters.hasActiveFilters && clients.isEmpty ? 1 : 0),
+                itemBuilder: (context, index) {
+                  // Botón de crear cliente al inicio (solo si tiene permisos)
+                  if (canCreateClients && index == 0) {
+                    return _buildCreateClientButton(context, l10n);
+                  }
+
+                  // Ajustar índice si hay botón de crear
+                  final clientIndex = canCreateClients ? index - 1 : index;
+
+                  // Mensaje de "no resultados" si se aplican filtros
+                  if (clients.isEmpty) {
+                    return Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Center(
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                        padding: const EdgeInsets.all(24.0),
+                        child: Text(
+                          l10n.noResultsFound,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey.shade600,
                           ),
                         ),
                       ),
                     );
                   }
 
-                  final stats = snapshot.data ?? _ClientStats(0, 0);
+                  return FutureBuilder<_ClientStats>(
+                    future: _getClientStats(
+                      context,
+                      user.organizationId!,
+                      clients[clientIndex].id,
+                      filters,
+                    ),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Card(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
 
-                  return ClientFolderCard(
-                    client: clients[index],
-                    urgentProductsCount: stats.urgentCount,
-                    totalProductsCount: stats.totalProducts,
+                      final stats = snapshot.data ?? _ClientStats(0, 0, 0);
+
+                      return ClientFolderCard(
+                        client: clients[clientIndex],
+                        urgentProductsCount: stats.urgentCount,
+                        totalProductsCount: stats.totalProducts,
+                        projectsCount: stats.projectsCount,
+                      );
+                    },
                   );
                 },
               );
@@ -140,6 +167,52 @@ class ManagementFoldersView extends StatelessWidget {
     );
   }
 
+  Widget _buildCreateClientButton(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: OutlinedButton.icon(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CreateClientScreen(),
+            ),
+          );
+        },
+        icon: Icon(Icons.add, color: theme.colorScheme.primary),
+        label: Text(
+          l10n.createClient,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          side: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _canCreateClients(
+      BuildContext context, String organizationId, String userId) async {
+    try {
+      final memberService =
+          Provider.of<OrganizationMemberService>(context, listen: false);
+      await memberService.getCurrentMember(organizationId, userId);
+      return await memberService.can('clients', 'create');
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<_ClientStats> _getClientStats(
     BuildContext context,
     String organizationId,
@@ -148,15 +221,16 @@ class ManagementFoldersView extends StatelessWidget {
   ) async {
     try {
       final clientService = Provider.of<ClientService>(context, listen: false);
-      final productService = Provider.of<ProductCatalogService>(context, listen: false);
+      final productService =
+          Provider.of<ProductCatalogService>(context, listen: false);
 
       // Obtener proyectos del cliente
-      var projects = await clientService
-          .getClientProjects(organizationId, clientId)
-          .first;
+      var projects =
+          await clientService.getClientProjects(organizationId, clientId).first;
 
       int totalProducts = 0;
       int urgentCount = 0;
+      int projectsCount = projects.length;
 
       // Contar productos por proyecto
       for (final project in projects) {
@@ -166,7 +240,7 @@ class ManagementFoldersView extends StatelessWidget {
               .first;
 
           totalProducts += products.length;
-          
+
           // Si tienes lógica de urgencia, aplicarla aquí
           if (filters.onlyUrgent) {
             urgentCount = 0;
@@ -180,12 +254,10 @@ class ManagementFoldersView extends StatelessWidget {
       return _ClientStats(
         totalProducts,
         urgentCount,
+        projectsCount,
       );
     } catch (e) {
-      return _ClientStats(
-        0,
-        0,
-      );
+      return _ClientStats(0, 0, 0);
     }
   }
 }
@@ -193,6 +265,7 @@ class ManagementFoldersView extends StatelessWidget {
 class _ClientStats {
   final int totalProducts;
   final int urgentCount;
+  final int projectsCount;
 
-  _ClientStats(this.totalProducts, this.urgentCount);
+  _ClientStats(this.totalProducts, this.urgentCount, this.projectsCount);
 }

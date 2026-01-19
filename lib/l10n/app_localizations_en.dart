@@ -300,6 +300,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noClientsRegistered => 'No clients registered';
 
   @override
+  String get noClientsFound => 'No clients found';
+
+  @override
   String get errorLoadingClients => 'Error loading clients';
 
   @override
@@ -1843,7 +1846,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get batchesViewTitleLabel => 'View batches';
 
   @override
-  String get productsViewTitleLabel => 'View products';
+  String get productsViewTitleLabel => 'View orders';
 
   @override
   String get hello => 'Hello';
@@ -2987,4 +2990,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get owner => 'Owner';
+
+  @override
+  String get createProduct => 'Create product';
+
+  @override
+  String get createProductFamily => 'Create product family';
 }
