@@ -152,7 +152,7 @@ class PermissionRegistry {
     // PRODUCTOS DE LOTE
     PermissionModule(
       key: 'batch_products',
-      displayName: 'Productos',
+      displayName: 'Productos de lote',
       icon: 'category',
       description: 'Gestión de productos en producción',
       actions: [
@@ -190,20 +190,6 @@ class PermissionRegistry {
       ],
     ),
 
-    // CLIENTES
-    PermissionModule(
-      key: 'clients',
-      displayName: 'Clientes',
-      icon: 'people',
-      description: 'Gestión de clientes',
-      actions: [
-        PermissionAction.boolean(key: 'view', displayName: 'Ver clientes'),
-        PermissionAction.boolean(key: 'create', displayName: 'Crear clientes'),
-        PermissionAction.boolean(key: 'edit', displayName: 'Editar clientes'),
-        PermissionAction.boolean(key: 'delete', displayName: 'Eliminar clientes'),
-      ],
-    ),
-
     // CATÁLOGO
     PermissionModule(
       key: 'product_catalog',
@@ -215,6 +201,20 @@ class PermissionRegistry {
         PermissionAction.boolean(key: 'create', displayName: 'Crear productos'),
         PermissionAction.boolean(key: 'edit', displayName: 'Editar productos'),
         PermissionAction.boolean(key: 'delete', displayName: 'Eliminar productos'),
+      ],
+    ),
+
+    // CLIENTES
+    PermissionModule(
+      key: 'clients',
+      displayName: 'Clientes',
+      icon: 'people',
+      description: 'Gestión de clientes',
+      actions: [
+        PermissionAction.boolean(key: 'view', displayName: 'Ver clientes'),
+        PermissionAction.boolean(key: 'create', displayName: 'Crear clientes'),
+        PermissionAction.boolean(key: 'edit', displayName: 'Editar clientes'),
+        PermissionAction.boolean(key: 'delete', displayName: 'Eliminar clientes'),
       ],
     ),
 
