@@ -15,7 +15,7 @@ class FilterUtils {
     String allLabel = 'Todos',
   }) {
     final isSelected = value != null;
-    
+
     String displayValue = label;
     if (isSelected) {
       try {
@@ -39,7 +39,8 @@ class FilterUtils {
     return Theme(
       data: Theme.of(context).copyWith(
         popupMenuTheme: PopupMenuThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 4,
           color: Colors.white,
           surfaceTintColor: Colors.white,
@@ -61,15 +62,20 @@ class FilterUtils {
                 children: [
                   Icon(
                     Icons.restart_alt,
-                    color: isSelected ? Colors.grey : Theme.of(context).primaryColor,
+                    color: isSelected
+                        ? Colors.grey
+                        : Theme.of(context).primaryColor,
                     size: 16,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     allLabel,
                     style: TextStyle(
-                      fontWeight: !isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: !isSelected ? Theme.of(context).primaryColor : Colors.black87,
+                      fontWeight:
+                          !isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: !isSelected
+                          ? Theme.of(context).primaryColor
+                          : Colors.black87,
                       fontSize: 13,
                     ),
                   ),
@@ -84,8 +90,11 @@ class FilterUtils {
                 height: 36,
                 child: DefaultTextStyle(
                   style: TextStyle(
-                    color: isItemActive ? Theme.of(context).primaryColor : Colors.black87,
-                    fontWeight: isItemActive ? FontWeight.bold : FontWeight.normal,
+                    color: isItemActive
+                        ? Theme.of(context).primaryColor
+                        : Colors.black87,
+                    fontWeight:
+                        isItemActive ? FontWeight.bold : FontWeight.normal,
                     fontSize: 13,
                   ),
                   child: item.child,
@@ -97,10 +106,14 @@ class FilterUtils {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.08) : Colors.white,
+            color: isSelected
+                ? Theme.of(context).primaryColor.withOpacity(0.08)
+                : Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade300,
+              color: isSelected
+                  ? Theme.of(context).primaryColor
+                  : Colors.grey.shade300,
               width: 1,
             ),
           ),
@@ -111,14 +124,18 @@ class FilterUtils {
                 Icon(
                   icon,
                   size: 14,
-                  color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade600,
+                  color: isSelected
+                      ? Theme.of(context).primaryColor
+                      : Colors.grey.shade600,
                 ),
                 const SizedBox(width: 4),
               ],
               Text(
                 isSelected ? displayValue : label,
                 style: TextStyle(
-                  color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade700,
+                  color: isSelected
+                      ? Theme.of(context).primaryColor
+                      : Colors.grey.shade700,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   fontSize: 12,
                 ),
@@ -127,7 +144,9 @@ class FilterUtils {
               Icon(
                 Icons.keyboard_arrow_down_rounded,
                 size: 16,
-                color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade400,
+                color: isSelected
+                    ? Theme.of(context).primaryColor
+                    : Colors.grey.shade400,
               ),
             ],
           ),
@@ -153,7 +172,8 @@ class FilterUtils {
         return Theme(
           data: Theme.of(context).copyWith(
             popupMenuTheme: PopupMenuThemeData(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               elevation: 8,
               color: Colors.white,
               surfaceTintColor: Colors.white,
@@ -175,8 +195,11 @@ class FilterUtils {
                     width: constraints.maxWidth - 32,
                     child: DefaultTextStyle(
                       style: TextStyle(
-                        color: isItemActive ? Theme.of(context).primaryColor : Colors.black87,
-                        fontWeight: isItemActive ? FontWeight.bold : FontWeight.normal,
+                        color: isItemActive
+                            ? Theme.of(context).primaryColor
+                            : Colors.black87,
+                        fontWeight:
+                            isItemActive ? FontWeight.bold : FontWeight.normal,
                         fontSize: 14,
                       ),
                       child: item.child,
@@ -191,8 +214,8 @@ class FilterUtils {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: value != null 
-                      ? Theme.of(context).primaryColor 
+                  color: value != null
+                      ? Theme.of(context).primaryColor
                       : Colors.grey.shade300,
                   width: value != null ? 1.5 : 1,
                 ),
@@ -203,8 +226,8 @@ class FilterUtils {
                     Icon(
                       icon,
                       size: 20,
-                      color: value != null 
-                          ? Theme.of(context).primaryColor 
+                      color: value != null
+                          ? Theme.of(context).primaryColor
                           : Colors.grey.shade400,
                     ),
                     const SizedBox(width: 12),
@@ -218,15 +241,17 @@ class FilterUtils {
                           '$label${isRequired ? ' *' : ''}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: value != null 
-                                ? Theme.of(context).primaryColor 
+                            color: value != null
+                                ? Theme.of(context).primaryColor
                                 : Colors.grey.shade600,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                         const SizedBox(height: 4),
                         if (value != null)
-                          _extractTextFromChild(items.firstWhere((item) => item.value == value).child)
+                          _extractTextFromChild(items
+                              .firstWhere((item) => item.value == value)
+                              .child)
                         else
                           Text(
                             hintText ?? 'Seleccionar...',
@@ -241,8 +266,8 @@ class FilterUtils {
                   Icon(
                     Icons.keyboard_arrow_down_rounded,
                     size: 20,
-                    color: value != null 
-                        ? Theme.of(context).primaryColor 
+                    color: value != null
+                        ? Theme.of(context).primaryColor
                         : Colors.grey.shade400,
                   ),
                 ],
@@ -310,6 +335,7 @@ class FilterUtils {
     required String hintText,
     required String searchQuery,
     required Function(String) onChanged,
+    TextEditingController? controller,
     double fontSize = 13,
   }) {
     return TextField(
@@ -338,6 +364,7 @@ class FilterUtils {
               )
             : null,
       ),
+      controller: controller,
       style: TextStyle(fontSize: fontSize),
       onChanged: onChanged,
     );
@@ -350,24 +377,53 @@ class FilterUtils {
     required bool hasActiveFilters,
   }) {
     if (!hasActiveFilters) return const SizedBox.shrink();
-    
-    return TextButton.icon(
-      onPressed: onPressed,
-      icon: const Icon(Icons.clear_all, size: 16),
-      label: const Text('Quitar filtros', style: TextStyle(fontSize: 12)),
-      style: TextButton.styleFrom(
-        foregroundColor: Colors.red.shade600,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          // Si está activo, fondo rojo suave. Si no, blanco como los otros.
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            // Si está activo, borde rojo. Si no, gris como los otros.
+            color: Colors.red.shade700,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.clear_all,
+              size: 14,
+              color: Colors.red.shade700,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Quitar filtros',
+              style: TextStyle(
+                color: Colors.red.shade700,
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   /// Contador de filtros activos
   static int countActiveFilters(List<dynamic> filterValues) {
-    return filterValues.where((v) => v != null && (v is! String || v.isNotEmpty)).length;
+    return filterValues
+        .where((v) => v != null && (v is! String || v.isNotEmpty))
+        .length;
   }
 
-/// Widget de selector de urgencia circular (cicla entre niveles)
+  /// Widget de selector de urgencia circular (cicla entre niveles)
   static Widget buildUrgencySelector({
     required BuildContext context,
     required String urgencyLevel,
@@ -383,7 +439,7 @@ class FilterUtils {
         const allLevels = UrgencyLevel.values;
         final currentIndex = allLevels.indexOf(currentLevel);
         final nextIndex = (currentIndex + 1) % allLevels.length;
-        
+
         // Devolvemos el string value ('low', 'medium', etc.)
         onChanged(allLevels[nextIndex].value);
       },
@@ -467,7 +523,8 @@ class FilterUtils {
     return InkWell(
       onTap: () {
         // Toggle simple
-        final newValue = isUrgent ? UrgencyLevel.medium.value : UrgencyLevel.urgent.value;
+        final newValue =
+            isUrgent ? UrgencyLevel.medium.value : UrgencyLevel.urgent.value;
         onChanged(newValue);
       },
       borderRadius: BorderRadius.circular(8),
@@ -481,7 +538,9 @@ class FilterUtils {
         child: Row(
           children: [
             Icon(
-              isUrgent ? Icons.priority_high_rounded : Icons.low_priority_rounded,
+              isUrgent
+                  ? Icons.priority_high_rounded
+                  : Icons.low_priority_rounded,
               color: activeColor,
               size: 20,
             ),
@@ -519,7 +578,8 @@ class FilterUtils {
                 borderRadius: BorderRadius.circular(10),
                 color: isUrgent ? activeColor : Colors.grey.shade300,
               ),
-              alignment: isUrgent ? Alignment.centerRight : Alignment.centerLeft,
+              alignment:
+                  isUrgent ? Alignment.centerRight : Alignment.centerLeft,
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: Container(
                 width: 16,
@@ -543,7 +603,6 @@ class FilterUtils {
     required bool isUrgentOnly,
     required VoidCallback onToggle,
   }) {
-
     final isActive = isUrgentOnly;
     final activeColor = UrgencyLevel.urgent.color; // Rojo urgente
 
@@ -582,16 +641,12 @@ class FilterUtils {
             if (!isActive) ...[
               const SizedBox(width: 2),
               // Icono opcional para indicar que es clickeable
-              Icon(
-                Icons.add_circle_outline, 
-                size: 12, 
-                color: Colors.grey.shade400
-              ),
+              Icon(Icons.add_circle_outline,
+                  size: 12, color: Colors.grey.shade400),
             ]
           ],
         ),
       ),
     );
   }
-
 }
