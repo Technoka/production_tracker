@@ -206,43 +206,75 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
           ),
           body: RefreshIndicator(
             onRefresh: () async {},
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                // Información del producto
-                _buildProductInfoCard(product, user),
-                const SizedBox(height: 16),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Definimos el breakpoint para "Escritorio" (ej: 900px)
+                final isDesktop = constraints.maxWidth > 900;
 
-                _buildProductStatusCard(product, user),
-                const SizedBox(height: 16),
-
-                // Progreso por fases
-                _buildPhasesCard(product, user),
-                const SizedBox(height: 16),
-
-                // Vista previa del chat (solo si tiene permiso)
-                FutureBuilder<bool>(
-                  future: Provider.of<OrganizationMemberService>(context, listen: false)
-                      .can('chat', 'view'),
-                  builder: (context, snapshot) {
-                    final canViewChat = snapshot.data ?? false;
-                    if (!canViewChat) return const SizedBox.shrink();
-
-                    return Column(
-                      children: [
-                        _buildChatPreviewCard(product, user),
+                // Si es móvil, mantenemos el ListView original (1 columna)
+                if (!isDesktop) {
+                  return ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _buildProductInfoCard(product, user),
+                      const SizedBox(height: 16),
+                      _buildProductStatusCard(product, user),
+                      const SizedBox(height: 16),
+                      _buildPhasesCard(product, user),
+                      const SizedBox(height: 16),
+                      _buildChatSection(product, user), // Ver helper abajo
+                      if (product.color != null ||
+                          product.material != null ||
+                          product.specialDetails != null) ...[
                         const SizedBox(height: 16),
+                        _buildCustomizationCard(product),
                       ],
-                    );
-                  },
-                ),
+                    ],
+                  );
+                }
 
-                // PersonalizaciÃ³n
-                if (product.color != null ||
-                    product.material != null ||
-                    product.specialDetails != null)
-                  _buildCustomizationCard(product),
-              ],
+                // Si es Escritorio, usamos ScrollView con Filas
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(24), // Un poco más de margen en web
+                  child: Column(
+                    children: [
+                      // FILA 1: Info y Estado
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: _buildProductInfoCard(product, user)),
+                          const SizedBox(width: 24),
+                          Expanded(child: _buildProductStatusCard(product, user)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // FILA 2: Fases y Chat
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: _buildPhasesCard(product, user)),
+                          const SizedBox(width: 24),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                _buildChatSection(product, user),
+                                // Si hay personalización, la ponemos debajo del chat para equilibrar
+                                if (product.color != null ||
+                                    product.material != null ||
+                                    product.specialDetails != null) ...[
+                                  const SizedBox(height: 24),
+                                  _buildCustomizationCard(product),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         );
@@ -1837,6 +1869,20 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+// Helper para mostrar el chat condicionalmente
+  Widget _buildChatSection(BatchProductModel product, UserModel? user) {
+    return FutureBuilder<bool>(
+      future: Provider.of<OrganizationMemberService>(context, listen: false)
+          .can('chat', 'view'),
+      builder: (context, snapshot) {
+        final canViewChat = snapshot.data ?? false;
+        if (!canViewChat) return const SizedBox.shrink();
+
+        return _buildChatPreviewCard(product, user);
+      },
     );
   }
 
