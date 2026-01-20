@@ -61,7 +61,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
 
     // Usar StreamBuilder para actualización en tiempo real
     return StreamBuilder<ProjectModel?>(
-      stream: projectService.watchProjects(user.organizationId ?? '').map(
+      stream: projectService.watchProjectsWithScope(user.organizationId!, user.uid).map(
         (projects) => projects.firstWhere(
           (p) => p.id == widget.projectId,
           orElse: () => projects.isNotEmpty ? projects.first : throw Exception('Project not found'),
