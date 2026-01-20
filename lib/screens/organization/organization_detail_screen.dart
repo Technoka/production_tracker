@@ -86,7 +86,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     final canManageMembers =
         permissionService.hasPermission('organization', 'manageRoles');
     final canManageSettings =
-        permissionService.hasPermission('organization', 'editSettings');
+        permissionService.hasPermission('organization', 'manageSettings');
 
     return Scaffold(
       appBar: AppBar(
