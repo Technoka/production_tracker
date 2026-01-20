@@ -250,7 +250,7 @@ void _applySingleOverride(
 
   final moduleMap = permissionsMap[entry.moduleKey];
   
-  // ✅ CAMBIADO: Asegurar que moduleMap es realmente un Map
+  // Asegurar que moduleMap es realmente un Map
   final Map<String, dynamic> typedModuleMap;
   if (moduleMap is Map<String, dynamic>) {
     typedModuleMap = moduleMap;
@@ -258,7 +258,6 @@ void _applySingleOverride(
     typedModuleMap = Map<String, dynamic>.from(moduleMap);
     permissionsMap[entry.moduleKey] = typedModuleMap;
   } else {
-    // Si no es un Map, crear uno nuevo
     typedModuleMap = <String, dynamic>{};
     permissionsMap[entry.moduleKey] = typedModuleMap;
   }
@@ -275,12 +274,22 @@ void _applySingleOverride(
       break;
 
     case OverrideType.changeScope:
-      // Cambiar el scope
+      // ✅ CRÍTICO: Para scoped permissions, actualizar AMBOS campos
+      
+      // 1. Activar el permiso base
+      typedModuleMap[entry.actionKey] = true;
+      
+      // 2. Establecer el scope
+      String scopeValue;
       if (entry.value is PermissionScope) {
-        typedModuleMap[entry.actionKey] = (entry.value as PermissionScope).value;
+        scopeValue = (entry.value as PermissionScope).value;
       } else if (entry.value is String) {
-        typedModuleMap[entry.actionKey] = entry.value;
+        scopeValue = entry.value as String;
+      } else {
+        scopeValue = 'none';
       }
+      
+      typedModuleMap['${entry.actionKey}Scope'] = scopeValue;
       break;
   }
 }
