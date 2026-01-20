@@ -112,9 +112,8 @@ class ClientService extends ChangeNotifier {
         .orderBy('name')
         .snapshots()
         .map((snapshot) {
-      _clients = snapshot.docs
-          .map((doc) => ClientModel.fromMap(doc.data()))
-          .toList();
+      _clients =
+          snapshot.docs.map((doc) => ClientModel.fromMap(doc.data())).toList();
       return _clients;
     });
   }
@@ -135,9 +134,8 @@ class ClientService extends ChangeNotifier {
           .orderBy('name')
           .get();
 
-      _clients = snapshot.docs
-          .map((doc) => ClientModel.fromMap(doc.data()))
-          .toList();
+      _clients =
+          snapshot.docs.map((doc) => ClientModel.fromMap(doc.data())).toList();
 
       _isLoading = false;
       notifyListeners();
@@ -225,6 +223,85 @@ class ClientService extends ChangeNotifier {
             .map((doc) => ProjectModel.fromMap(doc.data()))
             .toList());
   }
+
+  Stream<List<ProjectModel>> watchClientProjectsWithScope(
+    String organizationId, String clientId, String userId) async* {
+  try {
+    // Obtener scope del permiso
+    await _memberService.getCurrentMember(organizationId, userId);
+    final scope = await _memberService.getScope('projects', 'view');
+
+    // Verificar acceso
+    if (scope == PermissionScope.none) {
+      yield [];
+      return;
+    }
+
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('projects')
+        .where('clientId', isEqualTo: clientId)
+        .where('isActive', isEqualTo: true);
+
+    // Aplicar filtro según scope
+    if (scope == PermissionScope.assigned) {
+      // Solo proyectos asignados
+      query = query.where('assignedMembers', arrayContains: userId);
+    }
+    // Si es 'all', no se añade filtro adicional
+
+    // Ordenar (solo UNA vez)
+    query = query.orderBy('createdAt', descending: true);
+
+    yield* query.snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) => ProjectModel.fromMap(doc.data()))
+          .toList();
+    });
+  } catch (e) {
+    debugPrint('Error en watchClientProjectsWithScope: $e');
+    yield [];
+  }
+}
+
+/// Obtener proyectos de un cliente con scope (Future, no Stream)
+Future<List<ProjectModel>> getClientProjectsWithScope(
+    String organizationId, String clientId, String userId) async {
+  try {
+    // Obtener scope del permiso
+    await _memberService.getCurrentMember(organizationId, userId);
+    final scope = await _memberService.getScope('projects', 'view');
+
+    // Verificar acceso
+    if (scope == PermissionScope.none) {
+      return [];
+    }
+
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('projects')
+        .where('clientId', isEqualTo: clientId)
+        .where('isActive', isEqualTo: true);
+
+    // Aplicar filtro según scope
+    if (scope == PermissionScope.assigned) {
+      query = query.where('assignedMembers', arrayContains: userId);
+    }
+
+    // Ordenar
+    query = query.orderBy('createdAt', descending: true);
+
+    final snapshot = await query.get();
+    return snapshot.docs
+        .map((doc) => ProjectModel.fromMap(doc.data()))
+        .toList();
+  } catch (e) {
+    debugPrint('Error en getClientProjectsWithScope: $e');
+    return [];
+  }
+}
 
   // ==================== ACTUALIZAR CLIENTE ====================
 
@@ -451,9 +528,7 @@ class ClientService extends ChangeNotifier {
           .collection('clients')
           .where('isActive', isEqualTo: true)
           .orderBy('name')
-          .startAt([namePrefix])
-          .endAt([namePrefix + '\uf8ff'])
-          .get();
+          .startAt([namePrefix]).endAt([namePrefix + '\uf8ff']).get();
 
       return snapshot.docs
           .map((doc) => ClientModel.fromMap(doc.data()))

@@ -129,6 +129,7 @@ class ManagementFoldersView extends StatelessWidget {
                       context,
                       user.organizationId!,
                       clients[clientIndex].id,
+                      user.uid,
                       filters,
                     ),
                     builder: (context, snapshot) {
@@ -217,6 +218,7 @@ class ManagementFoldersView extends StatelessWidget {
     BuildContext context,
     String organizationId,
     String clientId,
+    String userId,
     ManagementFilters filters,
   ) async {
     try {
@@ -226,7 +228,7 @@ class ManagementFoldersView extends StatelessWidget {
 
       // Obtener proyectos del cliente
       var projects =
-          await clientService.getClientProjects(organizationId, clientId).first;
+          await clientService.getClientProjectsWithScope(organizationId, clientId, userId);
 
       int totalProducts = 0;
       int urgentCount = 0;
