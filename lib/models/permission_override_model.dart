@@ -239,38 +239,51 @@ class PermissionOverridesModel {
     return PermissionsModel.fromMap(resultMap);
   }
 
-  void _applySingleOverride(
-    Map<String, dynamic> permissionsMap,
-    PermissionOverrideEntry entry,
-  ) {
-    // Asegurar que existe el módulo
-    if (!permissionsMap.containsKey(entry.moduleKey)) {
-      permissionsMap[entry.moduleKey] = <String, dynamic>{};
-    }
-
-    final moduleMap = permissionsMap[entry.moduleKey] as Map<String, dynamic>;
-
-    switch (entry.type) {
-      case OverrideType.enable:
-        // Habilitar el permiso
-        moduleMap[entry.actionKey] = true;
-        break;
-
-      case OverrideType.disable:
-        // Deshabilitar el permiso
-        moduleMap[entry.actionKey] = false;
-        break;
-
-      case OverrideType.changeScope:
-        // Cambiar el scope
-        if (entry.value is PermissionScope) {
-          moduleMap[entry.actionKey] = (entry.value as PermissionScope).value;
-        } else if (entry.value is String) {
-          moduleMap[entry.actionKey] = entry.value;
-        }
-        break;
-    }
+void _applySingleOverride(
+  Map<String, dynamic> permissionsMap,
+  PermissionOverrideEntry entry,
+) {
+  // Asegurar que existe el módulo
+  if (!permissionsMap.containsKey(entry.moduleKey)) {
+    permissionsMap[entry.moduleKey] = <String, dynamic>{};
   }
+
+  final moduleMap = permissionsMap[entry.moduleKey];
+  
+  // ✅ CAMBIADO: Asegurar que moduleMap es realmente un Map
+  final Map<String, dynamic> typedModuleMap;
+  if (moduleMap is Map<String, dynamic>) {
+    typedModuleMap = moduleMap;
+  } else if (moduleMap is Map) {
+    typedModuleMap = Map<String, dynamic>.from(moduleMap);
+    permissionsMap[entry.moduleKey] = typedModuleMap;
+  } else {
+    // Si no es un Map, crear uno nuevo
+    typedModuleMap = <String, dynamic>{};
+    permissionsMap[entry.moduleKey] = typedModuleMap;
+  }
+
+  switch (entry.type) {
+    case OverrideType.enable:
+      // Habilitar el permiso
+      typedModuleMap[entry.actionKey] = true;
+      break;
+
+    case OverrideType.disable:
+      // Deshabilitar el permiso
+      typedModuleMap[entry.actionKey] = false;
+      break;
+
+    case OverrideType.changeScope:
+      // Cambiar el scope
+      if (entry.value is PermissionScope) {
+        typedModuleMap[entry.actionKey] = (entry.value as PermissionScope).value;
+      } else if (entry.value is String) {
+        typedModuleMap[entry.actionKey] = entry.value;
+      }
+      break;
+  }
+}
 
   // ==================== HELPERS DE CREACIÓN ====================
 

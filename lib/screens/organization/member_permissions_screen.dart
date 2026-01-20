@@ -11,6 +11,7 @@ import '../../services/permission_service.dart';
 import '../../services/auth_service.dart';
 import '../../providers/theme_provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/organization_member_service.dart';
 
 /// Pantalla de gestiÃƒÂ³n de permisos de un miembro especÃƒÂ­fico
 /// Permite visualizar y editar permisos individuales con overrides sobre el rol base
@@ -25,21 +26,22 @@ class MemberPermissionsScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<MemberPermissionsScreen> createState() => _MemberPermissionsScreenState();
+  State<MemberPermissionsScreen> createState() =>
+      _MemberPermissionsScreenState();
 }
 
 class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
+
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
-  
+
   RoleModel? _memberRole;
   PermissionsModel? _roleBasePermissions;
   PermissionOverridesModel _currentOverrides = PermissionOverridesModel.empty();
   PermissionOverridesModel _pendingOverrides = PermissionOverridesModel.empty();
-  
+
   bool _hasChanges = false;
   bool _isViewingOwnPermissions = false;
   bool _isAdminOrOwner = false;
@@ -47,19 +49,21 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     // Determinar si está viendo sus propios permisos
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authService = Provider.of<AuthService>(context, listen: false);
       final currentUserId = authService.currentUserData?.uid;
-      final permissionService = Provider.of<PermissionService>(context, listen: false);
-      
+      final permissionService =
+          Provider.of<PermissionService>(context, listen: false);
+
       setState(() {
         _isViewingOwnPermissions = widget.memberData.userId == currentUserId;
-        _isAdminOrOwner = permissionService.hasPermission('organization', 'manageRoles');
+        _isAdminOrOwner =
+            permissionService.hasPermission('organization', 'manageRoles');
       });
     });
-    
+
     _loadPermissionsData();
   }
 
@@ -71,7 +75,6 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
     });
 
     try {
-
       // 1. Cargar el rol del miembro
       final roleDoc = await _firestore
           .collection('organizations')
@@ -95,7 +98,7 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
         debugPrint('ERROR: Campo "name" es null en roleData');
         throw Exception('El rol no tiene nombre definido');
       }
-      
+
       if (roleData['color'] == null) {
         debugPrint('ERROR: Campo "color" es null en roleData');
         throw Exception('El rol no tiene color definido');
@@ -126,9 +129,11 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
           .doc(widget.memberData.userId)
           .get();
 
-      PermissionOverridesModel currentOverrides = PermissionOverridesModel.empty();
-      
-      if (memberDoc.exists && memberDoc.data()?['permissionOverrides'] != null) {
+      PermissionOverridesModel currentOverrides =
+          PermissionOverridesModel.empty();
+
+      if (memberDoc.exists &&
+          memberDoc.data()?['permissionOverrides'] != null) {
         try {
           currentOverrides = PermissionOverridesModel.fromMap(
             memberDoc.data()!['permissionOverrides'] as Map<String, dynamic>,
@@ -143,10 +148,10 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
         _memberRole = role;
         _roleBasePermissions = role.permissions;
         _currentOverrides = currentOverrides;
-        _pendingOverrides = PermissionOverridesModel.fromMap(currentOverrides.toMap());
+        _pendingOverrides =
+            PermissionOverridesModel.fromMap(currentOverrides.toMap());
         _isLoading = false;
       });
-
     } catch (e, stackTrace) {
       debugPrint('=== ERROR CARGANDO PERMISOS ===');
       debugPrint('Error: $e');
@@ -186,9 +191,25 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
       });
 
       setState(() {
-        _currentOverrides = PermissionOverridesModel.fromMap(_pendingOverrides.toMap());
+        _currentOverrides =
+            PermissionOverridesModel.fromMap(_pendingOverrides.toMap());
         _hasChanges = false;
       });
+
+      // ✅ AÑADIDO: Forzar recarga de permisos
+      // ✅ AÑADIDO: Forzar recarga de permisos
+      try {
+        // Si estás editando tus propios permisos, recargar
+        if (widget.memberData.userId == currentUserId) {
+          final memberService =
+              Provider.of<OrganizationMemberService>(context, listen: false);
+          await memberService.refreshCurrentMember(
+              widget.organizationId, currentUserId); // ✅ Pasar userId
+        }
+      } catch (refreshError) {
+        debugPrint('Error al refrescar permisos: $refreshError');
+        // No fallar si no se puede refrescar, los cambios ya están guardados
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -213,8 +234,9 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
     }
   }
 
-  /// Alternar un permiso booleano
-  void _toggleBooleanPermission(String moduleKey, String actionKey, bool currentValue) {
+  /// Alternar un permiso boolean
+  void _toggleBooleanPermission(
+      String moduleKey, String actionKey, bool newValue) {
     // Bloquear edición si es modo solo lectura
     if (_isViewingOwnPermissions && !_isAdminOrOwner) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -230,28 +252,31 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
     if (_isViewingOwnPermissions && moduleKey == 'organization') {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.cannotModifyOrgPermissions),
+          content:
+              Text(AppLocalizations.of(context)!.cannotModifyOrgPermissions),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
-    
+
     final authService = Provider.of<AuthService>(context, listen: false);
     final currentUserId = authService.currentUserData?.uid ?? '';
 
     // Obtener valor base del rol
-    final baseValue = _roleBasePermissions?.dynamicHelper.can(moduleKey, actionKey) ?? false;
-    
+    final baseValue =
+        _roleBasePermissions?.dynamicHelper.can(moduleKey, actionKey) ?? false;
+
     // Si el nuevo valor es igual al base, eliminar el override
-    if (currentValue == baseValue) {
+    if (newValue == baseValue) {
       setState(() {
-        _pendingOverrides = _pendingOverrides.removeOverride(moduleKey, actionKey);
+        _pendingOverrides =
+            _pendingOverrides.removeOverride(moduleKey, actionKey);
         _hasChanges = true;
       });
     } else {
-      // Crear override
-      final override = currentValue
+      // Crear override según el nuevo valor
+      final override = newValue
           ? PermissionOverridesModel.createEnableOverride(
               moduleKey: moduleKey,
               actionKey: actionKey,
@@ -270,9 +295,9 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
     }
   }
 
-
   /// Cambiar scope de un permiso
-  void _changeScopePermission(String moduleKey, String actionKey, PermissionScope newScope) {
+  void _changeScopePermission(
+      String moduleKey, String actionKey, PermissionScope newScope) {
     // Bloquear edición si es modo solo lectura
     if (_isViewingOwnPermissions && !_isAdminOrOwner) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -288,24 +313,27 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
     if (_isViewingOwnPermissions && moduleKey == 'organization') {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.cannotModifyOrgPermissions),
+          content:
+              Text(AppLocalizations.of(context)!.cannotModifyOrgPermissions),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
-    
+
     final authService = Provider.of<AuthService>(context, listen: false);
     final currentUserId = authService.currentUserData?.uid ?? '';
 
     // Obtener scope base del rol
-    final baseScope = _roleBasePermissions?.dynamicHelper.getScope(moduleKey, actionKey) 
-        ?? PermissionScope.none;
-    
+    final baseScope =
+        _roleBasePermissions?.dynamicHelper.getScope(moduleKey, actionKey) ??
+            PermissionScope.none;
+
     // Si el nuevo scope es igual al base, eliminar el override
     if (newScope == baseScope) {
       setState(() {
-        _pendingOverrides = _pendingOverrides.removeOverride(moduleKey, actionKey);
+        _pendingOverrides =
+            _pendingOverrides.removeOverride(moduleKey, actionKey);
         _hasChanges = true;
       });
     } else {
@@ -324,30 +352,46 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
     }
   }
 
-
   /// Obtener el valor efectivo de un permiso booleano
   bool _getEffectiveBooleanValue(String moduleKey, String actionKey) {
-    // 1. Verificar si hay override pendiente
-    final override = _pendingOverrides.getOverride(moduleKey, actionKey);
-    if (override != null && override.type != OverrideType.changeScope) {
-      return override.value as bool? ?? false;
+    // 1. Verificar si hay override pendiente (cambios sin guardar)
+    final pendingOverride = _pendingOverrides.getOverride(moduleKey, actionKey);
+    if (pendingOverride != null &&
+        pendingOverride.type != OverrideType.changeScope) {
+      return pendingOverride.value as bool? ?? false;
     }
 
-    // 2. Usar valor base del rol
-    return _roleBasePermissions?.dynamicHelper.can(moduleKey, actionKey) ?? false;
+    // 2. Verificar si hay override guardado (ya en Firebase)
+    final currentOverride = _currentOverrides.getOverride(moduleKey, actionKey);
+    if (currentOverride != null &&
+        currentOverride.type != OverrideType.changeScope) {
+      return currentOverride.value as bool? ?? false;
+    }
+
+    // 3. Usar valor base del rol
+    return _roleBasePermissions?.dynamicHelper.can(moduleKey, actionKey) ??
+        false;
   }
 
   /// Obtener el scope efectivo de un permiso
   PermissionScope _getEffectiveScope(String moduleKey, String actionKey) {
-    // 1. Verificar si hay override pendiente
-    final override = _pendingOverrides.getOverride(moduleKey, actionKey);
-    if (override != null && override.type == OverrideType.changeScope) {
-      return override.value as PermissionScope? ?? PermissionScope.none;
+    // 1. Verificar si hay override pendiente (cambios sin guardar)
+    final pendingOverride = _pendingOverrides.getOverride(moduleKey, actionKey);
+    if (pendingOverride != null &&
+        pendingOverride.type == OverrideType.changeScope) {
+      return pendingOverride.value as PermissionScope? ?? PermissionScope.none;
     }
 
-    // 2. Usar scope base del rol
-    return _roleBasePermissions?.dynamicHelper.getScope(moduleKey, actionKey) 
-        ?? PermissionScope.none;
+    // 2. Verificar si hay override guardado (ya en Firebase)
+    final currentOverride = _currentOverrides.getOverride(moduleKey, actionKey);
+    if (currentOverride != null &&
+        currentOverride.type == OverrideType.changeScope) {
+      return currentOverride.value as PermissionScope? ?? PermissionScope.none;
+    }
+
+    // 3. Usar scope base del rol
+    return _roleBasePermissions?.dynamicHelper.getScope(moduleKey, actionKey) ??
+        PermissionScope.none;
   }
 
   /// Verificar si un permiso tiene override
@@ -451,7 +495,8 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                              const Icon(Icons.error_outline,
+                                  size: 64, color: Colors.red),
                               const SizedBox(height: 16),
                               Text(_errorMessage!),
                               const SizedBox(height: 16),
@@ -493,7 +538,8 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         l10n.viewingOwnPermissions,
@@ -654,13 +700,15 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
   /// Tile de un permiso individual
   Widget _buildPermissionTile(String moduleKey, PermissionAction action) {
     final hasOverride = _hasOverride(moduleKey, action.key);
-    
+
     // Valores base del rol
     final baseValue = action.type == PermissionActionType.boolean
-        ? _roleBasePermissions?.dynamicHelper.can(moduleKey, action.key) ?? false
+        ? _roleBasePermissions?.dynamicHelper.can(moduleKey, action.key) ??
+            false
         : null;
     final baseScope = action.type == PermissionActionType.scoped
-        ? _roleBasePermissions?.dynamicHelper.getScope(moduleKey, action.key) ?? PermissionScope.none
+        ? _roleBasePermissions?.dynamicHelper.getScope(moduleKey, action.key) ??
+            PermissionScope.none
         : null;
 
     // Valores efectivos (con overrides aplicados)
@@ -739,7 +787,7 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
     PermissionScope? effectiveScope,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     String text = '';
     Color color = Colors.orange;
 
@@ -752,8 +800,9 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
         color = Colors.green;
       }
     } else if (type == PermissionActionType.scoped) {
-      text = '${l10n.roleScope}: ${_getScopeDisplayName(baseScope!)} ${_getScopeDisplayName(effectiveScope!)}';
-      
+      text =
+          '${l10n.roleScope}: ${_getScopeDisplayName(baseScope!)} ${_getScopeDisplayName(effectiveScope!)}';
+
       if (_isScopeUpgrade(baseScope, effectiveScope)) {
         color = Colors.green;
       } else if (_isScopeDowngrade(baseScope, effectiveScope)) {
@@ -780,17 +829,19 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
   }
 
   /// Control para permisos booleanos
-  Widget _buildBooleanControl(String moduleKey, String actionKey, bool currentValue) {
+  Widget _buildBooleanControl(
+      String moduleKey, String actionKey, bool currentValue) {
     return Switch(
       value: currentValue,
-      onChanged: (value) => _toggleBooleanPermission(moduleKey, actionKey, value),
+      onChanged: (value) =>
+          _toggleBooleanPermission(moduleKey, actionKey, value),
       activeColor: Colors.green,
     );
   }
 
   /// Control para permisos con scope
-  Widget _buildScopeControl(String moduleKey, String actionKey, PermissionScope currentScope) {
-    
+  Widget _buildScopeControl(
+      String moduleKey, String actionKey, PermissionScope currentScope) {
     return DropdownButton<PermissionScope>(
       value: currentScope,
       isDense: true,
@@ -827,15 +878,19 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
 
   /// Verificar si un cambio de scope es una mejora
   bool _isScopeUpgrade(PermissionScope base, PermissionScope effective) {
-    if (base == PermissionScope.none && effective != PermissionScope.none) return true;
-    if (base == PermissionScope.assigned && effective == PermissionScope.all) return true;
+    if (base == PermissionScope.none && effective != PermissionScope.none)
+      return true;
+    if (base == PermissionScope.assigned && effective == PermissionScope.all)
+      return true;
     return false;
   }
 
   /// Verificar si un cambio de scope es una restricciÃƒÂ³n
   bool _isScopeDowngrade(PermissionScope base, PermissionScope effective) {
-    if (base == PermissionScope.all && effective != PermissionScope.all) return true;
-    if (base == PermissionScope.assigned && effective == PermissionScope.none) return true;
+    if (base == PermissionScope.all && effective != PermissionScope.all)
+      return true;
+    if (base == PermissionScope.assigned && effective == PermissionScope.none)
+      return true;
     return false;
   }
 
