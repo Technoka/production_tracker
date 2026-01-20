@@ -3,6 +3,7 @@ import '../models/project_product_model.dart';
 import 'product_catalog_service.dart';
 import 'phase_service.dart'; // 1. Importar PhaseService
 
+@Deprecated("NO se usa. Sera eliminada pronto.")
 class ProjectProductService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final ProductCatalogService _catalogService = ProductCatalogService();
@@ -99,7 +100,7 @@ class ProjectProductService {
             .toList());
   }
 
-  Future<List<ProjectProductModel>> getProjectProducts(String organizationId, String projectId) async {
+  Future<List<ProjectProductModel>> getProjectProductsStream(String organizationId, String projectId) async {
     try {
       final snapshot = await _firestore
           .collection('organizations')  
@@ -274,9 +275,9 @@ class ProjectProductService {
 
   // ==================== ESTADÍSTICAS ====================
 
-  Future<Map<String, dynamic>> getProjectProductStats(String organizationId, String projectId) async {
+  Future<Map<String, dynamic>> getProjectProductsStreamtats(String organizationId, String projectId) async {
     try {
-      final products = await getProjectProducts(organizationId, projectId);
+      final products = await getProjectProductsStream(organizationId, projectId);
 
       final totalProducts = products.length;
       final totalUnits = products.fold<int>(0, (sum, p) => sum + p.quantity);
@@ -309,7 +310,7 @@ class ProjectProductService {
     String projectId,
   ) async {
     try {
-      final products = await getProjectProducts(organizationId, projectId);
+      final products = await getProjectProductsStream(organizationId, projectId);
 
       return {
         'pendiente': products.where((p) => p.isPending).toList(),
@@ -368,7 +369,7 @@ class ProjectProductService {
     required String updatedBy,
   }) async {
     try {
-      final products = await getProjectProducts(organizationId, projectId);
+      final products = await getProjectProductsStream(organizationId, projectId);
 
       final batch = _firestore.batch();
 
