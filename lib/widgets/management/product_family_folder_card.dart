@@ -141,8 +141,6 @@ class _ProductFamilyFolderCardState extends State<ProductFamilyFolderCard> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => CreateProductCatalogScreen(
-                                      organizationId: user.organizationId!,
-                                      currentUser: user,
                                       initialClientId: widget.client.id,
                                       initialProjectId: widget.project.id,
                                       initialFamily: widget.familyName != 'Sin categoría' 

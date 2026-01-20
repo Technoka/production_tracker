@@ -798,7 +798,7 @@ class _ProjectTabView extends StatelessWidget {
                 stream: Provider.of<ProductCatalogService>(
                   context,
                   listen: false,
-                ).getProjectProducts(user.organizationId!, projectId),
+                ).getProjectProductsStream(user.organizationId!, projectId),
                 builder: (context, productSnapshot) {
                   if (productSnapshot.connectionState ==
                       ConnectionState.waiting) {

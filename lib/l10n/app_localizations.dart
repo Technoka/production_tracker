@@ -488,7 +488,7 @@ abstract class AppLocalizations {
   /// No description provided for @productName.
   ///
   /// In en, this message translates to:
-  /// **'Product Name'**
+  /// **'Product name'**
   String get productName;
 
   /// No description provided for @quantity.
@@ -2012,7 +2012,7 @@ abstract class AppLocalizations {
   /// No description provided for @unsavedChangesMessage.
   ///
   /// In en, this message translates to:
-  /// **'Do you want to discard changes?'**
+  /// **'Are you sure you want to exit? Unsaved changes will be lost.'**
   String get unsavedChangesMessage;
 
   /// No description provided for @discard.
@@ -5932,6 +5932,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create product family'**
   String get createProductFamily;
+
+  /// No description provided for @selectClient.
+  ///
+  /// In en, this message translates to:
+  /// **'Select client'**
+  String get selectClient;
+
+  /// No description provided for @selectProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Select project'**
+  String get selectProject;
+
+  /// No description provided for @selectFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Select family'**
+  String get selectFamily;
+
+  /// No description provided for @createFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Create family'**
+  String get createFamily;
+
+  /// No description provided for @optional.
+  ///
+  /// In en, this message translates to:
+  /// **'optional'**
+  String get optional;
+
+  /// No description provided for @exitWithoutSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit without saving'**
+  String get exitWithoutSaving;
+
+  /// No description provided for @createNewFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Create New Family'**
+  String get createNewFamily;
+
+  /// No description provided for @familyNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Family name'**
+  String get familyNameLabel;
+
+  /// No description provided for @familyNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'E.g: Handbags'**
+  String get familyNameHint;
+
+  /// No description provided for @createNewFamilyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the name of the new product family. You must create at least one product for the family to be registered.'**
+  String get createNewFamilyDescription;
+
+  /// No description provided for @continueButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueButton;
+
+  /// No description provided for @productCreatedWithFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family \"{family}\" and product created successfully'**
+  String productCreatedWithFamily(String family);
+
+  /// No description provided for @productCreatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Product created successfully'**
+  String get productCreatedSuccess;
+
+  /// No description provided for @noProjectsForThisClient.
+  ///
+  /// In en, this message translates to:
+  /// **'No projects for this client'**
+  String get noProjectsForThisClient;
+
+  /// No description provided for @selectClientFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a client first'**
+  String get selectClientFirst;
+
+  /// No description provided for @selectProjectFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a project first'**
+  String get selectProjectFirst;
+
+  /// No description provided for @noFamiliesCreateNew.
+  ///
+  /// In en, this message translates to:
+  /// **'No families, create a new one'**
+  String get noFamiliesCreateNew;
+
+  /// No description provided for @createNewFamilyOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Create new family'**
+  String get createNewFamilyOption;
+
+  /// No description provided for @youMustCreateAProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'You must also create a product for the family to be created'**
+  String get youMustCreateAProduct;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

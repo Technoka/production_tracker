@@ -31,6 +31,7 @@ class ProductCatalogModel {
   final bool isPublic; 
   final int? estimatedProductionHours; 
   final List<Map<String, dynamic>>? clientPrices; 
+  final List<String> projects;
 
   ProductCatalogModel({
     required this.id,
@@ -62,6 +63,7 @@ class ProductCatalogModel {
     this.isPublic = true,
     this.estimatedProductionHours,
     this.clientPrices,
+    required this.projects,
   });
 
   Map<String, dynamic> toMap() {
@@ -95,6 +97,7 @@ class ProductCatalogModel {
       'isPublic': isPublic,
       'estimatedProductionHours': estimatedProductionHours,
       'clientPrices': clientPrices,
+      'projects': projects,
     };
   }
 
@@ -143,6 +146,7 @@ class ProductCatalogModel {
       clientPrices: map['clientPrices'] != null 
           ? List<Map<String, dynamic>>.from(map['clientPrices']) 
           : null,
+      projects: List<String>.from(map['projects'] as List),
     );
   }
 
@@ -176,6 +180,7 @@ class ProductCatalogModel {
     bool? isPublic,
     int? estimatedProductionHours,
     List<Map<String, dynamic>>? clientPrices,
+    List<String>? projects,
   }) {
     return ProductCatalogModel(
       id: id ?? this.id,
@@ -207,6 +212,7 @@ class ProductCatalogModel {
       isPublic: isPublic ?? this.isPublic,
       estimatedProductionHours: estimatedProductionHours ?? this.estimatedProductionHours,
       clientPrices: clientPrices ?? this.clientPrices,
+      projects: projects ?? this.projects,
     );
   }
   
@@ -232,6 +238,9 @@ class ProductCatalogModel {
       tags.any((tag) => tag.toLowerCase() == filter.toLowerCase())
     );
   }
+
+  bool get hasProjects => projects.isNotEmpty;
+  int get projectCount => projects.length;
 }
 
 /// Información de materiales del producto

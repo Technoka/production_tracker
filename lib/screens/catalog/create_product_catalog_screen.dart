@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../../l10n/app_localizations.dart';
-import '../../models/product_catalog_model.dart';
-import '../../models/user_model.dart';
-import '../../services/product_catalog_service.dart';
-import '../../models/client_model.dart';
-import '../../services/client_service.dart';
 import 'package:provider/provider.dart';
+import '../../services/auth_service.dart';
+import '../../services/product_catalog_service.dart';
+import '../../services/client_service.dart';
+import '../../services/project_service.dart';
+import '../../models/client_model.dart';
+import '../../models/project_model.dart';
+import '../../models/product_catalog_model.dart';
+import '../../utils/filter_utils.dart';
+import '../../l10n/app_localizations.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CreateProductCatalogScreen extends StatefulWidget {
-  final String organizationId;
-  final UserModel currentUser;
   final String? initialClientId;
   final String? initialProjectId;
   final String? initialFamily;
+  final bool createNewFamily;
 
   const CreateProductCatalogScreen({
     super.key,
-    required this.organizationId,
-    required this.currentUser,
     this.initialClientId,
     this.initialProjectId,
-    this.initialFamily
+    this.initialFamily,
+    this.createNewFamily = false,
   });
 
   @override
@@ -32,43 +33,51 @@ class CreateProductCatalogScreen extends StatefulWidget {
 class _CreateProductCatalogScreenState
     extends State<CreateProductCatalogScreen> {
   final _formKey = GlobalKey<FormState>();
-  final ProductCatalogService _catalogService = ProductCatalogService();
-
-  // Controladores de campos básicos
   final _nameController = TextEditingController();
   final _referenceController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _categoryController = TextEditingController();
   final _notesController = TextEditingController();
 
-  // Controladores de especificaciones
-  final _basePriceController = TextEditingController();
-  final _weightController = TextEditingController();
-  final _widthController = TextEditingController();
-  final _heightController = TextEditingController();
-  final _depthController = TextEditingController();
-
-  // Controladores de material
-  final _primaryMaterialController = TextEditingController();
-  final _finishController = TextEditingController();
-  final _colorController = TextEditingController();
-
-  List<String> _secondaryMaterials = [];
-  List<String> _tags = [];
-  List<String> _imageUrls = [];
-  Map<String, dynamic> _specifications = {};
-
-  bool _isLoading = false;
-  List<String> _availableCategories = [];
-  
   String? _selectedClientId;
-  String? _selectedClientName;
-  bool _isPublic = true;
+  String? _selectedProjectId;
+  String? _selectedFamily;
+  bool _isLoading = false;
+  bool _hasUnsavedChanges = false;
+  String? _pendingNewFamily;
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    
+    // Pre-seleccionar valores iniciales
+    if (widget.initialClientId != null) {
+      _selectedClientId = widget.initialClientId;
+    }
+    if (widget.initialProjectId != null) {
+      _selectedProjectId = widget.initialProjectId;
+    }
+    if (widget.initialFamily != null) {
+      _selectedFamily = widget.initialFamily;
+    }
+
+    // Mostrar diálogo de crear familia si viene el parámetro
+    if (widget.createNewFamily) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showCreateFamilyDialog();
+      });
+    }
+
+    // Detectar cambios en los campos
+    _nameController.addListener(_markAsChanged);
+    _referenceController.addListener(_markAsChanged);
+    _descriptionController.addListener(_markAsChanged);
+    _notesController.addListener(_markAsChanged);
+  }
+
+  void _markAsChanged() {
+    if (!_hasUnsavedChanges) {
+      setState(() => _hasUnsavedChanges = true);
+    }
   }
 
   @override
@@ -76,150 +85,292 @@ class _CreateProductCatalogScreenState
     _nameController.dispose();
     _referenceController.dispose();
     _descriptionController.dispose();
-    _categoryController.dispose();
     _notesController.dispose();
-    _basePriceController.dispose();
-    _weightController.dispose();
-    _widthController.dispose();
-    _heightController.dispose();
-    _depthController.dispose();
-    _primaryMaterialController.dispose();
-    _finishController.dispose();
-    _colorController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadCategories() async {
-    final categories =
-        await _catalogService.getOrganizationCategories(widget.organizationId);
-    if (mounted) {
+  Future<void> _showCreateFamilyDialog() async {
+    final familyController = TextEditingController();
+    
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Crear Nueva Familia'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Ingresa el nombre de la nueva familia de productos. Deberás crear al menos un producto para que la familia se registre.',
+                style: TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: familyController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre de la familia',
+                  hintText: 'Ej: Bolsos de mano',
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.words,
+                autofocus: true,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text('Cancelar'),
+            ),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: familyController,
+              builder: (context, value, child) {
+                final isValid = value.text.trim().isNotEmpty;
+                return FilledButton(
+                  onPressed: isValid
+                      ? () => Navigator.pop(context, value.text.trim())
+                      : null,
+                  child: const Text('Continuar'),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null && mounted) {
       setState(() {
-        _availableCategories = categories;
+        _pendingNewFamily = result;
+        _selectedFamily = result;
       });
+    } else {
+      // Si cancela, volver atrás
+      if (mounted) {
+        Navigator.pop(context);
+      }
     }
   }
 
-  Future<void> _saveProduct(AppLocalizations l10n) async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<bool> _onWillPop() async {
+    if (!_hasUnsavedChanges) return true;
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      MaterialInfo? materialInfo;
-      if (_primaryMaterialController.text.isNotEmpty) {
-        materialInfo = MaterialInfo(
-          primaryMaterial: _primaryMaterialController.text.trim(),
-          secondaryMaterials: _secondaryMaterials,
-          finish: _finishController.text.trim().isNotEmpty
-              ? _finishController.text.trim()
-              : null,
-          color: _colorController.text.trim().isNotEmpty
-              ? _colorController.text.trim()
-              : null,
-        );
-      }
-
-      DimensionsInfo? dimensions;
-      final width = double.tryParse(_widthController.text);
-      final height = double.tryParse(_heightController.text);
-      final depth = double.tryParse(_depthController.text);
-
-      if (width != null || height != null || depth != null) {
-        dimensions = DimensionsInfo(
-          width: width,
-          height: height,
-          depth: depth,
-          unit: 'cm',
-        );
-      }
-
-      final productId = await _catalogService.createProduct(
-        organizationId: widget.organizationId,
-        name: _nameController.text.trim(),
-        reference: _referenceController.text.trim(),
-        description: _descriptionController.text.trim(),
-        createdBy: widget.currentUser.uid,
-        category: _categoryController.text.trim().isNotEmpty
-            ? _categoryController.text.trim()
-            : null,
-        imageUrls: _imageUrls,
-        specifications: _specifications,
-        tags: _tags,
-        materialInfo: materialInfo,
-        dimensions: dimensions,
-        estimatedWeight: double.tryParse(_weightController.text),
-        basePrice: double.tryParse(_basePriceController.text),
-        notes: _notesController.text.trim().isNotEmpty
-            ? _notesController.text.trim()
-            : null,
-        clientId: _isPublic ? null : _selectedClientId,
-        isPublic: _isPublic,
-      );
-
-      if (mounted) {
-        if (productId != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                _isPublic 
-                    ? l10n.productCreatedPublicSuccess
-                    : l10n.productCreatedPrivateSuccess(_selectedClientName ?? ''),
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pop(context, true);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.createProductError),
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cambios sin guardar'),
+        content: const Text(
+          '¿Estás seguro que quieres salir? Los cambios no guardados se perderán.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
               backgroundColor: Colors.red,
             ),
-          );
-        }
-      }
-    } catch (e) {
+            child: const Text('Salir sin guardar'),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
+  }
+
+  Future<void> _handleCreate() async {
+  if (!_formKey.currentState!.validate()) return;
+
+  if (_selectedClientId == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Por favor selecciona un cliente'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  if (_selectedProjectId == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Por favor selecciona un proyecto'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  if (_selectedFamily == null || _selectedFamily!.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Por favor selecciona o crea una familia'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  setState(() => _isLoading = true);
+
+  try {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
+    final user = authService.currentUserData;
+
+    if (user == null || user.organizationId == null) return;
+
+    // 1. Crear el producto en el catálogo
+    final productId = await catalogService.createProduct(
+      organizationId: user.organizationId!,
+      name: _nameController.text.trim(),
+      reference: _referenceController.text.trim(),
+      description: _descriptionController.text.trim(),
+      family: _selectedFamily,
+      clientId: _selectedClientId,
+      createdBy: user.uid,
+      isPublic: false,
+      notes: _notesController.text.trim().isNotEmpty
+          ? _notesController.text.trim()
+          : null,
+      projects: [_selectedProjectId!],
+    );
+
+    if (productId != null) {
+
       if (mounted) {
+        _hasUnsavedChanges = false; // Evitar el diálogo al salir
+        Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${l10n.error}: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Text(
+              _pendingNewFamily != null
+                  ? 'Familia "$_pendingNewFamily" y producto creados exitosamente'
+                  : 'Producto creado exitosamente',
+            ),
+            backgroundColor: Colors.green,
           ),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error al crear el producto'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final clientService = Provider.of<ClientService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserData;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.newProduct),
+    if (user?.organizationId == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.newProduct)),
+        body: const Center(
+          child: Text('Debes pertenecer a una organización'),
+        ),
+      );
+    }
+
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.newProduct),
+        ),
+        body: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _buildBasicInfoCard(context, user!, l10n),
+                    const SizedBox(height: 16),
+                    _buildNotesCard(context, l10n),
+                  ],
+                ),
+              ),
+              _buildBottomBar(context, l10n),
+            ],
+          ),
+        ),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+    );
+  }
+
+  Widget _buildBasicInfoCard(
+    BuildContext context,
+    dynamic user,
+    AppLocalizations l10n,
+  ) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Información básica
-            _buildSectionTitle(l10n.basicInfo),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.info_outline,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  l10n.basicInfo,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            
+            // Nombre del producto
             TextFormField(
               controller: _nameController,
               decoration: InputDecoration(
-                labelText: l10n.productNameLabel,
-                hintText: l10n.productNameHint,
+                labelText: '${l10n.productName} *',
+                hintText: 'Ej: Bolso de mano clásico',
                 border: const OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.grey.shade50,
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -230,12 +381,16 @@ class _CreateProductCatalogScreenState
               textCapitalization: TextCapitalization.words,
             ),
             const SizedBox(height: 16),
+            
+            // Referencia (SKU)
             TextFormField(
               controller: _referenceController,
               decoration: InputDecoration(
-                labelText: l10n.referenceLabel,
-                hintText: l10n.referenceHint,
+                labelText: '${l10n.reference} (SKU) *',
+                hintText: 'Ej: BLS-001',
                 border: const OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.grey.shade50,
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -246,12 +401,17 @@ class _CreateProductCatalogScreenState
               textCapitalization: TextCapitalization.characters,
             ),
             const SizedBox(height: 16),
+            
+            // Descripción
             TextFormField(
               controller: _descriptionController,
               decoration: InputDecoration(
-                labelText: l10n.descriptionLabel,
-                hintText: l10n.descriptionHint,
+                labelText: '${l10n.description} *',
+                hintText: 'Describe las características del producto',
                 border: const OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                alignLabelWithHint: true,
               ),
               maxLines: 3,
               validator: (value) {
@@ -262,447 +422,464 @@ class _CreateProductCatalogScreenState
               },
               textCapitalization: TextCapitalization.sentences,
             ),
+            const SizedBox(height: 20),
+            
+            // Cliente
+            _buildClientDropdown(context, user, l10n),
             const SizedBox(height: 16),
             
-            // Categoría con autocompletado
-            Autocomplete<String>(
-              optionsBuilder: (textEditingValue) {
-                if (textEditingValue.text.isEmpty) {
-                  return _availableCategories;
-                }
-                return _availableCategories.where((category) =>
-                    category.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-              },
-              onSelected: (selection) {
-                _categoryController.text = selection;
-              },
-              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                if (controller.text != _categoryController.text) {
-                  controller.text = _categoryController.text;
-                }
-                return TextFormField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  decoration: InputDecoration(
-                    labelText: l10n.categoryLabel,
-                    hintText: l10n.categoryHint,
-                    border: const OutlineInputBorder(),
-                    suffixIcon: const Icon(Icons.arrow_drop_down),
-                  ),
-                  onChanged: (value) {
-                    _categoryController.text = value;
-                  },
-                  textCapitalization: TextCapitalization.words,
-                );
-              },
-            ),
-            const SizedBox(height: 24),
+            // Proyecto
+            _buildProjectDropdown(context, user, l10n),
+            const SizedBox(height: 16),
             
-            // Cliente asociado
-            _buildSectionTitle(l10n.availabilityTitle),
-            Row(
+            // Familia
+            _buildFamilyDropdown(context, user, l10n),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClientDropdown(
+    BuildContext context,
+    dynamic user,
+    AppLocalizations l10n,
+  ) {
+    final clientService = Provider.of<ClientService>(context);
+
+    return StreamBuilder<List<ClientModel>>(
+      stream: clientService.watchClients(user.organizationId!),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildDropdownSkeleton(l10n.client);
+        }
+
+        final clients = snapshot.data ?? [];
+
+        if (clients.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: Row(
               children: [
+                Icon(Icons.warning_amber, color: Colors.orange.shade700),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: SwitchListTile(
-                    title: Text(
-                      _isPublic 
-                          ? l10n.publicProduct
-                          : l10n.privateProduct),
-                    subtitle: Text(
-                      _isPublic 
-                          ? l10n.publicProductSubtitle 
-                          : l10n.privateProductSubtitle,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  child: Text(
+                    'No hay clientes registrados',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.orange.shade900,
                     ),
-                    value: _isPublic,
-                    onChanged: (value) {
-                      setState(() {
-                        _isPublic = value;
-                        if (value) {
-                          _selectedClientId = null;
-                          _selectedClientName = null;
-                        }
-                      });
-                    },
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+          );
+        }
 
-            // Selector de cliente
-            if (!_isPublic) ...[
-              StreamBuilder<List<ClientModel>>(
-                stream: clientService.watchClients(widget.organizationId),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const LinearProgressIndicator();
-                  }
-
-                  if (snapshot.hasError) {
-                    return Text('${l10n.error}: ${snapshot.error}');
-                  }
-
-                  final clients = snapshot.data ?? [];
-
-                  if (clients.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.orange[50],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange[200]!),
+        return FilterUtils.buildFullWidthDropdown<String>(
+          context: context,
+          label: l10n.client,
+          value: _selectedClientId,
+          icon: Icons.business,
+          isRequired: true,
+          hintText: l10n.selectClient,
+          items: clients.map((client) {
+            return DropdownMenuItem(
+              value: client.id,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    client.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (client.company.isNotEmpty)
+                    Text(
+                      client.company,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
                       ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline, color: Colors.orange[700]),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              l10n.noClientsAvailable,
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          ),
-                        ],
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedClientId = value;
+              _selectedProjectId = null; // Reset proyecto
+              _selectedFamily = null; // Reset familia
+              _markAsChanged();
+            });
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildProjectDropdown(
+    BuildContext context,
+    dynamic user,
+    AppLocalizations l10n,
+  ) {
+    if (_selectedClientId == null) {
+      return Opacity(
+        opacity: 0.5,
+        child: IgnorePointer(
+          child: FilterUtils.buildFullWidthDropdown<String>(
+            context: context,
+            label: l10n.project,
+            value: null,
+            icon: Icons.folder,
+            isRequired: true,
+            hintText: 'Selecciona un cliente primero',
+            items: const [],
+            onChanged: (_) {},
+          ),
+        ),
+      );
+    }
+
+    final projectService = Provider.of<ProjectService>(context);
+
+    return StreamBuilder<List<ProjectModel>>(
+      stream: projectService.watchClientProjects(
+        _selectedClientId!,
+        user.organizationId!,
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildDropdownSkeleton(l10n.project);
+        }
+
+        final projects = snapshot.data ?? [];
+
+        if (projects.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber, color: Colors.orange.shade700),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'No hay proyectos para este cliente',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.orange.shade900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return FilterUtils.buildFullWidthDropdown<String>(
+          context: context,
+          label: l10n.project,
+          value: _selectedProjectId,
+          icon: Icons.folder,
+          isRequired: true,
+          hintText: l10n.selectProject,
+          items: projects.map((project) {
+            return DropdownMenuItem(
+              value: project.id,
+              child: Text(
+                project.name,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedProjectId = value;
+              _selectedFamily = null; // Reset familia
+              _markAsChanged();
+            });
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFamilyDropdown(
+    BuildContext context,
+    dynamic user,
+    AppLocalizations l10n,
+  ) {
+    if (_selectedProjectId == null) {
+      return Opacity(
+        opacity: 0.5,
+        child: IgnorePointer(
+          child: FilterUtils.buildFullWidthDropdown<String>(
+            context: context,
+            label: l10n.family,
+            value: null,
+            icon: Icons.category,
+            isRequired: true,
+            hintText: 'Selecciona un proyecto primero',
+            items: const [],
+            onChanged: (_) {},
+          ),
+        ),
+      );
+    }
+
+    final catalogService = Provider.of<ProductCatalogService>(context);
+
+    return StreamBuilder<List<ProductCatalogModel>>(
+      stream: catalogService.getProjectProductsStream(
+        user.organizationId!,
+        _selectedProjectId!,
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildDropdownSkeleton(l10n.family);
+        }
+
+        final allProducts = snapshot.data ?? [];
+        
+        // Extraer familias únicas
+        final families = allProducts
+            .map((p) => p.family)
+            .where((f) => f != null && f.isNotEmpty)
+            .toSet()
+            .toList();
+        families.sort();
+
+        // Preparar items del dropdown
+        final List<DropdownMenuItem<String>> dropdownItems = [];
+
+        // Opción 1: Crear nueva familia
+        dropdownItems.add(
+          const DropdownMenuItem(
+            value: '__CREATE_NEW__',
+            child: Row(
+              children: [
+                Icon(Icons.add_circle_outline, color: Colors.blue, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Crear nueva familia',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        // Si hay una familia pendiente de crear que no está en la lista, agregarla
+        if (_pendingNewFamily != null && !families.contains(_pendingNewFamily)) {
+          dropdownItems.add(
+            DropdownMenuItem(
+              value: _pendingNewFamily,
+              child: Row(
+                children: [
+                  Icon(Icons.new_label, color: Colors.green, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '$_pendingNewFamily (nueva)',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green,
                       ),
-                    );
-                  }
-
-                  return DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      labelText: l10n.specificClientLabel,
-                      border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.person),
-                      helperText: l10n.specificClientHelper,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    value: _selectedClientId,
-                    isExpanded: true,
-                    items: clients.map((client) {
-                      return DropdownMenuItem(
-                        value: client.id,
-                        child: Text(
-                          client.name,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (clientId) {
-                      setState(() {
-                        _selectedClientId = clientId;
-                        _selectedClientName = clients
-                            .firstWhere((c) => c.id == clientId)
-                            .name;
-                      });
-                    },
-                    validator: (value) {
-                      if (!_isPublic && (value == null || value.isEmpty)) {
-                        return l10n.selectClientError;
-                      }
-                      return null;
-                    },
-                  );
-                },
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              
-              // Información adicional
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue[200]!),
+            ),
+          );
+        }
+
+        // Opciones: Familias existentes
+        dropdownItems.addAll(
+          families.map((family) => DropdownMenuItem(
+            value: family,
+            child: Text(
+              family!,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+              overflow: TextOverflow.ellipsis,
+            ),
+          )),
+        );
+
+        // Validar que el valor seleccionado esté en los items
+        final validValue = _selectedFamily != null &&
+            (families.contains(_selectedFamily) || 
+             _selectedFamily == _pendingNewFamily ||
+             _selectedFamily == '__CREATE_NEW__')
+            ? _selectedFamily
+            : null;
+
+        return FilterUtils.buildFullWidthDropdown<String>(
+          context: context,
+          label: l10n.family,
+          value: validValue,
+          icon: Icons.category,
+          isRequired: true,
+          hintText: families.isEmpty
+              ? 'No hay familias, crea una nueva'
+              : l10n.selectFamily,
+          items: dropdownItems,
+          onChanged: (value) async {
+            if (value == '__CREATE_NEW__') {
+              await _showCreateFamilyDialog();
+            } else {
+              setState(() {
+                _selectedFamily = value;
+                _markAsChanged();
+              });
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildNotesCard(BuildContext context, AppLocalizations l10n) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.notes_outlined,
+                    color: Colors.grey,
+                    size: 20,
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, size: 18, color: Colors.blue[700]),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        l10n.privateProductInfo,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue[900],
-                        ),
+                const SizedBox(width: 12),
+                Text(
+                  l10n.notes,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 24),
-
-            // Dimensiones
-            _buildSectionTitle(l10n.dimensionsLabel('cm')),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _widthController,
-                    decoration: InputDecoration(
-                      labelText: l10n.widthLabel,
-                      border: const OutlineInputBorder(),
-                      suffixText: 'cm',
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                    ],
-                  ),
                 ),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: TextFormField(
-                    controller: _heightController,
-                    decoration: InputDecoration(
-                      labelText: l10n.heightLabel,
-                      border: const OutlineInputBorder(),
-                      suffixText: 'cm',
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextFormField(
-                    controller: _depthController,
-                    decoration: InputDecoration(
-                      labelText: l10n.depthLabel,
-                      border: const OutlineInputBorder(),
-                      suffixText: 'cm',
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                    ],
+                Text(
+                  '(${l10n.optional})',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 24),
-
-            // Material
-            _buildSectionTitle(l10n.materialTitle),
-            TextFormField(
-              controller: _primaryMaterialController,
-              decoration: InputDecoration(
-                labelText: l10n.primaryMaterialLabel,
-                hintText: l10n.primaryMaterialHint,
-                border: const OutlineInputBorder(),
-              ),
-              textCapitalization: TextCapitalization.words,
-            ),
-            const SizedBox(height: 16),
-            _buildListField(
-              title: l10n.secondaryMaterialsLabel,
-              items: _secondaryMaterials,
-              hintText: l10n.secondaryMaterialsHint,
-              onAdd: (value) {
-                setState(() {
-                  _secondaryMaterials.add(value);
-                });
-              },
-              onRemove: (index) {
-                setState(() {
-                  _secondaryMaterials.removeAt(index);
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _finishController,
-                    decoration: InputDecoration(
-                      labelText: l10n.finishLabel,
-                      hintText: l10n.finishHint,
-                      border: const OutlineInputBorder(),
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextFormField(
-                    controller: _colorController,
-                    decoration: InputDecoration(
-                      labelText: l10n.colorLabel,
-                      hintText: l10n.colorHint,
-                      border: const OutlineInputBorder(),
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Datos adicionales
-            _buildSectionTitle(l10n.additionalDataTitle),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _weightController,
-                    decoration: InputDecoration(
-                      labelText: l10n.estimatedWeightLabel,
-                      border: const OutlineInputBorder(),
-                      suffixText: 'kg',
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextFormField(
-                    controller: _basePriceController,
-                    decoration: InputDecoration(
-                      labelText: l10n.basePriceLabel,
-                      border: const OutlineInputBorder(),
-                      prefixText: '€ ',
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildListField(
-              title: l10n.tagsLabel,
-              items: _tags,
-              hintText: l10n.tagsHint,
-              onAdd: (value) {
-                setState(() {
-                  _tags.add(value);
-                });
-              },
-              onRemove: (index) {
-                setState(() {
-                  _tags.removeAt(index);
-                });
-              },
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _notesController,
               decoration: InputDecoration(
-                labelText: l10n.notesLabel,
-                hintText: l10n.notesHint,
+                hintText: 'Agrega notas adicionales sobre el producto...',
                 border: const OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                alignLabelWithHint: true,
               ),
-              maxLines: 3,
+              maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
             ),
-            const SizedBox(height: 32),
-
-            // Botón guardar
-            FilledButton(
-              onPressed: _isLoading ? null : () => _saveProduct(l10n),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l10n.createProductBtn), // Asegurar que exista o usar genérico
-            ),
-            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
+  Widget _buildDropdownSkeleton(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
       ),
-    );
-  }
-
-  Widget _buildListField({
-    required String title,
-    required List<String> items,
-    required String hintText,
-    required Function(String) onAdd,
-    required Function(int) onRemove,
-  }) {
-    final controller = TextEditingController();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controller,
-                decoration: InputDecoration(
-                  hintText: hintText,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                ),
-                textCapitalization: TextCapitalization.words,
-                onSubmitted: (value) {
-                  if (value.trim().isNotEmpty) {
-                    onAdd(value.trim());
-                    controller.clear();
-                  }
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton.filled(
-              onPressed: () {
-                if (controller.text.trim().isNotEmpty) {
-                  onAdd(controller.text.trim());
-                  controller.clear();
-                }
-              },
-              icon: const Icon(Icons.add),
-            ),
-          ],
-        ),
-        if (items.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: items.asMap().entries.map((entry) {
-              return Chip(
-                label: Text(entry.value),
-                deleteIcon: const Icon(Icons.close, size: 18),
-                onDeleted: () => onRemove(entry.key),
-              );
-            }).toList(),
+          Container(
+            width: double.infinity,
+            height: 16,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(4),
+            ),
           ),
         ],
-      ],
+      ),
+    );
+  }
+
+  Widget _buildBottomBar(BuildContext context, AppLocalizations l10n) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: FilledButton(
+            onPressed: _isLoading ? null : _handleCreate,
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(l10n.createProduct),
+          ),
+        ),
+      ),
     );
   }
 }

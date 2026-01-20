@@ -1101,5 +1101,39 @@
 "owner": "Owner",
 
 "createProduct": "Create product",
-"createProductFamily": "Create product family"
+"createProductFamily": "Create product family",
+
+"newProduct": "New Product",
+"productName": "Product name",
+"selectClient": "Select client",
+"selectProject": "Select project",
+"selectFamily": "Select family",
+"createFamily": "Create family",
+"optional": "optional",
+"descriptionRequired": "Description is required",
+"referenceRequired": "Reference is required",
+"createProduct": "Create product",
+"unsavedChanges": "Unsaved changes",
+"unsavedChangesMessage": "Are you sure you want to exit? Unsaved changes will be lost.",
+"exitWithoutSaving": "Exit without saving",
+"createNewFamily": "Create New Family",
+"familyNameLabel": "Family name",
+"familyNameHint": "E.g: Handbags",
+"createNewFamilyDescription": "Enter the name of the new product family. You must create at least one product for the family to be registered.",
+"continueButton": "Continue",
+"productCreatedWithFamily": "Family \"{family}\" and product created successfully",
+"@productCreatedWithFamily": {
+  "placeholders": {
+    "family": {
+      "type": "String"
+    }
+  }
+},
+"productCreatedSuccess": "Product created successfully",
+"noProjectsForThisClient": "No projects for this client",
+"selectClientFirst": "Select a client first",
+"selectProjectFirst": "Select a project first",
+"noFamiliesCreateNew": "No families, create a new one",
+"createNewFamilyOption": "Create new family",
+"youMustCreateAProduct": "You must also create a product for the family to be created"
 }

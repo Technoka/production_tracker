@@ -56,7 +56,7 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
           data: theme.copyWith(dividerColor: Colors.transparent),
           child: StreamBuilder<List<ProductCatalogModel>>(
             stream: Provider.of<ProductCatalogService>(context, listen: false)
-                .getProjectProducts(user.organizationId!, widget.project.id),
+                .getProjectProductsStream(user.organizationId!, widget.project.id),
             builder: (context, productSnapshot) {
               final allProducts = productSnapshot.data ?? [];
 
@@ -225,10 +225,9 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
                                       MaterialPageRoute(
                                         builder: (context) =>
                                             CreateProductCatalogScreen(
-                                          organizationId: user.organizationId!,
-                                          currentUser: user,
                                           initialClientId: widget.client.id,
                                           initialProjectId: widget.project.id,
+                                          createNewFamily: true,
                                         ),
                                       ),
                                     );

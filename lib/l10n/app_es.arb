@@ -1103,5 +1103,39 @@
 "owner": "Propietario",
 
 "createProduct": "Crear producto",
-"createProductFamily": "Crear familia de productos"
+"createProductFamily": "Crear familia de productos",
+
+"newProduct": "Nuevo Producto",
+"productName": "Nombre del producto",
+"selectClient": "Seleccionar cliente",
+"selectProject": "Seleccionar proyecto",
+"selectFamily": "Seleccionar familia",
+"createFamily": "Crear familia",
+"optional": "opcional",
+"descriptionRequired": "La descripción es obligatoria",
+"referenceRequired": "La referencia es obligatoria",
+"createProduct": "Crear producto",
+"unsavedChanges": "Cambios sin guardar",
+"unsavedChangesMessage": "¿Estás seguro que quieres salir? Los cambios no guardados se perderán.",
+"exitWithoutSaving": "Salir sin guardar",
+"createNewFamily": "Crear Nueva Familia",
+"familyNameLabel": "Nombre de la familia",
+"familyNameHint": "Ej: Bolsos de mano",
+"createNewFamilyDescription": "Ingresa el nombre de la nueva familia de productos. Deberás crear al menos un producto para que la familia se registre.",
+"continueButton": "Continuar",
+"productCreatedWithFamily": "Familia \"{family}\" y producto creados exitosamente",
+"@productCreatedWithFamily": {
+  "placeholders": {
+    "family": {
+      "type": "String"
+    }
+  }
+},
+"productCreatedSuccess": "Producto creado exitosamente",
+"noProjectsForThisClient": "No hay proyectos para este cliente",
+"selectClientFirst": "Selecciona un cliente primero",
+"selectProjectFirst": "Selecciona un proyecto primero",
+"noFamiliesCreateNew": "No hay familias, crea una nueva",
+"createNewFamilyOption": "Crear nueva familia",
+"youMustCreateAProduct": "Debes crear un producto también para que la familia se cree"
 }

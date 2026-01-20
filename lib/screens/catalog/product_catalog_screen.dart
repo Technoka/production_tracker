@@ -301,9 +301,8 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => CreateProductCatalogScreen(
-                      organizationId: widget.organizationId,
-                      currentUser: widget.currentUser,
+                    builder: (context) => const CreateProductCatalogScreen(
+
                     ),
                   ),
                 );

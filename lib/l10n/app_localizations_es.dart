@@ -204,7 +204,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get product => 'Producto';
 
   @override
-  String get productName => 'Nombre del Producto';
+  String get productName => 'Nombre del producto';
 
   @override
   String get quantity => 'Cantidad';
@@ -996,7 +996,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get unsavedChangesTitle => 'Cambios sin guardar';
 
   @override
-  String get unsavedChangesMessage => '¿Deseas descartar los cambios realizados?';
+  String get unsavedChangesMessage => '¿Estás seguro que quieres salir? Los cambios no guardados se perderán.';
 
   @override
   String get discard => 'Descartar';
@@ -2996,4 +2996,63 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get createProductFamily => 'Crear familia de productos';
+
+  @override
+  String get selectClient => 'Seleccionar cliente';
+
+  @override
+  String get selectProject => 'Seleccionar proyecto';
+
+  @override
+  String get selectFamily => 'Seleccionar familia';
+
+  @override
+  String get createFamily => 'Crear familia';
+
+  @override
+  String get optional => 'opcional';
+
+  @override
+  String get exitWithoutSaving => 'Salir sin guardar';
+
+  @override
+  String get createNewFamily => 'Crear Nueva Familia';
+
+  @override
+  String get familyNameLabel => 'Nombre de la familia';
+
+  @override
+  String get familyNameHint => 'Ej: Bolsos de mano';
+
+  @override
+  String get createNewFamilyDescription => 'Ingresa el nombre de la nueva familia de productos. Deberás crear al menos un producto para que la familia se registre.';
+
+  @override
+  String get continueButton => 'Continuar';
+
+  @override
+  String productCreatedWithFamily(String family) {
+    return 'Familia \"$family\" y producto creados exitosamente';
+  }
+
+  @override
+  String get productCreatedSuccess => 'Producto creado exitosamente';
+
+  @override
+  String get noProjectsForThisClient => 'No hay proyectos para este cliente';
+
+  @override
+  String get selectClientFirst => 'Selecciona un cliente primero';
+
+  @override
+  String get selectProjectFirst => 'Selecciona un proyecto primero';
+
+  @override
+  String get noFamiliesCreateNew => 'No hay familias, crea una nueva';
+
+  @override
+  String get createNewFamilyOption => 'Crear nueva familia';
+
+  @override
+  String get youMustCreateAProduct => 'Debes crear un producto también para que la familia se cree';
 }

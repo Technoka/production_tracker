@@ -11,7 +11,6 @@ import '../../utils/management_view_types.dart';
 import '../../utils/filter_utils.dart';
 import '../../widgets/bottom_nav_bar_widget.dart';
 import 'management_folders_view.dart';
-import '../clients/create_client_screen.dart';
 
 class ManagementScreen extends StatefulWidget {
   const ManagementScreen({Key? key}) : super(key: key);
@@ -89,7 +88,7 @@ class _ManagementScreenState extends State<ManagementScreen> {
               FilterUtils.buildSearchField(
                 hintText: '${l10n.search}...',
                 searchQuery: _filters.searchQuery,
-  controller: _searchController,
+                controller: _searchController,
                 onChanged: (value) {
                   setState(() {
                     _filters = _filters.copyWith(searchQuery: value);
@@ -124,24 +123,13 @@ class _ManagementScreenState extends State<ManagementScreen> {
                         });
                       },
                     ),
-                    FilterUtils.buildUrgencyFilterChip(
-                      context: context,
-                      isUrgentOnly: _filters.onlyUrgent,
-                      onToggle: () {
-                        setState(() {
-                          _filters = _filters.copyWith(
-                            onlyUrgent: !_filters.onlyUrgent,
-                          );
-                        });
-                      },
-                    ),
                     if (_filters.hasActiveFilters)
                       FilterUtils.buildClearFiltersButton(
                         context: context,
                         onPressed: () {
                           setState(() {
                             _filters = _filters.clear();
-        _searchController.clear();
+                            _searchController.clear();
                           });
                         },
                         hasActiveFilters: true,
@@ -157,11 +145,6 @@ class _ManagementScreenState extends State<ManagementScreen> {
   }
 
   void _navigateToCreateClient(UserModel user) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const CreateClientScreen(),
-      ),
-    );
+    // TODO: que coño hace esta funcion??  eliminarla.
   }
 }

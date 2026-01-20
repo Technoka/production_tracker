@@ -325,17 +325,16 @@ class _CreateProductionBatchScreenState
           Provider.of<ProductCatalogService>(context, listen: false);
       final authService = Provider.of<AuthService>(context, listen: false);
 
-      // IMPORTANTE: Asumimos que el servicio tiene un método addProduct o createProduct.
-      // Si no existe tal cual, deberás adaptarlo a tu servicio real.
       final createdId = await catalogService.createProduct(
         organizationId: widget.organizationId,
-        name: '${family.capitalize}', // Nombre auto-generado
+        name: family.capitalize, // Nombre auto-generado
         reference: sku,
         description: notes,
         family: family, // Asignamos la familia
         clientId: _selectedProject!.clientId, // Cliente del proyecto
         createdBy: authService.currentUser!.uid,
         isPublic: false, // Por defecto privado para este cliente
+        projects: [_selectedProject!.id],
       );
 
       if (createdId != null) {

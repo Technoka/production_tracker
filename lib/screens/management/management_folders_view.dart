@@ -49,7 +49,7 @@ class ManagementFoldersView extends StatelessWidget {
           clients = clients.where((c) {
             return c.name.toLowerCase().contains(query) ||
                 c.company.toLowerCase().contains(query) ||
-                (c.email?.toLowerCase().contains(query) ?? false);
+                (c.email.toLowerCase().contains(query));
           }).toList();
         }
 
@@ -236,16 +236,11 @@ class ManagementFoldersView extends StatelessWidget {
       for (final project in projects) {
         try {
           final products = await productService
-              .getProjectProducts(organizationId, project.id)
+              .getProjectProductsStream(organizationId, project.id)
               .first;
 
           totalProducts += products.length;
 
-          // Si tienes lógica de urgencia, aplicarla aquí
-          if (filters.onlyUrgent) {
-            urgentCount = 0;
-            // urgentCount += productos urgentes
-          }
         } catch (e) {
           continue;
         }

@@ -26,6 +26,7 @@ class ProductCatalogService {
     String? clientId, // Para productos específicos de cliente
     bool isPublic = true,
     String? family,
+    required List<String> projects,
   }) async {
     try {
       // Verificar que la referencia sea única en la organización
@@ -75,6 +76,7 @@ class ProductCatalogService {
         createdAt: now,
         updatedAt: now,
         family: family,
+        projects: projects,
       );
 
       await _firestore
@@ -395,26 +397,10 @@ class ProductCatalogService {
     }
   }
 
-  // Obtener stream de productos asociados a un proyecto
-  Stream<List<ProductCatalogModel>> watchProjectProducts(String organizationId, String projectId) {
-    return _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('projects')
-        .doc(projectId)
-        .collection('products')
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => ProductCatalogModel.fromMap(doc.data()))
-          .toList();
-    });
-  }
-
   // ==================== GESTIÃ"N DE PRODUCTOS POR PROYECTO ====================
 
 /// Obtener productos asociados a un proyecto especÃ­fico (Stream)
-Stream<List<ProductCatalogModel>> getProjectProducts(
+Stream<List<ProductCatalogModel>> getProjectProductsStream(
   String organizationId,
   String projectId,
 ) {
@@ -920,7 +906,7 @@ Future<Map<String, dynamic>> getProjectProductStats(
       }
 
       // Generar nueva referencia si no se proporciona
-      String reference = newReference ?? '${original.reference}_COPIA';
+      String reference = newReference ?? '${original.reference}_COPY';
       
       // Verificar que la referencia sea única
       int copyNumber = 1;
@@ -937,12 +923,12 @@ Future<Map<String, dynamic>> getProjectProductStats(
         if (existingRef.docs.isEmpty) break;
         
         copyNumber++;
-        reference = '${original.reference}_COPIA_$copyNumber';
+        reference = '${original.reference}_COPY_$copyNumber';
       }
 
       return await createProduct(
         organizationId: original.organizationId,
-        name: '${original.name} (Copia)',
+        name: '${original.name} (Copy)',
         reference: reference,
         description: original.description,
         createdBy: createdBy,
@@ -955,6 +941,7 @@ Future<Map<String, dynamic>> getProjectProductStats(
         estimatedWeight: original.estimatedWeight,
         basePrice: original.basePrice,
         notes: original.notes,
+        projects: original.projects,
       );
     } catch (e) {
       print('Error al duplicar producto: $e');
