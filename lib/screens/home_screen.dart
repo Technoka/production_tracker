@@ -491,19 +491,6 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: Text(l10n.settings),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const UserPreferencesScreen(),
-                ),
-              );
-            },
-          ),
           const Divider(),
           ListTile(
             leading: Icon(Icons.logout, color: Colors.red[700]),
