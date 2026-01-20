@@ -138,16 +138,6 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Código de invitación
-                        Text(
-                          l10n.inviteCodeTitle,
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                        ),
-                        const SizedBox(height: 24),
-
                         // Acciones rápidas
                         Text(
                           l10n.actionsTitle,
