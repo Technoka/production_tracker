@@ -631,7 +631,7 @@ class FilterUtils {
             ),
             const SizedBox(width: 4),
             Text(
-              isActive ? 'Solo Urgentes' : 'Urgencia',
+              isActive ? 'Solo Urgentes' : 'Solo Urgentes',
               style: TextStyle(
                 color: isActive ? activeColor : Colors.grey.shade700,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
