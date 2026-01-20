@@ -23,6 +23,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 // TODO: comprobar que se usa scope y assignedMembers correctamente
 
+
 class BatchProductDetailScreen extends StatefulWidget {
   final String organizationId;
   final String batchId;
@@ -43,6 +44,7 @@ class BatchProductDetailScreen extends StatefulWidget {
 class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   OrganizationMemberWithUser? _currentMember;
   bool _isLoadingPermissions = true;
+  bool _isPhasesExpanded = false; // Comprimido por defecto
 
   final MessageService _messageService = MessageService();
 
@@ -218,7 +220,24 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 _buildPhasesCard(product, user),
                 const SizedBox(height: 16),
 
-                // Personalización
+                // Vista previa del chat (solo si tiene permiso)
+                FutureBuilder<bool>(
+                  future: Provider.of<OrganizationMemberService>(context, listen: false)
+                      .can('chat', 'view'),
+                  builder: (context, snapshot) {
+                    final canViewChat = snapshot.data ?? false;
+                    if (!canViewChat) return const SizedBox.shrink();
+
+                    return Column(
+                      children: [
+                        _buildChatPreviewCard(product, user),
+                        const SizedBox(height: 16),
+                      ],
+                    );
+                  },
+                ),
+
+                // PersonalizaciÃ³n
                 if (product.color != null ||
                     product.material != null ||
                     product.specialDetails != null)
@@ -396,10 +415,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     );
   }
 
-// ================= NUEVO CÓDIGO PARA ESTADOS DEL PRODUCTO =================
+// ================= NUEVO CÃ“DIGO PARA ESTADOS DEL PRODUCTO =================
   Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
-    final urgencyLevel = UrgencyLevel.fromString(product.urgencyLevel);
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -425,28 +442,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               ],
             ),
             const Divider(height: 24),
-// Urgencia
-            if (urgencyLevel == UrgencyLevel.urgent)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: urgencyLevel.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: urgencyLevel.color.withOpacity(
-                        0.3), // Usar color de urgencia para el borde
-                  ),
-                ),
-                child: Text(
-                  urgencyLevel.displayName,
-                  style: TextStyle(
-                    color: urgencyLevel.color,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16, // Un poco más pequeño para que sea sutil
-                  ),
-                ),
-              ),
-            const SizedBox(height: 16),
+
             // Estado actual
             Container(
               padding: const EdgeInsets.all(12),
@@ -655,7 +651,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Esperando recepción de productos devueltos',
+                          'Esperando recepciÃ³n de productos devueltos',
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.blue[900],
@@ -800,7 +796,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 ...actions,
             ],
           );
-        });
+        }
+      );
   }
 
   // Helper para crear los botones de la lista con estilo uniforme
@@ -839,63 +836,104 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
+        child: StatefulBuilder(  // ✅ CAMBIADO: Usar StatefulBuilder
+          builder: (context, setStateLocal) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.list_alt),
-                SizedBox(width: 8),
-                Text(
-                  'Fases de Producción',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                // Header con botón de expandir/contraer
+                InkWell(
+                  onTap: () {
+                    setStateLocal(() {  // ✅ CAMBIADO: usar setStateLocal en vez de setState
+                      _isPhasesExpanded = !_isPhasesExpanded;
+                    });
+                  },
+                  child: Row(
+                    children: [
+                      const Icon(Icons.list_alt),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Fases de Producción',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        _isPhasesExpanded 
+                            ? Icons.expand_less 
+                            : Icons.expand_more,
+                        color: Colors.grey[600],
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            const Divider(height: 24),
-            FutureBuilder<List<ProductionPhase>>(
-              future: Provider.of<PhaseService>(context, listen: false)
-                  .getOrganizationPhases(widget.organizationId),
-              builder: (context, phasesSnapshot) {
-                if (phasesSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                const Divider(height: 24),
+                FutureBuilder<List<ProductionPhase>>(
+                  future: Provider.of<PhaseService>(context, listen: false)
+                      .getOrganizationPhases(widget.organizationId),
+                  builder: (context, phasesSnapshot) {
+                    if (phasesSnapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                if (phasesSnapshot.hasError) {
-                  return Text('Error: ${phasesSnapshot.error}');
-                }
+                    if (phasesSnapshot.hasError) {
+                      return Text('Error: ${phasesSnapshot.error}');
+                    }
 
-                final allPhases = phasesSnapshot.data ?? [];
-                allPhases.sort((a, b) => a.order.compareTo(b.order));
+                    final allPhases = phasesSnapshot.data ?? [];
+                    allPhases.sort((a, b) => a.order.compareTo(b.order));
 
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: allPhases.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final phase = allPhases[index];
-                    final phaseProgress = product.phaseProgress[phase.id];
-                    final isCurrentPhase = product.currentPhase == phase.id;
+                    // Si está comprimido, mostrar solo la fase actual
+                    if (!_isPhasesExpanded) {
+                      final currentPhase = allPhases.firstWhere(
+                        (phase) => phase.id == product.currentPhase,
+                        orElse: () => allPhases.first,
+                      );
+                      final phaseProgress = product.phaseProgress[currentPhase.id];
+                      final currentIndex = allPhases.indexOf(currentPhase);
 
-                    return _buildPhaseItem(
-                      phase,
-                      phaseProgress,
-                      isCurrentPhase,
-                      user,
-                      product,
-                      allPhases,
-                      index,
+                      return _buildPhaseItem(
+                        currentPhase,
+                        phaseProgress,
+                        true, // Es la fase actual
+                        user,
+                        product,
+                        allPhases,
+                        currentIndex,
+                      );
+                    }
+
+                    // Si está expandido, mostrar todas las fases
+                    return ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: allPhases.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final phase = allPhases[index];
+                        final phaseProgress = product.phaseProgress[phase.id];
+                        final isCurrentPhase = product.currentPhase == phase.id;
+
+                        return _buildPhaseItem(
+                          phase,
+                          phaseProgress,
+                          isCurrentPhase,
+                          user,
+                          product,
+                          allPhases,
+                          index,
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
-          ],
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -1480,7 +1518,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text('Estado cambiado exitosamente'),
               backgroundColor: Colors.green,
             ),
@@ -1800,6 +1838,278 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         ],
       ),
     );
+  }
+
+/// Vista previa de chat (solo lectura, últimos 10 mensajes)
+  Widget _buildChatPreviewCard(BatchProductModel product, UserModel? user) {
+    if (user == null) return const SizedBox.shrink();
+
+    return InkWell(  // ✅ CAMBIADO: Envolver Card en InkWell
+      onTap: () => _openChat(product),  // ✅ AÑADIDO: Al hacer tap abre el chat
+      child: Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            const Row(
+              children: [
+                Icon(Icons.chat_bubble_outline),
+                SizedBox(width: 8),
+                Text(
+                  'Chat del Producto',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Vista rápida de los últimos mensajes',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+            const Divider(height: 24),
+
+            // Stream de los últimos 10 mensajes
+            StreamBuilder(
+              stream: _messageService.getMessages(
+                organizationId: widget.organizationId,
+                entityType: 'batch_product',
+                entityId: product.id,
+                parentId: product.batchId,
+                limit: 10,
+              ),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Error al cargar mensajes: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
+                final messages = snapshot.data ?? [];
+
+                if (messages.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24.0),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            size: 48,
+                            color: Colors.grey[300],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'No hay mensajes aún',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                // Mostrar los mensajes (read-only)
+                return Column(
+                  children: [
+                    // Lista de mensajes (sin scroll, máximo 10)
+                    ...messages.reversed.map((message) {
+                      final isSystemMessage = message.isSystemGenerated;
+                      final isCurrentUser = message.authorId == user.uid;
+
+                      // Mensaje del sistema (centrado)
+                      if (isSystemMessage) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 40),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blue[200]!),
+                            ),
+                            child: Column(
+                              children: [
+                                // Header del mensaje
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      size: 16,
+                                      color: Colors.blue[700],
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Sistema',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        color: Colors.blue[900],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _formatMessageTime(message.createdAt),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.blue[700],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                // Contenido del mensaje
+                                Text(
+                                  message.content,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    height: 1.4,
+                                    color: Colors.blue[900],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      // Mensaje de usuario (derecha) o de otro (izquierda)
+                      return Align(
+                        alignment: isCurrentUser 
+                            ? Alignment.centerRight 
+                            : Alignment.centerLeft,
+                        child: Container(
+                          margin: EdgeInsets.only(
+                            bottom: 12,
+                            left: isCurrentUser ? 40 : 0,
+                            right: isCurrentUser ? 0 : 40,
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isCurrentUser 
+                                  ? Colors.green[50] 
+                                  : Colors.grey[100],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isCurrentUser 
+                                    ? Colors.green[200]! 
+                                    : Colors.grey[300]!,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Header del mensaje
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.person,
+                                      size: 16,
+                                      color: Colors.grey[700],
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      isCurrentUser
+                                          ? '${message.authorName ?? 'Usuario'} (Tú)'
+                                          : (message.authorName ?? 'Usuario'),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: Colors.grey[800],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _formatMessageTime(message.createdAt),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                // Contenido del mensaje
+                                Text(
+                                  message.content,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+
+                    const SizedBox(height: 12),
+
+                    // Botón "Ver chat completo"
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _openChat(product),
+                        icon: const Icon(Icons.chat),
+                        label: const Text('Ver chat completo'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
+    );
+  }
+
+  /// Formatear tiempo del mensaje
+  String _formatMessageTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return 'Ahora';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}m';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours}h';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d';
+    } else {
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    }
   }
 
   /// Abrir pantalla de chat
