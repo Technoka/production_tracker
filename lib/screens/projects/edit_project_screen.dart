@@ -208,15 +208,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                     ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-              ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: () => Navigator.pop(context),
@@ -247,12 +238,12 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Información del Cliente (Read-Only)
-                _buildClientInfoCard(context, l10n),
-                const SizedBox(height: 16),
-
                 // Información Básica
                 _buildBasicInfoCard(context, l10n),
+                const SizedBox(height: 16),
+
+                // Información del Cliente (Read-Only)
+                _buildClientInfoCard(context, l10n),
                 const SizedBox(height: 16),
 
                 // Control de Acceso
