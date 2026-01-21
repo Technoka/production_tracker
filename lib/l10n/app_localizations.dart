@@ -6046,6 +6046,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You must also create a product for the family to be created'**
   String get youMustCreateAProduct;
+
+  /// No description provided for @productFamilyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Product family'**
+  String get productFamilyLabel;
+
+  /// No description provided for @createdBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Created by'**
+  String get createdBy;
+
+  /// No description provided for @updatedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated by'**
+  String get updatedBy;
+
+  /// No description provided for @timesUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Times used'**
+  String get timesUsed;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

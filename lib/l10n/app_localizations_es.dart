@@ -3055,4 +3055,16 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get youMustCreateAProduct => 'Debes crear un producto también para que la familia se cree';
+
+  @override
+  String get productFamilyLabel => 'Familia de producto';
+
+  @override
+  String get createdBy => 'Creado por';
+
+  @override
+  String get updatedBy => 'Actualizado por';
+
+  @override
+  String get timesUsed => 'Veces usado';
 }

@@ -1137,5 +1137,9 @@
 "selectProjectFirst": "Selecciona un proyecto primero",
 "noFamiliesCreateNew": "No hay familias, crea una nueva",
 "createNewFamilyOption": "Crear nueva familia",
-"youMustCreateAProduct": "Debes crear un producto también para que la familia se cree"
+"youMustCreateAProduct": "Debes crear un producto también para que la familia se cree",
+"productFamilyLabel": "Familia de producto",
+"createdBy": "Creado por",
+"updatedBy": "Actualizado por",
+"timesUsed": "Veces usado"
 }

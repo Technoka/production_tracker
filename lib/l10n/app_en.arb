@@ -1135,5 +1135,9 @@
 "selectProjectFirst": "Select a project first",
 "noFamiliesCreateNew": "No families, create a new one",
 "createNewFamilyOption": "Create new family",
-"youMustCreateAProduct": "You must also create a product for the family to be created"
+"youMustCreateAProduct": "You must also create a product for the family to be created",
+"productFamilyLabel": "Product family",
+"createdBy": "Created by",
+"updatedBy": "Updated by",
+"timesUsed": "Times used"
 }
