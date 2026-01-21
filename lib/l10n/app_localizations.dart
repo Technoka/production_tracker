@@ -6070,6 +6070,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Times used'**
   String get timesUsed;
+
+  /// No description provided for @onlyUrgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Only urgent'**
+  String get onlyUrgent;
+
+  /// No description provided for @clearFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove filters'**
+  String get clearFilters;
+
+  /// No description provided for @searchBatches.
+  ///
+  /// In en, this message translates to:
+  /// **'Search batches...'**
+  String get searchBatches;
+
+  /// No description provided for @searchProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Search products...'**
+  String get searchProducts;
+
+  /// No description provided for @searchInKanban.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in Kanban...'**
+  String get searchInKanban;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

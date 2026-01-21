@@ -4,7 +4,7 @@ import '../../models/production_batch_model.dart';
 import '../../models/batch_product_model.dart';
 import '../../models/user_model.dart';
 import '../../models/client_model.dart';
-import '../../models/phase_model.dart'; 
+import '../../models/phase_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/production_batch_service.dart';
 import '../../services/client_service.dart';
@@ -15,8 +15,34 @@ import '../../utils/filter_utils.dart';
 import '../../widgets/kanban/kanban_board_widget.dart';
 import '../../widgets/bottom_nav_bar_widget.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/phase_model.dart';
 
 enum ProductionView { batches, products, kanban }
+
+// Configuración de qué filtros aparecen en cada vista
+class FilterConfig {
+  static const Map<String, List<ProductionView>> filterVisibility = {
+    'search': [
+      ProductionView.batches,
+      ProductionView.products,
+      ProductionView.kanban
+    ],
+    'client': [
+      ProductionView.batches,
+      ProductionView.products,
+      ProductionView.kanban
+    ],
+    'batch': [ProductionView.products, ProductionView.kanban],
+    'phase': [ProductionView.products],
+    'status': [ProductionView.products],
+    'project': [ProductionView.kanban],
+    'urgent': [ProductionView.products, ProductionView.kanban],
+  };
+
+  static bool shouldShowFilter(String filterKey, ProductionView view) {
+    return filterVisibility[filterKey]?.contains(view) ?? false;
+  }
+}
 
 class ProductionScreen extends StatefulWidget {
   final ProductionView? initialView;
@@ -39,63 +65,38 @@ class ProductionScreen extends StatefulWidget {
 class _ProductionScreenState extends State<ProductionScreen> {
   late ProductionView _currentView;
 
-  // Filtros para Vista de Lotes
-  String? _batchClientFilter;
-  String _batchSearchQuery = '';
+  // ========================================
+  // FILTROS UNIFICADOS (persisten entre vistas)
+  // ========================================
+  String _searchQuery = ''; // Búsqueda universal
+  String? _clientFilter; // Filtro de cliente
+  String? _batchFilter; // Filtro de lote
+  String? _phaseFilter; // Filtro de fase
+  String? _statusFilter; // Filtro de estado
+  String? _projectFilter; // Filtro de proyecto (solo Kanban)
+  bool _onlyUrgent = false; // Filtro de urgentes
 
-  // Filtros para Vista de Productos
-  String? _productPhaseFilter;
-  String? _productClientFilter;
-  String? _productBatchFilter;
-  String? _productStatusFilter; 
-  String _productSearchQuery = '';
-  bool? _onlyUrgentFilter;
-
-  // Filtros para Vista Kanban
-  String? _kanbanBatchFilter;
-  String? _kanbanClientFilter;
-  String? _kanbanProjectFilter;
-  bool _kanbanOnlyUrgent = false;
-
-  // Verificar si hay filtros activos
+  // Verificar si hay filtros activos (universal)
   bool get _hasActiveFilters {
-    if (_currentView == ProductionView.batches) {
-      return _batchSearchQuery.isNotEmpty || 
-             _batchClientFilter != null;
-    } else if (_currentView == ProductionView.products) {
-      return _productSearchQuery.isNotEmpty ||
-             _productStatusFilter != null ||
-             _productPhaseFilter != null ||
-             _productClientFilter != null ||
-             _productBatchFilter != null || 
-             _onlyUrgentFilter == true;
-    } else {
-      return _kanbanBatchFilter != null ||
-             _kanbanClientFilter != null ||
-             _kanbanProjectFilter != null ||
-             _kanbanOnlyUrgent;
-    }
+    return _searchQuery.isNotEmpty ||
+        _clientFilter != null ||
+        _batchFilter != null ||
+        _phaseFilter != null ||
+        _statusFilter != null ||
+        _projectFilter != null ||
+        _onlyUrgent;
   }
-  
-  // Limpiar filtros según vista actual
+
+  // Limpiar TODOS los filtros de TODAS las vistas
   void _clearAllFilters() {
     setState(() {
-      if (_currentView == ProductionView.batches) {
-        _batchSearchQuery = '';
-        _batchClientFilter = null;
-      } else if (_currentView == ProductionView.products) {
-        _productSearchQuery = '';
-        _productStatusFilter = null;
-        _productPhaseFilter = null;
-        _productClientFilter = null;
-        _productBatchFilter = null;
-        _onlyUrgentFilter = false;
-      } else {
-        _kanbanBatchFilter = null;
-        _kanbanClientFilter = null;
-        _kanbanProjectFilter = null;
-        _kanbanOnlyUrgent = false;
-      }
+      _searchQuery = '';
+      _clientFilter = null;
+      _batchFilter = null;
+      _phaseFilter = null;
+      _statusFilter = null;
+      _projectFilter = null;
+      _onlyUrgent = false;
     });
   }
 
@@ -104,15 +105,16 @@ class _ProductionScreenState extends State<ProductionScreen> {
     super.initState();
     _currentView = widget.initialView ?? ProductionView.batches;
 
+    // Inicializar filtros si vienen de navegación
     if (widget.initialBatchFilter != null) {
-      _productBatchFilter = widget.initialBatchFilter;
+      _batchFilter = widget.initialBatchFilter;
     }
     if (widget.initialPhaseFilter != null) {
-      _productPhaseFilter = widget.initialPhaseFilter;
+      _phaseFilter = widget.initialPhaseFilter;
       _currentView = ProductionView.products;
     }
     if (widget.initialStatusFilter != null) {
-      _productStatusFilter = widget.initialStatusFilter;
+      _statusFilter = widget.initialStatusFilter;
       _currentView = ProductionView.products;
     }
   }
@@ -154,22 +156,24 @@ class _ProductionScreenState extends State<ProductionScreen> {
       floatingActionButton:
           user.canManageProduction && _currentView == ProductionView.batches
               ? SizedBox(
-        height: 40,
-        child: FloatingActionButton.extended(
-          onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CreateProductionBatchScreen(
-                          organizationId: user.organizationId!,
+                  height: 40,
+                  child: FloatingActionButton.extended(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CreateProductionBatchScreen(
+                            organizationId: user.organizationId!,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-          icon: const Icon(Icons.add, size: 20),
-          label: Text(l10n.createBatchBtn, style: const TextStyle(fontSize: 13)),
-        ),
-      ) : null,
+                      );
+                    },
+                    icon: const Icon(Icons.add, size: 20),
+                    label: Text(l10n.createBatchBtn,
+                        style: const TextStyle(fontSize: 13)),
+                  ),
+                )
+              : null,
       bottomNavigationBar: BottomNavBarWidget(currentIndex: 1, user: user),
     );
   }
@@ -225,288 +229,257 @@ class _ProductionScreenState extends State<ProductionScreen> {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          FilterUtils.buildSearchField(
-            hintText: _currentView == ProductionView.batches 
-                ? '${l10n.search} ${l10n.batchLabel.toLowerCase()}...' 
-                : _currentView == ProductionView.products
-                    ? '${l10n.search} ${l10n.product.toLowerCase()}...'
-                    : l10n.searchByNameOrRef,
-            searchQuery: _currentView == ProductionView.batches 
-                ? _batchSearchQuery 
-                : _currentView == ProductionView.products 
-                    ? _productSearchQuery 
-                    : '',
-            onChanged: (value) => setState(() {
-              if (_currentView == ProductionView.batches) {
-                _batchSearchQuery = value;
-              } else if (_currentView == ProductionView.products) {
-                _productSearchQuery = value;
-              }
-            }),
-          ),
-          
-          const SizedBox(height: 10),
-          
-          SizedBox(
-            width: double.infinity,
-            child: _currentView == ProductionView.batches
-                ? _buildBatchFilterChips(user, l10n)
-                : _currentView == ProductionView.products
-                    ? _buildProductFilterChips(user, l10n)
-                    : _buildKanbanFilterChips(user, l10n),
+          // Búsqueda universal (visible en todas las vistas donde esté configurada)
+          if (FilterConfig.shouldShowFilter('search', _currentView))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: TextField(
+                controller: TextEditingController(text: _searchQuery)
+                  ..selection = TextSelection.fromPosition(
+                    TextPosition(offset: _searchQuery.length),
+                  ),
+                decoration: InputDecoration(
+                  hintText: _getSearchHint(l10n),
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 20),
+                          onPressed: () {
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+              ),
+            ),
+
+          // Filtros en chips (solo los visibles para la vista actual)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.start,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              // Filtro de Cliente
+              if (FilterConfig.shouldShowFilter('client', _currentView))
+                _buildClientFilterChip(user, l10n),
+
+              // Filtro de Lote
+              if (FilterConfig.shouldShowFilter('batch', _currentView))
+                _buildBatchFilterChip(user, l10n),
+
+              // Filtro de Fase
+              if (FilterConfig.shouldShowFilter('phase', _currentView))
+                _buildPhaseFilterChip(user, l10n),
+
+              // Filtro de Estado
+              if (FilterConfig.shouldShowFilter('status', _currentView))
+                _buildStatusFilterChip(l10n),
+
+              // Filtro de Proyecto (solo Kanban)
+              if (FilterConfig.shouldShowFilter('project', _currentView))
+                _buildProjectFilterChip(user, l10n),
+
+              // Filtro de Urgentes
+              if (FilterConfig.shouldShowFilter('urgent', _currentView))
+                FilterUtils.buildUrgencyFilterChip(
+                    context: context,
+                    isUrgentOnly: _onlyUrgent,
+                    onToggle: () {
+                      setState(() {
+                        _onlyUrgent = !_onlyUrgent;
+                      });
+                    }),
+
+              // Botón de limpiar filtros (universal)
+              if (_hasActiveFilters)
+                FilterUtils.buildClearFiltersButton(
+                  context: context,
+                  onPressed: _clearAllFilters,
+                  hasActiveFilters: true,
+                ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBatchFilterChips(UserModel user, AppLocalizations l10n) {
-    return StreamBuilder<List<ClientModel>>(
-      stream: Provider.of<ClientService>(context, listen: false)
-          .watchClients(user.organizationId!),
+  String _getSearchHint(AppLocalizations l10n) {
+    switch (_currentView) {
+      case ProductionView.batches:
+        return l10n.searchBatches;
+      case ProductionView.products:
+        return l10n.searchProducts;
+      case ProductionView.kanban:
+        return l10n.searchInKanban;
+      default:
+        return l10n.search;
+    }
+  }
+
+  Widget _buildClientFilterChip(UserModel user, AppLocalizations l10n) {
+    return FutureBuilder<List<ClientModel>>(
+      future: Provider.of<ClientService>(context, listen: false)
+          .getOrganizationClients(user.organizationId!),
       builder: (context, snapshot) {
         final clients = snapshot.data ?? [];
-        
-        final List<Widget> filterWidgets = [
-          FilterUtils.buildFilterOption<String>(
-            context: context,
-            label: l10n.client,
-            value: _batchClientFilter,
-            icon: Icons.storefront_outlined,
-            allLabel: l10n.allClients,
-            items: clients.map((c) => DropdownMenuItem(
-              value: c.id,
-              child: Text(c.name, overflow: TextOverflow.ellipsis),
-            )).toList(),
-            onChanged: (val) => setState(() => _batchClientFilter = val),
-          ),
-        ];
-          
-        if (_hasActiveFilters) {
-          filterWidgets.add(
-            FilterUtils.buildClearFiltersButton(
-              context: context,
-              onPressed: _clearAllFilters,
-              hasActiveFilters: true,
-            ),
-          );
-        }
+        final selectedClient =
+            clients.where((c) => c.id == _clientFilter).firstOrNull;
 
-        return Wrap(
-          spacing: 6.0,
-          runSpacing: 6.0,
-          alignment: WrapAlignment.start,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: filterWidgets,
+        return FilterUtils.buildFilterOption<String>(
+          context: context,
+          label: l10n.client,
+          value: _clientFilter,
+          icon: Icons.storefront_outlined,
+          allLabel: l10n.allClients,
+          items: clients
+              .map((c) => DropdownMenuItem(
+                    value: c.id,
+                    child: Text(c.name, overflow: TextOverflow.ellipsis),
+                  ))
+              .toList(),
+          onChanged: (val) => setState(() => _clientFilter = val),
         );
       },
     );
   }
 
-  Widget _buildProductFilterChips(UserModel user, AppLocalizations l10n) {
-    return StreamBuilder<List<ClientModel>>(
-      stream: Provider.of<ClientService>(context, listen: false).watchClients(user.organizationId!),
-      builder: (context, clientSnapshot) {
-        final clients = clientSnapshot.data ?? [];
+  Widget _buildBatchFilterChip(UserModel user, AppLocalizations l10n) {
+    return StreamBuilder<List<ProductionBatchModel>>(
+      stream: Provider.of<ProductionBatchService>(context, listen: false)
+          .watchBatches(user.organizationId!),
+      builder: (context, snapshot) {
+        final batches = snapshot.data ?? [];
+        final selectedBatch =
+            batches.where((b) => b.id == _batchFilter).firstOrNull;
 
-        return StreamBuilder<List<ProductionBatchModel>>(
-          stream: Provider.of<ProductionBatchService>(context, listen: false).watchBatches(user.organizationId!),
-          builder: (context, batchSnapshot) {
-            final batches = batchSnapshot.data ?? [];
-            final phases = ProductionPhase.getDefaultPhases();
+        return FilterUtils.buildFilterOption<String>(
+          context: context,
+          label: l10n.batchLabel,
+          value: _batchFilter,
+          icon: Icons.inventory_2_outlined,
+          allLabel: l10n.allPluralMasculine,
+          items: batches
+              .map((b) => DropdownMenuItem(
+                    value: b.id,
+                    child: Text(b.batchNumber, overflow: TextOverflow.ellipsis),
+                  ))
+              .toList(),
+          onChanged: (val) => setState(() => _batchFilter = val),
+        );
+      },
+    );
+  }
 
-            final List<Widget> filterWidgets = [
-              FilterUtils.buildFilterOption<String>(
-                context: context,
-                label: l10n.status,
-                value: _productStatusFilter,
-                icon: Icons.flag_outlined,
-                allLabel: l10n.allPluralMasculine,
-                items: ProductStatus.values.map((status) => DropdownMenuItem(
-                  value: status.value,
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: status.color,
-                          shape: BoxShape.circle,
-                        ),
+  Widget _buildPhaseFilterChip(UserModel user, AppLocalizations l10n) {
+    final phases = ProductionPhase.getDefaultPhases();
+
+    return FilterUtils.buildFilterOption<String>(
+      context: context,
+      label: l10n.phase,
+      value: _phaseFilter,
+      icon: Icons.layers_outlined,
+      allLabel: l10n.allPluralFeminine,
+      items: phases
+          .map((phase) => DropdownMenuItem(
+                value: phase.id,
+                child: Text(phase.name),
+              ))
+          .toList(),
+      onChanged: (val) => setState(() => _phaseFilter = val),
+    );
+  }
+
+  Widget _buildStatusFilterChip(AppLocalizations l10n) {
+    return FilterUtils.buildFilterOption<String>(
+      context: context,
+      label: l10n.status,
+      value: _statusFilter,
+      icon: Icons.flag_outlined,
+      allLabel: l10n.allPluralMasculine,
+      items: ProductStatus.values
+          .map((status) => DropdownMenuItem(
+                value: status.value,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: status.color,
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 6),
-                      Text(status.displayName),
-                    ],
-                  ),
-                )).toList(),
-                onChanged: (val) => setState(() => _productStatusFilter = val),
-              ),
-
-              FilterUtils.buildFilterOption<String>(
-                context: context,
-                label: l10n.phase,
-                value: _productPhaseFilter,
-                icon: Icons.layers_outlined,
-                allLabel: l10n.allPluralFeminine,
-                items: phases.map((phase) => DropdownMenuItem(
-                  value: phase.id,
-                  child: Text(phase.name),
-                )).toList(),
-                onChanged: (val) => setState(() => _productPhaseFilter = val),
-              ),
-
-              FilterUtils.buildFilterOption<String>(
-                context: context,
-                label: l10n.client,
-                value: _productClientFilter,
-                icon: Icons.storefront_outlined,
-                allLabel: l10n.allClients,
-                items: clients.map((c) => DropdownMenuItem(
-                  value: c.id,
-                  child: Text(c.name, overflow: TextOverflow.ellipsis),
-                )).toList(),
-                onChanged: (val) => setState(() => _productClientFilter = val),
-              ),
-
-              FilterUtils.buildFilterOption<String>(
-                context: context,
-                label: l10n.batchLabel,
-                value: _productBatchFilter,
-                icon: Icons.inventory_2_outlined,
-                allLabel: l10n.allPluralMasculine,
-                items: batches.map((b) => DropdownMenuItem(
-                  value: b.id,
-                  child: Text(b.batchNumber, overflow: TextOverflow.ellipsis),
-                )).toList(),
-                onChanged: (val) => setState(() => _productBatchFilter = val),
-              ),
-              
-              FilterUtils.buildUrgencyFilterChip(
-                context: context,
-                isUrgentOnly: _onlyUrgentFilter ?? false,
-                onToggle: () {
-                  setState(() {
-                    _onlyUrgentFilter = !(_onlyUrgentFilter ?? false);
-                  });
-                }
-              ),
-            ];
-
-            if (_hasActiveFilters) {
-              filterWidgets.add(
-                FilterUtils.buildClearFiltersButton(
-                  context: context,
-                  onPressed: _clearAllFilters,
-                  hasActiveFilters: true,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(status.displayName),
+                  ],
                 ),
-              );
-            }
-
-            return Wrap(
-              spacing: 6.0,
-              runSpacing: 6.0,
-              alignment: WrapAlignment.start,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: filterWidgets,
-            );
-          }
-        );
-      },
+              ))
+          .toList(),
+      onChanged: (val) => setState(() => _statusFilter = val),
     );
   }
 
-  Widget _buildKanbanFilterChips(UserModel user, AppLocalizations l10n) {
-    return StreamBuilder<List<ClientModel>>(
-      stream: Provider.of<ClientService>(context, listen: false).watchClients(user.organizationId!),
-      builder: (context, clientSnapshot) {
-        final clients = clientSnapshot.data ?? [];
+  Widget _buildProjectFilterChip(UserModel user, AppLocalizations l10n) {
+    // Similar al filtro de batch, pero para proyectos
+    return StreamBuilder<List<ProductionBatchModel>>(
+        stream: Provider.of<ProductionBatchService>(context, listen: false)
+            .watchBatches(user.organizationId!),
+        builder: (context, batchSnapshot) {
+          final batches = batchSnapshot.data ?? [];
 
-        return StreamBuilder<List<ProductionBatchModel>>(
-          stream: Provider.of<ProductionBatchService>(context, listen: false).watchBatches(user.organizationId!),
-          builder: (context, batchSnapshot) {
-            final batches = batchSnapshot.data ?? [];
-
-            // Extraer proyectos únicos
-            final Map<String, String> uniqueProjects = {};
-            for (var batch in batches) {
-              uniqueProjects[batch.projectId] = batch.projectName;
-            }
-
-            final List<Widget> filterWidgets = [
-              FilterUtils.buildFilterOption<String>(
-                context: context,
-                label: l10n.batchLabel,
-                value: _kanbanBatchFilter,
-                icon: Icons.inventory_2_outlined,
-                allLabel: l10n.allPluralMasculine,
-                items: batches.map((b) => DropdownMenuItem(
-                  value: b.id,
-                  child: Text(b.batchNumber, overflow: TextOverflow.ellipsis),
-                )).toList(),
-                onChanged: (val) => setState(() => _kanbanBatchFilter = val),
-              ),
-
-              FilterUtils.buildFilterOption<String>(
-                context: context,
-                label: l10n.client,
-                value: _kanbanClientFilter,
-                icon: Icons.storefront_outlined,
-                allLabel: l10n.allClients,
-                items: clients.map((c) => DropdownMenuItem(
-                  value: c.id,
-                  child: Text(c.name, overflow: TextOverflow.ellipsis),
-                )).toList(),
-                onChanged: (val) => setState(() => _kanbanClientFilter = val),
-              ),
-
-              FilterUtils.buildFilterOption<String>(
-                context: context,
-                label: l10n.project,
-                value: _kanbanProjectFilter,
-                icon: Icons.folder_outlined,
-                allLabel: l10n.allPluralMasculine,
-                items: uniqueProjects.entries.map((entry) => DropdownMenuItem(
-                  value: entry.key,
-                  child: Text(entry.value, overflow: TextOverflow.ellipsis),
-                )).toList(),
-                onChanged: (val) => setState(() => _kanbanProjectFilter = val),
-              ),
-
-              FilterUtils.buildUrgencyFilterChip(
-                context: context,
-                isUrgentOnly: _kanbanOnlyUrgent,
-                onToggle: () {
-                  setState(() {
-                    _kanbanOnlyUrgent = !_kanbanOnlyUrgent;
-                  });
-                }
-              ),
-            ];
-
-            if (_hasActiveFilters) {
-              filterWidgets.add(
-                FilterUtils.buildClearFiltersButton(
-                  context: context,
-                  onPressed: _clearAllFilters,
-                  hasActiveFilters: true,
-                ),
-              );
-            }
-
-            return Wrap(
-              spacing: 6.0,
-              runSpacing: 6.0,
-              alignment: WrapAlignment.start,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: filterWidgets,
-            );
+          // Extraer proyectos únicos
+          final Map<String, String> projects = {};
+          for (var batch in batches) {
+            projects[batch.projectId] = batch.projectName;
           }
-        );
-      },
-    );
+
+          return FilterUtils.buildFilterOption<String>(
+            context: context,
+            label: l10n.project,
+            value: _projectFilter,
+            icon: Icons.folder_outlined,
+            allLabel: l10n.allPluralMasculine,
+            items: projects.entries
+                .map((entry) => DropdownMenuItem(
+                      value: entry.key,
+                      child: Text(entry.value, overflow: TextOverflow.ellipsis),
+                    ))
+                .toList(),
+            onChanged: (val) => setState(() => _projectFilter = val),
+          );
+        });
   }
+
+  // ========================================
+  // VISTAS
+  // ========================================
 
   Widget _buildBatchesView(UserModel user, AppLocalizations l10n) {
     return StreamBuilder<List<ProductionBatchModel>>(
@@ -517,103 +490,160 @@ class _ProductionScreenState extends State<ProductionScreen> {
           return const Center(child: CircularProgressIndicator());
         }
 
+        if (snapshot.hasError) {
+          return Center(child: Text('${l10n.error}: ${snapshot.error}'));
+        }
+
         var batches = snapshot.data ?? [];
 
-        if (_batchClientFilter != null) {
-          batches = batches.where((b) => b.clientId == _batchClientFilter).toList();
+        // Aplicar filtros usando la búsqueda universal
+        if (_searchQuery.isNotEmpty) {
+          batches = batches.where((batch) {
+            final searchLower = _searchQuery.toLowerCase();
+            return batch.batchNumber.toLowerCase().contains(searchLower) ||
+                batch.projectName.toLowerCase().contains(searchLower) ||
+                batch.clientName.toLowerCase().contains(searchLower);
+          }).toList();
         }
-        
-        if (_batchSearchQuery.isNotEmpty) {
-          batches = batches.where((b) =>
-              b.batchNumber.toLowerCase().contains(_batchSearchQuery.toLowerCase()) ||
-              b.projectName.toLowerCase().contains(_batchSearchQuery.toLowerCase())).toList();
+
+        if (_clientFilter != null) {
+          batches = batches.where((b) => b.clientId == _clientFilter).toList();
         }
 
         if (batches.isEmpty) {
-          return Center(child: Text(l10n.noBatchesFound));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.inventory_2_outlined,
+                    size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  _hasActiveFilters ? l10n.noResultsFound : l10n.noBatchesFound,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ],
+            ),
+          );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: batches.length,
-          itemBuilder: (context, index) => _buildBatchCard(batches[index], user, l10n),
+        return RefreshIndicator(
+          onRefresh: () async {
+            setState(() {});
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: batches.length,
+            itemBuilder: (context, index) {
+              return _buildBatchCard(batches[index], user, l10n);
+            },
+          ),
         );
       },
     );
   }
 
   Widget _buildProductsView(UserModel user, AppLocalizations l10n) {
-    return StreamBuilder<List<ProductionBatchModel>>(
-      stream: Provider.of<ProductionBatchService>(context, listen: false)
-          .watchBatches(user.organizationId!),
-      builder: (context, batchSnapshot) {
-        if (batchSnapshot.connectionState == ConnectionState.waiting) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _getAllProductsWithBatches(user),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final batches = batchSnapshot.data ?? [];
-        
-        return FutureBuilder<List<Map<String, dynamic>>>(
-          future: _getAllProducts(user.organizationId!, batches),
-          builder: (context, productsSnapshot) {
-            if (productsSnapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        if (snapshot.hasError) {
+          return Center(child: Text('${l10n.error}: ${snapshot.error}'));
+        }
 
-            var products = productsSnapshot.data ?? [];
-            
-            if (_productStatusFilter != null) {
-              products = products.where((p) {
-                final prod = p['product'] as BatchProductModel;
-                return prod.productStatus == _productStatusFilter!; 
-              }).toList();
-            }
+        var allProducts = snapshot.data ?? [];
 
-            if (_productPhaseFilter != null) {
-              products = products.where((p) => 
-                (p['product'] as BatchProductModel).currentPhase == _productPhaseFilter
-              ).toList();
-            }
-            if (_productClientFilter != null) {
-              products = products.where((p) => 
-                (p['batch'] as ProductionBatchModel).clientId == _productClientFilter
-              ).toList();
-            }
-            if (_productBatchFilter != null) {
-              products = products.where((p) => 
-                (p['product'] as BatchProductModel).batchId == _productBatchFilter
-              ).toList();
-            }
-            if (_productSearchQuery.isNotEmpty) {
-              final query = _productSearchQuery.toLowerCase();
-              products = products.where((p) {
-                final product = p['product'] as BatchProductModel;
-                return product.productName.toLowerCase().contains(query) ||
-                       (product.productReference?.toLowerCase().contains(query) ?? false);
-              }).toList();
-            }
-            
-            if (_onlyUrgentFilter == true) {
-              products = products.where((p) {
-                final product = p['product'] as BatchProductModel;
-                return product.urgencyLevel == UrgencyLevel.urgent.value;
-              }).toList();
-            }
+        // Aplicar filtros usando la búsqueda universal
+        if (_searchQuery.isNotEmpty) {
+          allProducts = allProducts.where((item) {
+            final product = item['product'] as BatchProductModel;
+            final searchLower = _searchQuery.toLowerCase();
+            return product.productName.toLowerCase().contains(searchLower) ||
+                (product.productReference
+                        ?.toLowerCase()
+                        .contains(searchLower) ??
+                    false);
+          }).toList();
+        }
 
-            if (products.isEmpty) {
-              return Center(child: Text(l10n.noProductsFound));
-            }
+        if (_statusFilter != null) {
+          allProducts = allProducts
+              .where((item) =>
+                  (item['product'] as BatchProductModel).statusName ==
+                  _statusFilter)
+              .toList();
+        }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final product = products[index]['product'] as BatchProductModel;
-                final batch = products[index]['batch'] as ProductionBatchModel;
-                return _buildProductCard(product, batch, user, l10n);
-              },
-            );
+        if (_phaseFilter != null) {
+          allProducts = allProducts
+              .where((item) =>
+                  (item['product'] as BatchProductModel).currentPhase ==
+                  _phaseFilter)
+              .toList();
+        }
+
+        if (_clientFilter != null) {
+          allProducts = allProducts
+              .where((item) =>
+                  (item['batch'] as ProductionBatchModel).clientId ==
+                  _clientFilter)
+              .toList();
+        }
+
+        if (_batchFilter != null) {
+          allProducts = allProducts
+              .where((item) =>
+                  (item['batch'] as ProductionBatchModel).id == _batchFilter)
+              .toList();
+        }
+
+        if (_onlyUrgent) {
+          allProducts = allProducts
+              .where((item) =>
+                  (item['product'] as BatchProductModel).urgencyLevel ==
+                  'urgent')
+              .toList();
+        }
+
+        if (allProducts.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.widgets_outlined, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  _hasActiveFilters
+                      ? l10n.noResultsFound
+                      : l10n.noProductsFound,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ],
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            setState(() {});
           },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: allProducts.length,
+            itemBuilder: (context, index) {
+              final item = allProducts[index];
+              return _buildProductCard(
+                item['product'] as BatchProductModel,
+                item['batch'] as ProductionBatchModel,
+                user,
+                l10n,
+              );
+            },
+          ),
         );
       },
     );
@@ -623,25 +653,32 @@ class _ProductionScreenState extends State<ProductionScreen> {
     return KanbanBoardWidget(
       organizationId: user.organizationId!,
       currentUser: user,
-      initialBatchFilter: _kanbanBatchFilter,
-      initialClientFilter: _kanbanClientFilter,
-      initialProjectFilter: _kanbanProjectFilter,
-      initialUrgentFilter: _kanbanOnlyUrgent,
+      // Pasar filtros unificados al Kanban
+      initialClientFilter: _clientFilter,
+      initialBatchFilter: _batchFilter,
+      initialProjectFilter: _projectFilter,
+      initialUrgentFilter: _onlyUrgent,
     );
   }
 
-  Future<List<Map<String, dynamic>>> _getAllProducts(
-    String organizationId,
-    List<ProductionBatchModel> batches,
-  ) async {
-    final batchService = Provider.of<ProductionBatchService>(context, listen: false);
-    final allProducts = <Map<String, dynamic>>[];
+  // Helper para obtener todos los productos con sus lotes
+  Future<List<Map<String, dynamic>>> _getAllProductsWithBatches(
+      UserModel user) async {
+    final batchService =
+        Provider.of<ProductionBatchService>(context, listen: false);
+    final batches = await batchService.watchBatches(user.organizationId!).first;
+
+    List<Map<String, dynamic>> allProducts = [];
 
     for (final batch in batches) {
       try {
         final products = await batchService
-            .watchBatchProducts(organizationId, batch.id)
+            .watchBatchProducts(
+              user.organizationId!,
+              batch.id,
+            )
             .first;
+
         for (final product in products) {
           allProducts.add({
             'product': product,
@@ -656,7 +693,8 @@ class _ProductionScreenState extends State<ProductionScreen> {
     return allProducts;
   }
 
-  Widget _buildBatchCard(ProductionBatchModel batch, UserModel user, AppLocalizations l10n) {
+  Widget _buildBatchCard(
+      ProductionBatchModel batch, UserModel user, AppLocalizations l10n) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -696,9 +734,11 @@ class _ProductionScreenState extends State<ProductionScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              Text('${l10n.project}: ${batch.projectName}', style: const TextStyle(fontSize: 14)),
+              Text('${l10n.project}: ${batch.projectName}',
+                  style: const TextStyle(fontSize: 14)),
               const SizedBox(height: 4),
-              Text('${l10n.client}: ${batch.clientName}', style: TextStyle(fontSize: 14, color: Colors.grey[700])),
+              Text('${l10n.client}: ${batch.clientName}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700])),
               const SizedBox(height: 8),
               Text(
                 '${batch.totalProducts} ${l10n.products}',
@@ -761,11 +801,11 @@ class _ProductionScreenState extends State<ProductionScreen> {
                             ),
                           ),
                         ),
-                        
                         if (urgencyLevel == UrgencyLevel.urgent) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: urgencyLevel.color.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(6),
@@ -786,14 +826,15 @@ class _ProductionScreenState extends State<ProductionScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: product.statusLegacyColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: product.statusLegacyColor.withOpacity(0.3)),
+                      border: Border.all(
+                          color: product.statusLegacyColor.withOpacity(0.3)),
                     ),
                     child: Text(
                       product.statusDisplayName,
@@ -819,10 +860,10 @@ class _ProductionScreenState extends State<ProductionScreen> {
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
-                                '${l10n.batchLabel} ${batch.batchNumber} (#${product.productNumber})', 
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: Colors.grey[700], fontSize: 13)
-                              ),
+                                  '${l10n.batchLabel} ${batch.batchNumber} (#${product.productNumber})',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: Colors.grey[700], fontSize: 13)),
                             ),
                           ],
                         ),
@@ -830,12 +871,12 @@ class _ProductionScreenState extends State<ProductionScreen> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.qr_code, size: 14, color: Colors.grey[500]),
+                              Icon(Icons.qr_code,
+                                  size: 14, color: Colors.grey[500]),
                               const SizedBox(width: 4),
-                              Text(
-                                'SKU: ${product.productReference!}', 
-                                style: TextStyle(color: Colors.grey[700], fontSize: 13)
-                              ),
+                              Text('SKU: ${product.productReference!}',
+                                  style: TextStyle(
+                                      color: Colors.grey[700], fontSize: 13)),
                             ],
                           ),
                         ],
@@ -843,7 +884,8 @@ class _ProductionScreenState extends State<ProductionScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(8),
@@ -853,11 +895,13 @@ class _ProductionScreenState extends State<ProductionScreen> {
                       children: [
                         Text(
                           '${product.quantity} ${l10n.unitsSuffix}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         Text(
                           product.currentPhaseName,
-                          style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                          style:
+                              TextStyle(color: Colors.grey[600], fontSize: 11),
                         ),
                       ],
                     ),

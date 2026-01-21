@@ -1141,5 +1141,10 @@
 "productFamilyLabel": "Familia de producto",
 "createdBy": "Creado por",
 "updatedBy": "Actualizado por",
-"timesUsed": "Veces usado"
+"timesUsed": "Veces usado",
+"onlyUrgent": "Solo urgentes",
+"clearFilters": "Quitar filtros",
+"searchBatches": "Buscar lotes...",
+"searchProducts": "Buscar productos...",
+"searchInKanban": "Buscar en Kanban..."
 }

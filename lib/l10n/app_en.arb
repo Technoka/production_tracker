@@ -1139,5 +1139,10 @@
 "productFamilyLabel": "Product family",
 "createdBy": "Created by",
 "updatedBy": "Updated by",
-"timesUsed": "Times used"
+"timesUsed": "Times used",
+"onlyUrgent": "Only urgent",
+"clearFilters": "Remove filters",
+"searchBatches": "Search batches...",
+"searchProducts": "Search products...",
+"searchInKanban": "Search in Kanban..."
 }

@@ -3067,4 +3067,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get timesUsed => 'Times used';
+
+  @override
+  String get onlyUrgent => 'Only urgent';
+
+  @override
+  String get clearFilters => 'Remove filters';
+
+  @override
+  String get searchBatches => 'Search batches...';
+
+  @override
+  String get searchProducts => 'Search products...';
+
+  @override
+  String get searchInKanban => 'Search in Kanban...';
 }
