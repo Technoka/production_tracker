@@ -18,9 +18,9 @@ class AccessControlWidget extends StatefulWidget {
   final Function(List<String>) onMembersChanged;
   final bool readOnly;
   final bool showTitle;
-  final String? customTitle; // ← NUEVO
-  final String? customDescription; // ← NUEVO
-  final String resourceType; // ← NUEVO: 'project' o 'batch'
+  final String? customTitle;
+  final String? customDescription;
+  final String resourceType;
 
   const AccessControlWidget({
     super.key,
@@ -30,9 +30,9 @@ class AccessControlWidget extends StatefulWidget {
     required this.onMembersChanged,
     this.readOnly = false,
     this.showTitle = true,
-    this.customTitle, // ← NUEVO
-    this.customDescription, // ← NUEVO
-    this.resourceType = 'project', // ← NUEVO (default 'project')
+    this.customTitle,
+    this.customDescription,
+    this.resourceType = 'project',
   });
 
   @override
@@ -73,7 +73,8 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final permissionService = Provider.of<PermissionService>(context);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,6 +104,8 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -111,6 +114,8 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
                         fontSize: 12,
                         color: Colors.grey.shade600,
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
                     ),
                   ],
                 ),
@@ -120,7 +125,7 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
           const SizedBox(height: 20),
         ],
 
-        // Miembros con acceso automático
+        // Miembros con acceso automático - Cambiado a FutureBuilder
         FutureBuilder<List<OrganizationMemberWithUser>>(
           future: _getMembersWithAutoAccess(permissionService),
           builder: (context, autoAccessSnapshot) {
@@ -140,7 +145,7 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
                   const SizedBox(height: 20),
                 ],
 
-                // Asignar miembros manualmente
+                // Asignar miembros manualmente - Cambiado a FutureBuilder
                 _buildMemberSelectionSection(
                   context,
                   l10n,
@@ -159,15 +164,17 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
     AppLocalizations l10n,
     List<OrganizationMemberWithUser> autoAccessMembers,
   ) {
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              Icons.verified_user_outlined,
+              Icons.lock_open_outlined,
               size: 18,
-              color: Colors.blue.shade600,
+              color: Colors.blue.shade700,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -187,12 +194,13 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
           decoration: BoxDecoration(
             color: Colors.blue.shade50,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue.shade100),
+            border: Border.all(color: Colors.blue.shade200),
           ),
           child: Column(
             children: autoAccessMembers.asMap().entries.map((entry) {
               final index = entry.key;
               final member = entry.value;
+              final isMe = member.userId == widget.currentUserId;
               final isLast = index == autoAccessMembers.length - 1;
 
               return Column(
@@ -200,51 +208,87 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
-                      vertical: 8,
+                      vertical: 10,
                     ),
                     child: Row(
                       children: [
-                        // Avatar
                         CircleAvatar(
-                          radius: 16,
-                          backgroundColor:
-                              _parseColor(member.roleColor).withOpacity(0.2),
+                          radius: 18,
+                          backgroundColor: isMe
+                              ? Colors.blue.shade100
+                              : _parseColor(member.roleColor).withOpacity(0.2),
                           child: Text(
-                            member.initials,
+                            member.userName.isNotEmpty
+                                ? member.userName[0].toUpperCase()
+                                : '?',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: _parseColor(member.roleColor),
+                              color: isMe
+                                  ? Colors.blue.shade700
+                                  : _parseColor(member.roleColor),
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
-
-                        // Nombre y email
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                member.userName,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      member.userName,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                  if (isMe) ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: Colors.blue.withOpacity(0.3),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Tú',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 4),
                               Text(
                                 member.userEmail,
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Colors.grey.shade600,
                                 ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
                               ),
                             ],
                           ),
                         ),
-
-                        // Badge de rol
+                        const SizedBox(width: 8),
                         _buildRoleBadge(
                           member.roleName,
                           _parseColor(member.roleColor),
@@ -256,8 +300,8 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
                   if (!isLast)
                     Divider(
                       height: 1,
-                      color: Colors.blue.shade100,
-                      indent: 52,
+                      color: Colors.grey.shade200,
+                      indent: 54,
                     ),
                 ],
               );
@@ -284,8 +328,8 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
             ),
             const SizedBox(width: 8),
             Container(
-              width: 200,
-              height: 12,
+              width: 120,
+              height: 14,
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(4),
@@ -295,10 +339,62 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
         ),
         const SizedBox(height: 12),
         Container(
-          height: 60,
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.grey.shade100,
             borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: List.generate(2, (index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 100,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            width: 140,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 60,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ),
         ),
       ],
@@ -310,23 +406,34 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
     AppLocalizations l10n,
     List<OrganizationMemberWithUser> autoAccessMembers,
   ) {
-    final organizationService = Provider.of<OrganizationService>(context);
-    final autoAccessIds = autoAccessMembers.map((m) => m.userId).toSet();
-
-    return StreamBuilder<List<UserModel>>(
-      stream:
-          organizationService.watchOrganizationMembers(widget.organizationId),
+    return FutureBuilder<List<OrganizationMemberWithUser>>(
+      future: _getOrganizationMembersWithRoles(context),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildMemberSelectionSkeleton();
         }
+        print("snapshot data: ${snapshot.data}");
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                l10n.noMembersFound,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ),
+          );
+        }
 
-        // Filtrar miembros que NO tienen acceso automático
-        final selectableMembers = (snapshot.data ?? [])
-            .where((m) => !autoAccessIds.contains(m.uid))
+        final allMembers = snapshot.data!;
+        final autoAccessMemberIds =
+            autoAccessMembers.map((m) => m.userId).toSet();
+        final manualMembers = allMembers
+            .where((m) => !autoAccessMemberIds.contains(m.userId))
             .toList();
 
-        if (selectableMembers.isEmpty) {
+// All members have automatic access
+        if (manualMembers.isEmpty) {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -356,12 +463,16 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
                   color: Colors.grey.shade700,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  l10n.assignAdditionalMembers,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade700,
+                Expanded(
+                  child: Text(
+                    l10n.assignAdditionalMembers,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
               ],
@@ -373,96 +484,96 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
-                children: selectableMembers.asMap().entries.map((entry) {
+                children: manualMembers.asMap().entries.map((entry) {
                   final index = entry.key;
                   final member = entry.value;
-                  final isMe = member.uid == widget.currentUserId;
+                  final isMe = member.userId == widget.currentUserId;
                   final isSelected =
-                      _internalSelectedMembers.contains(member.uid);
-                  final isLast = index == selectableMembers.length - 1;
+                      _internalSelectedMembers.contains(member.userId);
+                  final isLast = index == manualMembers.length - 1;
 
                   return Column(
                     children: [
-                      FutureBuilder<Color>(
-                        future: _getMemberRoleColor(member.uid),
-                        builder: (context, colorSnapshot) {
-                          final roleColor = colorSnapshot.data ?? Colors.blue;
-
-                          return CheckboxListTile(
-                            value: isSelected,
-                            onChanged: widget.readOnly
-                                ? null
-                                : (value) {
-                                    _toggleMember(member.uid);
-                                  },
-                            title: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    member.name,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                      CheckboxListTile(
+                        value: isSelected,
+                        onChanged: widget.readOnly
+                            ? null
+                            : (value) => _toggleMember(member.userId),
+                        title: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                member.userName,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                if (isMe) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.shade100,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      l10n.you,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue.shade700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            subtitle: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    member.email,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                _buildRoleBadge(
-                                  member.roleDisplayName,
-                                  roleColor,
-                                  compact: true,
-                                ),
-                              ],
-                            ),
-                            secondary: CircleAvatar(
-                              radius: 18,
-                              backgroundColor: isMe
-                                  ? Colors.blue.shade100
-                                  : roleColor.withOpacity(0.2),
-                              child: Icon(
-                                isMe ? Icons.account_circle : Icons.person,
-                                color: isMe ? Colors.blue.shade700 : roleColor,
-                                size: 20,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
                             ),
-                            activeColor: Theme.of(context).primaryColor,
-                            controlAffinity: ListTileControlAffinity.trailing,
-                          );
-                        },
+                            if (isMe) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: Colors.blue.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Tú',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            const SizedBox(width: 8),
+                            _buildRoleBadge(
+                              member.roleName,
+                              _parseColor(member.roleColor),
+                              compact: true,
+                            ),
+                          ],
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 2),
+                            Text(
+                              member.userEmail,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
+                        secondary: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: isMe
+                              ? Colors.blue.shade100
+                              : _parseColor(member.roleColor).withOpacity(0.2),
+                          child: Icon(
+                            isMe ? Icons.account_circle : Icons.person,
+                            color: isMe
+                                ? Colors.blue.shade700
+                                : _parseColor(member.roleColor),
+                            size: 20,
+                          ),
+                        ),
+                        activeColor: Theme.of(context).primaryColor,
+                        controlAffinity: ListTileControlAffinity.trailing,
                       ),
                       if (!isLast)
                         Divider(
@@ -539,8 +650,8 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
   Widget _buildRoleBadge(String roleName, Color color, {bool compact = false}) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 8 : 10,
-        vertical: compact ? 4 : 6,
+        horizontal: compact ? 6 : 8,
+        vertical: compact ? 3 : 5,
       ),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
@@ -557,6 +668,8 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
           fontWeight: FontWeight.bold,
           color: color,
         ),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
     );
   }
@@ -569,86 +682,98 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
     }
   }
 
-  Future<Color> _getMemberRoleColor(String userId) async {
+  /// Obtener miembros de la organización con sus roles
+  /// OPTIMIZADO: Obtiene de organization->members en lugar de users
+  Future<List<OrganizationMemberWithUser>> _getOrganizationMembersWithRoles(
+    BuildContext context,
+  ) async {
     try {
-      final doc = await FirebaseFirestore.instance
+      final membersSnapshot = await FirebaseFirestore.instance
           .collection('organizations')
           .doc(widget.organizationId)
           .collection('members')
-          .doc(userId)
           .get();
 
-      if (doc.exists) {
-        final roleColor = doc.data()?['roleColor'] as String?;
-        if (roleColor != null) {
-          return _parseColor(roleColor);
+      final List<OrganizationMemberWithUser> membersWithRoles = [];
+
+      for (final memberDoc in membersSnapshot.docs) {
+        try {
+          final member = OrganizationMemberModel.fromMap(
+            memberDoc.data(),
+            docId: memberDoc.id,
+          );
+
+          // Obtener datos del usuario
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(member.userId)
+              .get();
+
+          if (!userDoc.exists) continue;
+
+          final user = UserModel.fromMap(userDoc.data()!);
+
+          membersWithRoles.add(OrganizationMemberWithUser(
+            member: member,
+            userName: user.name,
+            userEmail: user.email,
+            userPhotoUrl: user.photoURL,
+          ));
+        } catch (e) {
+          debugPrint('Error loading member: $e');
+          continue;
         }
       }
+
+      return membersWithRoles;
     } catch (e) {
-      debugPrint('Error getting role color: $e');
+      debugPrint('Error getting organization members: $e');
+      return [];
     }
-    return Colors.blue;
   }
 
-  /// Obtener miembros con acceso automático
+  /// Obtener miembros con acceso automático (owner, admin, scope all en projects)
   Future<List<OrganizationMemberWithUser>> _getMembersWithAutoAccess(
     PermissionService permissionService,
   ) async {
     try {
-      // Obtener organización para saber quién es el owner
-      final org = await _getOrganization(widget.organizationId);
-      if (org == null) return [];
-
-      // Obtener todos los miembros
       final organizationService =
           Provider.of<OrganizationService>(context, listen: false);
-      final allMembers = await organizationService
-          .watchOrganizationMembers(widget.organizationId)
-          .first;
+
+      // Obtener organización para saber quién es el owner
+      final org =
+          await organizationService.getOrganization(widget.organizationId);
+      if (org == null) return [];
+
+      // Obtener todos los miembros de organization->members
+      final membersWithRoles = await _getOrganizationMembersWithRoles(context);
 
       final autoAccessMembers = <OrganizationMemberWithUser>[];
 
-      for (final member in allMembers) {
+      for (final memberWithRole in membersWithRoles) {
         // Owner siempre tiene acceso
-        if (member.uid == org['ownerId']) {
-          final memberData = await _getMemberWithRole(member.uid);
-          if (memberData != null) {
-            autoAccessMembers.add(memberData);
-            continue;
-          }
+        if (memberWithRole.userId == org.ownerId) {
+          autoAccessMembers.add(memberWithRole);
+          continue;
         }
 
-// Verificar si es admin o tiene scope all en projects/batches
-        final memberData = await _getMemberWithRole(member.uid);
+        // Obtener el rol
+        final roleDoc = await FirebaseFirestore.instance
+            .collection('organizations')
+            .doc(widget.organizationId)
+            .collection('roles')
+            .doc(memberWithRole.member.roleId)
+            .get();
 
-        if (memberData != null) {
-          // Obtener el rol para verificar permisos
-          final roleDoc = await FirebaseFirestore.instance
-              .collection('organizations')
-              .doc(widget.organizationId)
-              .collection('roles')
-              .doc(memberData.member.roleId)
-              .get();
+        if (!roleDoc.exists) continue;
 
-          if (!roleDoc.exists) continue;
+        final role = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
+        final permissions = memberWithRole.member.getEffectivePermissions(role);
 
-          final role = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
-          final permissions = memberData.member.getEffectivePermissions(role);
-
-          // Admin o con scope all (según tipo de recurso)
-          bool hasAutoAccess = false;
-          if (memberData.member.roleId == 'admin') {
-            hasAutoAccess = true;
-          } else if (widget.resourceType == 'project') {
-            hasAutoAccess =
-                permissions.viewProjectsScope == PermissionScope.all;
-          } else if (widget.resourceType == 'batch') {
-            hasAutoAccess = permissions.viewBatchesScope == PermissionScope.all;
-          }
-
-          if (hasAutoAccess) {
-            autoAccessMembers.add(memberData);
-          }
+        // Admin o Production Manager con scope all
+        if (memberWithRole.member.roleId == 'admin' ||
+            permissions.viewProjectsScope == PermissionScope.all) {
+          autoAccessMembers.add(memberWithRole);
         }
       }
 
@@ -656,55 +781,6 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
     } catch (e) {
       debugPrint('Error getting auto-access members: $e');
       return [];
-    }
-  }
-
-  Future<Map<String, dynamic>?> _getOrganization(String organizationId) async {
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('organizations')
-          .doc(organizationId)
-          .get();
-
-      return doc.data();
-    } catch (e) {
-      return null;
-    }
-  }
-
-  Future<OrganizationMemberWithUser?> _getMemberWithRole(String userId) async {
-    try {
-      final memberDoc = await FirebaseFirestore.instance
-          .collection('organizations')
-          .doc(widget.organizationId)
-          .collection('members')
-          .doc(userId)
-          .get();
-
-      if (!memberDoc.exists) return null;
-
-      final member = OrganizationMemberModel.fromMap(
-        memberDoc.data()!,
-        docId: memberDoc.id,
-      );
-
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
-
-      if (!userDoc.exists) return null;
-
-      final user = UserModel.fromMap(userDoc.data()!);
-
-      return OrganizationMemberWithUser(
-        member: member,
-        userName: user.name,
-        userEmail: user.email,
-        userPhotoUrl: user.photoURL,
-      );
-    } catch (e) {
-      return null;
     }
   }
 }
