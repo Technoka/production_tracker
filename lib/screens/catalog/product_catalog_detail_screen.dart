@@ -309,6 +309,10 @@ class _ProductCatalogDetailScreenState
                     label: l10n.descriptionLabel.replaceAll(' *', ''),
                     value: product.description,
                   ),
+                  _buildCardRow(
+                    label: l10n.timesUsed,
+                    value: product.usageCount != 1 ? '${product.usageCount} ${l10n.timeUsageMultiple}' : '${product.usageCount} ${l10n.timeUsageSingle}',
+                  ),
               ],
             ),
             const SizedBox(height: 24),
