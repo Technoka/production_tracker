@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/models/product_catalog_model.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../services/project_service.dart';
 import '../../services/client_service.dart';
 import '../../services/organization_service.dart';
-import '../../services/project_product_service.dart';
+import '../../services/product_catalog_service.dart';
 import '../../models/project_model.dart';
 import '../../models/client_model.dart';
 import '../../models/user_model.dart';
 import '../../models/project_product_model.dart';
-import '../../utils/role_utils.dart';
+import '../../models/organization_member_model.dart';
+import '../../models/role_model.dart';
+import '../../utils/permission_utils.dart';
 import 'edit_project_screen.dart';
 import '../products/add_product_to_project_screen.dart';
 import '../catalog/product_catalog_detail_screen.dart';
+import '../../services/organization_member_service.dart';
 import '../../widgets/universal_loading_screen.dart';
-import '../../widgets/chat/chat_button.dart';
+import '../../widgets/access_control_widget.dart';
+import '../clients/client_detail_screen.dart';
+import '../catalog/product_catalog_detail_screen.dart';
+import '../../services/organization_member_service.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
-  final String projectId; // Cambiar a recibir solo el ID
+  final String projectId;
 
   const ProjectDetailScreen({super.key, required this.projectId});
 
@@ -25,48 +33,50 @@ class ProjectDetailScreen extends StatefulWidget {
   State<ProjectDetailScreen> createState() => _ProjectDetailScreenState();
 }
 
-class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTickerProviderStateMixin {
+class _ProjectDetailScreenState extends State<ProjectDetailScreen>
+    with SingleTickerProviderStateMixin {
+  final ProductCatalogService _productService = ProductCatalogService();
+
   late TabController _tabController;
-  int _selectedTab = 0; // 0: Detalles, 1: Productos
+  int _selectedTab = 0;
+
+  OrganizationMemberModel? _currentMember;
+  RoleModel? _currentRole;
 
   @override
-    void initState() {
-      super.initState();
-      // 2. Inicializamos para 2 pestañas
-      _tabController = TabController(length: 2, vsync: this);
-      
-      // 3. Escuchamos cuando cambia la pestaña para refrescar el FAB
-    //   _tabController.addListener(() {
-    //     if (!_tabController.indexIsChanging) {
-    //       setState(() {}); // Refresca la UI para mostrar/ocultar el FAB
-    //     }
-    //   });
-    }
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
 
-    @override
-    void dispose() {
-      _tabController.dispose(); // Importante limpiar el controlador
-      super.dispose();
-    }
-  
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserData;
-    final projectService = Provider.of<ProjectService>(context, listen: false);
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+    final ProjectService projectService =
+        ProjectService(memberService: memberService);
 
     if (user == null) {
       return const UniversalLoadingScreen();
     }
 
-    // Usar StreamBuilder para actualización en tiempo real
     return StreamBuilder<ProjectModel?>(
-      stream: projectService.watchProjectsWithScope(user.organizationId!, user.uid).map(
-        (projects) => projects.firstWhere(
-          (p) => p.id == widget.projectId,
-          orElse: () => projects.isNotEmpty ? projects.first : throw Exception('Project not found'),
-        ),
-      ),
+      stream: projectService.watchProjects(user.organizationId ?? '').map(
+            (projects) => projects.firstWhere(
+              (p) => p.id == widget.projectId,
+              orElse: () => projects.isNotEmpty
+                  ? projects.first
+                  : throw Exception('Project not found'),
+            ),
+          ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
@@ -97,80 +107,249 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
         }
 
         final project = snapshot.data!;
-        
-        // Verificar si el usuario tiene permisos para ver este proyecto
-        if (!project.assignedMembers.contains(user.uid) && 
-            !RoleUtils.canManageProjects(user.role)) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('Acceso Denegado'),
-              ),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.lock, size: 64, color: Colors.orange),
-                  const SizedBox(height: 16),
-                  const Text('No tienes permisos para ver este proyecto'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Volver'),
+
+        return FutureBuilder<Map<String, dynamic>>(
+          future: _loadPermissions(user, project),
+          builder: (context, permSnapshot) {
+            if (permSnapshot.connectionState == ConnectionState.waiting) {
+              return Scaffold(
+                appBar: AppBar(title: const Text('Detalle del Proyecto')),
+                body: const Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            final permissions = permSnapshot.data ?? {};
+            final canView = permissions['canView'] ?? false;
+
+            if (!canView) {
+              return Scaffold(
+                appBar: AppBar(title: const Text('Acceso Denegado')),
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.lock, size: 64, color: Colors.orange),
+                      const SizedBox(height: 16),
+                      const Text('No tienes permisos para ver este proyecto'),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Volver'),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          );
-        }
+                ),
+              );
+            }
 
-        final canEdit = user.canManageProduction;
-        final canDelete = user.hasAdminAccess;
-        final canManageProducts = RoleUtils.canManageProjects(user.role);
-
-        return _buildScaffold(context, project, user, canEdit, canDelete, canManageProducts);
+            return _buildScaffold(context, project, user, permissions);
+          },
+        );
       },
     );
+  }
+
+  Future<Map<String, dynamic>> _loadPermissions(
+      UserModel user, ProjectModel project) async {
+    try {
+      final memberDoc = await FirebaseFirestore.instance
+          .collection('organizations')
+          .doc(user.organizationId)
+          .collection('members')
+          .doc(user.uid)
+          .get();
+
+      if (!memberDoc.exists) {
+        return {'canView': false};
+      }
+
+      _currentMember = OrganizationMemberModel.fromMap(
+        memberDoc.data()!,
+        docId: memberDoc.id,
+      );
+
+      final roleDoc = await FirebaseFirestore.instance
+          .collection('organizations')
+          .doc(user.organizationId)
+          .collection('roles')
+          .doc(_currentMember!.roleId)
+          .get();
+
+      if (!roleDoc.exists) {
+        return {'canView': false};
+      }
+
+      _currentRole = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
+
+      final isAssigned = project.assignedMembers.contains(user.uid);
+
+      final canView = PermissionUtils.canViewWithScope(
+        member: _currentMember!,
+        role: _currentRole!,
+        module: 'projects',
+        isAssignedToUser: isAssigned,
+      );
+
+      if (!canView) {
+        return {'canView': false};
+      }
+
+      final canEdit = PermissionUtils.canEditWithScope(
+        member: _currentMember!,
+        role: _currentRole!,
+        module: 'projects',
+        isAssignedToUser: isAssigned,
+      );
+
+      final canDelete = PermissionUtils.canDeleteWithScope(
+        member: _currentMember!,
+        role: _currentRole!,
+        module: 'projects',
+        isAssignedToUser: isAssigned,
+      );
+
+      final canDuplicate = PermissionUtils.can(
+        member: _currentMember!,
+        role: _currentRole!,
+        module: 'projects',
+        action: 'create',
+      );
+
+      final canManageProducts = PermissionUtils.can(
+        member: _currentMember!,
+        role: _currentRole!,
+        module: 'catalog',
+        action: 'edit',
+      );
+
+      final canViewPrices = PermissionUtils.can(
+        member: _currentMember!,
+        role: _currentRole!,
+        module: 'financials',
+        action: 'view',
+      );
+
+      return {
+        'canView': true,
+        'canEdit': canEdit,
+        'canDelete': canDelete,
+        'canDuplicate': canDuplicate,
+        'canManageProducts': canManageProducts,
+        'canViewPrices': canViewPrices,
+      };
+    } catch (e) {
+      return {'canView': false};
+    }
   }
 
   Widget _buildScaffold(
     BuildContext context,
     ProjectModel project,
     UserModel user,
-    bool canEdit,
-    bool canDelete,
-    bool canManageProducts,
+    Map<String, dynamic> permissions,
   ) {
     final projectService = Provider.of<ProjectService>(context);
+    final canEdit = permissions['canEdit'] ?? false;
+    final canDelete = permissions['canDelete'] ?? false;
+    final canDuplicate = permissions['canDuplicate'] ?? false;
+    final canManageProducts = permissions['canManageProducts'] ?? false;
+
+    final hasAnyAction = canEdit || canDelete || canDuplicate;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalle del Proyecto'),
         actions: [
-  // Botón de chat
-    ChatButton(
-      organizationId: user.organizationId!,
-      entityType: 'project',
-      entityId: widget.projectId,
-      entityName: project.name,
-      user: user,
-      showInAppBar: true,
-    ),
-          if (canEdit)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => EditProjectScreen(project: project),
-                  ),
-                );
+          if (hasAnyAction)
+            PopupMenuButton(
+              itemBuilder: (context) {
+                final List<PopupMenuEntry> items = [];
+
+                if (canEdit) {
+                  items.add(
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 20),
+                          SizedBox(width: 8),
+                          Text('Editar'),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                if (canDuplicate) {
+                  items.add(
+                    const PopupMenuItem(
+                      value: 'duplicate',
+                      child: Row(
+                        children: [
+                          Icon(Icons.content_copy, size: 20),
+                          SizedBox(width: 8),
+                          Text('Duplicar'),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                if (canEdit) {
+                  items.add(
+                    PopupMenuItem(
+                      value: 'deactivate',
+                      child: Row(
+                        children: [
+                          Icon(
+                            project.isActive
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(project.isActive ? 'Desactivar' : 'Reactivar'),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                if (canDelete && !project.isActive) {
+                  items.add(
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 20, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Eliminar', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return items;
               },
-            ),
-          if (canDelete)
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: () => _showDeleteDialog(context, projectService, project, user.organizationId!),
+              onSelected: (value) async {
+                if (value == 'edit') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EditProjectScreen(project: project),
+                    ),
+                  );
+                } else if (value == 'duplicate') {
+                  await _duplicateProject(context, projectService, project);
+                } else if (value == 'deactivate') {
+                  await _toggleProjectActive(
+                      context, projectService, project, user.organizationId!);
+                } else if (value == 'delete') {
+                  await _showDeleteDialog(
+                      context, projectService, project, user.organizationId!);
+                }
+              },
             ),
         ],
         bottom: TabBar(
@@ -187,12 +366,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
         ),
       ),
       body: TabBarView(
-            controller: _tabController, // Asignamos el controlador
-            children: [
-              _buildDetailsTab(context, user, projectService, project),
-              _buildProductsTab(context, user, project),
-            ],
-          ),
+        controller: _tabController,
+        children: [
+          _buildDetailsTab(context, user, project),
+          _buildProductsTab(context, user, project, permissions),
+        ],
+      ),
       floatingActionButton: _selectedTab == 1 && canManageProducts
           ? FloatingActionButton.extended(
               onPressed: () async {
@@ -218,230 +397,76 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
   }
 
   Widget _buildDetailsTab(
-      BuildContext context, UserModel user, ProjectService projectService, ProjectModel project) {
+      BuildContext context, UserModel user, ProjectModel project) {
     return RefreshIndicator(
       onRefresh: () async {
         setState(() {});
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.primary.withOpacity(0.8)
-                  ],
+            // Título
+            Text(
+              project.name,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 24),
+
+            // Project Information Card
+            _buildSectionTitle(context, 'Información del Proyecto'),
+            const SizedBox(height: 8),
+            _buildInfoCard(
+              context,
+              icon: Icons.work_outline,
+              iconColor: Colors.blue,
+              children: [
+                _buildCardRow(
+                  label: 'Nombre',
+                  value: project.name,
                 ),
-              ),
-              child: Column(
-                children: [
-                  const Icon(Icons.work_outline, size: 64, color: Colors.white),
-                  const SizedBox(height: 16),
-                  Text(
-                    project.name,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildStatusChip(project.statusEnum),
-                ],
-              ),
+                _buildCardRow(
+                  label: 'Descripción',
+                  value: project.description,
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle(context, 'Descripción'),
-                  const SizedBox(height: 8),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(project.description),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle(context, 'Cliente'),
-                  const SizedBox(height: 8),
-                  FutureBuilder<ClientModel?>(
-                    future: Provider.of<ClientService>(context, listen: false)
-                        .getClient(project.organizationId, project.clientId),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const CircularProgressIndicator();
-                      }
-                      final client = snapshot.data!;
-                      return Card(
-                        child: ListTile(
-                          leading: CircleAvatar(child: Text(client.initials)),
-                          title: Text(client.name),
-                          subtitle: Text(client.company),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle(context, 'Fechas'),
-                  const SizedBox(height: 8),
-                  Card(
-                    child: Column(
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.play_arrow),
-                          title: const Text('Inicio'),
-                          subtitle: Text(_formatDate(project.startDate)),
-                        ),
-                        const Divider(),
-                        ListTile(
-                          leading: const Icon(Icons.event),
-                          title: const Text('Entrega estimada'),
-                          subtitle:
-                              Text(_formatDate(project.estimatedEndDate)),
-                        ),
-                        if (project.isOverdue) ...[
-                          const Divider(),
-                          ListTile(
-                            leading: Icon(Icons.warning, color: Colors.red[700]),
-                            title: Text(
-                              'Atrasado',
-                              style: TextStyle(color: Colors.red[700]),
-                            ),
-                            subtitle: Text(
-                              '${project.daysRemaining.abs()} días de retraso',
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle(
-                      context, 'Miembros Asignados (${project.memberCount})'),
-                  const SizedBox(height: 8),
-                  StreamBuilder<List<UserModel>>(
-                    stream: Provider.of<OrganizationService>(context, listen: false)
-                        .watchOrganizationMembers(project.organizationId),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const CircularProgressIndicator();
-                      }
+            const SizedBox(height: 24),
 
-                      final allMembers = snapshot.data!;
-                      final assignedMembers = allMembers
-                          .where((m) => project.assignedMembers.contains(m.uid))
-                          .toList();
+            // Client Information Card
+            _buildSectionTitle(context, 'Cliente'),
+            const SizedBox(height: 8),
 
-                      assignedMembers.sort((a, b) => a.uid == user.uid ? -1 : 1);
+            _buildClientCard(context, project),
+            const SizedBox(height: 16),
 
-                      return Card(
-                        child: Column(
-                          children: assignedMembers.map((member) {
-                            final isMe = member.uid == user.uid;
+            // Access Control Card - Miembros Asignados
+            _buildSectionTitle(context, 'Control de Acceso'),
+            const SizedBox(height: 8),
+            _buildAccessControlCard(project, user),
 
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: isMe ? Colors.blue : null,
-                                child: Text(
-                                  member.name[0],
-                                  style: TextStyle(
-                                      color: isMe ? Colors.white : null),
-                                ),
-                              ),
-                              title: Row(
-                                children: [
-                                  Text(member.name),
-                                  if (isMe) ...[
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(
-                                            color: Colors.blue.withOpacity(0.3)),
-                                      ),
-                                      child: const Text(
-                                        'Tú',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.blue,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              subtitle: Text(member.roleDisplayName),
-                              tileColor:
-                                  isMe ? Colors.blue.withOpacity(0.05) : null,
-                            );
-                          }).toList(),
-                        ),
-                      );
-                    },
-                  ),
-                  if (user.canManageProduction) ...[
-                    const SizedBox(height: 24),
-                    _buildSectionTitle(context, 'Cambiar Estado'),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: ProjectStatus.values
-                          .map((status) => FilterChip(
-                                label: Text(status.displayName),
-                                selected: project.status == status.value,
-                                onSelected: (selected) async {
-                                  if (selected) {
-                                    final success = await projectService
-                                        .updateProjectStatus(
-                                            user.organizationId!,
-                                            project.id, status.value);
-                                    if (success && context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Estado actualizado'),
-                                          backgroundColor: Colors.green,
-                                        ),
-                                      );
-                                      setState(() {});
-                                    }
-                                  }
-                                },
-                              ))
-                          .toList(),
-                    ),
-                  ],
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProductsTab(BuildContext context, UserModel user, ProjectModel project) {
-    final productService = Provider.of<ProjectProductService>(context, listen: false);
-    final canViewPrices = RoleUtils.canViewFinancials(user.role);
+  Widget _buildProductsTab(BuildContext context, UserModel user,
+      ProjectModel project, Map<String, dynamic> permissions) {
+    final canViewPrices = permissions['canViewPrices'] ?? false;
 
     return RefreshIndicator(
       onRefresh: () async {
         setState(() {});
       },
-      child: StreamBuilder<List<ProjectProductModel>>(
-        stream: productService.watchProjectProducts(project.organizationId, project.id),
+      child: StreamBuilder<List<ProductCatalogModel>>(
+        stream: _productService.getProjectProductsStream(
+            project.organizationId, project.id),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -484,43 +509,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
             );
           }
 
-          // Calcular totales
-          final totalUnits =
-              products.fold<int>(0, (sum, p) => sum + p.quantity);
-          final totalValue =
-              products.fold<double>(0, (sum, p) => sum + p.totalPrice);
-
           return Column(
             children: [
               // Resumen
-              if (canViewPrices)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildStatCard(
-                        context,
-                        'Productos',
-                        products.length.toString(),
-                        Icons.inventory_2,
-                      ),
-                      _buildStatCard(
-                        context,
-                        'Unidades',
-                        totalUnits.toString(),
-                        Icons.numbers,
-                      ),
-                      _buildStatCard(
-                        context,
-                        'Valor Total',
-                        '€${totalValue.toStringAsFixed(2)}',
-                        Icons.euro,
-                      ),
-                    ],
-                  ),
-                ),
               // Lista de productos
               Expanded(
                 child: ListView.builder(
@@ -531,6 +522,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
                     return _ProductCard(
                       product: product,
                       showPrice: canViewPrices,
+                      project: project,
+                      user: user,
                       onTap: () async {
                         final result = await Navigator.push(
                           context,
@@ -557,30 +550,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
     );
   }
 
-  Widget _buildStatCard(
-      BuildContext context, String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[700],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSectionTitle(BuildContext context, String title) {
     return Text(
       title,
@@ -591,49 +560,167 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
     );
   }
 
-  Widget _buildStatusChip(ProjectStatus status) {
-    final colors = {
-      ProjectStatus.preparation: Colors.blue,
-      ProjectStatus.production: Colors.orange,
-      ProjectStatus.completed: Colors.green,
-      ProjectStatus.delivered: Colors.purple,
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20),
+  Widget _buildInfoCard(
+    BuildContext context, {
+    required IconData icon,
+    required Color iconColor,
+    required List<Widget> children,
+    VoidCallback? onTap, // 1. Nuevo parámetro opcional
+  }) {
+    // 2. Usamos Material en lugar de Container para soportar gestos y bordes
+    return Material(
+      color: Colors.white,
+      clipBehavior: Clip
+          .antiAlias, // Importante: recorta el efecto de click en las esquinas
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade300),
       ),
-      child: Text(
-        status.displayName,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
+      child: InkWell(
+        onTap: onTap, // 3. Ejecuta la función al pulsar
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header con icono
+            Container(
+              width:
+                  double.infinity, // Asegura que el header cubra todo el ancho
+              // padding: const EdgeInsets.all(12), // Añadido un poco de padding para que se vea bien
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.1),
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey.shade200),
+                ),
+                // El Material padre ya recorta las esquinas superiores,
+                // pero mantener esto no hace daño visualmente.
+              ),
+              // child: Row(
+              //   children: [
+              //     Icon(icon, color: iconColor),
+              //   ],
+              // ),
+            ),
+            // Contenido
+            ...children,
+          ],
         ),
       ),
     );
   }
 
-  String _formatDate(DateTime date) {
-    final months = [
-      'Ene',
-      'Feb',
-      'Mar',
-      'Abr',
-      'May',
-      'Jun',
-      'Jul',
-      'Ago',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dic'
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  Widget _buildCardRow({
+    required String label,
+    required String value,
+    TextStyle? valueStyle,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[700],
+                fontSize: 13,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: valueStyle ??
+                  const TextStyle(
+                    fontSize: 14,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _showDeleteDialog(BuildContext context, ProjectService projectService, ProjectModel project, String organizationId) {
-    showDialog(
+  Future<void> _duplicateProject(BuildContext context,
+      ProjectService projectService, ProjectModel project) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Duplicar Proyecto'),
+        content: Text('¿Deseas duplicar "${project.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Duplicar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Función de duplicación no implementada aún'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  Future<void> _toggleProjectActive(
+    BuildContext context,
+    ProjectService projectService,
+    ProjectModel project,
+    String organizationId,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+            project.isActive ? 'Desactivar Proyecto' : 'Reactivar Proyecto'),
+        content: Text(project.isActive
+            ? '¿Deseas desactivar "${project.name}"?'
+            : '¿Deseas reactivar "${project.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(project.isActive ? 'Desactivar' : 'Reactivar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Función de activar/desactivar no implementada aún'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  Future<void> _showDeleteDialog(
+      BuildContext context,
+      ProjectService projectService,
+      ProjectModel project,
+      String organizationId) {
+    return showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar Proyecto'),
@@ -647,8 +734,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
           FilledButton(
             onPressed: () async {
               Navigator.pop(context);
-              final success =
-                  await projectService.deleteProject(organizationId, project.id);
+              final success = await projectService.deleteProject(
+                  organizationId, project.id);
               if (context.mounted) {
                 if (success) {
                   Navigator.pop(context);
@@ -675,130 +762,242 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
       ),
     );
   }
+
+  Widget _buildClientCard(BuildContext context, ProjectModel project) {
+    if (project.clientId.isEmpty) return const SizedBox.shrink();
+
+    return FutureBuilder<ClientModel?>(
+      future: Provider.of<ClientService>(context, listen: false)
+          .getClient(project.organizationId, project.clientId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildInfoCard(
+            context,
+            icon: Icons.person_outline,
+            iconColor: Colors.green,
+            children: [
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            ],
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return _buildInfoCard(
+            context,
+            icon: Icons.person_outline,
+            iconColor: Colors.grey,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Client not found',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ),
+            ],
+          );
+        }
+
+        final client = snapshot.data!;
+
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          elevation: 2,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () async {
+              // Verificar permiso antes de navegar
+              final memberService = Provider.of<OrganizationMemberService>(
+                  context,
+                  listen: false);
+              // Aseguramos cargar permisos del usuario
+              await memberService.getCurrentMember(
+                  project.organizationId,
+                  Provider.of<AuthService>(context, listen: false)
+                      .currentUserData!
+                      .uid);
+
+              if (await memberService.can('clients', 'view')) {
+                if (context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ClientDetailScreen(client: client),
+                    ),
+                  );
+                }
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text(
+                            'No tienes permiso para ver detalles de clientes')),
+                  );
+                }
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.green.shade100,
+                        child: Text(
+                          client.initials,
+                          style: TextStyle(
+                            color: Colors.green.shade700,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              client.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            if (client.company.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.business,
+                                    size: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      client.company,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAccessControlCard(ProjectModel project, UserModel user) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: AccessControlWidget(
+          organizationId: project.organizationId,
+          currentUserId: user.uid,
+          selectedMembers: project.assignedMembers,
+          onMembersChanged: (_) {}, // Solo lectura en detalle
+          readOnly: true, // Se muestra igual pero desactivado
+          showTitle: false,
+          resourceType: 'project',
+          customTitle: 'Control de Acceso al Proyecto',
+          customDescription:
+              'Gestiona quiénes pueden ver y trabajar con este proyecto',
+        ),
+      ),
+    );
+  }
 }
 
 // Widget para tarjeta de producto
 class _ProductCard extends StatelessWidget {
-  final ProjectProductModel product;
+  final ProductCatalogModel product;
   final bool showPrice;
   final VoidCallback onTap;
+  final ProjectModel project;
+  final UserModel user;
 
   const _ProductCard({
     required this.product,
     required this.showPrice,
     required this.onTap,
+    required this.project,
+    required this.user,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          product.catalogProductName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'SKU: ${product.catalogProductReference}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(product.status).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      product.statusDisplayName,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: _getStatusColor(product.status),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.numbers, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${product.quantity} unidades',
-                    style: TextStyle(color: Colors.grey[700]),
-                  ),
-                  if (showPrice) ...[
-                    const SizedBox(width: 16),
-                    Icon(Icons.euro, size: 16, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${product.totalPrice.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              if (product.customization.hasCustomizations) ...[
-                const SizedBox(height: 8),
-                const Divider(),
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: product.customization
-                      .getCustomizationSummary()
-                      .map((custom) => Chip(
-                            label: Text(custom),
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                          ))
-                      .toList(),
-                ),
-              ],
-            ],
-          ),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        title: Text(
+          product.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              '${product.family ?? "Sin familia"} • SKU: ${product.reference ?? "N/A"}',
+              style: TextStyle(color: Colors.grey[700], fontSize: 13),
+            ),
+          ],
+        ),
+        trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+        onTap: () async {
+          // Verificar permiso product_catalog.view
+          final memberService =
+              Provider.of<OrganizationMemberService>(context, listen: false);
+          if (await memberService.can('product_catalog', 'view')) {
+            if (context.mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProductCatalogDetailScreen(
+                    productId: product.id, // ID del catálogo
+                    currentUser: user,
+                    organizationId: project.organizationId,
+                  ),
+                ),
+              );
+            }
+          } else {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('No tienes permiso para ver el catálogo')),
+              );
+            }
+          }
+        },
       ),
     );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'pendiente':
-        return Colors.orange;
-      case 'en_produccion':
-        return Colors.blue;
-      case 'completado':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
   }
 }
