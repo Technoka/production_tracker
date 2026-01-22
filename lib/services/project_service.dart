@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../models/project_model.dart';
-import '../models/product_model.dart';
 import '../models/permission_model.dart';
 import 'organization_member_service.dart';
 import '../models/organization_member_model.dart';
@@ -917,23 +916,6 @@ Future<List<ProjectModel>> getClientProjectsWithScope({
       notifyListeners();
       return [];
     }
-  }
-
-  /// Stream de productos de un proyecto
-  Stream<List<ProductModel>> watchProjectProducts(
-    String organizationId,
-    String projectId,
-  ) {
-    return _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('projects')
-        .doc(projectId)
-        .collection('products')
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ProductModel.fromMap(doc.data()))
-            .toList());
   }
 
   // ==================== ESTADÍSTICAS ====================

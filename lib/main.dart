@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:gestion_produccion/models/organization_settings_model.dart';
-import 'package:gestion_produccion/services/project_product_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import '../../l10n/app_localizations.dart';
@@ -66,7 +65,6 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => RoleService()),
 
         // Servicios sin dependencias RBAC
-        Provider<ProjectProductService>(create: (_) => ProjectProductService()),
         Provider<ProductCatalogService>(create: (_) => ProductCatalogService()),
         Provider<PhaseService>(create: (_) => PhaseService()),
         Provider<MessageService>(create: (_) => MessageService()),

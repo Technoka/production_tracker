@@ -5,24 +5,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../services/project_service.dart';
 import '../../services/client_service.dart';
-import '../../services/organization_service.dart';
 import '../../services/product_catalog_service.dart';
 import '../../models/project_model.dart';
 import '../../models/client_model.dart';
 import '../../models/user_model.dart';
-import '../../models/project_product_model.dart';
 import '../../models/organization_member_model.dart';
 import '../../models/role_model.dart';
 import '../../utils/permission_utils.dart';
 import 'edit_project_screen.dart';
-import '../products/add_product_to_project_screen.dart';
 import '../catalog/product_catalog_detail_screen.dart';
 import '../../services/organization_member_service.dart';
 import '../../widgets/universal_loading_screen.dart';
 import '../../widgets/access_control_widget.dart';
 import '../clients/client_detail_screen.dart';
-import '../catalog/product_catalog_detail_screen.dart';
-import '../../services/organization_member_service.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final String projectId;
@@ -372,27 +367,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           _buildProductsTab(context, user, project, permissions),
         ],
       ),
-      floatingActionButton: _selectedTab == 1 && canManageProducts
-          ? FloatingActionButton.extended(
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AddProductToProjectScreen(
-                      projectId: project.id,
-                      organizationId: project.organizationId,
-                      currentUser: user,
-                    ),
-                  ),
-                );
-                if (result == true && mounted) {
-                  setState(() {});
-                }
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Añadir Producto'),
-            )
-          : null,
     );
   }
 
