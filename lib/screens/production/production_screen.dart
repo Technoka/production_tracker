@@ -15,7 +15,6 @@ import '../../utils/filter_utils.dart';
 import '../../widgets/kanban/kanban_board_widget.dart';
 import '../../widgets/bottom_nav_bar_widget.dart';
 import '../../l10n/app_localizations.dart';
-import '../../models/phase_model.dart';
 
 enum ProductionView { batches, products, kanban }
 
@@ -75,6 +74,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
   String? _statusFilter; // Filtro de estado
   String? _projectFilter; // Filtro de proyecto (solo Kanban)
   bool _onlyUrgent = false; // Filtro de urgentes
+  final TextEditingController _searchController = TextEditingController();
 
   // Verificar si hay filtros activos (universal)
   bool get _hasActiveFilters {
@@ -89,16 +89,17 @@ class _ProductionScreenState extends State<ProductionScreen> {
 
   // Limpiar TODOS los filtros de TODAS las vistas
   void _clearAllFilters() {
-    setState(() {
-      _searchQuery = '';
-      _clientFilter = null;
-      _batchFilter = null;
-      _phaseFilter = null;
-      _statusFilter = null;
-      _projectFilter = null;
-      _onlyUrgent = false;
-    });
-  }
+  setState(() {
+    _searchQuery = '';
+    _searchController.clear(); // ← AGREGAR ESTO
+    _clientFilter = null;
+    _batchFilter = null;
+    _phaseFilter = null;
+    _statusFilter = null;
+    _projectFilter = null;
+    _onlyUrgent = false;
+  });
+}
 
   @override
   void initState() {
@@ -118,6 +119,12 @@ class _ProductionScreenState extends State<ProductionScreen> {
       _currentView = ProductionView.products;
     }
   }
+
+  @override
+void dispose() {
+  _searchController.dispose();
+  super.dispose();
+}
 
   @override
   Widget build(BuildContext context) {
@@ -235,10 +242,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: TextField(
-                controller: TextEditingController(text: _searchQuery)
-                  ..selection = TextSelection.fromPosition(
-                    TextPosition(offset: _searchQuery.length),
-                  ),
+                controller: _searchController,
                 decoration: InputDecoration(
                   hintText: _getSearchHint(l10n),
                   prefixIcon: const Icon(Icons.search, size: 20),
@@ -271,10 +275,10 @@ class _ProductionScreenState extends State<ProductionScreen> {
                   fillColor: Colors.grey.shade50,
                 ),
                 onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
+  setState(() {
+    _searchQuery = value;
+  });
+},
               ),
             ),
 
@@ -364,7 +368,13 @@ class _ProductionScreenState extends State<ProductionScreen> {
                     child: Text(c.name, overflow: TextOverflow.ellipsis),
                   ))
               .toList(),
-          onChanged: (val) => setState(() => _clientFilter = val),
+          onChanged: (val) {
+  setState(() {
+    _clientFilter = val;
+  });
+  // Forzar rebuild inmediato
+  Future.microtask(() => setState(() {}));
+},
         );
       },
     );
@@ -391,7 +401,12 @@ class _ProductionScreenState extends State<ProductionScreen> {
                     child: Text(b.batchNumber, overflow: TextOverflow.ellipsis),
                   ))
               .toList(),
-          onChanged: (val) => setState(() => _batchFilter = val),
+          onChanged: (val) {
+  setState(() {
+    _batchFilter = val;
+  });
+  Future.microtask(() => setState(() {}));
+},
         );
       },
     );
@@ -412,7 +427,12 @@ class _ProductionScreenState extends State<ProductionScreen> {
                 child: Text(phase.name),
               ))
           .toList(),
-      onChanged: (val) => setState(() => _phaseFilter = val),
+      onChanged: (val) {
+  setState(() {
+    _phaseFilter = val;
+  });
+  Future.microtask(() => setState(() {}));
+},
     );
   }
 
@@ -442,7 +462,12 @@ class _ProductionScreenState extends State<ProductionScreen> {
                 ),
               ))
           .toList(),
-      onChanged: (val) => setState(() => _statusFilter = val),
+      onChanged: (val) {
+  setState(() {
+    _statusFilter = val;
+  });
+  Future.microtask(() => setState(() {}));
+},
     );
   }
 
@@ -472,7 +497,12 @@ class _ProductionScreenState extends State<ProductionScreen> {
                       child: Text(entry.value, overflow: TextOverflow.ellipsis),
                     ))
                 .toList(),
-            onChanged: (val) => setState(() => _projectFilter = val),
+            onChanged: (val) {
+  setState(() {
+    _projectFilter = val;
+  });
+  Future.microtask(() => setState(() {}));
+},
           );
         });
   }
