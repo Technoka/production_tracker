@@ -126,31 +126,6 @@ class _ProductionBatchDetailScreenState
                         onSelected: (value) =>
                             _handleAction(value, batch, user!, memberService),
                         itemBuilder: (context) => [
-                          // Iniciar producción
-                          if (batch.status != BatchStatus.inProgress.value)
-                            const PopupMenuItem(
-                              value: 'start',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.play_arrow, size: 20),
-                                  SizedBox(width: 8),
-                                  Text('Iniciar Producción'),
-                                ],
-                              ),
-                            ),
-                          // Completar
-                          if (batch.status != BatchStatus.completed.value &&
-                              batch.isComplete)
-                            const PopupMenuItem(
-                              value: 'complete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.check_circle, size: 20),
-                                  SizedBox(width: 8),
-                                  Text('Marcar Completado'),
-                                ],
-                              ),
-                            ),
                           // Editar notas
                           const PopupMenuItem(
                             value: 'edit',
@@ -557,7 +532,7 @@ class _ProductionBatchDetailScreenState
   Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user, OrganizationMemberService memberService) {
     // Solo mostrar productos si tiene permiso
     return FutureBuilder<bool>(
-      future: memberService.can('products', 'view'),
+      future: memberService.can('batch_products', 'view'),
       builder: (context, canViewSnapshot) {
         final canView = canViewSnapshot.data ?? false;
 
