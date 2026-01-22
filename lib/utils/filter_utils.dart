@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import '../../models/production_batch_model.dart';
 
+const _nullSentinel = Object();
+
 class FilterUtils {
   /// Widget de filtro tipo chip reutilizable
   static Widget buildFilterOption<T>({
@@ -46,33 +48,40 @@ class FilterUtils {
           surfaceTintColor: Colors.white,
         ),
       ),
-      child: PopupMenuButton<T?>(
-        initialValue: value,
+      // 2. Cambiamos el tipo genérico a Object? para permitir el centinela
+      child: PopupMenuButton<Object?>(
         tooltip: 'Filtrar por $label',
         offset: const Offset(0, 35),
-        onSelected: (T? newValue) {
-          onChanged(newValue);
+        // Opcional: Esto hace que se resalte la opción correcta al abrir
+        initialValue: value ?? _nullSentinel, 
+        
+        onSelected: (Object? newValue) {
+          // 3. Si se seleccionó el centinela, devolvemos null, si no, el valor casteado
+          if (newValue == _nullSentinel) {
+            onChanged(null);
+          } else {
+            onChanged(newValue as T?);
+          }
         },
         itemBuilder: (BuildContext context) {
           return [
-            PopupMenuItem<T?>(
-              value: null,
+            PopupMenuItem<Object?>(
+              value: _nullSentinel, // 4. Usamos el centinela aquí
               height: 36,
               child: Row(
                 children: [
                   Icon(
                     Icons.restart_alt,
-                    color: isSelected
-                        ? Colors.grey
-                        : Theme.of(context).primaryColor,
+                    color: !isSelected
+                        ? Theme.of(context).primaryColor
+                        : Colors.grey,
                     size: 16,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     allLabel,
                     style: TextStyle(
-                      fontWeight:
-                          !isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: !isSelected ? FontWeight.bold : FontWeight.normal,
                       color: !isSelected
                           ? Theme.of(context).primaryColor
                           : Colors.black87,
@@ -85,7 +94,7 @@ class FilterUtils {
             const PopupMenuDivider(height: 1),
             ...items.map((item) {
               final isItemActive = item.value == value;
-              return PopupMenuItem<T?>(
+              return PopupMenuItem<Object?>( // Tipo Object?
                 value: item.value,
                 height: 36,
                 child: DefaultTextStyle(
@@ -93,8 +102,7 @@ class FilterUtils {
                     color: isItemActive
                         ? Theme.of(context).primaryColor
                         : Colors.black87,
-                    fontWeight:
-                        isItemActive ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: isItemActive ? FontWeight.bold : FontWeight.normal,
                     fontSize: 13,
                   ),
                   child: item.child,
@@ -104,52 +112,53 @@ class FilterUtils {
           ];
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? Theme.of(context).primaryColor.withOpacity(0.08)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
+            // ... (el resto del diseño del botón se mantiene igual)
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
               color: isSelected
-                  ? Theme.of(context).primaryColor
-                  : Colors.grey.shade300,
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: 14,
-                  color: isSelected
-                      ? Theme.of(context).primaryColor
-                      : Colors.grey.shade600,
-                ),
-                const SizedBox(width: 4),
-              ],
-              Text(
-                isSelected ? displayValue : label,
-                style: TextStyle(
-                  color: isSelected
-                      ? Theme.of(context).primaryColor
-                      : Colors.grey.shade700,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(width: 2),
-              Icon(
-                Icons.keyboard_arrow_down_rounded,
-                size: 16,
+                  ? Theme.of(context).primaryColor.withOpacity(0.08)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
                 color: isSelected
                     ? Theme.of(context).primaryColor
-                    : Colors.grey.shade400,
+                    : Colors.grey.shade300,
+                width: 1,
               ),
-            ],
-          ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(
+                    icon,
+                    size: 14,
+                    color: isSelected
+                        ? Theme.of(context).primaryColor
+                        : Colors.grey.shade600,
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                Text(
+                  isSelected ? displayValue : label,
+                  style: TextStyle(
+                    color: isSelected
+                        ? Theme.of(context).primaryColor
+                        : Colors.grey.shade700,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 16,
+                  color: isSelected
+                      ? Theme.of(context).primaryColor
+                      : Colors.grey.shade400,
+                ),
+              ],
+            ),
         ),
       ),
     );
