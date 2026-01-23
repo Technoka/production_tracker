@@ -342,7 +342,6 @@ class _ManageProductStatusesScreenState
                           break;
                         case 'delete':
                           _confirmDelete(
-                            context,
                             statusService,
                             status,
                             l10n,
@@ -542,7 +541,6 @@ class _ManageProductStatusesScreenState
   }
 
   Future<void> _confirmDelete(
-    BuildContext context,
     ProductStatusService statusService,
     ProductStatusModel status,
     AppLocalizations l10n,
@@ -568,7 +566,7 @@ class _ManageProductStatusesScreenState
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(l10n.deleteStatus),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -594,11 +592,11 @@ class _ManageProductStatusesScreenState
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(l10n.cancel),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
