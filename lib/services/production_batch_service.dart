@@ -142,6 +142,13 @@ class ProductionBatchService extends ChangeNotifier {
             case ConditionalActionType.requireAdditionalField:
               // Podríamos forzar un error si el campo no está, o manejarlo en UI.
               break;
+              
+            case ConditionalActionType.notifyRoles:
+              // La transición continúa normalmente, solo notificamos
+              // TODO: Aquí implementar sistema de notificaciones (Fase futura)
+              // Por ahora solo registramos en logs
+              debugPrint('Notificar a roles: ${action.parameters?['requiredRoles']}');
+              break; // Continuamos al paso 5
           }
         }
       }

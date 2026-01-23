@@ -167,17 +167,18 @@ class StatusTransitionService extends ChangeNotifier {
   /// Stream de todas las transiciones activas
   Stream<List<StatusTransitionModel>> watchTransitions(String organizationId) {
     return _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('status_transitions')
-        .where('isActive', isEqualTo: true)
-        .snapshots()
-        .map((snapshot) {
-      _transitions = snapshot.docs
-          .map((doc) => StatusTransitionModel.fromMap(doc.data(), docId: doc.id))
-          .toList();
-      return _transitions;
-    });
+      .collection('organizations')
+      .doc(organizationId)
+      .collection('status_transitions')
+      .orderBy('fromStatusId')
+      .orderBy('toStatusId')
+      .snapshots()
+      .map((snapshot) {
+    _transitions = snapshot.docs
+        .map((doc) => StatusTransitionModel.fromMap(doc.data(), docId: doc.id))
+        .toList();
+    return _transitions;
+  });
   }
 
   /// Obtener transiciones disponibles desde un estado

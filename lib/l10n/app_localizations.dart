@@ -974,7 +974,7 @@ abstract class AppLocalizations {
   /// No description provided for @quantityLabel.
   ///
   /// In en, this message translates to:
-  /// **'Quantity'**
+  /// **'Quantity label'**
   String get quantityLabel;
 
   /// No description provided for @clientDetailTitle.
@@ -1046,8 +1046,8 @@ abstract class AppLocalizations {
   /// No description provided for @deleteClientConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Are you sure you want to delete {name}? This action cannot be undone.'**
-  String deleteClientConfirm(Object name);
+  /// **'Are you sure you want to delete this client? This action cannot be undone.'**
+  String get deleteClientConfirm;
 
   /// No description provided for @clientDeleted.
   ///
@@ -1766,7 +1766,7 @@ abstract class AppLocalizations {
   /// No description provided for @descriptionLabel.
   ///
   /// In en, this message translates to:
-  /// **'Description *'**
+  /// **'Description label'**
   String get descriptionLabel;
 
   /// No description provided for @descriptionHint.
@@ -4220,7 +4220,7 @@ abstract class AppLocalizations {
   /// No description provided for @basicSettings.
   ///
   /// In en, this message translates to:
-  /// **'Basic Settings'**
+  /// **'Basic'**
   String get basicSettings;
 
   /// No description provided for @phaseCreatedSuccess.
@@ -4910,19 +4910,19 @@ abstract class AppLocalizations {
   /// No description provided for @statusCreated.
   ///
   /// In en, this message translates to:
-  /// **'Status created'**
+  /// **'Status created successfully'**
   String get statusCreated;
 
   /// No description provided for @statusUpdated.
   ///
   /// In en, this message translates to:
-  /// **'Status updated'**
+  /// **'Status updated successfully'**
   String get statusUpdated;
 
   /// No description provided for @statusDeleted.
   ///
   /// In en, this message translates to:
-  /// **'Status deleted'**
+  /// **'Status deleted successfully'**
   String get statusDeleted;
 
   /// No description provided for @statusCreateError.
@@ -5036,19 +5036,19 @@ abstract class AppLocalizations {
   /// No description provided for @transitionCreated.
   ///
   /// In en, this message translates to:
-  /// **'Transition created'**
+  /// **'Transition created successfully'**
   String get transitionCreated;
 
   /// No description provided for @transitionUpdated.
   ///
   /// In en, this message translates to:
-  /// **'Transition updated'**
+  /// **'Transition updated successfully'**
   String get transitionUpdated;
 
   /// No description provided for @transitionDeleted.
   ///
   /// In en, this message translates to:
-  /// **'Transition deleted'**
+  /// **'Transition deleted successfully'**
   String get transitionDeleted;
 
   /// No description provided for @validations.
@@ -5060,7 +5060,7 @@ abstract class AppLocalizations {
   /// No description provided for @validationType.
   ///
   /// In en, this message translates to:
-  /// **'Validation Type'**
+  /// **'Type'**
   String get validationType;
 
   /// No description provided for @validationRequired.
@@ -5102,7 +5102,7 @@ abstract class AppLocalizations {
   /// No description provided for @conditionalLogic.
   ///
   /// In en, this message translates to:
-  /// **'Conditional Logic'**
+  /// **'Logic'**
   String get conditionalLogic;
 
   /// No description provided for @condition.
@@ -6100,6 +6100,756 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search in Kanban...'**
   String get searchInKanban;
+
+  /// No description provided for @manageProductStatuses.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Product Statuses'**
+  String get manageProductStatuses;
+
+  /// No description provided for @deleteStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Status'**
+  String get deleteStatus;
+
+  /// No description provided for @statusName.
+  ///
+  /// In en, this message translates to:
+  /// **'Status Name'**
+  String get statusName;
+
+  /// No description provided for @statusNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: Under Review'**
+  String get statusNameHint;
+
+  /// No description provided for @statusDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get statusDescription;
+
+  /// No description provided for @statusDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe what this status is used for'**
+  String get statusDescriptionHint;
+
+  /// No description provided for @statusColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get statusColor;
+
+  /// No description provided for @statusIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon'**
+  String get statusIcon;
+
+  /// No description provided for @statusPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get statusPreview;
+
+  /// No description provided for @systemStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get systemStatus;
+
+  /// No description provided for @systemStatuses.
+  ///
+  /// In en, this message translates to:
+  /// **'System Statuses'**
+  String get systemStatuses;
+
+  /// No description provided for @customStatuses.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Statuses'**
+  String get customStatuses;
+
+  /// No description provided for @customStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Status'**
+  String get customStatus;
+
+  /// No description provided for @activeStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get activeStatus;
+
+  /// No description provided for @reorderStatuses.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder Statuses'**
+  String get reorderStatuses;
+
+  /// No description provided for @statusesReordered.
+  ///
+  /// In en, this message translates to:
+  /// **'Statuses reordered successfully'**
+  String get statusesReordered;
+
+  /// No description provided for @errorReorderingStatuses.
+  ///
+  /// In en, this message translates to:
+  /// **'Error reordering statuses'**
+  String get errorReorderingStatuses;
+
+  /// No description provided for @noStatusesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No statuses configured'**
+  String get noStatusesFound;
+
+  /// No description provided for @createFirstStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your first custom status to get started'**
+  String get createFirstStatus;
+
+  /// No description provided for @noCustomStatuses.
+  ///
+  /// In en, this message translates to:
+  /// **'No custom statuses. System statuses cannot be modified.'**
+  String get noCustomStatuses;
+
+  /// No description provided for @statusesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Statuses allow you to classify products during production. System statuses cannot be modified.'**
+  String get statusesDescription;
+
+  /// No description provided for @statusNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required'**
+  String get statusNameRequired;
+
+  /// No description provided for @statusNameTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Name must be at least 3 characters'**
+  String get statusNameTooShort;
+
+  /// No description provided for @statusDescriptionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Description is required'**
+  String get statusDescriptionRequired;
+
+  /// No description provided for @statusNameExists.
+  ///
+  /// In en, this message translates to:
+  /// **'A status with this name already exists'**
+  String get statusNameExists;
+
+  /// No description provided for @statusColorInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid color (use #RRGGBB format)'**
+  String get statusColorInvalid;
+
+  /// No description provided for @deleteStatusConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this status?'**
+  String get deleteStatusConfirm;
+
+  /// No description provided for @deleteStatusWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone. Products with this status will be left unclassified.'**
+  String get deleteStatusWarning;
+
+  /// No description provided for @statusInUseCannotDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'This status is in use by products and cannot be deleted'**
+  String get statusInUseCannotDelete;
+
+  /// No description provided for @statusActivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Status activated'**
+  String get statusActivated;
+
+  /// No description provided for @statusDeactivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Status deactivated'**
+  String get statusDeactivated;
+
+  /// No description provided for @errorCreatingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Error creating status'**
+  String get errorCreatingStatus;
+
+  /// No description provided for @errorUpdatingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating status'**
+  String get errorUpdatingStatus;
+
+  /// No description provided for @errorDeletingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Error deleting status'**
+  String get errorDeletingStatus;
+
+  /// No description provided for @tapToSelectIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to select an icon'**
+  String get tapToSelectIcon;
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// No description provided for @activate.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate'**
+  String get activate;
+
+  /// No description provided for @deactivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Deactivate'**
+  String get deactivate;
+
+  /// No description provided for @manageStatusTransitions.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Transitions'**
+  String get manageStatusTransitions;
+
+  /// No description provided for @createTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Transition'**
+  String get createTransition;
+
+  /// No description provided for @editTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Transition'**
+  String get editTransition;
+
+  /// No description provided for @deleteTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Transition'**
+  String get deleteTransition;
+
+  /// No description provided for @transitionsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Transitions define how products can change from one status to another, with specific validations and permissions.'**
+  String get transitionsDescription;
+
+  /// No description provided for @filterByFromStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by origin status'**
+  String get filterByFromStatus;
+
+  /// No description provided for @clearFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filter'**
+  String get clearFilter;
+
+  /// No description provided for @hideInactiveTransitions.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide inactive'**
+  String get hideInactiveTransitions;
+
+  /// No description provided for @showInactiveTransitions.
+  ///
+  /// In en, this message translates to:
+  /// **'Show inactive'**
+  String get showInactiveTransitions;
+
+  /// No description provided for @noTransitionsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No transitions configured'**
+  String get noTransitionsFound;
+
+  /// No description provided for @noTransitionsForStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'No transitions for this status'**
+  String get noTransitionsForStatus;
+
+  /// No description provided for @createFirstTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your first transition to get started'**
+  String get createFirstTransition;
+
+  /// No description provided for @deleteTransitionConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this transition?'**
+  String get deleteTransitionConfirm;
+
+  /// No description provided for @deleteTransitionWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Users will not be able to move products between these statuses.'**
+  String get deleteTransitionWarning;
+
+  /// No description provided for @transitionActivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Transition activated'**
+  String get transitionActivated;
+
+  /// No description provided for @transitionDeactivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Transition deactivated'**
+  String get transitionDeactivated;
+
+  /// No description provided for @errorCreatingTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Error creating transition'**
+  String get errorCreatingTransition;
+
+  /// No description provided for @errorUpdatingTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating transition'**
+  String get errorUpdatingTransition;
+
+  /// No description provided for @errorDeletingTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Error deleting transition'**
+  String get errorDeletingTransition;
+
+  /// No description provided for @transitionWizardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure the transition between statuses step by step'**
+  String get transitionWizardSubtitle;
+
+  /// No description provided for @configuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuration'**
+  String get configuration;
+
+  /// No description provided for @summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get summary;
+
+  /// No description provided for @step1Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 1: Basic Configuration'**
+  String get step1Title;
+
+  /// No description provided for @step1Description.
+  ///
+  /// In en, this message translates to:
+  /// **'Select the origin and destination statuses, and the roles that can execute this transition.'**
+  String get step1Description;
+
+  /// No description provided for @step2Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 2: Validation Type'**
+  String get step2Title;
+
+  /// No description provided for @step2Description.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what type of validation is required for this transition.'**
+  String get step2Description;
+
+  /// No description provided for @step3Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 3: Configure Validation'**
+  String get step3Title;
+
+  /// No description provided for @step3Description.
+  ///
+  /// In en, this message translates to:
+  /// **'Define the specific parameters of the selected validation.'**
+  String get step3Description;
+
+  /// No description provided for @step4Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 4: Conditional Logic (Optional)'**
+  String get step4Title;
+
+  /// No description provided for @step4Description.
+  ///
+  /// In en, this message translates to:
+  /// **'Add automatic rules that are evaluated based on the data entered.'**
+  String get step4Description;
+
+  /// No description provided for @step5Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 5: Summary'**
+  String get step5Title;
+
+  /// No description provided for @step5Description.
+  ///
+  /// In en, this message translates to:
+  /// **'Review all the configuration before saving.'**
+  String get step5Description;
+
+  /// No description provided for @selectRolesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which roles can execute this transition'**
+  String get selectRolesDescription;
+
+  /// No description provided for @selectAtLeastOneRole.
+  ///
+  /// In en, this message translates to:
+  /// **'You must select at least one role'**
+  String get selectAtLeastOneRole;
+
+  /// No description provided for @previous.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get previous;
+
+  /// No description provided for @simpleApprovalInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'This transition only requires confirmation. No additional configuration needed.'**
+  String get simpleApprovalInfo;
+
+  /// No description provided for @fieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Field label'**
+  String get fieldLabel;
+
+  /// No description provided for @fieldLabelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: Comment'**
+  String get fieldLabelHint;
+
+  /// No description provided for @minLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum length'**
+  String get minLength;
+
+  /// No description provided for @maxLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum length'**
+  String get maxLength;
+
+  /// No description provided for @quantityLabelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: Defective quantity'**
+  String get quantityLabelHint;
+
+  /// No description provided for @quantityRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity range'**
+  String get quantityRange;
+
+  /// No description provided for @minQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum quantity'**
+  String get minQuantity;
+
+  /// No description provided for @maxQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum quantity'**
+  String get maxQuantity;
+
+  /// No description provided for @descriptionLabelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: Defect description'**
+  String get descriptionLabelHint;
+
+  /// No description provided for @checklistItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist items'**
+  String get checklistItems;
+
+  /// No description provided for @addItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Add item'**
+  String get addItem;
+
+  /// No description provided for @addChecklistItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Add checklist item'**
+  String get addChecklistItem;
+
+  /// No description provided for @itemLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Item label'**
+  String get itemLabel;
+
+  /// No description provided for @minPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum photos'**
+  String get minPhotos;
+
+  /// No description provided for @minPhotosHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: 2'**
+  String get minPhotosHint;
+
+  /// No description provided for @minApprovals.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum approvals'**
+  String get minApprovals;
+
+  /// No description provided for @minApprovalsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: 2'**
+  String get minApprovalsHint;
+
+  /// No description provided for @validationConfiguration.
+  ///
+  /// In en, this message translates to:
+  /// **'Validation Configuration'**
+  String get validationConfiguration;
+
+  /// No description provided for @noConfigurationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'No configuration required'**
+  String get noConfigurationRequired;
+
+  /// No description provided for @defaultTextLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get defaultTextLabel;
+
+  /// No description provided for @defaultQuantityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity'**
+  String get defaultQuantityLabel;
+
+  /// No description provided for @enableConditionalLogic.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable conditional logic'**
+  String get enableConditionalLogic;
+
+  /// No description provided for @conditionalLogicSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add automatic rules based on entered data'**
+  String get conditionalLogicSubtitle;
+
+  /// No description provided for @field.
+  ///
+  /// In en, this message translates to:
+  /// **'Field'**
+  String get field;
+
+  /// No description provided for @operator.
+  ///
+  /// In en, this message translates to:
+  /// **'Operator'**
+  String get operator;
+
+  /// No description provided for @value.
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get value;
+
+  /// No description provided for @valueHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: 5'**
+  String get valueHint;
+
+  /// No description provided for @actionType.
+  ///
+  /// In en, this message translates to:
+  /// **'Action type'**
+  String get actionType;
+
+  /// No description provided for @message.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get message;
+
+  /// No description provided for @messageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Message to display'**
+  String get messageHint;
+
+  /// No description provided for @textLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Text length'**
+  String get textLength;
+
+  /// No description provided for @photoCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of photos'**
+  String get photoCount;
+
+  /// No description provided for @approvalCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of approvals'**
+  String get approvalCount;
+
+  /// No description provided for @greaterThan.
+  ///
+  /// In en, this message translates to:
+  /// **'Greater than'**
+  String get greaterThan;
+
+  /// No description provided for @greaterThanOrEqual.
+  ///
+  /// In en, this message translates to:
+  /// **'Greater than or equal'**
+  String get greaterThanOrEqual;
+
+  /// No description provided for @lessThan.
+  ///
+  /// In en, this message translates to:
+  /// **'Less than'**
+  String get lessThan;
+
+  /// No description provided for @lessThanOrEqual.
+  ///
+  /// In en, this message translates to:
+  /// **'Less than or equal'**
+  String get lessThanOrEqual;
+
+  /// No description provided for @equals.
+  ///
+  /// In en, this message translates to:
+  /// **'Equal to'**
+  String get equals;
+
+  /// No description provided for @notEquals.
+  ///
+  /// In en, this message translates to:
+  /// **'Not equal to'**
+  String get notEquals;
+
+  /// No description provided for @contains.
+  ///
+  /// In en, this message translates to:
+  /// **'Contains'**
+  String get contains;
+
+  /// No description provided for @requireApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Require approval'**
+  String get requireApproval;
+
+  /// No description provided for @requireAdditionalField.
+  ///
+  /// In en, this message translates to:
+  /// **'Require additional field'**
+  String get requireAdditionalField;
+
+  /// No description provided for @selectApprovers.
+  ///
+  /// In en, this message translates to:
+  /// **'Select who should approve'**
+  String get selectApprovers;
+
+  /// No description provided for @selectRolesToNotify.
+  ///
+  /// In en, this message translates to:
+  /// **'Select who to notify'**
+  String get selectRolesToNotify;
+
+  /// No description provided for @items.
+  ///
+  /// In en, this message translates to:
+  /// **'items'**
+  String get items;
+
+  /// No description provided for @label.
+  ///
+  /// In en, this message translates to:
+  /// **'Label'**
+  String get label;
+
+  /// No description provided for @active.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get active;
+
+  /// No description provided for @inactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get inactive;
+
+  /// No description provided for @allowedRoles.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed roles'**
+  String get allowedRoles;
+
+  /// No description provided for @allItemsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'All elements required'**
+  String get allItemsRequired;
+
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Añadir'**
+  String get add;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

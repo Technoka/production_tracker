@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../screens/organization/manage_status_transitions_screen.dart';
 import '../../screens/organization/organization_settings_screen.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
@@ -10,6 +11,7 @@ import '../../models/role_model.dart';
 import 'organization_members_screen.dart';
 import '../phases/manage_phases_screen.dart';
 import '../../l10n/app_localizations.dart';
+import 'manage_product_statuses_screen.dart';
 
 class OrganizationDetailScreen extends StatefulWidget {
   const OrganizationDetailScreen({super.key});
@@ -87,6 +89,10 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
         permissionService.hasPermission('organization', 'manageRoles');
     final canManageSettings =
         permissionService.hasPermission('organization', 'manageSettings');
+    final canManageProductStatuses =
+        permissionService.hasPermission('organization', 'manageProductStatuses');
+    final canManageStatusTransitions =
+        permissionService.hasPermission('organization', 'manageStatusTransitions');
 
     return Scaffold(
       appBar: AppBar(
@@ -155,6 +161,8 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                           canManagePhases,
                           canManageMembers,
                           canManageSettings,
+                          canManageProductStatuses,
+                          canManageStatusTransitions
                         ),
                       ],
                     ),
@@ -588,6 +596,8 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     bool canManagePhases,
     bool canManageMembers,
     bool canManageSettings,
+    bool canManageProductStatuses,
+    bool canManageStatusTransitions
   ) {
     final isOwner = org.isOwner(user.uid);
 
@@ -613,7 +623,46 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
               },
             ),
 
-          if (canManagePhases && canManageMembers) const Divider(height: 1),
+          if (canManagePhases && canManageProductStatuses) const Divider(height: 1),
+
+          // Manage Phases - solo si tiene permiso
+          if (canManageProductStatuses)
+            ListTile(
+              leading: const Icon(Icons.list_alt),
+              title: Text(l10n.manageProductStatuses),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ManageProductStatusesScreen(
+                      organizationId: org.id,
+                    ),
+                  ),
+                );
+              },
+            ),
+            
+          if (canManageProductStatuses && canManageStatusTransitions) const Divider(height: 1),
+
+          if (canManageStatusTransitions)
+          ListTile(
+            leading: const Icon(Icons.published_with_changes_sharp),
+            title: Text(l10n.manageStatusTransitions),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ManageStatusTransitionsScreen(
+                    organizationId: org.id,
+                  ),
+                ),
+              );
+            },
+          ),
+
+          if (canManageStatusTransitions && canManageMembers) const Divider(height: 1),
 
           // Manage Members - solo si tiene permiso
           if (canManageMembers)

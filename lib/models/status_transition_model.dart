@@ -310,6 +310,9 @@ class ConditionalAction {
       case ConditionalActionType.requireAdditionalField:
         final field = parameters?['fieldName'] as String?;
         return 'Requiere campo adicional${field != null ? ': $field' : ''}';
+      case ConditionalActionType.notifyRoles:
+        final roles = parameters?['requiredRoles'] as List<String>?;
+        return 'Notificar a: ${roles != null ? roles.join(", ") : 'roles seleccionados'}';
     }
   }
 }
@@ -319,7 +322,8 @@ enum ConditionalActionType {
   requireApproval('require_approval'),
   showWarning('show_warning'),
   blockTransition('block_transition'),
-  requireAdditionalField('require_additional_field');
+  requireAdditionalField('require_additional_field'),
+  notifyRoles('notify_roles');
 
   final String value;
   const ConditionalActionType(this.value);

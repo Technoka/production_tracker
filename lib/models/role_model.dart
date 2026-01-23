@@ -338,6 +338,8 @@ factory RoleModel.fromMap(Map<String, dynamic> map, {String? docId}) {
         'removeMembers': true,
         'manageRoles': false,
         'manageSettings': true,
+        'manageProductStatuses': false,
+        'manageStatusTransitions': false,
       },
       'reports': {
         'view': true,
@@ -424,6 +426,8 @@ factory RoleModel.fromMap(Map<String, dynamic> map, {String? docId}) {
         'removeMembers': false,
         'manageRoles': false,
         'manageSettings': false,
+        'manageProductStatuses': false,
+        'manageStatusTransitions': false,
       },
       'reports': {
         'view': false,
@@ -510,6 +514,8 @@ factory RoleModel.fromMap(Map<String, dynamic> map, {String? docId}) {
         'removeMembers': false,
         'manageRoles': false,
         'manageSettings': false,
+        'manageProductStatuses': false,
+        'manageStatusTransitions': false,
       },
       'reports': {
         'view': true,
@@ -596,6 +602,8 @@ factory RoleModel.fromMap(Map<String, dynamic> map, {String? docId}) {
         'removeMembers': false,
         'manageRoles': false,
         'manageSettings': false,
+        'manageProductStatuses': false,
+        'manageStatusTransitions': false,
       },
       'reports': {
         'view': false,

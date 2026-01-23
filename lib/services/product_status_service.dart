@@ -159,7 +159,8 @@ class ProductStatusService extends ChangeNotifier {
   }) async {
     try {
       // ✅ VALIDAR PERMISOS
-      final canCreate = await _memberService.can('settings', 'manageStatuses');
+      // TODO: añadir este permiso en la base de datos y en todos los roles.
+      final canCreate = await _memberService.can('organization', 'manageProductStatuses');
       if (!canCreate) {
         _error = 'No tienes permisos para crear estados';
         notifyListeners();
@@ -226,7 +227,7 @@ class ProductStatusService extends ChangeNotifier {
   }) async {
     try {
       // ✅ VALIDAR PERMISOS
-      final canEdit = await _memberService.can('settings', 'manageStatuses');
+      final canEdit = await _memberService.can('organization', 'manageProductStatuses');
       if (!canEdit) {
         _error = 'No tienes permisos para editar estados';
         notifyListeners();
@@ -303,7 +304,7 @@ class ProductStatusService extends ChangeNotifier {
       notifyListeners();
       
       // ✅ VALIDAR PERMISOS
-      final canEdit = await _memberService.can('settings', 'manageStatuses');
+      final canEdit = await _memberService.can('organization', 'manageProductStatuses');
       if (!canEdit) {
         _error = 'No tienes permisos para reordenar estados';
         notifyListeners();
@@ -334,7 +335,7 @@ class ProductStatusService extends ChangeNotifier {
   ) async {
     try {
       // ✅ VALIDAR PERMISOS
-      final canEdit = await _memberService.can('settings', 'manageStatuses');
+      final canEdit = await _memberService.can('organization', 'manageProductStatuses');
       if (!canEdit) {
         _error = 'No tienes permisos para reordenar estados';
         notifyListeners();
@@ -382,7 +383,7 @@ class ProductStatusService extends ChangeNotifier {
   ) async {
     try {
       // ✅ VALIDAR PERMISOS
-      final canDelete = await _memberService.can('settings', 'manageStatuses');
+      final canDelete = await _memberService.can('organization', 'manageProductStatuses');
       if (!canDelete) {
         _error = 'No tienes permisos para eliminar estados';
         notifyListeners();
@@ -429,6 +430,39 @@ class ProductStatusService extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Verificar si un estado puede ser eliminado (no tiene productos asociados)
+Future<bool> canDeleteStatus(
+  String organizationId,
+  String statusId,
+) async {
+  try {
+    // Consultar si hay productos con este statusId en algún lote
+    final batchesSnapshot = await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('production_batches')
+        .get();
+
+    // Revisar cada lote
+    for (final batchDoc in batchesSnapshot.docs) {
+      final productsSnapshot = await batchDoc.reference
+          .collection('batch_products')
+          .where('statusId', isEqualTo: statusId)
+          .limit(1)
+          .get();
+
+      if (productsSnapshot.docs.isNotEmpty) {
+        return false; // Hay al menos un producto usando este estado
+      }
+    }
+
+    return true; // No hay productos usando este estado
+  } catch (e) {
+    debugPrint('Error checking if status can be deleted: $e');
+    return false;
+  }
+}
 
   // ==================== VALIDACIONES ====================
 

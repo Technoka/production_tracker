@@ -447,7 +447,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get batchLabel => 'Batch:';
 
   @override
-  String get quantityLabel => 'Quantity';
+  String get quantityLabel => 'Quantity label';
 
   @override
   String get clientDetailTitle => 'Client Detail';
@@ -483,9 +483,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteClientTitle => 'Delete Client';
 
   @override
-  String deleteClientConfirm(Object name) {
-    return 'Are you sure you want to delete $name? This action cannot be undone.';
-  }
+  String get deleteClientConfirm => 'Are you sure you want to delete this client? This action cannot be undone.';
 
   @override
   String get clientDeleted => 'Client deleted';
@@ -867,7 +865,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get referenceRequired => 'Reference is required';
 
   @override
-  String get descriptionLabel => 'Description *';
+  String get descriptionLabel => 'Description label';
 
   @override
   String get descriptionHint => 'Describe the product...';
@@ -2124,7 +2122,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get advancedSettings => 'Advanced Settings';
 
   @override
-  String get basicSettings => 'Basic Settings';
+  String get basicSettings => 'Basic';
 
   @override
   String get phaseCreatedSuccess => 'Phase created successfully';
@@ -2471,13 +2469,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editStatus => 'Edit Status';
 
   @override
-  String get statusCreated => 'Status created';
+  String get statusCreated => 'Status created successfully';
 
   @override
-  String get statusUpdated => 'Status updated';
+  String get statusUpdated => 'Status updated successfully';
 
   @override
-  String get statusDeleted => 'Status deleted';
+  String get statusDeleted => 'Status deleted successfully';
 
   @override
   String get statusCreateError => 'Error creating status';
@@ -2534,19 +2532,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get configureTransition => 'Configure Transition';
 
   @override
-  String get transitionCreated => 'Transition created';
+  String get transitionCreated => 'Transition created successfully';
 
   @override
-  String get transitionUpdated => 'Transition updated';
+  String get transitionUpdated => 'Transition updated successfully';
 
   @override
-  String get transitionDeleted => 'Transition deleted';
+  String get transitionDeleted => 'Transition deleted successfully';
 
   @override
   String get validations => 'Validations';
 
   @override
-  String get validationType => 'Validation Type';
+  String get validationType => 'Type';
 
   @override
   String get validationRequired => 'Validation Required';
@@ -2567,7 +2565,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get validationFile => 'Required file';
 
   @override
-  String get conditionalLogic => 'Conditional Logic';
+  String get conditionalLogic => 'Logic';
 
   @override
   String get condition => 'Condition';
@@ -3082,4 +3080,379 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchInKanban => 'Search in Kanban...';
+
+  @override
+  String get manageProductStatuses => 'Manage Product Statuses';
+
+  @override
+  String get deleteStatus => 'Delete Status';
+
+  @override
+  String get statusName => 'Status Name';
+
+  @override
+  String get statusNameHint => 'Ex: Under Review';
+
+  @override
+  String get statusDescription => 'Description';
+
+  @override
+  String get statusDescriptionHint => 'Describe what this status is used for';
+
+  @override
+  String get statusColor => 'Color';
+
+  @override
+  String get statusIcon => 'Icon';
+
+  @override
+  String get statusPreview => 'Preview';
+
+  @override
+  String get systemStatus => 'System';
+
+  @override
+  String get systemStatuses => 'System Statuses';
+
+  @override
+  String get customStatuses => 'Custom Statuses';
+
+  @override
+  String get customStatus => 'Custom Status';
+
+  @override
+  String get activeStatus => 'Active';
+
+  @override
+  String get reorderStatuses => 'Reorder Statuses';
+
+  @override
+  String get statusesReordered => 'Statuses reordered successfully';
+
+  @override
+  String get errorReorderingStatuses => 'Error reordering statuses';
+
+  @override
+  String get noStatusesFound => 'No statuses configured';
+
+  @override
+  String get createFirstStatus => 'Create your first custom status to get started';
+
+  @override
+  String get noCustomStatuses => 'No custom statuses. System statuses cannot be modified.';
+
+  @override
+  String get statusesDescription => 'Statuses allow you to classify products during production. System statuses cannot be modified.';
+
+  @override
+  String get statusNameRequired => 'Name is required';
+
+  @override
+  String get statusNameTooShort => 'Name must be at least 3 characters';
+
+  @override
+  String get statusDescriptionRequired => 'Description is required';
+
+  @override
+  String get statusNameExists => 'A status with this name already exists';
+
+  @override
+  String get statusColorInvalid => 'Invalid color (use #RRGGBB format)';
+
+  @override
+  String get deleteStatusConfirm => 'Are you sure you want to delete this status?';
+
+  @override
+  String get deleteStatusWarning => 'This action cannot be undone. Products with this status will be left unclassified.';
+
+  @override
+  String get statusInUseCannotDelete => 'This status is in use by products and cannot be deleted';
+
+  @override
+  String get statusActivated => 'Status activated';
+
+  @override
+  String get statusDeactivated => 'Status deactivated';
+
+  @override
+  String get errorCreatingStatus => 'Error creating status';
+
+  @override
+  String get errorUpdatingStatus => 'Error updating status';
+
+  @override
+  String get errorDeletingStatus => 'Error deleting status';
+
+  @override
+  String get tapToSelectIcon => 'Tap to select an icon';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get activate => 'Activate';
+
+  @override
+  String get deactivate => 'Deactivate';
+
+  @override
+  String get manageStatusTransitions => 'Manage Transitions';
+
+  @override
+  String get createTransition => 'Create Transition';
+
+  @override
+  String get editTransition => 'Edit Transition';
+
+  @override
+  String get deleteTransition => 'Delete Transition';
+
+  @override
+  String get transitionsDescription => 'Transitions define how products can change from one status to another, with specific validations and permissions.';
+
+  @override
+  String get filterByFromStatus => 'Filter by origin status';
+
+  @override
+  String get clearFilter => 'Clear filter';
+
+  @override
+  String get hideInactiveTransitions => 'Hide inactive';
+
+  @override
+  String get showInactiveTransitions => 'Show inactive';
+
+  @override
+  String get noTransitionsFound => 'No transitions configured';
+
+  @override
+  String get noTransitionsForStatus => 'No transitions for this status';
+
+  @override
+  String get createFirstTransition => 'Create your first transition to get started';
+
+  @override
+  String get deleteTransitionConfirm => 'Are you sure you want to delete this transition?';
+
+  @override
+  String get deleteTransitionWarning => 'Users will not be able to move products between these statuses.';
+
+  @override
+  String get transitionActivated => 'Transition activated';
+
+  @override
+  String get transitionDeactivated => 'Transition deactivated';
+
+  @override
+  String get errorCreatingTransition => 'Error creating transition';
+
+  @override
+  String get errorUpdatingTransition => 'Error updating transition';
+
+  @override
+  String get errorDeletingTransition => 'Error deleting transition';
+
+  @override
+  String get transitionWizardSubtitle => 'Configure the transition between statuses step by step';
+
+  @override
+  String get configuration => 'Configuration';
+
+  @override
+  String get summary => 'Summary';
+
+  @override
+  String get step1Title => 'Step 1: Basic Configuration';
+
+  @override
+  String get step1Description => 'Select the origin and destination statuses, and the roles that can execute this transition.';
+
+  @override
+  String get step2Title => 'Step 2: Validation Type';
+
+  @override
+  String get step2Description => 'Choose what type of validation is required for this transition.';
+
+  @override
+  String get step3Title => 'Step 3: Configure Validation';
+
+  @override
+  String get step3Description => 'Define the specific parameters of the selected validation.';
+
+  @override
+  String get step4Title => 'Step 4: Conditional Logic (Optional)';
+
+  @override
+  String get step4Description => 'Add automatic rules that are evaluated based on the data entered.';
+
+  @override
+  String get step5Title => 'Step 5: Summary';
+
+  @override
+  String get step5Description => 'Review all the configuration before saving.';
+
+  @override
+  String get selectRolesDescription => 'Choose which roles can execute this transition';
+
+  @override
+  String get selectAtLeastOneRole => 'You must select at least one role';
+
+  @override
+  String get previous => 'Previous';
+
+  @override
+  String get simpleApprovalInfo => 'This transition only requires confirmation. No additional configuration needed.';
+
+  @override
+  String get fieldLabel => 'Field label';
+
+  @override
+  String get fieldLabelHint => 'Ex: Comment';
+
+  @override
+  String get minLength => 'Minimum length';
+
+  @override
+  String get maxLength => 'Maximum length';
+
+  @override
+  String get quantityLabelHint => 'Ex: Defective quantity';
+
+  @override
+  String get quantityRange => 'Quantity range';
+
+  @override
+  String get minQuantity => 'Minimum quantity';
+
+  @override
+  String get maxQuantity => 'Maximum quantity';
+
+  @override
+  String get descriptionLabelHint => 'Ex: Defect description';
+
+  @override
+  String get checklistItems => 'Checklist items';
+
+  @override
+  String get addItem => 'Add item';
+
+  @override
+  String get addChecklistItem => 'Add checklist item';
+
+  @override
+  String get itemLabel => 'Item label';
+
+  @override
+  String get minPhotos => 'Minimum photos';
+
+  @override
+  String get minPhotosHint => 'Ex: 2';
+
+  @override
+  String get minApprovals => 'Minimum approvals';
+
+  @override
+  String get minApprovalsHint => 'Ex: 2';
+
+  @override
+  String get validationConfiguration => 'Validation Configuration';
+
+  @override
+  String get noConfigurationRequired => 'No configuration required';
+
+  @override
+  String get defaultTextLabel => 'Text';
+
+  @override
+  String get defaultQuantityLabel => 'Quantity';
+
+  @override
+  String get enableConditionalLogic => 'Enable conditional logic';
+
+  @override
+  String get conditionalLogicSubtitle => 'Add automatic rules based on entered data';
+
+  @override
+  String get field => 'Field';
+
+  @override
+  String get operator => 'Operator';
+
+  @override
+  String get value => 'Value';
+
+  @override
+  String get valueHint => 'Ex: 5';
+
+  @override
+  String get actionType => 'Action type';
+
+  @override
+  String get message => 'Message';
+
+  @override
+  String get messageHint => 'Message to display';
+
+  @override
+  String get textLength => 'Text length';
+
+  @override
+  String get photoCount => 'Number of photos';
+
+  @override
+  String get approvalCount => 'Number of approvals';
+
+  @override
+  String get greaterThan => 'Greater than';
+
+  @override
+  String get greaterThanOrEqual => 'Greater than or equal';
+
+  @override
+  String get lessThan => 'Less than';
+
+  @override
+  String get lessThanOrEqual => 'Less than or equal';
+
+  @override
+  String get equals => 'Equal to';
+
+  @override
+  String get notEquals => 'Not equal to';
+
+  @override
+  String get contains => 'Contains';
+
+  @override
+  String get requireApproval => 'Require approval';
+
+  @override
+  String get requireAdditionalField => 'Require additional field';
+
+  @override
+  String get selectApprovers => 'Select who should approve';
+
+  @override
+  String get selectRolesToNotify => 'Select who to notify';
+
+  @override
+  String get items => 'items';
+
+  @override
+  String get label => 'Label';
+
+  @override
+  String get active => 'Active';
+
+  @override
+  String get inactive => 'Inactive';
+
+  @override
+  String get allowedRoles => 'Allowed roles';
+
+  @override
+  String get allItemsRequired => 'All elements required';
+
+  @override
+  String get add => 'Añadir';
 }
