@@ -1175,7 +1175,7 @@
 "noCustomStatuses": "No hay estados personalizados. Los estados del sistema no pueden modificarse.",
 "statusesDescription": "Los estados permiten clasificar productos durante la producción. Los estados del sistema no pueden modificarse.",
 "statusNameRequired": "El nombre es obligatorio",
-"statusNameTooShort": "El nombre debe tener al menos 3 caracteres",
+"statusNameTooShort": "El nombre es demasiado corto",
 "statusDescriptionRequired": "La descripción es obligatoria",
 "statusNameExists": "Ya existe un estado con este nombre",
 "statusColorInvalid": "Color inválido (use formato #RRGGBB)",

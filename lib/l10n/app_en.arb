@@ -1173,7 +1173,7 @@
 "noCustomStatuses": "No custom statuses. System statuses cannot be modified.",
 "statusesDescription": "Statuses allow you to classify products during production. System statuses cannot be modified.",
 "statusNameRequired": "Name is required",
-"statusNameTooShort": "Name must be at least 3 characters",
+"statusNameTooShort": "Name is too short",
 "statusDescriptionRequired": "Description is required",
 "statusNameExists": "A status with this name already exists",
 "statusColorInvalid": "Invalid color (use #RRGGBB format)",

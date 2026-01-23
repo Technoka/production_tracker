@@ -6236,7 +6236,7 @@ abstract class AppLocalizations {
   /// No description provided for @statusNameTooShort.
   ///
   /// In en, this message translates to:
-  /// **'Name must be at least 3 characters'**
+  /// **'Name is too short'**
   String get statusNameTooShort;
 
   /// No description provided for @statusDescriptionRequired.

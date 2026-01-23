@@ -3148,7 +3148,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusNameRequired => 'Name is required';
 
   @override
-  String get statusNameTooShort => 'Name must be at least 3 characters';
+  String get statusNameTooShort => 'Name is too short';
 
   @override
   String get statusDescriptionRequired => 'Description is required';
