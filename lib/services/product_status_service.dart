@@ -241,14 +241,6 @@ class ProductStatusService extends ChangeNotifier {
       // Verificar que no sea un estado del sistema
       final status = await getStatusById(organizationId, statusId);
       if (status == null) {
-        _error = 'Estado no encontrado';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-
-      if (status.isSystem) {
-        _error = 'No se pueden modificar estados del sistema';
         _isLoading = false;
         notifyListeners();
         return false;

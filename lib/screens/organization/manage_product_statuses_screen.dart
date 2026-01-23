@@ -245,16 +245,6 @@ class _ManageProductStatusesScreenState
         leading: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Color indicator
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color: status.colorValue,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 12),
             // Icon
             Icon(
               _getIconData(status.icon),
@@ -317,9 +307,7 @@ class _ManageProductStatusesScreenState
             ),
           ],
         ),
-        trailing: isSystem
-            ? null
-            : FutureBuilder<bool>(
+        trailing: FutureBuilder<bool>(
                 future:
                     memberService.can('organization', 'manageProductStatuses'),
                 builder: (context, snapshot) {
@@ -334,7 +322,6 @@ class _ManageProductStatusesScreenState
                           break;
                         case 'toggle':
                           _toggleStatusActive(
-                            context,
                             statusService,
                             status,
                             l10n,
@@ -379,6 +366,7 @@ class _ManageProductStatusesScreenState
                           ],
                         ),
                       ),
+                      if (!isSystem) // Los estados del sistema no se pueden eliminar
                       PopupMenuItem(
                         value: 'delete',
                         child: Row(
@@ -508,7 +496,6 @@ class _ManageProductStatusesScreenState
   }
 
   Future<void> _toggleStatusActive(
-    BuildContext context,
     ProductStatusService statusService,
     ProductStatusModel status,
     AppLocalizations l10n,
