@@ -50,7 +50,7 @@ class BottomNavBarWidget extends StatelessWidget {
     );
 
     // Producción (si puede gestionar producción)
-    if (user.canManageProduction) {
+    // if (user.canManageProduction) {
       items.add(
         BottomNavigationBarItem(
           icon: const Icon(Icons.precision_manufacturing),
@@ -63,7 +63,7 @@ class BottomNavBarWidget extends StatelessWidget {
           label: l10n.management,
         ),
       );
-    }
+    // }
 
     // Perfil (siempre visible)
     items.add(
