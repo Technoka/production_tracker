@@ -69,6 +69,7 @@ class _ConditionalLogicBuilderState extends State<ConditionalLogicBuilder> {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -105,6 +106,7 @@ class _ConditionalLogicBuilderState extends State<ConditionalLogicBuilder> {
 
             // Operador
             DropdownButtonFormField<ConditionOperator>(
+              isExpanded: true,
               value: _operator,
               decoration: InputDecoration(
                 labelText: l10n.operator,
@@ -113,7 +115,7 @@ class _ConditionalLogicBuilderState extends State<ConditionalLogicBuilder> {
               items: ConditionOperator.values.map((op) {
                 return DropdownMenuItem(
                   value: op,
-                  child: Text(_getOperatorLabel(op, l10n)),
+                  child: Text(_getOperatorLabel(op, l10n), overflow: TextOverflow.ellipsis),
                 );
               }).toList(),
               onChanged: (value) {
@@ -157,6 +159,7 @@ class _ConditionalLogicBuilderState extends State<ConditionalLogicBuilder> {
 
             // Tipo de acción
             DropdownButtonFormField<ConditionalActionType>(
+              isExpanded: true,
               value: _actionType,
               decoration: InputDecoration(
                 labelText: l10n.actionType,
@@ -165,7 +168,7 @@ class _ConditionalLogicBuilderState extends State<ConditionalLogicBuilder> {
               items: ConditionalActionType.values.map((type) {
                 return DropdownMenuItem(
                   value: type,
-                  child: Text(_getActionTypeLabel(type, l10n)),
+                  child: Text(_getActionTypeLabel(type, l10n), overflow: TextOverflow.ellipsis),
                 );
               }).toList(),
               onChanged: (value) {
@@ -198,6 +201,7 @@ class _ConditionalLogicBuilderState extends State<ConditionalLogicBuilder> {
               _buildRolesSelector(l10n),
           ],
         ),
+      ),
       ),
     );
   }
