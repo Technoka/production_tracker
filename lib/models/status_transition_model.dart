@@ -299,20 +299,30 @@ class ConditionalAction {
   String get description {
     switch (type) {
       case ConditionalActionType.requireApproval:
-        final roles = parameters?['requiredRoles'] as List<String>?;
-        return 'Requiere aprobación ${roles != null ? 'de: ${roles.join(", ")}' : 'adicional'}';
+        // CORRECCIÓN: Usamos cast seguro para listas dinámicas
+        final rawList = parameters?['requiredRoles'] as List?;
+        final roles = rawList?.map((e) => e.toString()).toList();
+        
+        return 'Requiere aprobación ${roles != null && roles.isNotEmpty ? 'de: ${roles.join(", ")}' : 'adicional'}';
+      
       case ConditionalActionType.showWarning:
         final message = parameters?['message'] as String?;
         return 'Mostrar advertencia${message != null ? ': $message' : ''}';
+      
       case ConditionalActionType.blockTransition:
         final reason = parameters?['reason'] as String?;
         return 'Bloquear transición${reason != null ? ': $reason' : ''}';
+      
       case ConditionalActionType.requireAdditionalField:
         final field = parameters?['fieldName'] as String?;
         return 'Requiere campo adicional${field != null ? ': $field' : ''}';
+      
       case ConditionalActionType.notifyRoles:
-        final roles = parameters?['requiredRoles'] as List<String>?;
-        return 'Notificar a: ${roles != null ? roles.join(", ") : 'roles seleccionados'}';
+        // CORRECCIÓN: Usamos cast seguro para listas dinámicas
+        final rawList = parameters?['requiredRoles'] as List?;
+        final roles = rawList?.map((e) => e.toString()).toList();
+        
+        return 'Notificar a: ${roles != null && roles.isNotEmpty ? roles.join(", ") : 'roles seleccionados'}';
     }
   }
 }
