@@ -146,7 +146,7 @@ class _CreateEditStatusDialogState extends State<CreateEditStatusDialog> {
                       if (value == null || value.trim().isEmpty) {
                         return l10n.statusNameRequired;
                       }
-                      if (value.trim().length < 3) {
+                      if (value.trim().length < 2) {
                         return l10n.statusNameTooShort;
                       }
                       return null;
