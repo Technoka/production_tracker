@@ -67,12 +67,16 @@ class _ChecklistDialogState extends State<ChecklistDialog> {
                       widget.product.productName,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                  ),
+                  ),Text(
+                widget.transition.fromStatusName,
+                style: const TextStyle(fontSize: 12),
+              ),
                   Icon(Icons.arrow_forward, size: 16, color: Colors.grey.shade600),
                   const SizedBox(width: 8),
                   Text(
                     widget.transition.toStatusName,
                     style: TextStyle(
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.primary,
                     ),
