@@ -11,16 +11,16 @@ import '../../models/product_status_model.dart';
 import '../../models/organization_member_model.dart';
 import '../../models/role_model.dart';
 import '../../models/permission_model.dart';
-import '../../services/kanban_service.dart';
 import '../../services/phase_service.dart';
 import '../../services/production_batch_service.dart';
 import '../../services/product_status_service.dart';
 import '../../services/organization_member_service.dart';
-import '../../services/permission_service.dart';
 import '../../services/status_transition_service.dart';
 import 'draggable_product_card.dart';
 import '../../screens/production/batch_product_detail_screen.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/validation_dialogs/validation_dialog_manager.dart';
+import '../../utils/message_events_helper.dart';
 
 enum KanbanViewMode { phases, statuses }
 
@@ -1097,93 +1097,78 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
   }
 
   Future<void> _showStatusChangeConfirmationDialog(
-    Map<String, dynamic> data,
-    ProductStatusModel toStatus,
-    AppLocalizations l10n,
-  ) async {
-    final product = data['product'] as BatchProductModel;
-    final batch = data['batch'] as ProductionBatchModel;
-    final fromStatusId = product.statusId ?? 'pending';
+  Map<String, dynamic> data,
+  ProductStatusModel toStatus,
+  AppLocalizations l10n,
+) async {
+  final product = data['product'] as BatchProductModel;
+  final fromStatusId = product.statusId ?? 'pending';
 
-    // Validar la transición ANTES de mostrar el diálogo
-    final validationResult = await _validateStatusTransition(
-      product: product,
-      fromStatusId: fromStatusId,
-      toStatusId: toStatus.id,
-    );
+  // 1. Obtener la transición configurada
+  final transitionService = Provider.of<StatusTransitionService>(context, listen: false);
+  
+  final transition = await transitionService.getTransitionBetweenStatuses(
+    organizationId: widget.organizationId,
+    fromStatusId: fromStatusId,
+    toStatusId: toStatus.id,
+  );
 
-    if (validationResult['isValid'] != true) {
-      // Mostrar error
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                validationResult['error'] ?? l10n.statusTransitionNotAllowed),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
-
-    // Si requiere validación, mostrar formulario
-    if (validationResult['requiresValidation'] == true) {
-      await _showValidationDialog(
-        data: data,
-        toStatus: toStatus,
-        validationResult: validationResult,
-        l10n: l10n,
-      );
-      return;
-    }
-
-    // Confirmación simple
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.confirmStatusChange),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              product.productName,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${l10n.batchLabel} ${batch.batchNumber}',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '${l10n.currentStatusLabel}: ${_getStatusName(fromStatusId)}',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${l10n.newStatus}: ${toStatus.name}',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.confirm),
-          ),
-        ],
+  // Si no existe transición configurada, mostrar error
+  if (transition == null) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.noTransitionConfigured ?? 'No hay transición configurada entre estos estados'),
+        backgroundColor: Colors.red,
       ),
     );
-
-    if (result == true) {
-      await _handleStatusChange(data, toStatus, l10n, null);
-    }
+    return;
   }
+
+  // Verificar que la transición esté activa
+  if (!transition.isActive) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.transitionNotActive ?? 'Esta transición está desactivada'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+    return;
+  }
+
+  // 2. Verificar permisos del usuario (rol permitido)
+  if (_currentRole != null && !transition.allowedRoles.contains(_currentRole!.id)) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.roleNotAuthorized),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  // 3. Mostrar diálogo de validación apropiado
+  final validationData = await ValidationDialogManager.showValidationDialog(
+    context: context,
+    transition: transition,
+    product: product,
+  );
+
+  // Si el usuario canceló, salir
+  if (validationData == null) {
+    return;
+  }
+
+  // 4. Ejecutar el cambio de estado con los datos validados
+  await _handleStatusChange(
+    data,
+    toStatus,
+    l10n,
+    validationData.toMap(),
+  );
+}
 
   /// Diálogo de validación con campos requeridos
   Future<void> _showValidationDialog({
@@ -1329,11 +1314,11 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
         'updatedAt': FieldValue.serverTimestamp(),
 
         // Actualizar progreso de fases
-        'phaseProgress.${fromPhaseId}.status': 'completed',
-        'phaseProgress.${fromPhaseId}.completedAt':
+        'phaseProgress.$fromPhaseId.status': 'completed',
+        'phaseProgress.$fromPhaseId.completedAt':
             FieldValue.serverTimestamp(),
-        'phaseProgress.${fromPhaseId}.completedBy': widget.currentUser.uid,
-        'phaseProgress.${fromPhaseId}.completedByName': widget.currentUser.name,
+        'phaseProgress.$fromPhaseId.completedBy': widget.currentUser.uid,
+        'phaseProgress.$fromPhaseId.completedByName': widget.currentUser.name,
 
         'phaseProgress.${toPhase.id}.status': 'in_progress',
         'phaseProgress.${toPhase.id}.startedAt': FieldValue.serverTimestamp(),
@@ -1342,7 +1327,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
       // Generar evento de sistema (opcional - si tienes MessageEventsHelper)
       try {
         // Descomentar si tienes el helper de eventos:
-        /*
+        
       await MessageEventsHelper.onProductMoved(
         organizationId: widget.organizationId,
         batchId: product.batchId,
@@ -1352,7 +1337,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
         newPhase: toPhase.name,
         movedBy: widget.currentUser.name,
       );
-      */
+      
       } catch (e) {
         debugPrint('Error generating event: $e');
         // No bloquear si falla el evento
@@ -1407,8 +1392,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
 
       if (fromStatusId == toStatus.id) return;
 
-      final batchService =
-          Provider.of<ProductionBatchService>(context, listen: false);
+      final batchService = Provider.of<ProductionBatchService>(context, listen: false);
 
       // Cambiar el estado del producto
       final success = await batchService.changeProductStatus(

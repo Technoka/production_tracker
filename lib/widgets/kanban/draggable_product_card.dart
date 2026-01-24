@@ -154,18 +154,18 @@ class DraggableProductCard extends StatelessWidget {
                     compact: true, // Modo compacto para que salga solo el icono/badge
                   ),
                   const SizedBox(width: 8),
-                  if (product.productStatus != ProductStatus.pending.value)
+                  if (product.statusId != ProductStatus.pending.value && showStatus)
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: product.statusLegacyColor.withOpacity(0.2),
+                        color: product.effectiveStatusColor.withAlpha(50),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        product.statusDisplayName,
+                        product.statusName!,
                         style: TextStyle(
-                          color: product.statusLegacyColor,
+                          color: product.effectiveStatusColor,
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
                         ),

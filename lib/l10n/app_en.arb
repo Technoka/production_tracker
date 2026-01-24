@@ -1340,5 +1340,9 @@
 "selectApprovers": "Select approvers",
 "approversSelected": "selected",
 "noEligibleApprovers": "No eligible approvers",
-"unknownRole": "Unknown role"
+"unknownRole": "Unknown role",
+
+"noTransitionConfigured": "No transition configured between these statuses",
+"transitionNotActive": "This transition is deactivated",
+"roleNotAuthorized": "Your role is not authorized for this transition"
 }

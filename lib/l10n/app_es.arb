@@ -1342,5 +1342,9 @@
 "selectApprovers": "Selecciona los aprobadores",
 "approversSelected": "seleccionados",
 "noEligibleApprovers": "No hay aprobadores elegibles",
-"unknownRole": "Rol desconocido"
+"unknownRole": "Rol desconocido",
+
+"noTransitionConfigured": "No hay transición configurada entre estos estados",
+"transitionNotActive": "Esta transición está desactivada",
+"roleNotAuthorized": "Tu rol no está autorizado para esta transición"
 }

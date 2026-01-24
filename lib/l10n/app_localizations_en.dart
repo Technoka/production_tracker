@@ -3548,4 +3548,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unknownRole => 'Unknown role';
+
+  @override
+  String get noTransitionConfigured => 'No transition configured between these statuses';
+
+  @override
+  String get transitionNotActive => 'This transition is deactivated';
+
+  @override
+  String get roleNotAuthorized => 'Your role is not authorized for this transition';
 }

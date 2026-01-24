@@ -7036,6 +7036,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown role'**
   String get unknownRole;
+
+  /// No description provided for @noTransitionConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'No transition configured between these statuses'**
+  String get noTransitionConfigured;
+
+  /// No description provided for @transitionNotActive.
+  ///
+  /// In en, this message translates to:
+  /// **'This transition is deactivated'**
+  String get transitionNotActive;
+
+  /// No description provided for @roleNotAuthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Your role is not authorized for this transition'**
+  String get roleNotAuthorized;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
