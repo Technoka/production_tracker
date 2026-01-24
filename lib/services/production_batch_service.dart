@@ -404,12 +404,6 @@ class ProductionBatchService extends ChangeNotifier {
         return null;
       }
 
-      final docRef = _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc();
-
       final batchId = _uuid.v4();
       final batch = ProductionBatchModel(
         id: batchId,
@@ -430,11 +424,16 @@ class ProductionBatchService extends ChangeNotifier {
         assignedMembers: assignedMembers ?? [createdBy],
       );
 
-      await docRef.set(batch.toMap());
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('production_batches')
+          .doc(batchId)
+          .set(batch.toMap());
 
       _isLoading = false;
       notifyListeners();
-      return docRef.id;
+      return batchId;
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
