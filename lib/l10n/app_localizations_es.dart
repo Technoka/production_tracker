@@ -3008,7 +3008,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get createFamily => 'Crear familia';
 
   @override
-  String get optional => 'opcional';
+  String get optional => 'Opcional';
 
   @override
   String get exitWithoutSaving => 'Salir sin guardar';
@@ -3430,7 +3430,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get requireAdditionalField => 'Requerir campo adicional';
 
   @override
-  String get selectApprovers => 'Selecciona quién debe aprobar';
+  String get selectApprovers => 'Selecciona los aprobadores';
 
   @override
   String get selectRolesToNotify => 'Selecciona a quién notificar';
@@ -3455,4 +3455,97 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get add => 'Añadir';
+
+  @override
+  String get confirmTransition => 'Confirmar Transición';
+
+  @override
+  String get confirmTransitionMessage => '¿Deseas mover este producto al siguiente estado?';
+
+  @override
+  String get totalQuantity => 'Cantidad total';
+
+  @override
+  String get enterText => 'Ingresar texto';
+
+  @override
+  String get enterTextHint => 'Escribe aquí...';
+
+  @override
+  String get text => 'Texto';
+
+  @override
+  String get textTooShort => 'El texto es demasiado corto';
+
+  @override
+  String get quantityAndDescription => 'Cantidad y Descripción';
+
+  @override
+  String get describeIssue => 'Describe el problema';
+
+  @override
+  String get invalidNumber => 'Número inválido';
+
+  @override
+  String get minimumValue => 'Valor mínimo';
+
+  @override
+  String get maximumValue => 'Valor máximo';
+
+  @override
+  String get range => 'Rango';
+
+  @override
+  String get conditionalRuleTriggered => 'Se activó una regla condicional';
+
+  @override
+  String get approvalWillBeRequired => 'Esta transición requerirá aprobación adicional';
+
+  @override
+  String get verificationChecklist => 'Lista de Verificación';
+
+  @override
+  String get allItemsMustBeChecked => 'Todos los items deben estar marcados';
+
+  @override
+  String get itemsCompleted => 'completados';
+
+  @override
+  String get completeRequiredItems => 'Completa todos los items obligatorios';
+
+  @override
+  String get attachPhotos => 'Adjuntar Fotos';
+
+  @override
+  String get minPhotosRequired => 'Mínimo de fotos requeridas';
+
+  @override
+  String get takePhoto => 'Tomar Foto';
+
+  @override
+  String get chooseFromGallery => 'Elegir de Galería';
+
+  @override
+  String get selectedPhotos => 'Fotos seleccionadas';
+
+  @override
+  String get uploading => 'Subiendo';
+
+  @override
+  String get uploadError => 'Error al subir';
+
+  @override
+  String get multiApprovalRequired => 'Aprobación Múltiple Requerida';
+
+  @override
+  String get minApprovalsRequired => 'Mínimo de aprobaciones requeridas';
+
+  @override
+  String get approversSelected => 'seleccionados';
+
+  @override
+  String get noEligibleApprovers => 'No hay aprobadores elegibles';
+
+  @override
+  String get unknownRole => 'Rol desconocido';
 }

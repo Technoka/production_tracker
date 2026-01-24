@@ -5960,7 +5960,7 @@ abstract class AppLocalizations {
   /// No description provided for @optional.
   ///
   /// In en, this message translates to:
-  /// **'optional'**
+  /// **'Optional'**
   String get optional;
 
   /// No description provided for @exitWithoutSaving.
@@ -6800,7 +6800,7 @@ abstract class AppLocalizations {
   /// No description provided for @selectApprovers.
   ///
   /// In en, this message translates to:
-  /// **'Select who should approve'**
+  /// **'Select approvers'**
   String get selectApprovers;
 
   /// No description provided for @selectRolesToNotify.
@@ -6850,6 +6850,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Añadir'**
   String get add;
+
+  /// No description provided for @confirmTransition.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Transition'**
+  String get confirmTransition;
+
+  /// No description provided for @confirmTransitionMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to move this product to the next status?'**
+  String get confirmTransitionMessage;
+
+  /// No description provided for @totalQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Total quantity'**
+  String get totalQuantity;
+
+  /// No description provided for @enterText.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter text'**
+  String get enterText;
+
+  /// No description provided for @enterTextHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write here...'**
+  String get enterTextHint;
+
+  /// No description provided for @text.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get text;
+
+  /// No description provided for @textTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Text is too short'**
+  String get textTooShort;
+
+  /// No description provided for @quantityAndDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity and Description'**
+  String get quantityAndDescription;
+
+  /// No description provided for @describeIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the issue'**
+  String get describeIssue;
+
+  /// No description provided for @invalidNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid number'**
+  String get invalidNumber;
+
+  /// No description provided for @minimumValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum value'**
+  String get minimumValue;
+
+  /// No description provided for @maximumValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum value'**
+  String get maximumValue;
+
+  /// No description provided for @range.
+  ///
+  /// In en, this message translates to:
+  /// **'Range'**
+  String get range;
+
+  /// No description provided for @conditionalRuleTriggered.
+  ///
+  /// In en, this message translates to:
+  /// **'A conditional rule was triggered'**
+  String get conditionalRuleTriggered;
+
+  /// No description provided for @approvalWillBeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This transition will require additional approval'**
+  String get approvalWillBeRequired;
+
+  /// No description provided for @verificationChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification Checklist'**
+  String get verificationChecklist;
+
+  /// No description provided for @allItemsMustBeChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'All items must be checked'**
+  String get allItemsMustBeChecked;
+
+  /// No description provided for @itemsCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'completed'**
+  String get itemsCompleted;
+
+  /// No description provided for @completeRequiredItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete all required items'**
+  String get completeRequiredItems;
+
+  /// No description provided for @attachPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach Photos'**
+  String get attachPhotos;
+
+  /// No description provided for @minPhotosRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum photos required'**
+  String get minPhotosRequired;
+
+  /// No description provided for @takePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take Photo'**
+  String get takePhoto;
+
+  /// No description provided for @chooseFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from Gallery'**
+  String get chooseFromGallery;
+
+  /// No description provided for @selectedPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected photos'**
+  String get selectedPhotos;
+
+  /// No description provided for @uploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading'**
+  String get uploading;
+
+  /// No description provided for @uploadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload error'**
+  String get uploadError;
+
+  /// No description provided for @multiApprovalRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple Approval Required'**
+  String get multiApprovalRequired;
+
+  /// No description provided for @minApprovalsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum approvals required'**
+  String get minApprovalsRequired;
+
+  /// No description provided for @approversSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'selected'**
+  String get approversSelected;
+
+  /// No description provided for @noEligibleApprovers.
+  ///
+  /// In en, this message translates to:
+  /// **'No eligible approvers'**
+  String get noEligibleApprovers;
+
+  /// No description provided for @unknownRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown role'**
+  String get unknownRole;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
