@@ -20,6 +20,8 @@ import '../../models/product_status_model.dart';
 import '../../models/status_transition_model.dart';
 import '../../models/role_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../widgets/validation_dialogs/validation_dialog_manager.dart';
+import '../../models/validation_config_model.dart';
 
 // TODO: comprobar que se usa scope y assignedMembers correctamente
 
@@ -96,6 +98,33 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       });
     }
   }
+
+  /// Cargar transiciones disponibles desde el estado actual del producto
+Future<List<StatusTransitionModel>> _loadAvailableTransitions(
+  String currentStatusId,
+) async {
+  if (_currentRole == null) return [];
+
+  final transitionService = Provider.of<StatusTransitionService>(
+    context,
+    listen: false,
+  );
+
+  try {
+    // Obtener todas las transiciones desde el estado actual
+    final transitions = await transitionService.getAvailableTransitions(
+      organizationId: widget.organizationId,
+      fromStatusId: currentStatusId,
+      userRoleId: _currentRole!.id,
+    );
+
+    // Filtrar solo las activas
+    return transitions.where((t) => t.isActive).toList();
+  } catch (e) {
+    debugPrint('Error loading transitions: $e');
+    return [];
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -458,8 +487,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             Row(
               children: [
                 Icon(
-                  _getStatusIcon(product.productStatus),
-                  color: product.statusLegacyColor,
+                  _getStatusIcon(product.statusName!),
+                  color: product.effectiveStatusColor,
                 ),
                 const SizedBox(width: 8),
                 const Expanded(
@@ -479,15 +508,15 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: product.statusLegacyColor.withOpacity(0.1),
+                color: product.effectiveStatusColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: product.statusLegacyColor, width: 2),
+                border: Border.all(color: product.effectiveStatusColor, width: 2),
               ),
               child: Row(
                 children: [
                   Icon(
-                    _getStatusIcon(product.productStatus),
-                    color: product.statusLegacyColor,
+                    _getStatusIcon(product.statusName!),
+                    color: product.effectiveStatusColor,
                     size: 25,
                   ),
                   const SizedBox(width: 12),
@@ -496,15 +525,15 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          product.statusDisplayName,
+                          product.statusName!,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: product.statusLegacyColor,
+                            color: product.effectiveStatusColor,
                           ),
                         ),
                         Text(
-                          _getStatusDescription(product.productStatus),
+                          _getStatusDescription(product.statusName!),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[700],
@@ -704,107 +733,55 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     );
   }
 
-  // TODO: actualizar a sistema de estados de producto con validacion
   Widget _buildProductStatusActions(
-      BatchProductModel product, UserModel? user) {
-    // Si no tiene permisos, no mostramos nada (ni siquiera el título)
-    final memberService =
-        Provider.of<OrganizationMemberService>(context, listen: false);
+  BatchProductModel product,
+  UserModel? user,
+) {
+  // Si no tiene permisos, no mostramos nada
+  final memberService = Provider.of<OrganizationMemberService>(
+    context,
+    listen: false,
+  );
 
-    return FutureBuilder<bool>(
-        future: memberService.can('batch_products', 'changeStatus'),
-        builder: (context, snapshot) {
-          final canChangeStatus = snapshot.data ?? false;
+  return FutureBuilder<bool>(
+    future: memberService.can('batch_products', 'changeStatus'),
+    builder: (context, permSnapshot) {
+      final canChangeStatus = permSnapshot.data ?? false;
 
-          if (!canChangeStatus) return const SizedBox.shrink();
+      if (!canChangeStatus) return const SizedBox.shrink();
 
-          // 1. Preparamos la lista de acciones disponibles
-          final List<Widget> actions = [];
+      // Cargar transiciones disponibles desde el estado actual
+      final currentStatusId = product.statusId ?? 'pending';
 
-          // FLUJO: Studio + Pending → OK directo o CAO
-          if (product.isInStudio && product.isPending) {
-            actions.add(_buildActionButton(
-              icon: Icons.check_circle,
-              label: 'Todo Correcto (→ OK)',
-              color: Colors.green,
-              onPressed: () => _handleAction('approve_directly', product),
-            ));
-            // Añadimos un pequeño espacio entre botones si hay varios
-            if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
-
-            actions.add(_buildActionButton(
-              icon: Icons.cancel,
-              label: 'Hay Defectos (→ CAO)',
-              color: Colors.red,
-              onPressed: () => _handleAction('reject_directly', product),
-            ));
+      return FutureBuilder<List<StatusTransitionModel>>(
+        future: _loadAvailableTransitions(currentStatusId),
+        builder: (context, transSnapshot) {
+          if (transSnapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              ),
+            );
           }
-          // Añadimos un pequeño espacio entre botones si hay varios
-          if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
 
-          // FLUJO: CAO → Control (sin clasificar)
-          if (product.isCAO && !product.isControl) {
-            actions.add(_buildActionButton(
-              icon: Icons.verified,
-              label: 'Recibir y Evaluar (→ Control)',
-              color: Colors.blue,
-              onPressed: () => _handleAction('move_to_control', product),
-            ));
+          if (transSnapshot.hasError) {
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Error al cargar transiciones: ${transSnapshot.error}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            );
           }
-          // Añadimos un pequeño espacio entre botones si hay varios
-          if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
 
-          // FLUJO: Control sin clasificar → Clasificar
-          if (product.isControl && !product.isReturnBalanced) {
-            actions.add(_buildActionButton(
-              icon: Icons.category,
-              label: 'Clasificar Devoluciones',
-              color: Colors.orange,
-              onPressed: () => _handleAction('classify_returns', product),
-            ));
-          }
-          // Añadimos un pequeño espacio entre botones si hay varios
-          if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
+          final transitions = transSnapshot.data ?? [];
 
-          // FLUJO: Control clasificado → OK
-          if (product.isControl && product.isReturnBalanced) {
-            actions.add(_buildActionButton(
-              icon: Icons.check_circle,
-              label: 'Finalizar (→ OK)',
-              color: Colors.green,
-              onPressed: () => _handleAction('approve', product),
-            ));
-          }
-          // Añadimos un pequeño espacio entre botones si hay varios
-          if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
-
-          // FLUJO: Hold → OK o CAO
-          if (product.isHold) {
-            actions.add(_buildActionButton(
-              icon: Icons.check_circle,
-              label: 'Aprobar (→ OK)',
-              color: Colors.green,
-              onPressed: () => _handleAction('approve', product),
-            ));
-            // Añadimos un pequeño espacio entre botones si hay varios
-            if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
-
-            actions.add(_buildActionButton(
-              icon: Icons.cancel,
-              label: 'Rechazar (→ CAO)',
-              color: Colors.red,
-              onPressed: () => _handleAction('reject', product),
-            ));
-          }
-          // Añadimos un pequeño espacio entre botones si hay varios
-          if (actions.isNotEmpty) actions.add(const SizedBox(height: 8));
-
-          // 2. Construimos la UI
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Acciones',
+                'Acciones Disponibles',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -812,12 +789,11 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               ),
               const SizedBox(height: 12),
 
-              // 3. Lógica para mostrar acciones o el mensaje de vacío
-              if (actions.isEmpty)
+              if (transitions.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8.0),
                   child: Text(
-                    'No hay acciones disponibles',
+                    'No hay transiciones disponibles desde este estado',
                     style: TextStyle(
                       color: Colors.grey,
                       fontStyle: FontStyle.italic,
@@ -825,12 +801,200 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   ),
                 )
               else
-                ...actions,
+                ...transitions.map((transition) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: _buildTransitionButton(
+                      transition: transition,
+                      product: product,
+                    ),
+                  );
+                }).toList(),
             ],
           );
-        }
+        },
       );
+    },
+  );
+}
+
+/// Construir botón para una transición específica
+Widget _buildTransitionButton({
+  required StatusTransitionModel transition,
+  required BatchProductModel product,
+}) {
+  // Determinar color e icono según el estado destino
+  Color buttonColor = _getColorForStatus(transition.toStatusId);
+  IconData buttonIcon = _getIconForStatus(transition.toStatusId);
+
+  return SizedBox(
+    width: double.infinity,
+    child: OutlinedButton.icon(
+      onPressed: () => _handleTransitionAction(transition, product),
+      icon: Icon(buttonIcon, color: buttonColor),
+      label: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Cambiar a: ${transition.toStatusName}',
+              style: TextStyle(
+                color: buttonColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          // Badge con tipo de validación
+          if (transition.validationType != ValidationType.simpleApproval)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: buttonColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: buttonColor.withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _getValidationIcon(transition.validationType),
+                    size: 12,
+                    color: buttonColor,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _getValidationLabel(transition.validationType),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: buttonColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: buttonColor, width: 2),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      ),
+    ),
+  );
+}
+
+/// Manejar acción de transición usando ValidationDialogManager
+Future<void> _handleTransitionAction(
+  StatusTransitionModel transition,
+  BatchProductModel product,
+) async {
+  final authService = Provider.of<AuthService>(context, listen: false);
+  final user = authService.currentUserData;
+
+  if (user == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Error: Usuario no autenticado'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
   }
+
+  if (product.currentPhase != 'studio') {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Error: el producto debe estar en Studio antes de cambiar de estado'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  // Mostrar el diálogo de validación apropiado
+  final validationData = await ValidationDialogManager.showValidationDialog(
+    context: context,
+    transition: transition,
+    product: product,
+  );
+
+  // Si el usuario canceló, salir
+  if (validationData == null) {
+    return;
+  }
+
+  // Ejecutar el cambio de estado con los datos validados
+  await _executeStatusChangeWithValidation(
+    product: product,
+    toStatusId: transition.toStatusId,
+    validationData: validationData.toMap(),
+  );
+}
+
+/// Helpers para colores e iconos según estado
+Color _getColorForStatus(String statusId) {
+  switch (statusId) {
+    case 'ok':
+      return Colors.green;
+    case 'cao':
+      return Colors.red;
+    case 'control':
+      return Colors.orange;
+    case 'hold':
+      return Colors.blue;
+    default:
+      return Colors.grey;
+  }
+}
+
+IconData _getIconForStatus(String statusId) {
+  switch (statusId) {
+    case 'ok':
+      return Icons.check_circle;
+    case 'cao':
+      return Icons.cancel;
+    case 'control':
+      return Icons.verified;
+    case 'hold':
+      return Icons.pause_circle;
+    default:
+      return Icons.circle;
+  }
+}
+
+IconData _getValidationIcon(ValidationType type) {
+  switch (type) {
+    case ValidationType.textRequired:
+    case ValidationType.textOptional:
+      return Icons.edit;
+    case ValidationType.quantityAndText:
+      return Icons.format_list_numbered;
+    case ValidationType.checklist:
+      return Icons.checklist;
+    case ValidationType.photoRequired:
+      return Icons.camera_alt;
+    case ValidationType.multiApproval:
+      return Icons.people;
+    default:
+      return Icons.check_circle;
+  }
+}
+
+String _getValidationLabel(ValidationType type) {
+  switch (type) {
+    case ValidationType.textRequired:
+      return 'Texto';
+    case ValidationType.quantityAndText:
+      return 'Cantidad';
+    case ValidationType.checklist:
+      return 'Checklist';
+    case ValidationType.photoRequired:
+      return 'Foto';
+    case ValidationType.multiApproval:
+      return 'Aprobación';
+    default:
+      return '';
+  }
+}
 
   // Helper para crear los botones de la lista con estilo uniforme
   Widget _buildActionButton({
@@ -1406,6 +1570,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     switch (action) {
       case 'approve_directly':
         // HOLD → OK
+        print("approve directly llamada -------------------");
         await _handleStatusChange(
           product: product,
           fromStatusId: 'hold',
@@ -1417,6 +1582,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         break;
 
       case 'reject_directly':
+        print("reject_directly llamada -------------------");
         // HOLD → CAO
         await _handleStatusChange(
           product: product,
@@ -1429,6 +1595,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         break;
 
       case 'move_to_control':
+        print("move_to_control llamada -------------------");
         // CAO → CONTROL
         await _handleStatusChange(
           product: product,
@@ -1441,6 +1608,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         break;
 
       case 'classify_returns':
+        print("classify_returns llamada -------------------");
         // CONTROL → OK (con posible clasificación)
         await _handleStatusChange(
           product: product,
@@ -1453,6 +1621,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         break;
 
       case 'approve':
+        print("approve llamada -------------------");
         // PENDING → OK
         await _handleStatusChange(
           product: product,
@@ -1464,6 +1633,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         break;
 
       case 'reject':
+        print("reject llamada -------------------");
         // ANY → CAO o similar (según configuración)
         await _handleStatusChange(
           product: product,
@@ -1476,105 +1646,45 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         break;
 
       case 'delete':
+        print("delete llamada -------------------");
         _showDeleteConfirmation(product);
         break;
     }
   }
 
   Future<void> _handleStatusChange({
-    required BatchProductModel product,
-    required String fromStatusId,
-    required String toStatusId,
-    required String actionName,
-    required String confirmMessage,
-    bool requiresValidation = false,
-  }) async {
-    final batchService =
-        Provider.of<ProductionBatchService>(context, listen: false);
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = authService.currentUserData;
+  required BatchProductModel product,
+  required String fromStatusId,
+  required String toStatusId,
+  required String actionName,
+  required String confirmMessage,
+  bool requiresValidation = false,
+}) async {
+  final transitionService = Provider.of<StatusTransitionService>(
+    context,
+    listen: false,
+  );
 
-    if (user == null || _currentRole == null || _currentMember == null) {
-      return;
-    }
+  // Obtener la transición configurada
+  final transition = await transitionService.getTransitionBetweenStatuses(
+    organizationId: widget.organizationId,
+    fromStatusId: fromStatusId,
+    toStatusId: toStatusId,
+  );
 
-    // 1. Validar transición
-    final validationResult = await batchService.validateStatusTransition(
-      organizationId: widget.organizationId,
-      fromStatusId: fromStatusId,
-      toStatusId: toStatusId,
-      userName: user.name,
-      userId: user.uid,
+  if (transition == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('No hay transición configurada entre estos estados'),
+        backgroundColor: Colors.red,
+      ),
     );
-
-    if (validationResult['isValid'] != true) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text(validationResult['error'] ?? 'Transición no permitida'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
-
-    // 2. Si requiere validación, mostrar formulario
-    if (validationResult['requiresValidation'] == true) {
-      await _showValidationDialog(
-        product: product,
-        fromStatusId: fromStatusId,
-        toStatusId: toStatusId,
-        actionName: actionName,
-        validationResult: validationResult,
-      );
-      return;
-    }
-
-    // 3. Confirmación simple
-    final confirm = await _showConfirmDialog(actionName, confirmMessage);
-    if (confirm != true) return;
-
-    // 4. Ejecutar cambio de estado
-    try {
-      final success = await batchService.changeProductStatus(
-        organizationId: widget.organizationId,
-        batchId: widget.batchId,
-        productId: widget.productId,
-        toStatusId: toStatusId,
-        userId: user.uid,
-        userName: user.name,
-      );
-
-      if (mounted) {
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Estado cambiado exitosamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(batchService.error ?? 'Error al cambiar estado'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    return;
   }
+
+  // Usar el nuevo método unificado
+  await _handleTransitionAction(transition, product);
+}
 
   Future<void> _showValidationDialog({
     required BatchProductModel product,
