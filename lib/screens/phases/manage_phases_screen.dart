@@ -26,7 +26,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
 
   bool get _canEdit {
     final role = widget.currentUser.role.toLowerCase();
-    return role == 'admin' || role == 'production_manager';
+    return role == 'admin' || role == 'production_manager' || role == 'owner';
   }
 
   Future<void> _initializeDefaultPhases() async {
