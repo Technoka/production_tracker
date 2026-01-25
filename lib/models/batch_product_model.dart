@@ -55,7 +55,7 @@ class StatusHistoryEntry {
       'timestamp': Timestamp.fromDate(timestamp),
       'userId': userId,
       'userName': userName,
-      'validationData': validationData,
+      'validationData': validationData != null ? validationData : null,
       'notes': notes,
     };
   }
@@ -68,8 +68,8 @@ class StatusHistoryEntry {
       timestamp: (map['timestamp'] as Timestamp).toDate(),
       userId: map['userId'] as String,
       userName: map['userName'] as String,
-      validationData: map['validationData'] as Map<String, dynamic>?,
-      notes: map['notes'] as String?,
+      validationData: map['validationData'] != null ? map['validationData'] as Map<String, dynamic>? : null,
+      notes: map['notes'] != null ? map['notes'] as String? : null,
     );
   }
 }
