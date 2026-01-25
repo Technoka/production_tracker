@@ -67,6 +67,7 @@
   "projectDetails": "Detalles del Proyecto",
   "client": "Cliente",
   "status": "Estado",
+  "statuses": "Estados",
   "deliveryDate": "Fecha de Entrega",
   "estimatedDeliveryDate": "Fecha Estimada de Entrega",
   "actualDeliveryDate": "Fecha Real de Entrega",
@@ -1082,12 +1083,12 @@
 "noProductionAccess": "Sin acceso a producción",
 "manageMembers": "Gestionar miembros",
 
-"totalMembers": "Total de Miembros",
+"totalMembers": "Miembros totales",
 "filterByRole": "Filtrar por Rol",
 "filterByName": "Filtrar por nombre",
 "allRoles": "Todos los Roles",
 "clientsCard": "Clientes",
-"totalClients": "Total de Clientes",
+"totalClients": "Clientes totales",
 "roleDistribution": "Distribución por Rol",
 "viewingOwnPermissions": "Viendo tus permisos",
 "viewingOwnPermissionsDesc": "Estás viendo tus propios permisos. No puedes modificar los permisos de organización para evitar perder acceso.",
@@ -1349,5 +1350,9 @@
 "removeParameter": "Quitar parámetro",
 "number": "Número",
 "booleanType": "Si/No",
-"reorderingStatusesMessage": "Reordenando estados - Arrastra las tarjetas para cambiar el orden"
+"reorderingStatusesMessage": "Reordenando estados - Arrastra las tarjetas para cambiar el orden",
+"productionDashboardTitleLabel": "Dashboard de Producción",
+"viewAllBatches": "Ver todos los lotes",
+"productionPhasesLabel": "Fases de Producción",
+"totalLabel": "Total"
 }

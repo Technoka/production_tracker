@@ -180,6 +180,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get status => 'Status';
 
   @override
+  String get statuses => 'Statuses';
+
+  @override
   String get deliveryDate => 'Delivery Date';
 
   @override
@@ -3572,4 +3575,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reorderingStatusesMessage => 'Reordering statuses - Drag cards to change order';
+
+  @override
+  String get productionDashboardTitleLabel => 'Production Dashboard';
+
+  @override
+  String get viewAllBatches => 'View all batches';
+
+  @override
+  String get productionPhasesLabel => 'Production Phases';
+
+  @override
+  String get totalLabel => 'Total';
 }

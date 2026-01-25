@@ -180,6 +180,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get status => 'Estado';
 
   @override
+  String get statuses => 'Estados';
+
+  @override
   String get deliveryDate => 'Fecha de Entrega';
 
   @override
@@ -2939,7 +2942,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get manageMembers => 'Gestionar miembros';
 
   @override
-  String get totalMembers => 'Total de Miembros';
+  String get totalMembers => 'Miembros totales';
 
   @override
   String get filterByRole => 'Filtrar por Rol';
@@ -2954,7 +2957,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get clientsCard => 'Clientes';
 
   @override
-  String get totalClients => 'Total de Clientes';
+  String get totalClients => 'Clientes totales';
 
   @override
   String get roleDistribution => 'Distribución por Rol';
@@ -3572,4 +3575,16 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get reorderingStatusesMessage => 'Reordenando estados - Arrastra las tarjetas para cambiar el orden';
+
+  @override
+  String get productionDashboardTitleLabel => 'Dashboard de Producción';
+
+  @override
+  String get viewAllBatches => 'Ver todos los lotes';
+
+  @override
+  String get productionPhasesLabel => 'Fases de Producción';
+
+  @override
+  String get totalLabel => 'Total';
 }

@@ -62,6 +62,7 @@
   "projectDetails": "Project Details",
   "client": "Client",
   "status": "Status",
+  "statuses": "Statuses",
   "deliveryDate": "Delivery Date",
   "estimatedDeliveryDate": "Estimated Delivery Date",
   "actualDeliveryDate": "Actual Delivery Date",
@@ -1347,5 +1348,9 @@
 "removeParameter": "Remove parameter",
 "number": "Number",
 "booleanType": "Yes/No",
-"reorderingStatusesMessage": "Reordering statuses - Drag cards to change order"
+"reorderingStatusesMessage": "Reordering statuses - Drag cards to change order",
+"productionDashboardTitleLabel": "Production Dashboard",
+"viewAllBatches": "View all batches",
+"productionPhasesLabel": "Production Phases",
+"totalLabel": "Total"
 }

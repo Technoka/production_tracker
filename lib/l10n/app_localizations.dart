@@ -437,6 +437,12 @@ abstract class AppLocalizations {
   /// **'Status'**
   String get status;
 
+  /// No description provided for @statuses.
+  ///
+  /// In en, this message translates to:
+  /// **'Statuses'**
+  String get statuses;
+
   /// No description provided for @deliveryDate.
   ///
   /// In en, this message translates to:
@@ -7084,6 +7090,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reordering statuses - Drag cards to change order'**
   String get reorderingStatusesMessage;
+
+  /// No description provided for @productionDashboardTitleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Production Dashboard'**
+  String get productionDashboardTitleLabel;
+
+  /// No description provided for @viewAllBatches.
+  ///
+  /// In en, this message translates to:
+  /// **'View all batches'**
+  String get viewAllBatches;
+
+  /// No description provided for @productionPhasesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Production Phases'**
+  String get productionPhasesLabel;
+
+  /// No description provided for @totalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get totalLabel;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
