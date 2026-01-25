@@ -1169,8 +1169,8 @@
 "errorReorderingStatuses": "Error reordering statuses",
 "noStatusesFound": "No statuses configured",
 "createFirstStatus": "Create your first custom status to get started",
-"noCustomStatuses": "No custom statuses. System statuses cannot be modified.",
-"statusesDescription": "Statuses allow you to classify products during production. System statuses cannot be modified.",
+"noCustomStatuses": "No custom statuses. System statuses cannot be deleted.",
+"statusesDescription": "Statuses allow you to classify products during production. System statuses cannot be deleted.",
 "statusNameRequired": "Name is required",
 "statusNameTooShort": "Name is too short",
 "statusDescriptionRequired": "Description is required",
@@ -1346,5 +1346,6 @@
 "addParameter": "Add parameter",
 "removeParameter": "Remove parameter",
 "number": "Number",
-"booleanType": "Yes/No"
+"booleanType": "Yes/No",
+"reorderingStatusesMessage": "Reordering statuses - Drag cards to change order"
 }

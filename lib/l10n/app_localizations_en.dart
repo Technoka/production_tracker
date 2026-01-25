@@ -3139,10 +3139,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createFirstStatus => 'Create your first custom status to get started';
 
   @override
-  String get noCustomStatuses => 'No custom statuses. System statuses cannot be modified.';
+  String get noCustomStatuses => 'No custom statuses. System statuses cannot be deleted.';
 
   @override
-  String get statusesDescription => 'Statuses allow you to classify products during production. System statuses cannot be modified.';
+  String get statusesDescription => 'Statuses allow you to classify products during production. System statuses cannot be deleted.';
 
   @override
   String get statusNameRequired => 'Name is required';
@@ -3569,4 +3569,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get booleanType => 'Yes/No';
+
+  @override
+  String get reorderingStatusesMessage => 'Reordering statuses - Drag cards to change order';
 }

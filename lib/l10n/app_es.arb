@@ -1171,8 +1171,8 @@
 "errorReorderingStatuses": "Error al reordenar estados",
 "noStatusesFound": "No hay estados configurados",
 "createFirstStatus": "Crea tu primer estado personalizado para comenzar",
-"noCustomStatuses": "No hay estados personalizados. Los estados del sistema no pueden modificarse.",
-"statusesDescription": "Los estados permiten clasificar productos durante la producción. Los estados del sistema no pueden modificarse.",
+"noCustomStatuses": "No hay estados personalizados. Los estados del sistema no pueden eliminarse.",
+"statusesDescription": "Los estados permiten clasificar productos durante la producción. Los estados del sistema no pueden eliminarse.",
 "statusNameRequired": "El nombre es obligatorio",
 "statusNameTooShort": "El nombre es demasiado corto",
 "statusDescriptionRequired": "La descripción es obligatoria",
@@ -1348,5 +1348,6 @@
 "addParameter": "Añadir parámetro",
 "removeParameter": "Quitar parámetro",
 "number": "Número",
-"booleanType": "Si/No"
+"booleanType": "Si/No",
+"reorderingStatusesMessage": "Reordenando estados - Arrastra las tarjetas para cambiar el orden"
 }

@@ -3139,10 +3139,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get createFirstStatus => 'Crea tu primer estado personalizado para comenzar';
 
   @override
-  String get noCustomStatuses => 'No hay estados personalizados. Los estados del sistema no pueden modificarse.';
+  String get noCustomStatuses => 'No hay estados personalizados. Los estados del sistema no pueden eliminarse.';
 
   @override
-  String get statusesDescription => 'Los estados permiten clasificar productos durante la producción. Los estados del sistema no pueden modificarse.';
+  String get statusesDescription => 'Los estados permiten clasificar productos durante la producción. Los estados del sistema no pueden eliminarse.';
 
   @override
   String get statusNameRequired => 'El nombre es obligatorio';
@@ -3569,4 +3569,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get booleanType => 'Si/No';
+
+  @override
+  String get reorderingStatusesMessage => 'Reordenando estados - Arrastra las tarjetas para cambiar el orden';
 }

@@ -6218,13 +6218,13 @@ abstract class AppLocalizations {
   /// No description provided for @noCustomStatuses.
   ///
   /// In en, this message translates to:
-  /// **'No custom statuses. System statuses cannot be modified.'**
+  /// **'No custom statuses. System statuses cannot be deleted.'**
   String get noCustomStatuses;
 
   /// No description provided for @statusesDescription.
   ///
   /// In en, this message translates to:
-  /// **'Statuses allow you to classify products during production. System statuses cannot be modified.'**
+  /// **'Statuses allow you to classify products during production. System statuses cannot be deleted.'**
   String get statusesDescription;
 
   /// No description provided for @statusNameRequired.
@@ -7078,6 +7078,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Yes/No'**
   String get booleanType;
+
+  /// No description provided for @reorderingStatusesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Reordering statuses - Drag cards to change order'**
+  String get reorderingStatusesMessage;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
