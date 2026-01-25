@@ -231,7 +231,7 @@ class _ManageStatusTransitionsScreenState
 
           // Filtro por estado origen
           StreamBuilder<List<ProductStatusModel>>(
-            stream: statusService.watchStatuses(widget.organizationId),
+            stream: statusService.watchActiveStatuses(widget.organizationId),
             builder: (context, snapshot) {
               final statuses = snapshot.data ?? [];
 

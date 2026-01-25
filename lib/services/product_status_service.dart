@@ -64,8 +64,24 @@ class ProductStatusService extends ChangeNotifier {
 
   // ==================== LECTURA ====================
 
-  /// Stream de todos los estados activos
+  /// Stream de todos los estados
   Stream<List<ProductStatusModel>> watchStatuses(String organizationId) {
+    return _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('product_statuses')
+        .orderBy('order')
+        .snapshots()
+        .map((snapshot) {
+      _statuses = snapshot.docs
+          .map((doc) => ProductStatusModel.fromMap(doc.data(), docId: doc.id))
+          .toList();
+      return _statuses;
+    });
+  }
+
+    /// Stream de todos los estados activos
+  Stream<List<ProductStatusModel>> watchActiveStatuses(String organizationId) {
     return _firestore
         .collection('organizations')
         .doc(organizationId)
