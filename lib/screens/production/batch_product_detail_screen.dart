@@ -479,8 +479,9 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 // ================= NUEVO CÃ“DIGO PARA ESTADOS DEL PRODUCTO =================
   Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
     // Obtener el icono desde statusIcon si existe, sino usar el statusId
-    final statusIconValue = product.statusIcon ?? product.statusId ?? 'help_outline';
-    
+    final statusIconValue =
+        product.statusIcon ?? product.statusId ?? 'help_outline';
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -534,7 +535,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               decoration: BoxDecoration(
                 color: product.effectiveStatusColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: product.effectiveStatusColor, width: 2),
+                border:
+                    Border.all(color: product.effectiveStatusColor, width: 2),
               ),
               child: Row(
                 children: [
@@ -619,56 +621,63 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     final hasHistory = product.statusHistory.isNotEmpty;
 
     return Card(
-      child: Column(
-        children: [
-          ListTile(
-            leading: Icon(
-              Icons.history,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            title: const Text(
-              'Historial de Cambios de Estado',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            trailing: Icon(
-              _isHistoryExpanded ? Icons.expand_less : Icons.expand_more,
-            ),
-            onTap: () {
-              setState(() {
-                _isHistoryExpanded = !_isHistoryExpanded;
-              });
-            },
-          ),
-          if (_isHistoryExpanded) ...[
-            const Divider(height: 1),
-            if (!hasHistory)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'No hay historial de cambios',
+      // 1. Envolver en StatefulBuilder para aislar el renderizado
+      child: StatefulBuilder(
+        builder: (context, setStateLocal) {
+          return Column(
+            children: [
+              ListTile(
+                leading: Icon(
+                  Icons.history,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                title: const Text(
+                  'Historial de Cambios de Estado',
                   style: TextStyle(
-                    color: Colors.grey,
-                    fontStyle: FontStyle.italic,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                itemCount: product.statusHistory.length,
-                separatorBuilder: (context, index) => const Divider(height: 24),
-                itemBuilder: (context, index) {
-                  final entry = product.statusHistory[index];
-                  return _buildHistoryEntry(entry);
+                trailing: Icon(
+                  _isHistoryExpanded ? Icons.expand_less : Icons.expand_more,
+                ),
+                onTap: () {
+                  // 2. Usar setStateLocal en lugar de setState global
+                  setStateLocal(() {
+                    _isHistoryExpanded = !_isHistoryExpanded;
+                  });
                 },
               ),
-          ],
-        ],
+              if (_isHistoryExpanded) ...[
+                const Divider(height: 1),
+                if (!hasHistory)
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      'No hay historial de cambios',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  )
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    itemCount: product.statusHistory.length,
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 24),
+                    itemBuilder: (context, index) {
+                      final entry = product.statusHistory[index];
+                      return _buildHistoryEntry(entry);
+                    },
+                  ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -1022,7 +1031,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             }
 
             final phases = phasesSnapshot.data ?? [];
-            
+
             // Encontrar la última fase (mayor order)
             ProductionPhase? lastPhase;
             if (phases.isNotEmpty) {
@@ -1030,8 +1039,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             }
 
             // Verificar si el producto está en la última fase
-            final isInLastPhase = lastPhase != null && 
-                                  product.currentPhase == lastPhase.id;
+            final isInLastPhase =
+                lastPhase != null && product.currentPhase == lastPhase.id;
 
             if (!isInLastPhase) {
               // No está en la última fase, no mostrar acciones
