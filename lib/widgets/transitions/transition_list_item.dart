@@ -104,29 +104,27 @@ class _TransitionListItemState extends State<TransitionListItem> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: _getValidationColor(transition.validationType)
+                                color: transition.validationType.color
                                     .withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: _getValidationColor(transition.validationType),
+                                  color: transition.validationType.color,
                                 ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    _getValidationIcon(transition.validationType),
+                                    transition.validationType.icon,
                                     size: 12,
-                                    color: _getValidationColor(
-                                        transition.validationType),
+                                    color: transition.validationType.color,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     transition.validationType.displayName,
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: _getValidationColor(
-                                          transition.validationType),
+                                      color: transition.validationType.color,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -407,7 +405,7 @@ class _TransitionListItemState extends State<TransitionListItem> {
           children: [
             _buildConfigRow(
               l10n.label,
-              config.textLabel ?? l10n.defaultTextLabel,
+              config.textLabel ?? l10n.text,
             ),
             _buildConfigRow(
               l10n.minLength,
@@ -426,15 +424,15 @@ class _TransitionListItemState extends State<TransitionListItem> {
           children: [
             _buildConfigRow(
               l10n.quantityLabel,
-              config.quantityLabel ?? l10n.defaultQuantityLabel,
+              config.quantityLabel ?? l10n.quantity,
             ),
             _buildConfigRow(
               l10n.quantityRange,
               '${config.quantityMin ?? 0} - ${config.quantityMax ?? 999}',
             ),
             _buildConfigRow(
-              l10n.defaultTextLabel,
-              config.textLabel ?? l10n.defaultTextLabel,
+              l10n.text,
+              config.textLabel ?? l10n.text,
             ),
           ],
         );
@@ -541,42 +539,6 @@ class _TransitionListItemState extends State<TransitionListItem> {
         ],
       ),
     );
-  }
-
-  Color _getValidationColor(ValidationType type) {
-    switch (type) {
-      case ValidationType.simpleApproval:
-        return Colors.green;
-      case ValidationType.textRequired:
-      case ValidationType.textOptional:
-        return Colors.blue;
-      case ValidationType.quantityAndText:
-        return Colors.orange;
-      case ValidationType.checklist:
-        return Colors.purple;
-      case ValidationType.photoRequired:
-        return Colors.pink;
-      case ValidationType.multiApproval:
-        return Colors.teal;
-    }
-  }
-
-  IconData _getValidationIcon(ValidationType type) {
-    switch (type) {
-      case ValidationType.simpleApproval:
-        return Icons.check_circle;
-      case ValidationType.textRequired:
-      case ValidationType.textOptional:
-        return Icons.edit;
-      case ValidationType.quantityAndText:
-        return Icons.format_list_numbered;
-      case ValidationType.checklist:
-        return Icons.checklist;
-      case ValidationType.photoRequired:
-        return Icons.camera_alt;
-      case ValidationType.multiApproval:
-        return Icons.people;
-    }
   }
 
   String _getRoleDisplayName(String roleId) {

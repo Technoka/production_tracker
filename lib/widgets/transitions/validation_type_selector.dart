@@ -53,7 +53,7 @@ class ValidationTypeSelector extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      _getIcon(type),
+                      type.icon,
                       color: isSelected ? Colors.white : Colors.grey.shade600,
                     ),
                   ),
@@ -92,23 +92,5 @@ class ValidationTypeSelector extends StatelessWidget {
         );
       }).toList(),
     );
-  }
-
-  IconData _getIcon(ValidationType type) {
-    switch (type) {
-      case ValidationType.simpleApproval:
-        return Icons.check_circle;
-      case ValidationType.textRequired:
-      case ValidationType.textOptional:
-        return Icons.edit;
-      case ValidationType.quantityAndText:
-        return Icons.format_list_numbered;
-      case ValidationType.checklist:
-        return Icons.checklist;
-      case ValidationType.photoRequired:
-        return Icons.camera_alt;
-      case ValidationType.multiApproval:
-        return Icons.people;
-    }
   }
 }
