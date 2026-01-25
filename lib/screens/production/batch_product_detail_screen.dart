@@ -14,17 +14,13 @@ import '../../screens/chat/chat_screen.dart';
 import '../../services/organization_member_service.dart';
 import '../../models/organization_member_model.dart';
 
-import '../../services/product_status_service.dart';
 import '../../services/status_transition_service.dart';
-import '../../models/product_status_model.dart';
 import '../../models/status_transition_model.dart';
 import '../../models/role_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/validation_dialogs/validation_dialog_manager.dart';
 import '../../models/validation_config_model.dart';
-
-// TODO: comprobar que se usa scope y assignedMembers correctamente
-
+import '../../utils/filter_utils.dart';
 
 class BatchProductDetailScreen extends StatefulWidget {
   final String organizationId;
@@ -47,12 +43,11 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   OrganizationMemberWithUser? _currentMember;
   bool _isLoadingPermissions = true;
   bool _isPhasesExpanded = false; // Comprimido por defecto
+  bool _isHistoryExpanded = false; // Historial comprimido por defecto
 
   final MessageService _messageService = MessageService();
 
   RoleModel? _currentRole; // ← NUEVO
-  List<ProductStatusModel> _availableStatuses = []; // ← NUEVO
-  List<StatusTransitionModel> _availableTransitions = []; // ← NUEVO
 
   @override
   void initState() {
@@ -60,7 +55,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     _loadPermissions();
   }
 
-  // ✅ AÑADIR MÉTODO completo
   Future<void> _loadPermissions() async {
     final memberService =
         Provider.of<OrganizationMemberService>(context, listen: false);
@@ -100,31 +94,31 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }
 
   /// Cargar transiciones disponibles desde el estado actual del producto
-Future<List<StatusTransitionModel>> _loadAvailableTransitions(
-  String currentStatusId,
-) async {
-  if (_currentRole == null) return [];
+  Future<List<StatusTransitionModel>> _loadAvailableTransitions(
+    String currentStatusId,
+  ) async {
+    if (_currentRole == null) return [];
 
-  final transitionService = Provider.of<StatusTransitionService>(
-    context,
-    listen: false,
-  );
-
-  try {
-    // Obtener todas las transiciones desde el estado actual
-    final transitions = await transitionService.getAvailableTransitions(
-      organizationId: widget.organizationId,
-      fromStatusId: currentStatusId,
-      userRoleId: _currentRole!.id,
+    final transitionService = Provider.of<StatusTransitionService>(
+      context,
+      listen: false,
     );
 
-    // Filtrar solo las activas
-    return transitions.where((t) => t.isActive).toList();
-  } catch (e) {
-    debugPrint('Error loading transitions: $e');
-    return [];
+    try {
+      // Obtener todas las transiciones desde el estado actual
+      final transitions = await transitionService.getAvailableTransitions(
+        organizationId: widget.organizationId,
+        fromStatusId: currentStatusId,
+        userRoleId: _currentRole!.id,
+      );
+
+      // Filtrar solo las activas
+      return transitions.where((t) => t.isActive).toList();
+    } catch (e) {
+      debugPrint('Error loading transitions: $e');
+      return [];
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -249,6 +243,8 @@ Future<List<StatusTransitionModel>> _loadAvailableTransitions(
                       const SizedBox(height: 16),
                       _buildProductStatusCard(product, user),
                       const SizedBox(height: 16),
+                      _buildStatusHistoryCard(product),
+                      const SizedBox(height: 16),
                       _buildPhasesCard(product, user),
                       const SizedBox(height: 16),
                       _buildChatSection(product, user), // Ver helper abajo
@@ -264,7 +260,8 @@ Future<List<StatusTransitionModel>> _loadAvailableTransitions(
 
                 // Si es Escritorio, usamos ScrollView con Filas
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.all(24), // Un poco más de margen en web
+                  padding:
+                      const EdgeInsets.all(24), // Un poco más de margen en web
                   child: Column(
                     children: [
                       // FILA 1: Info y Estado
@@ -273,7 +270,8 @@ Future<List<StatusTransitionModel>> _loadAvailableTransitions(
                         children: [
                           Expanded(child: _buildProductInfoCard(product, user)),
                           const SizedBox(width: 24),
-                          Expanded(child: _buildProductStatusCard(product, user)),
+                          Expanded(
+                              child: _buildProductStatusCard(product, user)),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -282,6 +280,8 @@ Future<List<StatusTransitionModel>> _loadAvailableTransitions(
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Expanded(child: _buildStatusHistoryCard(product)),
+                          const SizedBox(width: 24),
                           Expanded(child: _buildPhasesCard(product, user)),
                           const SizedBox(width: 24),
                           Expanded(
@@ -487,7 +487,7 @@ Future<List<StatusTransitionModel>> _loadAvailableTransitions(
             Row(
               children: [
                 Icon(
-                  _getStatusIcon(product.statusName!),
+                  _getIconData(product.statusId!),
                   color: product.effectiveStatusColor,
                 ),
                 const SizedBox(width: 8),
@@ -502,6 +502,27 @@ Future<List<StatusTransitionModel>> _loadAvailableTransitions(
                 ),
               ],
             ),
+            if (product.urgencyLevel == UrgencyLevel.urgent.value) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: product.urgencyColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: product.urgencyColor.withOpacity(0.3),
+                  ),
+                ),
+                child: Text(
+                  product.urgencyDisplayName,
+                  style: TextStyle(
+                    color: product.urgencyColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
             const Divider(height: 24),
 
             // Estado actual
@@ -510,12 +531,13 @@ Future<List<StatusTransitionModel>> _loadAvailableTransitions(
               decoration: BoxDecoration(
                 color: product.effectiveStatusColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: product.effectiveStatusColor, width: 2),
+                border:
+                    Border.all(color: product.effectiveStatusColor, width: 2),
               ),
               child: Row(
                 children: [
                   Icon(
-                    _getStatusIcon(product.statusName!),
+                    _getIconData(product.statusId!),
                     color: product.effectiveStatusColor,
                     size: 25,
                   ),
@@ -545,7 +567,7 @@ Future<List<StatusTransitionModel>> _loadAvailableTransitions(
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 16),
             Row(
               children: [
@@ -570,161 +592,10 @@ Future<List<StatusTransitionModel>> _loadAvailableTransitions(
                 ),
               ],
             ),
-
-            // Información adicional según estado
-
-            if (product.hasBeenSent) ...[
-              _buildInfoRow(
-                Icons.send,
-                'Enviado al cliente',
-                _formatDateTime(product.sentToClientAt!),
-              ),
-              const SizedBox(height: 8),
-            ],
-
-            if (product.hasBeenEvaluated) ...[
-              _buildInfoRow(
-                Icons.rate_review,
-                'Evaluado',
-                _formatDateTime(product.evaluatedAt!),
-              ),
-              const SizedBox(height: 8),
-            ],
-
-            if (product.isCAO || product.isControl) ...[
-              const Divider(),
-              const SizedBox(height: 8),
-              Text(
-                'Devoluciones',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red[700],
-                ),
-              ),
-              const SizedBox(height: 8),
-              _buildInfoRow(
-                Icons.assignment_return,
-                'Devueltos',
-                '${product.returnedCount} unidades',
-              ),
-              if (product.returnReason != null) ...[
-                const SizedBox(height: 4),
-                _buildInfoRow(
-                  Icons.comment,
-                  'Motivo',
-                  product.returnReason!,
-                ),
-              ],
-
-              // NUEVO: Mostrar estado de clasificación en Control
-              if (product.isControl) ...[
-                const SizedBox(height: 12),
-                const Divider(),
-                const SizedBox(height: 8),
-                Text(
-                  'Clasificación',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue[700],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                if (product.isReturnBalanced) ...[
-                  // Ya está clasificado
-                  _buildInfoRow(
-                    Icons.build,
-                    'Reparados',
-                    '${product.repairedCount} unidades',
-                  ),
-                  const SizedBox(height: 4),
-                  _buildInfoRow(
-                    Icons.delete_forever,
-                    'Descartados',
-                    '${product.discardedCount} unidades',
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.green[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green[300]!),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.green[700]),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Clasificación completa. Listo para aprobar.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.green[900],
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ] else ...[
-                  // Pendiente de clasificar
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange[300]!),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.warning, color: Colors.orange[700]),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Pendiente de clasificar (Reparados/Basura)',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.orange[900],
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ] else if (product.isCAO) ...[
-                // En CAO, aún no está en Control
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue[300]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.blue[700]),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Esperando recepciÃ³n de productos devueltos',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.blue[900],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-            const Divider(height: 24, thickness: 3,),
+            const Divider(
+              height: 24,
+              thickness: 3,
+            ),
             _buildProductStatusActions(product, user),
             const SizedBox(height: 8),
           ],
@@ -733,306 +604,592 @@ Future<List<StatusTransitionModel>> _loadAvailableTransitions(
     );
   }
 
-  Widget _buildProductStatusActions(
-  BatchProductModel product,
-  UserModel? user,
-) {
-  // Si no tiene permisos, no mostramos nada
-  final memberService = Provider.of<OrganizationMemberService>(
-    context,
-    listen: false,
-  );
+  Widget _buildStatusHistoryCard(BatchProductModel product) {
+    final hasHistory = product.statusHistory.isNotEmpty;
 
-  return FutureBuilder<bool>(
-    future: memberService.can('batch_products', 'changeStatus'),
-    builder: (context, permSnapshot) {
-      final canChangeStatus = permSnapshot.data ?? false;
-
-      if (!canChangeStatus) return const SizedBox.shrink();
-
-      // Cargar transiciones disponibles desde el estado actual
-      final currentStatusId = product.statusId ?? 'pending';
-
-      return FutureBuilder<List<StatusTransitionModel>>(
-        future: _loadAvailableTransitions(currentStatusId),
-        builder: (context, transSnapshot) {
-          if (transSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-
-          if (transSnapshot.hasError) {
-            return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Error al cargar transiciones: ${transSnapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            );
-          }
-
-          final transitions = transSnapshot.data ?? [];
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Acciones Disponibles',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              if (transitions.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Text(
-                    'No hay transiciones disponibles desde este estado',
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                )
-              else
-                ...transitions.map((transition) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: _buildTransitionButton(
-                      transition: transition,
-                      product: product,
-                    ),
-                  );
-                }).toList(),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
-
-/// Construir botón para una transición específica
-Widget _buildTransitionButton({
-  required StatusTransitionModel transition,
-  required BatchProductModel product,
-}) {
-  // Determinar color e icono según el estado destino
-  Color buttonColor = _getColorForStatus(transition.toStatusId);
-  IconData buttonIcon = _getIconForStatus(transition.toStatusId);
-
-  return SizedBox(
-    width: double.infinity,
-    child: OutlinedButton.icon(
-      onPressed: () => _handleTransitionAction(transition, product),
-      icon: Icon(buttonIcon, color: buttonColor),
-      label: Row(
+    return Card(
+      child: Column(
         children: [
-          Expanded(
-            child: Text(
-              'Cambiar a: ${transition.toStatusName}',
+          ListTile(
+            leading: Icon(
+              Icons.history,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            title: const Text(
+              'Historial de Cambios de Estado',
               style: TextStyle(
-                color: buttonColor,
-                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
               ),
             ),
+            trailing: Icon(
+              _isHistoryExpanded ? Icons.expand_less : Icons.expand_more,
+            ),
+            onTap: () {
+              setState(() {
+                _isHistoryExpanded = !_isHistoryExpanded;
+              });
+            },
           ),
-          // Badge con tipo de validación
-          if (transition.validationType != ValidationType.simpleApproval)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: buttonColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: buttonColor.withOpacity(0.3)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _getValidationIcon(transition.validationType),
-                    size: 12,
-                    color: buttonColor,
+          if (_isHistoryExpanded) ...[
+            const Divider(height: 1),
+            if (!hasHistory)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'No hay historial de cambios',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontStyle: FontStyle.italic,
                   ),
-                  const SizedBox(width: 4),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                itemCount: product.statusHistory.length,
+                separatorBuilder: (context, index) => const Divider(height: 24),
+                itemBuilder: (context, index) {
+                  final entry = product.statusHistory[index];
+                  return _buildHistoryEntry(entry);
+                },
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryEntry(StatusHistoryEntry entry) {
+    // Parsear color desde hex string
+    Color statusColor;
+    try {
+      statusColor = Color(
+        int.parse(entry.statusColor.replaceFirst('#', '0xFF')),
+      );
+    } catch (e) {
+      statusColor = Colors.grey;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header: Estado y fecha
+        Row(
+          children: [
+            // Icono del estado
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                _getIconForStatus(entry.statusId),
+                size: 20,
+                color: statusColor,
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Nombre del estado
                   Text(
-                    _getValidationLabel(transition.validationType),
+                    entry.statusName,
                     style: TextStyle(
-                      fontSize: 10,
-                      color: buttonColor,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
+                      color: statusColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+
+                  // Fecha y usuario
+                  Text(
+                    '${_formatDateTime(entry.timestamp)} • ${entry.userName}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
                     ),
                   ),
                 ],
               ),
             ),
-        ],
-      ),
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: buttonColor, width: 2),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      ),
-    ),
-  );
-}
+          ],
+        ),
 
-/// Manejar acción de transición usando ValidationDialogManager
-Future<void> _handleTransitionAction(
-  StatusTransitionModel transition,
-  BatchProductModel product,
-) async {
-  final authService = Provider.of<AuthService>(context, listen: false);
-  final user = authService.currentUserData;
-
-  if (user == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Error: Usuario no autenticado'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  if (product.currentPhase != 'studio') {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Error: el producto debe estar en Studio antes de cambiar de estado'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  // Mostrar el diálogo de validación apropiado
-  final validationData = await ValidationDialogManager.showValidationDialog(
-    context: context,
-    transition: transition,
-    product: product,
-  );
-
-  // Si el usuario canceló, salir
-  if (validationData == null) {
-    return;
-  }
-
-  // Ejecutar el cambio de estado con los datos validados
-  await _executeStatusChangeWithValidation(
-    product: product,
-    toStatusId: transition.toStatusId,
-    validationData: validationData.toMap(),
-  );
-}
-
-/// Helpers para colores e iconos según estado
-Color _getColorForStatus(String statusId) {
-  switch (statusId) {
-    case 'ok':
-      return Colors.green;
-    case 'cao':
-      return Colors.red;
-    case 'control':
-      return Colors.orange;
-    case 'hold':
-      return Colors.blue;
-    default:
-      return Colors.grey;
-  }
-}
-
-IconData _getIconForStatus(String statusId) {
-  switch (statusId) {
-    case 'ok':
-      return Icons.check_circle;
-    case 'cao':
-      return Icons.cancel;
-    case 'control':
-      return Icons.verified;
-    case 'hold':
-      return Icons.pause_circle;
-    default:
-      return Icons.circle;
-  }
-}
-
-IconData _getValidationIcon(ValidationType type) {
-  switch (type) {
-    case ValidationType.textRequired:
-    case ValidationType.textOptional:
-      return Icons.edit;
-    case ValidationType.quantityAndText:
-      return Icons.format_list_numbered;
-    case ValidationType.checklist:
-      return Icons.checklist;
-    case ValidationType.photoRequired:
-      return Icons.camera_alt;
-    case ValidationType.multiApproval:
-      return Icons.people;
-    default:
-      return Icons.check_circle;
-  }
-}
-
-String _getValidationLabel(ValidationType type) {
-  switch (type) {
-    case ValidationType.textRequired:
-      return 'Texto';
-    case ValidationType.quantityAndText:
-      return 'Cantidad';
-    case ValidationType.checklist:
-      return 'Checklist';
-    case ValidationType.photoRequired:
-      return 'Foto';
-    case ValidationType.multiApproval:
-      return 'Aprobación';
-    default:
-      return '';
-  }
-}
-
-  // Helper para crear los botones de la lista con estilo uniforme
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: SizedBox(
-        width: double.infinity, // Ocupa todo el ancho disponible
-        child: OutlinedButton.icon(
-          onPressed: onPressed,
-          icon: Icon(icon, color: color),
-          label: Text(
-            label,
-            style: TextStyle(color: color, fontWeight: FontWeight.bold),
-          ),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            side: BorderSide(color: color.withOpacity(0.5)),
-            alignment: Alignment
-                .centerLeft, // Alinea contenido a la izquierda como una lista
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+        // Notas si existen
+        if (entry.notes != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.note, size: 16, color: Colors.blue.shade700),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    entry.notes!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue.shade900,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+        ],
+
+        // Datos de validación si existen y tienen algo más que solo el timestamp
+        if (entry.validationData != null &&
+            entry.validationData!.keys.any((k) => k != 'timestamp')) ...[
+          const SizedBox(height: 8),
+          _buildValidationDataSection(entry.validationData!),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildValidationDataSection(Map<String, dynamic> validationData) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 16, color: Colors.grey[700]),
+              const SizedBox(width: 6),
+              Text(
+                'Datos de validación',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Cantidad
+          if (validationData['quantity'] != null)
+            _buildValidationDataRow(
+              'Cantidad',
+              '${validationData['quantity']}',
+            ),
+
+          // Texto
+          if (validationData['text'] != null)
+            _buildValidationDataRow(
+              'Descripción',
+              validationData['text'] as String,
+            ),
+
+          // Checklist
+          if (validationData['checklistAnswers'] != null)
+            ...() {
+              // Aquí SÍ puedes declarar variables porque es una función
+              final answers =
+                  validationData['checklistAnswers'] as Map<String, dynamic>;
+              final completed = answers.values.where((v) => v == true).length;
+
+              // Retornas la lista de widgets
+              return [
+                _buildValidationDataRow(
+                  'Checklist',
+                  '$completed/${answers.length} completados',
+                ),
+              ];
+            }(), // <--- Nota los paréntesis aquí para ejecutar la función
+
+          // Fotos
+          if (validationData['photoUrls'] != null)
+            ...() {
+              final photos = validationData['photoUrls'] as List;
+              if (photos.isNotEmpty) {
+                return [
+                  _buildValidationDataRow(
+                    'Fotos',
+                    '${photos.length} adjuntas',
+                  ),
+                ];
+              }
+              return <Widget>[];
+            }(),
+
+          // Aprobadores
+          if (validationData['approvedBy'] != null)
+            ...() {
+              final approvers = validationData['approvedBy'] as List;
+              if (approvers.isNotEmpty) {
+                return [
+                  _buildValidationDataRow(
+                    'Aprobado por',
+                    '${approvers.length} usuarios',
+                  ),
+                ];
+              }
+              return <Widget>[];
+            }(),
+
+          // Custom Parameters
+          if (validationData['customParametersData'] != null)
+            ...() {
+              final params = validationData['customParametersData']
+                  as Map<String, dynamic>;
+              return params.entries.map((entry) {
+                return _buildValidationDataRow(
+                  entry.key,
+                  entry.value.toString(),
+                );
+              }).toList();
+            }(),
+
+          // Modo de texto
+          if (validationData['textMode'] != null)
+            _buildValidationDataRow(
+              'Modo',
+              validationData['textMode'] == 'single'
+                  ? 'Descripción general'
+                  : 'Descripciones individuales',
+            ),
+
+          // Defectos individuales
+          if (validationData['individualDefects'] != null)
+            ...() {
+              final defects =
+                  validationData['individualDefects'] as Map<String, dynamic>;
+              return [
+                const SizedBox(height: 4),
+                Text(
+                  'Descripciones individuales:',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // Aquí expandimos los widgets del mapa dentro de la lista que retornamos
+                ...defects.entries.map((entry) {
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 8, bottom: 2),
+                    child: Text(
+                      '${int.parse(entry.key) + 1}. ${entry.value}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  );
+                }),
+              ];
+            }(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildValidationDataRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[800],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getColorForStatus(String statusId) {
+    switch (statusId) {
+      case 'ok':
+        return Colors.green;
+      case 'cao':
+        return Colors.red;
+      case 'control':
+        return Colors.orange;
+      case 'hold':
+        return Colors.blue;
+      case 'pending':
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getIconForStatus(String statusId) {
+    switch (statusId) {
+      case 'ok':
+        return Icons.check_circle;
+      case 'cao':
+        return Icons.cancel;
+      case 'control':
+        return Icons.verified;
+      case 'hold':
+        return Icons.pause_circle;
+      case 'pending':
+        return Icons.pending;
+      default:
+        return Icons.circle;
+    }
+  }
+
+  Widget _buildProductStatusActions(
+    BatchProductModel product,
+    UserModel? user,
+  ) {
+    // Si no tiene permisos, no mostramos nada
+    final memberService = Provider.of<OrganizationMemberService>(
+      context,
+      listen: false,
+    );
+
+    return FutureBuilder<bool>(
+      future: memberService.can('batch_products', 'changeStatus'),
+      builder: (context, permSnapshot) {
+        final canChangeStatus = permSnapshot.data ?? false;
+
+        if (!canChangeStatus) return const SizedBox.shrink();
+
+        // Cargar transiciones disponibles desde el estado actual
+        final currentStatusId = product.statusId ?? 'pending';
+
+        return FutureBuilder<List<StatusTransitionModel>>(
+          future: _loadAvailableTransitions(currentStatusId),
+          builder: (context, transSnapshot) {
+            if (transSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            if (transSnapshot.hasError) {
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Error al cargar transiciones: ${transSnapshot.error}',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              );
+            }
+
+            final transitions = transSnapshot.data ?? [];
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Acciones Disponibles',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // TODO: solo mostrar acciones si el producto esta en la ultima fase
+                if (transitions.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'No hay transiciones disponibles desde este estado',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  )
+                else
+                  ...transitions.map((transition) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: _buildTransitionButton(
+                        transition: transition,
+                        product: product,
+                      ),
+                    );
+                  }).toList(),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Construir botón para una transición específica
+  Widget _buildTransitionButton({
+    required StatusTransitionModel transition,
+    required BatchProductModel product,
+  }) {
+    // Determinar color e icono según el estado destino
+    Color buttonColor = _getColorForStatus(transition.toStatusId);
+    IconData buttonIcon = _getIconForStatus(transition.toStatusId);
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _handleTransitionAction(transition, product),
+        icon: Icon(buttonIcon, color: buttonColor),
+        label: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Cambiar a: ${transition.toStatusName}',
+                style: TextStyle(
+                  color: buttonColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            // Badge con tipo de validación
+            if (transition.validationType != ValidationType.simpleApproval)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: buttonColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: buttonColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      transition.validationType.icon,
+                      size: 12,
+                      color: buttonColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _getValidationLabel(transition.validationType),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: buttonColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: buttonColor, width: 2),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         ),
       ),
     );
+  }
+
+  /// Manejar acción de transición usando ValidationDialogManager
+  Future<void> _handleTransitionAction(
+    StatusTransitionModel transition,
+    BatchProductModel product,
+  ) async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserData;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: Usuario no autenticado'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (product.currentPhase != 'studio') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Error: el producto debe estar en Studio antes de cambiar de estado'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Mostrar el diálogo de validación apropiado
+    final validationData = await ValidationDialogManager.showValidationDialog(
+      context: context,
+      transition: transition,
+      product: product,
+    );
+
+    // Si el usuario canceló, salir
+    if (validationData == null) {
+      return;
+    }
+
+    // Ejecutar el cambio de estado con los datos validados
+    await _executeStatusChangeWithValidation(
+      product: product,
+      toStatusId: transition.toStatusId,
+      validationData: validationData.toMap(),
+    );
+  }
+
+  String _getValidationLabel(ValidationType type) {
+    switch (type) {
+      case ValidationType.textRequired:
+        return 'Texto';
+      case ValidationType.quantityAndText:
+        return 'Cantidad';
+      case ValidationType.checklist:
+        return 'Checklist';
+      case ValidationType.photoRequired:
+        return 'Foto';
+      case ValidationType.multiApproval:
+        return 'Aprobación';
+      default:
+        return '';
+    }
   }
 
   Widget _buildPhasesCard(BatchProductModel product, UserModel? user) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: StatefulBuilder(  // ✅ CAMBIADO: Usar StatefulBuilder
+        child: StatefulBuilder(
+          // ✅ CAMBIADO: Usar StatefulBuilder
           builder: (context, setStateLocal) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1040,7 +1197,8 @@ String _getValidationLabel(ValidationType type) {
                 // Header con botón de expandir/contraer
                 InkWell(
                   onTap: () {
-                    setStateLocal(() {  // ✅ CAMBIADO: usar setStateLocal en vez de setState
+                    setStateLocal(() {
+                      // ✅ CAMBIADO: usar setStateLocal en vez de setState
                       _isPhasesExpanded = !_isPhasesExpanded;
                     });
                   },
@@ -1058,8 +1216,8 @@ String _getValidationLabel(ValidationType type) {
                         ),
                       ),
                       Icon(
-                        _isPhasesExpanded 
-                            ? Icons.expand_less 
+                        _isPhasesExpanded
+                            ? Icons.expand_less
                             : Icons.expand_more,
                         color: Colors.grey[600],
                       ),
@@ -1071,7 +1229,8 @@ String _getValidationLabel(ValidationType type) {
                   future: Provider.of<PhaseService>(context, listen: false)
                       .getOrganizationPhases(widget.organizationId),
                   builder: (context, phasesSnapshot) {
-                    if (phasesSnapshot.connectionState == ConnectionState.waiting) {
+                    if (phasesSnapshot.connectionState ==
+                        ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
 
@@ -1088,7 +1247,8 @@ String _getValidationLabel(ValidationType type) {
                         (phase) => phase.id == product.currentPhase,
                         orElse: () => allPhases.first,
                       );
-                      final phaseProgress = product.phaseProgress[currentPhase.id];
+                      final phaseProgress =
+                          product.phaseProgress[currentPhase.id];
                       final currentIndex = allPhases.indexOf(currentPhase);
 
                       return _buildPhaseItem(
@@ -1149,20 +1309,17 @@ String _getValidationLabel(ValidationType type) {
 
     Color backgroundColor;
     Color borderColor;
-    IconData icon;
+    IconData icon = _getIconData(phase.icon);
 
     if (isCompleted) {
       backgroundColor = Colors.green[50]!;
       borderColor = Colors.green;
-      icon = Icons.check_circle;
     } else if (isInProgress || isCurrentPhase) {
       backgroundColor = Colors.blue[50]!;
       borderColor = Colors.blue;
-      icon = Icons.play_circle;
     } else {
       backgroundColor = Colors.grey[100]!;
       borderColor = Colors.grey;
-      icon = Icons.radio_button_unchecked;
     }
 
     return Container(
@@ -1287,8 +1444,6 @@ String _getValidationLabel(ValidationType type) {
     );
   }
 
-// TODO: cambiar toda la logica de cambio de estados por el nuevo sistema con validaciones y estados en la organizacion.
-
   void _showRollbackDialog(
     BatchProductModel product,
     ProductionPhase previousPhase,
@@ -1344,11 +1499,6 @@ String _getValidationLabel(ValidationType type) {
                 );
                 return;
               }
-
-              final batchService = Provider.of<ProductionBatchService>(
-                context,
-                listen: false,
-              );
 
               Navigator.pop(context);
 
@@ -1462,7 +1612,7 @@ String _getValidationLabel(ValidationType type) {
   }
 
   String _formatDateTime(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   void _showAdvancePhaseDialog(
@@ -1500,8 +1650,6 @@ String _getValidationLabel(ValidationType type) {
           ),
           FilledButton(
             onPressed: () async {
-              Navigator.pop(context); // Cerrar diálogo
-
               try {
                 await FirebaseFirestore.instance
                     .collection('organizations')
@@ -1524,6 +1672,7 @@ String _getValidationLabel(ValidationType type) {
                   'phaseProgress.${nextPhase.id}.startedAt':
                       FieldValue.serverTimestamp(),
                 });
+                Navigator.pop(context); // Cerrar diálogo
 
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1552,8 +1701,6 @@ String _getValidationLabel(ValidationType type) {
   }
 
   Future<void> _handleAction(String action, BatchProductModel product) async {
-    final batchService =
-        Provider.of<ProductionBatchService>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
     final user = authService.currentUserData;
 
@@ -1568,249 +1715,184 @@ String _getValidationLabel(ValidationType type) {
     }
 
     switch (action) {
-      case 'approve_directly':
-        // HOLD → OK
-        print("approve directly llamada -------------------");
-        await _handleStatusChange(
-          product: product,
-          fromStatusId: 'hold',
-          toStatusId: 'ok',
-          actionName: 'Aprobar Producto',
-          confirmMessage:
-              '¿Confirmar que el producto está correcto?\n\nPasará directamente a OK.',
-        );
-        break;
-
-      case 'reject_directly':
-        print("reject_directly llamada -------------------");
-        // HOLD → CAO
-        await _handleStatusChange(
-          product: product,
-          fromStatusId: 'hold',
-          toStatusId: 'cao',
-          actionName: 'Rechazar Producto',
-          confirmMessage: 'Indica la cantidad defectuosa y descripción',
-          requiresValidation: true,
-        );
-        break;
-
-      case 'move_to_control':
-        print("move_to_control llamada -------------------");
-        // CAO → CONTROL
-        await _handleStatusChange(
-          product: product,
-          fromStatusId: 'cao',
-          toStatusId: 'control',
-          actionName: 'Mover a Control',
-          confirmMessage:
-              '¿Confirmar que se han recibido los productos devueltos?\n\nSe moverán a Control para evaluación.',
-        );
-        break;
-
-      case 'classify_returns':
-        print("classify_returns llamada -------------------");
-        // CONTROL → OK (con posible clasificación)
-        await _handleStatusChange(
-          product: product,
-          fromStatusId: 'control',
-          toStatusId: 'ok',
-          actionName: 'Clasificar Devoluciones',
-          confirmMessage: 'Clasifica los productos devueltos',
-          requiresValidation: false,
-        );
-        break;
-
-      case 'approve':
-        print("approve llamada -------------------");
-        // PENDING → OK
-        await _handleStatusChange(
-          product: product,
-          fromStatusId: product.statusId ?? 'pending',
-          toStatusId: 'ok',
-          actionName: 'Aprobar Producto',
-          confirmMessage: '¿Aprobar este producto?\n\nEl estado cambiará a OK.',
-        );
-        break;
-
-      case 'reject':
-        print("reject llamada -------------------");
-        // ANY → CAO o similar (según configuración)
-        await _handleStatusChange(
-          product: product,
-          fromStatusId: product.statusId ?? 'pending',
-          toStatusId: 'cao',
-          actionName: 'Rechazar Producto',
-          confirmMessage: 'Indica la razón del rechazo',
-          requiresValidation: true,
-        );
-        break;
-
       case 'delete':
-        print("delete llamada -------------------");
         _showDeleteConfirmation(product);
+        break;
+
+      case 'edit':
+        _showEditProductDialog(product);
         break;
     }
   }
 
-  Future<void> _handleStatusChange({
-  required BatchProductModel product,
-  required String fromStatusId,
-  required String toStatusId,
-  required String actionName,
-  required String confirmMessage,
-  bool requiresValidation = false,
-}) async {
-  final transitionService = Provider.of<StatusTransitionService>(
-    context,
-    listen: false,
-  );
+  Future<void> _showEditProductDialog(BatchProductModel product) async {
+    final quantityController =
+        TextEditingController(text: product.quantity.toString());
+    final notesController =
+        TextEditingController(text: product.productNotes ?? '');
+    DateTime? selectedDate = product.expectedDeliveryDate;
+    UrgencyLevel selectedUrgency =
+        UrgencyLevel.fromString(product.urgencyLevel);
 
-  // Obtener la transición configurada
-  final transition = await transitionService.getTransitionBetweenStatuses(
-    organizationId: widget.organizationId,
-    fromStatusId: fromStatusId,
-    toStatusId: toStatusId,
-  );
-
-  if (transition == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('No hay transición configurada entre estos estados'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  // Usar el nuevo método unificado
-  await _handleTransitionAction(transition, product);
-}
-
-  Future<void> _showValidationDialog({
-    required BatchProductModel product,
-    required String fromStatusId,
-    required String toStatusId,
-    required String actionName,
-    required Map<String, dynamic> validationResult,
-  }) async {
-    final validationType = validationResult['validationType'];
-    final validationConfig = validationResult['validationConfig'];
-
-    final quantityController = TextEditingController();
-    final textController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    final result = await showDialog<Map<String, dynamic>?>(
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(actionName),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.productName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-
-                // Campo de cantidad si es requerido
-                if (validationType == 'quantity_and_text' ||
-                    validationType == 'quantity_required') ...[
-                  TextFormField(
-                    controller: quantityController,
-                    decoration: InputDecoration(
-                      labelText: validationConfig['quantityLabel'] ??
-                          'Cantidad Defectuosa',
-                      hintText:
-                          validationConfig['quantityPlaceholder'] ?? 'Ej: 3',
-                      border: const OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Editar Producto'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Urgencia
+                  const Text(
+                    'Urgencia',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
                     ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Campo requerido';
-                      }
-                      final qty = int.tryParse(value);
-                      if (qty == null || qty < 1) {
-                        return 'Cantidad inválida';
-                      }
-                      final min = validationConfig['quantityMin'] ?? 1;
-                      if (qty < min) {
-                        return 'Mínimo $min unidades';
-                      }
-                      if (qty > product.quantity) {
-                        return 'Máximo ${product.quantity} unidades';
-                      }
-                      return null;
+                  ),
+                  const SizedBox(height: 8),
+                  FilterUtils.buildUrgencyBinaryToggle(
+                    context: context,
+                    urgencyLevel: selectedUrgency,
+                    onChanged: (newLevel) {
+                      setState(() {
+                        selectedUrgency = UrgencyLevel.fromString(newLevel);
+                      });
                     },
                   ),
                   const SizedBox(height: 16),
-                ],
 
-                // Campo de texto si es requerido
-                if (validationType == 'quantity_and_text' ||
-                    validationType == 'text_required') ...[
-                  TextFormField(
-                    controller: textController,
-                    decoration: InputDecoration(
-                      labelText: validationConfig['textLabel'] ?? 'Descripción',
-                      hintText: validationConfig['textPlaceholder'] ??
-                          'Describe el problema',
-                      border: const OutlineInputBorder(),
+                  // Fecha
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.calendar_today),
+                    title: const Text('Fecha de entrega'),
+                    subtitle: Text(
+                      selectedDate != null
+                          ? _formatDateTime(selectedDate!)
+                          : 'Sin fecha',
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate ?? DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate:
+                              DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (date != null) {
+                          setState(() {
+                            selectedDate = date;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Cantidad
+                  TextField(
+                    controller: quantityController,
+                    decoration: const InputDecoration(
+                      labelText: 'Cantidad',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.numbers),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Notas
+                  TextField(
+                    controller: notesController,
+                    decoration: const InputDecoration(
+                      labelText: 'Notas',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.note),
                     ),
                     maxLines: 3,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Campo requerido';
-                      }
-                      final minLength = validationConfig['textMinLength'] ?? 10;
-                      if (value.length < minLength) {
-                        return 'Mínimo $minLength caracteres';
-                      }
-                      return null;
-                    },
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, null),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                final validationData = <String, dynamic>{};
-                if (quantityController.text.isNotEmpty) {
-                  validationData['quantity'] =
-                      int.parse(quantityController.text);
-                }
-                if (textController.text.isNotEmpty) {
-                  validationData['text'] = textController.text;
-                }
-                Navigator.pop(context, validationData);
-              }
-            },
-            child: const Text('Confirmar'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final quantity = int.tryParse(quantityController.text);
+                  if (quantity == null || quantity < 1) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Cantidad inválida'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  Navigator.pop(context, {
+                    'quantity': quantity,
+                    'notes': notesController.text.trim().isEmpty
+                        ? null
+                        : notesController.text.trim(),
+                    'dueDate': selectedDate,
+                    'urgencyLevel': selectedUrgency.value,
+                  });
+                },
+                child: const Text('Guardar'),
+              ),
+            ],
+          );
+        },
       ),
     );
 
     if (result != null) {
-      // Ejecutar cambio de estado con datos de validación
-      await _executeStatusChangeWithValidation(
-        product: product,
-        toStatusId: toStatusId,
-        validationData: result,
-      );
+      // Actualizar producto en Firestore
+      try {
+        await FirebaseFirestore.instance
+            .collection('organizations')
+            .doc(widget.organizationId)
+            .collection('production_batches')
+            .doc(widget.batchId)
+            .collection('batch_products')
+            .doc(product.id)
+            .update({
+          'quantity': result['quantity'],
+          'productNotes': result['notes'],
+          'dueDate': result['dueDate'] != null
+              ? Timestamp.fromDate(result['dueDate'])
+              : null,
+          'urgencyLevel': result['urgencyLevel'],
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Producto actualizado'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -1870,20 +1952,35 @@ String _getValidationLabel(ValidationType type) {
 
 // AÑADIR helpers:
 
-  IconData _getStatusIcon(String status) {
-    switch (status) {
-      case 'pending':
-        return Icons.schedule;
-      case 'cao':
-        return Icons.error;
-      case 'hold':
-        return Icons.pause_circle;
-      case 'control':
-        return Icons.verified;
-      case 'ok':
-        return Icons.check_circle;
-      default:
-        return Icons.help_outline;
+  // Helper para obtener IconData desde string
+  IconData _getIconData(String iconName) {
+    try {
+      // Intentar parsear como código numérico
+      final codePoint = int.tryParse(iconName);
+      if (codePoint != null) {
+        return IconData(codePoint, fontFamily: 'MaterialIcons');
+      }
+
+      // Si no es numérico, mapear nombres comunes
+      final iconMap = {
+        'assignment': Icons.assignment,
+        'content_cut': Icons.content_cut,
+        'layers': Icons.layers,
+        'construction': Icons.construction,
+        'palette': Icons.palette,
+        'schedule': Icons.schedule,
+        'pause_circle': Icons.pause_circle,
+        'error': Icons.error,
+        'fact_check': Icons.fact_check,
+        'check_circle': Icons.check_circle,
+        'work': Icons.work,
+        'category': Icons.category,
+        'label': Icons.label,
+      };
+
+      return iconMap[iconName] ?? Icons.label;
+    } catch (e) {
+      return Icons.label;
     }
   }
 
@@ -1902,26 +1999,6 @@ String _getValidationLabel(ValidationType type) {
       default:
         return status;
     }
-  }
-
-  Future<bool?> _showConfirmDialog(String title, String message) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showDeleteConfirmation(BatchProductModel product) {
@@ -1996,257 +2073,258 @@ String _getValidationLabel(ValidationType type) {
     );
   }
 
-/// Vista previa de chat (solo lectura, últimos 10 mensajes)
+  /// Vista previa de chat (solo lectura, últimos 10 mensajes)
   Widget _buildChatPreviewCard(BatchProductModel product, UserModel? user) {
     if (user == null) return const SizedBox.shrink();
 
-    return InkWell(  // ✅ CAMBIADO: Envolver Card en InkWell
-      onTap: () => _openChat(product),  // ✅ AÑADIDO: Al hacer tap abre el chat
+    return InkWell(
+      // ✅ CAMBIADO: Envolver Card en InkWell
+      onTap: () => _openChat(product), // ✅ AÑADIDO: Al hacer tap abre el chat
       child: Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            const Row(
-              children: [
-                Icon(Icons.chat_bubble_outline),
-                SizedBox(width: 8),
-                Text(
-                  'Chat del Producto',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              const Row(
+                children: [
+                  Icon(Icons.chat_bubble_outline),
+                  SizedBox(width: 8),
+                  Text(
+                    'Chat del Producto',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Vista rápida de los últimos mensajes',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Vista rápida de los últimos mensajes',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
               ),
-            ),
-            const Divider(height: 24),
+              const Divider(height: 24),
 
-            // Stream de los últimos 10 mensajes
-            StreamBuilder(
-              stream: _messageService.getMessages(
-                organizationId: widget.organizationId,
-                entityType: 'batch_product',
-                entityId: product.id,
-                parentId: product.batchId,
-                limit: 10,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      'Error al cargar mensajes: ${snapshot.error}',
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  );
-                }
-
-                final messages = snapshot.data ?? [];
-
-                if (messages.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24.0),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.chat_bubble_outline,
-                            size: 48,
-                            color: Colors.grey[300],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'No hay mensajes aún',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
+              // Stream de los últimos 10 mensajes
+              StreamBuilder(
+                stream: _messageService.getMessages(
+                  organizationId: widget.organizationId,
+                  entityType: 'batch_product',
+                  entityId: product.id,
+                  parentId: product.batchId,
+                  limit: 10,
+                ),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: CircularProgressIndicator(),
                       ),
-                    ),
-                  );
-                }
+                    );
+                  }
 
-                // Mostrar los mensajes (read-only)
-                return Column(
-                  children: [
-                    // Lista de mensajes (sin scroll, máximo 10)
-                    ...messages.reversed.map((message) {
-                      final isSystemMessage = message.isSystemGenerated;
-                      final isCurrentUser = message.authorId == user.uid;
+                  if (snapshot.hasError) {
+                    return Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'Error al cargar mensajes: ${snapshot.error}',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    );
+                  }
 
-                      // Mensaje del sistema (centrado)
-                      if (isSystemMessage) {
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.symmetric(horizontal: 40),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.blue[50],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.blue[200]!),
+                  final messages = snapshot.data ?? [];
+
+                  if (messages.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24.0),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline,
+                              size: 48,
+                              color: Colors.grey[300],
                             ),
-                            child: Column(
-                              children: [
-                                // Header del mensaje
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.info_outline,
-                                      size: 16,
-                                      color: Colors.blue[700],
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Sistema',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                        color: Colors.blue[900],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      _formatMessageTime(message.createdAt),
-                                      style: TextStyle(
-                                        fontSize: 10,
+                            const SizedBox(height: 8),
+                            Text(
+                              'No hay mensajes aún',
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Mostrar los mensajes (read-only)
+                  return Column(
+                    children: [
+                      // Lista de mensajes (sin scroll, máximo 10)
+                      ...messages.reversed.map((message) {
+                        final isSystemMessage = message.isSystemGenerated;
+                        final isCurrentUser = message.authorId == user.uid;
+
+                        // Mensaje del sistema (centrado)
+                        if (isSystemMessage) {
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 40),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.blue[50],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.blue[200]!),
+                              ),
+                              child: Column(
+                                children: [
+                                  // Header del mensaje
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.info_outline,
+                                        size: 16,
                                         color: Colors.blue[700],
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                // Contenido del mensaje
-                                Text(
-                                  message.content,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    height: 1.4,
-                                    color: Colors.blue[900],
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Sistema',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                          color: Colors.blue[900],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _formatMessageTime(message.createdAt),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.blue[700],
+                                        ),
+                                      ),
+                                    ],
                                   ),
+                                  const SizedBox(height: 6),
+                                  // Contenido del mensaje
+                                  Text(
+                                    message.content,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      height: 1.4,
+                                      color: Colors.blue[900],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+
+                        // Mensaje de usuario (derecha) o de otro (izquierda)
+                        return Align(
+                          alignment: isCurrentUser
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            margin: EdgeInsets.only(
+                              bottom: 12,
+                              left: isCurrentUser ? 40 : 0,
+                              right: isCurrentUser ? 0 : 40,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isCurrentUser
+                                    ? Colors.green[50]
+                                    : Colors.grey[100],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isCurrentUser
+                                      ? Colors.green[200]!
+                                      : Colors.grey[300]!,
                                 ),
-                              ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Header del mensaje
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.person,
+                                        size: 16,
+                                        color: Colors.grey[700],
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        isCurrentUser
+                                            ? '${message.authorName ?? 'Usuario'} (Tú)'
+                                            : (message.authorName ?? 'Usuario'),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: Colors.grey[800],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _formatMessageTime(message.createdAt),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  // Contenido del mensaje
+                                  Text(
+                                    message.content,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         );
-                      }
+                      }).toList(),
 
-                      // Mensaje de usuario (derecha) o de otro (izquierda)
-                      return Align(
-                        alignment: isCurrentUser 
-                            ? Alignment.centerRight 
-                            : Alignment.centerLeft,
-                        child: Container(
-                          margin: EdgeInsets.only(
-                            bottom: 12,
-                            left: isCurrentUser ? 40 : 0,
-                            right: isCurrentUser ? 0 : 40,
+                      const SizedBox(height: 12),
+
+                      // Botón "Ver chat completo"
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _openChat(product),
+                          icon: const Icon(Icons.chat),
+                          label: const Text('Ver chat completo'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isCurrentUser 
-                                  ? Colors.green[50] 
-                                  : Colors.grey[100],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: isCurrentUser 
-                                    ? Colors.green[200]! 
-                                    : Colors.grey[300]!,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Header del mensaje
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.person,
-                                      size: 16,
-                                      color: Colors.grey[700],
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      isCurrentUser
-                                          ? '${message.authorName ?? 'Usuario'} (Tú)'
-                                          : (message.authorName ?? 'Usuario'),
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                        color: Colors.grey[800],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      _formatMessageTime(message.createdAt),
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                // Contenido del mensaje
-                                Text(
-                                  message.content,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-
-                    const SizedBox(height: 12),
-
-                    // Botón "Ver chat completo"
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => _openChat(product),
-                        icon: const Icon(Icons.chat),
-                        label: const Text('Ver chat completo'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                       ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ],
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 
