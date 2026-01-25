@@ -110,7 +110,7 @@ class ProductStatusModel {
   }
 
   bool get canDelete => !isSystem;
-  bool get canEdit => !isSystem;
+  
 
   // ==================== ESTADOS PREDETERMINADOS ====================
   
