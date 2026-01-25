@@ -177,8 +177,12 @@ class _ProductionBatchDetailScreenState
 
                 // Lista de productos
                 _buildProductsSection(batch, user, memberService),
+                
+                  const SizedBox(height: 100),
               ],
+              
             ),
+            
           ),
           // Botones flotantes con Chat y Añadir Producto
           floatingActionButton:
@@ -215,6 +219,8 @@ class _ProductionBatchDetailScreenState
                         builder: (context) => AddProductToBatchScreen(
                           organizationId: widget.organizationId,
                           batchId: widget.batchId,
+                          clientName: batch.clientName,
+                          projectName: batch.projectName,
                         ),
                       ),
                     );
@@ -776,8 +782,8 @@ class _ProductionBatchDetailScreenState
                       );
                     },
                   ),
-                  const Divider(height: 3),
-                  const SizedBox(height: 100),
+                  
+                const SizedBox(height: 16),
                 ],
               ),
             );

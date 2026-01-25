@@ -46,8 +46,6 @@ class _CreateProductionBatchScreenState
   final _notesController = TextEditingController();
 
   ProjectModel? _selectedProject;
-  final String _urgencyLevel = UrgencyLevel.medium.value;
-  DateTime? _expectedCompletionDate;
   bool _isLoading = false;
   final _prefixController = TextEditingController();
   final ValueNotifier<String> _batchNumberPreview =
@@ -554,464 +552,7 @@ class _CreateProductionBatchScreenState
             const SizedBox(height: 24),
 
             // --- SECCIÓN: PRODUCTOS DEL LOTE (MODIFICADA) ---
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.inventory_2_outlined,
-                                color: Theme.of(context).colorScheme.primary),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Añadir Productos',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          '${_productsToAdd.length}/10',
-                          style: TextStyle(
-                              color: _productsToAdd.length >= 10
-                                  ? Colors.red
-                                  : Colors.grey,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'También puedes añadir productos al lote después de crearlo.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    const Divider(height: 24),
-
-                    // Usamos un StreamBuilder común para obtener todos los productos
-                    // y luego filtrar familias y productos en memoria para los dropdowns
-                    StreamBuilder<List<ProductCatalogModel>>(
-                      stream: Provider.of<ProductCatalogService>(context,
-                              listen: false)
-                          .getOrganizationProductsStream(widget.organizationId),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData)
-                          return const Center(
-                              child: CircularProgressIndicator());
-
-                        // Obtenemos todos los productos
-                        final allProducts = snapshot.data ?? [];
-
-                        // Filtramos productos relevantes para este cliente/proyecto si es necesario
-                        // (Por ahora mostramos todos los de la organización que coincidan en familia,
-                        // pero podríamos filtrar por clientId si _selectedProject está definido)
-                        var relevantProducts = allProducts;
-                        if (_selectedProject != null) {
-                          // Opcional: filtrar solo productos de este cliente o públicos
-                          relevantProducts = allProducts
-                              .where((p) =>
-                                  p.clientId == _selectedProject!.clientId ||
-                                  p.isPublic)
-                              .toList();
-                        }
-
-                        // 1. Extraer Familias Únicas
-                        final families = relevantProducts
-                            .map((p) => p.family)
-                            .where((f) => f != null && f.isNotEmpty)
-                            .toSet()
-                            .toList();
-                        families.sort();
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // --- SELECTOR DE FAMILIA ---
-
-                            // Si no hay proyecto seleccionado, no se puede seleccionar familia
-                            if (_selectedProject == null)
-                              Opacity(
-                                opacity: 0.5,
-                                child: IgnorePointer(
-                                  child: FilterUtils.buildFullWidthDropdown<
-                                      String>(
-                                    context: context,
-                                    label: 'Familia',
-                                    value: null,
-                                    icon: Icons.category_outlined,
-                                    hintText: 'Selecciona un proyecto primero',
-                                    items: [],
-                                    onChanged: (_) {},
-                                  ),
-                                ),
-                              )
-                            else
-                              FilterUtils.buildFullWidthDropdown<String>(
-                                context: context,
-                                label: 'Familia de Productos',
-                                value: _selectedFamily,
-                                icon: Icons.category_outlined,
-                                hintText: families.isEmpty
-                                    ? 'No hay familias definidas'
-                                    : 'Seleccionar familia...',
-                                items: families.map((f) {
-                                  // Lógica segura para capitalizar la primera letra solo visualmente
-                                  final String text = f ?? '';
-                                  final String displayName = text.isNotEmpty
-                                      ? '${text[0].toUpperCase()}${text.substring(1)}'
-                                      : text;
-
-                                  return DropdownMenuItem(
-                                    value:
-                                        f, // ⚠️ IMPORTANTE: Mantener 'f' original para que el filtro funcione
-                                    child: Text(
-                                        displayName), // Aquí mostramos la versión con mayúscula
-                                  );
-                                }).toList(),
-                                // ------------------------
-
-                                onChanged: (val) {
-                                  setState(() {
-                                    _selectedFamily = val;
-                                    _selectedProduct = null;
-                                  });
-                                },
-                              ),
-
-                            const SizedBox(height: 12),
-
-                            // --- SELECTOR DE PRODUCTO (Filtrado por Familia) ---
-                            Builder(builder: (context) {
-                              // Si no hay familia seleccionada
-                              if (_selectedFamily == null ||
-                                  _selectedProject == null) {
-                                return Opacity(
-                                  opacity: 0.5,
-                                  child: IgnorePointer(
-                                    child: FilterUtils.buildFullWidthDropdown<
-                                        String>(
-                                      context: context,
-                                      label: 'Producto',
-                                      value: null,
-                                      icon: Icons.inventory,
-                                      hintText:
-                                          'Selecciona una familia primero',
-                                      items: [],
-                                      onChanged: (_) {},
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              // Filtrar productos por la familia seleccionada
-                              final familyProducts = relevantProducts
-                                  .where((p) => p.family == _selectedFamily)
-                                  .toList();
-
-                              // Preparamos los items del dropdown
-                              final List<DropdownMenuItem<String>>
-                                  dropdownItems = [];
-
-                              // OPCIÓN 1: Crear nuevo producto
-                              dropdownItems.add(
-                                const DropdownMenuItem(
-                                  value: '__CREATE_NEW__',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.add_circle_outline,
-                                          color: Colors.blue, size: 20),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Crear nuevo producto',
-                                        style: TextStyle(
-                                            color: Colors.blue,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      SizedBox(height: 4),
-                                      Divider(
-                                        height: 1,
-                                      ),
-                                      SizedBox(height: 4),
-                                    ],
-                                  ),
-                                ),
-                              );
-
-                              // OPCIONES: Productos existentes
-                              dropdownItems.addAll(
-                                  familyProducts.map((p) => DropdownMenuItem(
-                                        value: p.id,
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text('SKU: ${p.reference}',
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.w600)),
-                                          ],
-                                        ),
-                                      )));
-
-                              // Validar selección actual
-                              final isSelectionValid = _selectedProduct !=
-                                      null &&
-                                  familyProducts
-                                      .any((p) => p.id == _selectedProduct!.id);
-                              final currentValue = isSelectionValid
-                                  ? _selectedProduct!.id
-                                  : null;
-
-                              return FilterUtils.buildFullWidthDropdown<String>(
-                                context: context,
-                                label: 'Producto',
-                                value: currentValue,
-                                icon: Icons.inventory,
-                                hintText: 'Seleccionar producto...',
-                                items: dropdownItems,
-                                onChanged: (value) {
-                                  if (value == '__CREATE_NEW__') {
-                                    _showQuickCreateProductDialog(
-                                        _selectedFamily!);
-                                  } else if (value != null) {
-                                    setState(() {
-                                      _selectedProduct = familyProducts
-                                          .firstWhere((p) => p.id == value);
-                                    });
-                                  }
-                                },
-                              );
-                            }),
-                          ],
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Urgencia del producto
-                    FilterUtils.buildUrgencyBinaryToggle(
-                      context: context,
-                      urgencyLevel:
-                          UrgencyLevel.fromString(_productUrgencyLevel),
-                      onChanged: (newUrgency) {
-                        setState(() {
-                          _productUrgencyLevel = newUrgency;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Fecha de entrega
-                    InkWell(
-                      onTap: _selectProductDeliveryDate,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.calendar_today,
-                                size: 20, color: Colors.grey.shade600),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Fecha de entrega estimada',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _formatDate(_productExpectedDelivery!),
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(Icons.chevron_right,
-                                color: Colors.grey.shade400),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Notas del producto
-                    TextFormField(
-                      controller: _productNotesController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Notas del producto (opcional)',
-                        labelStyle: TextStyle(fontSize: 14),
-                        hintText:
-                            'Añade detalles específicos de este producto...',
-                        hintStyle: TextStyle(fontSize: 12),
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.notes),
-                        alignLabelWithHint: true,
-                      ),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Cantidad y Botón Añadir
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 1,
-                          child: TextFormField(
-                            controller: _productQuantityController,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly
-                            ],
-                            decoration: const InputDecoration(
-                              labelText: 'Cant.',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 12),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 3,
-                          child: FilledButton.icon(
-                            onPressed: _selectedProduct == null
-                                ? null
-                                : _addProductToList,
-                            icon: const Icon(Icons.add_shopping_cart),
-                            label: const Text('Añadir al Lote'),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Lista de productos añadidos
-                    if (_productsToAdd.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey[300]!),
-                        ),
-                        child: Text(
-                          'No hay productos seleccionados',
-                          style: TextStyle(color: Colors.grey[500]),
-                        ),
-                      )
-                    else
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _productsToAdd.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final item = _productsToAdd[index];
-                          final product =
-                              item['product'] as ProductCatalogModel;
-                          final quantity = item['quantity'] as int;
-                          final deliveryDate =
-                              item['expectedDeliveryDate'] as DateTime?;
-                          final urgency = item['urgencyLevel'] as String? ??
-                              UrgencyLevel.medium.value;
-                          final notes = item['notes'] as String?;
-                          final sequence = index + 1;
-
-                          final urgencyLevel = UrgencyLevel.fromString(urgency);
-
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor:
-                                  urgencyLevel.color.withOpacity(0.2),
-                              child: Text(
-                                '#$sequence',
-                                style: TextStyle(
-                                    color: urgencyLevel.color,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            title: Text('SKU: ${product.reference}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 12)),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 4),
-                                if (deliveryDate != null)
-                                  Text(
-                                    'Entrega: ${_formatDate(deliveryDate)}',
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey[600]),
-                                  ),
-                                if (notes != null)
-                                  Text(
-                                    'Notas: $notes',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.blue[700],
-                                        fontStyle: FontStyle.italic),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                              ],
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[200],
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text('x$quantity',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold)),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline,
-                                      color: Colors.red),
-                                  onPressed: () =>
-                                      _removeProductFromList(index),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                  ],
-                ),
-              ),
-            ),
+            _buildAddProductsSection(),
 
             const SizedBox(height: 24),
 
@@ -1223,20 +764,445 @@ class _CreateProductionBatchScreenState
     );
   }
 
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _expectedCompletionDate ?? DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      helpText: 'Seleccionar fecha de entrega',
-    );
+  Widget _buildAddProductsSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.inventory_2_outlined,
+                        color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Añadir Productos',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                Text(
+                  '${_productsToAdd.length}/10',
+                  style: TextStyle(
+                      color: _productsToAdd.length >= 10
+                          ? Colors.red
+                          : Colors.grey,
+                      fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'También puedes añadir productos al lote después de crearlo.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const Divider(height: 24),
 
-    if (picked != null) {
-      setState(() {
-        _expectedCompletionDate = picked;
-      });
-    }
+            // Usamos un StreamBuilder común para obtener todos los productos
+            // y luego filtrar familias y productos en memoria para los dropdowns
+            StreamBuilder<List<ProductCatalogModel>>(
+              stream: Provider.of<ProductCatalogService>(context, listen: false)
+                  .getOrganizationProductsStream(widget.organizationId),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                // Obtenemos todos los productos
+                final allProducts = snapshot.data ?? [];
+
+                // Filtramos productos relevantes para este cliente/proyecto si es necesario
+                // (Por ahora mostramos todos los de la organización que coincidan en familia,
+                // pero podríamos filtrar por clientId si _selectedProject está definido)
+                var relevantProducts = allProducts;
+                if (_selectedProject != null) {
+                  // Opcional: filtrar solo productos de este cliente o públicos
+                  relevantProducts = allProducts
+                      .where((p) =>
+                          p.clientId == _selectedProject!.clientId ||
+                          p.isPublic)
+                      .toList();
+                }
+
+                // 1. Extraer Familias Únicas
+                final families = relevantProducts
+                    .map((p) => p.family)
+                    .where((f) => f != null && f.isNotEmpty)
+                    .toSet()
+                    .toList();
+                families.sort();
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // --- SELECTOR DE FAMILIA ---
+
+                    // Si no hay proyecto seleccionado, no se puede seleccionar familia
+                    if (_selectedProject == null)
+                      Opacity(
+                        opacity: 0.5,
+                        child: IgnorePointer(
+                          child: FilterUtils.buildFullWidthDropdown<String>(
+                            context: context,
+                            label: 'Familia',
+                            value: null,
+                            icon: Icons.category_outlined,
+                            hintText: 'Selecciona un proyecto primero',
+                            items: [],
+                            onChanged: (_) {},
+                          ),
+                        ),
+                      )
+                    else
+                      FilterUtils.buildFullWidthDropdown<String>(
+                        context: context,
+                        label: 'Familia de Productos',
+                        value: _selectedFamily,
+                        icon: Icons.category_outlined,
+                        hintText: families.isEmpty
+                            ? 'No hay familias definidas'
+                            : 'Seleccionar familia...',
+                        items: families.map((f) {
+                          // Lógica segura para capitalizar la primera letra solo visualmente
+                          final String text = f ?? '';
+                          final String displayName = text.isNotEmpty
+                              ? '${text[0].toUpperCase()}${text.substring(1)}'
+                              : text;
+
+                          return DropdownMenuItem(
+                            value:
+                                f, // ⚠️ IMPORTANTE: Mantener 'f' original para que el filtro funcione
+                            child: Text(
+                                displayName), // Aquí mostramos la versión con mayúscula
+                          );
+                        }).toList(),
+                        // ------------------------
+
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedFamily = val;
+                            _selectedProduct = null;
+                          });
+                        },
+                      ),
+
+                    const SizedBox(height: 12),
+
+                    // --- SELECTOR DE PRODUCTO (Filtrado por Familia) ---
+                    Builder(builder: (context) {
+                      // Si no hay familia seleccionada
+                      if (_selectedFamily == null || _selectedProject == null) {
+                        return Opacity(
+                          opacity: 0.5,
+                          child: IgnorePointer(
+                            child: FilterUtils.buildFullWidthDropdown<String>(
+                              context: context,
+                              label: 'Producto',
+                              value: null,
+                              icon: Icons.inventory,
+                              hintText: 'Selecciona una familia primero',
+                              items: [],
+                              onChanged: (_) {},
+                            ),
+                          ),
+                        );
+                      }
+
+                      // Filtrar productos por la familia seleccionada
+                      final familyProducts = relevantProducts
+                          .where((p) => p.family == _selectedFamily)
+                          .toList();
+
+                      // Preparamos los items del dropdown
+                      final List<DropdownMenuItem<String>> dropdownItems = [];
+
+                      // OPCIÓN 1: Crear nuevo producto
+                      dropdownItems.add(
+                        const DropdownMenuItem(
+                          value: '__CREATE_NEW__',
+                          child: Row(
+                            children: [
+                              Icon(Icons.add_circle_outline,
+                                  color: Colors.blue, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'Crear nuevo producto',
+                                style: TextStyle(
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              SizedBox(height: 4),
+                              Divider(
+                                height: 1,
+                              ),
+                              SizedBox(height: 4),
+                            ],
+                          ),
+                        ),
+                      );
+
+                      // OPCIONES: Productos existentes
+                      dropdownItems
+                          .addAll(familyProducts.map((p) => DropdownMenuItem(
+                                value: p.id,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('SKU: ${p.reference}',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                              )));
+
+                      // Validar selección actual
+                      final isSelectionValid = _selectedProduct != null &&
+                          familyProducts
+                              .any((p) => p.id == _selectedProduct!.id);
+                      final currentValue =
+                          isSelectionValid ? _selectedProduct!.id : null;
+
+                      return FilterUtils.buildFullWidthDropdown<String>(
+                        context: context,
+                        label: 'Producto',
+                        value: currentValue,
+                        icon: Icons.inventory,
+                        hintText: 'Seleccionar producto...',
+                        items: dropdownItems,
+                        onChanged: (value) {
+                          if (value == '__CREATE_NEW__') {
+                            _showQuickCreateProductDialog(_selectedFamily!);
+                          } else if (value != null) {
+                            setState(() {
+                              _selectedProduct = familyProducts
+                                  .firstWhere((p) => p.id == value);
+                            });
+                          }
+                        },
+                      );
+                    }),
+                  ],
+                );
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            // Urgencia del producto
+            FilterUtils.buildUrgencyBinaryToggle(
+              context: context,
+              urgencyLevel: UrgencyLevel.fromString(_productUrgencyLevel),
+              onChanged: (newUrgency) {
+                setState(() {
+                  _productUrgencyLevel = newUrgency;
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Fecha de entrega
+            InkWell(
+              onTap: _selectProductDeliveryDate,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today,
+                        size: 20, color: Colors.grey.shade600),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Fecha de entrega estimada',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatDate(_productExpectedDelivery!),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Notas del producto
+            TextFormField(
+              controller: _productNotesController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Notas del producto (opcional)',
+                labelStyle: TextStyle(fontSize: 14),
+                hintText: 'Añade detalles específicos de este producto...',
+                hintStyle: TextStyle(fontSize: 12),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.notes),
+                alignLabelWithHint: true,
+              ),
+              style: const TextStyle(fontSize: 12),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Cantidad y Botón Añadir
+            Row(
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: TextFormField(
+                    controller: _productQuantityController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                      labelText: 'Cant.',
+                      border: OutlineInputBorder(),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 3,
+                  child: FilledButton.icon(
+                    onPressed:
+                        _selectedProduct == null ? null : _addProductToList,
+                    icon: const Icon(Icons.add_shopping_cart),
+                    label: const Text('Añadir al Lote'),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Lista de productos añadidos
+            if (_productsToAdd.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Text(
+                  'No hay productos seleccionados',
+                  style: TextStyle(color: Colors.grey[500]),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _productsToAdd.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final item = _productsToAdd[index];
+                  final product = item['product'] as ProductCatalogModel;
+                  final quantity = item['quantity'] as int;
+                  final deliveryDate =
+                      item['expectedDeliveryDate'] as DateTime?;
+                  final urgency = item['urgencyLevel'] as String? ??
+                      UrgencyLevel.medium.value;
+                  final notes = item['notes'] as String?;
+                  final sequence = index + 1;
+
+                  final urgencyLevel = UrgencyLevel.fromString(urgency);
+
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: urgencyLevel.color.withOpacity(0.2),
+                      child: Text(
+                        '#$sequence',
+                        style: TextStyle(
+                            color: urgencyLevel.color,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    title: Text('SKU: ${product.reference}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 12)),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 4),
+                        if (deliveryDate != null)
+                          Text(
+                            'Entrega: ${_formatDate(deliveryDate)}',
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey[600]),
+                          ),
+                        if (notes != null)
+                          Text(
+                            'Notas: $notes',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue[700],
+                                fontStyle: FontStyle.italic),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text('x$quantity',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline,
+                              color: Colors.red),
+                          onPressed: () => _removeProductFromList(index),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _createBatch() async {
@@ -1282,6 +1248,7 @@ class _CreateProductionBatchScreenState
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
+            totalProducts: _productsToAdd.length, // ← NUEVO
       );
 
       if (batchId == null) {
@@ -1335,7 +1302,7 @@ class _CreateProductionBatchScreenState
               currentPhase: phases.first.id,
               currentPhaseName: phases.first.name,
               phaseProgress: phaseProgress,
-              productNumber: 0, // Se asignará en el servicio (secuencial)
+              productNumber: i + 1, // Se asignará en el servicio (secuencial)
               productCode: '', // Se generará en el servicio
               unitPrice: product.basePrice,
               totalPrice: product.basePrice != null

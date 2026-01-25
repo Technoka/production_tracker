@@ -331,6 +331,7 @@ class ProductionBatchService extends ChangeNotifier {
     required String createdBy,
     List<String>? assignedMembers,
     String? notes,
+    int? totalProducts,
   }) async {
     try {
       _isLoading = true;
@@ -360,7 +361,7 @@ class ProductionBatchService extends ChangeNotifier {
         clientId: clientId,
         clientName: clientName,
         updatedAt: DateTime.now(),
-        totalProducts: 0,
+        totalProducts: totalProducts ?? 0,
         completedProducts: 0,
         notes: notes,
         assignedMembers: assignedMembers ?? [createdBy],
@@ -402,12 +403,10 @@ class ProductionBatchService extends ChangeNotifier {
         notifyListeners();
         return false;
       }
-
-      final isAssigned = batch.assignedMembers.contains(userId);
-      final canAdd = await _memberService.canWithScope(
-        'batches',
-        'addProducts',
-        isAssignedToUser: isAssigned,
+      
+      final canAdd = await _memberService.can(
+        'batch_products',
+        'create',
       );
 
       if (!canAdd) {
@@ -426,10 +425,10 @@ class ProductionBatchService extends ChangeNotifier {
       // }
 
       // Obtener estado por defecto (Pendiente)
-      final defaultStatus = await _statusService.getStatusById(
+      final statuses = await _statusService.getActiveStatuses(
         organizationId,
-        'pending',
       );
+      final defaultStatus = statuses.isNotEmpty ? statuses.first : null;
 
       if (defaultStatus == null) {
         throw Exception(
@@ -439,25 +438,28 @@ class ProductionBatchService extends ChangeNotifier {
       final productsBatch = _firestore.batch();
 
       for (final product in products) {
+        final newProductId = _uuid.v4();
         final productDocRef = _firestore
             .collection('organizations')
             .doc(organizationId)
             .collection('production_batches')
             .doc(batchId)
             .collection('batch_products')
-            .doc();
+            .doc(newProductId);
 
         // Asignar estado inicial y crear historial
         final productWithStatus = product.copyWith(
-          id: productDocRef.id,
+          id: newProductId,
           statusId: defaultStatus.id,
           statusName: defaultStatus.name,
           statusColorValue: defaultStatus.color,
+          statusIcon: defaultStatus.icon,
           statusHistory: [
             StatusHistoryEntry(
               statusId: defaultStatus.id,
               statusName: defaultStatus.name,
               statusColor: defaultStatus.color,
+              statusIcon: defaultStatus.icon,
               timestamp: DateTime.now(),
               userId: userId,
               userName: userName,
@@ -477,6 +479,7 @@ class ProductionBatchService extends ChangeNotifier {
 
       productsBatch.update(batchDocRef, {
         'updatedAt': FieldValue.serverTimestamp(),
+        'totalProducts': FieldValue.increment(products.length),
       });
 
       await productsBatch.commit();
@@ -607,6 +610,7 @@ class ProductionBatchService extends ChangeNotifier {
         statusId: toStatusId,
         statusName: toStatus.name,
         statusColor: toStatus.color,
+        statusIcon: toStatus.icon,
         timestamp: DateTime.now(),
         userId: userId,
         userName: userName,
@@ -618,6 +622,7 @@ class ProductionBatchService extends ChangeNotifier {
         statusId: toStatusId,
         statusName: toStatus.name,
         statusColorValue: toStatus.color,
+        statusIcon: toStatus.icon,
         statusHistory: [...product.statusHistory, historyEntry],
       );
 
