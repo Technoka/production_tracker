@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/product_status_model.dart';
-import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/product_status_service.dart';
 import '../../services/organization_member_service.dart';
@@ -105,12 +104,6 @@ class _ManageProductStatusesScreenState
             );
           }
 
-          // Separar estados del sistema y personalizados
-          final systemStatuses =
-              _statuses.where((s) => s.isSystem).toList();
-          final customStatuses =
-              _statuses.where((s) => !s.isSystem).toList();
-
           return RefreshIndicator(
             onRefresh: () async {
               // El stream se actualiza automáticamente
@@ -140,78 +133,53 @@ class _ManageProductStatusesScreenState
                 ),
                 const SizedBox(height: 16),
 
-                // Estados del sistema (no editables)
-                if (systemStatuses.isNotEmpty) ...[
-                  Text(
-                    l10n.systemStatuses,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...systemStatuses.map((status) {
-                    return _buildStatusCard(
-                      status,
-                      l10n,
-                      memberService,
-                      statusService,
-                      isSystem: true,
-                    );
-                  }).toList(),
-                  const SizedBox(height: 24),
-                ],
-
-                // Estados personalizados (editables)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l10n.customStatuses,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                // Banner de reordenamiento
+                if (_isReordering)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade300, width: 2),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.drag_handle, color: Colors.orange.shade800),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            l10n.reorderingStatusesMessage,
+                            style: TextStyle(
+                              color: Colors.orange.shade900,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
                           ),
-                    ),
-                    if (_isReordering && customStatuses.isNotEmpty)
-                      Text(
-                        l10n.dragToReorder,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                          fontStyle: FontStyle.italic,
                         ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                if (customStatuses.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        l10n.noCustomStatuses,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey.shade600),
-                      ),
+                      ],
                     ),
-                  )
-                else if (_isReordering)
+                  ),
+
+                // Todos los estados juntos
+                if (_isReordering)
                   _buildReorderableList(
-                    customStatuses,
+                    _statuses,
                     l10n,
                     memberService,
                     statusService,
                   )
                 else
-                  ...customStatuses.map((status) {
+                  ..._statuses.map((status) {
                     return _buildStatusCard(
                       status,
                       l10n,
                       memberService,
                       statusService,
-                      isSystem: false,
                     );
                   }).toList(),
+                  
+                const SizedBox(height: 100),
               ],
             ),
           );
@@ -236,11 +204,16 @@ class _ManageProductStatusesScreenState
     ProductStatusModel status,
     AppLocalizations l10n,
     OrganizationMemberService memberService,
-    ProductStatusService statusService, {
-    required bool isSystem,
-  }) {
+    ProductStatusService statusService,
+  ) {
+    // Color más oscuro para estados inactivos
+    final cardColor = status.isActive 
+        ? null 
+        : Colors.grey.shade300;
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      color: cardColor,
       child: ListTile(
         leading: Row(
           mainAxisSize: MainAxisSize.min,
@@ -248,7 +221,17 @@ class _ManageProductStatusesScreenState
             // Icon
             Icon(
               _getIconData(status.icon),
-              color: status.colorValue,
+              color: status.isActive ? status.colorValue : Colors.grey.shade600,
+            ),
+            const SizedBox(width: 8),
+            // Color indicator
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: status.isActive ? status.colorValue : Colors.grey.shade600,
+                shape: BoxShape.circle,
+              ),
             ),
           ],
         ),
@@ -257,133 +240,143 @@ class _ManageProductStatusesScreenState
             Expanded(
               child: Text(
                 status.name,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: status.isActive ? null : Colors.grey.shade700,
+                ),
               ),
             ),
-            if (isSystem)
+            // Badge de sistema
+            if (status.isSystem)
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: Colors.blue.shade100,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade300),
                 ),
                 child: Text(
-                  l10n.systemStatus,
+                  'SYSTEM',
                   style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade700,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade700,
                   ),
                 ),
               ),
+            // Badge de inactivo
+            if (!status.isActive) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade600),
+                ),
+                child: Text(
+                  'INACTIVE',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              status.description,
+              style: TextStyle(
+                color: status.isActive ? null : Colors.grey.shade600,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(status.description),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  Icons.circle,
-                  size: 8,
-                  color: status.isActive ? Colors.green : Colors.red,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  status.isActive ? l10n.activeStatus : l10n.inactiveStatus,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: status.isActive ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            Text(
+              'Order: ${status.order}',
+              style: TextStyle(
+                fontSize: 11,
+                color: status.isActive ? Colors.grey.shade600 : Colors.grey.shade500,
+              ),
             ),
           ],
         ),
         trailing: FutureBuilder<bool>(
-                future:
-                    memberService.can('organization', 'manageProductStatuses'),
-                builder: (context, snapshot) {
-                  if (snapshot.data != true) return const SizedBox.shrink();
+          future: memberService.can('organization', 'manageProductStatuses'),
+          builder: (context, snapshot) {
+            if (snapshot.data != true) return const SizedBox.shrink();
 
-                  return PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert),
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'edit':
-                          _showEditDialog(context, status);
-                          break;
-                        case 'toggle':
-                          _toggleStatusActive(
-                            statusService,
-                            status,
-                            l10n,
-                          );
-                          break;
-                        case 'delete':
-                          _confirmDelete(
-                            statusService,
-                            status,
-                            l10n,
-                          );
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.edit, size: 20),
-                            const SizedBox(width: 12),
-                            Text(l10n.edit),
-                          ],
-                        ),
+            return PopupMenuButton<String>(
+              onSelected: (value) {
+                switch (value) {
+                  case 'edit':
+                    if (status.isActive) {
+                      _showEditDialog(context, status);
+                    }
+                    break;
+                  case 'toggle':
+                    _toggleStatusActive(statusService, status, l10n);
+                    break;
+                  case 'delete':
+                    if (!status.isSystem) {
+                      _confirmDelete(statusService, status, l10n);
+                    }
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                    if (status.isActive)
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.edit, size: 20),
+                        const SizedBox(width: 8),
+                        Text(l10n.edit),
+                      ],
+                    ),
+                  ),
+                PopupMenuItem(
+                  value: 'toggle',
+                  child: Row(
+                    children: [
+                      Icon(
+                        status.isActive
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        size: 20,
                       ),
-                      PopupMenuItem(
-                        value: 'toggle',
-                        child: Row(
-                          children: [
-                            Icon(
-                              status.isActive
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              status.isActive
-                                  ? l10n.deactivate
-                                  : l10n.activate,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (!isSystem) // Los estados del sistema no se pueden eliminar
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.delete, size: 20, color: Colors.red),
-                            const SizedBox(width: 12),
-                            Text(
-                              l10n.delete,
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                          ],
-                        ),
+                      const SizedBox(width: 8),
+                      Text(
+                        status.isActive
+                            ? l10n.deactivate
+                            : l10n.activate,
                       ),
                     ],
-                  );
-                },
-              ),
+                  ),
+                ),
+                if (!status.isSystem)
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.delete, size: 20, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.delete,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -401,9 +394,15 @@ class _ManageProductStatusesScreenState
         _handleReorder(oldIndex, newIndex, statuses, statusService, l10n);
       },
       children: statuses.map((status) {
+        // Color más oscuro para estados inactivos en modo reordenamiento
+        final cardColor = status.isActive 
+            ? null 
+            : Colors.grey.shade300;
+            
         return Card(
           key: ValueKey(status.id),
           margin: const EdgeInsets.only(bottom: 8),
+          color: cardColor,
           child: ListTile(
             leading: Icon(Icons.drag_handle, color: Colors.grey.shade600),
             title: Row(
@@ -412,22 +411,71 @@ class _ManageProductStatusesScreenState
                   width: 12,
                   height: 12,
                   decoration: BoxDecoration(
-                    color: status.colorValue,
+                    color: status.isActive ? status.colorValue : Colors.grey.shade600,
                     shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 12),
-                Icon(_getIconData(status.icon), color: status.colorValue),
+                Icon(
+                  _getIconData(status.icon), 
+                  color: status.isActive ? status.colorValue : Colors.grey.shade600,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     status.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: status.isActive ? null : Colors.grey.shade700,
+                    ),
                   ),
                 ),
+                // Badge de sistema
+                if (status.isSystem)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.blue.shade300),
+                    ),
+                    child: Text(
+                      'SYSTEM',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ),
+                // Badge de inactivo
+                if (!status.isActive) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade400,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade600),
+                    ),
+                    child: Text(
+                      'INACTIVE',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
-            subtitle: Text(status.description),
+            subtitle: Text(
+              status.description,
+              style: TextStyle(
+                color: status.isActive ? null : Colors.grey.shade600,
+              ),
+            ),
           ),
         );
       }).toList(),
