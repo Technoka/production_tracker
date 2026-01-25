@@ -356,9 +356,10 @@ class ValidationDataModel {
   final DateTime timestamp;
 
   // NUEVO: Para gestionar defectos individuales
-  final DefectDetailsMode? defectMode;
-  final String? singleDefectReason; // Motivo único para todos
+  final TextDetailsMode? textMode;
+  final String? singleTextReason; // Motivo único para todos
   final Map<int, String>? individualDefects; // Map: índice producto → motivo
+  final Map<String, dynamic>? customParametersData;
 
   ValidationDataModel({
     this.text,
@@ -367,9 +368,10 @@ class ValidationDataModel {
     this.photoUrls,
     this.approvedBy,
     required this.timestamp,
-    this.defectMode,
-    this.singleDefectReason,
+    this.textMode,
+    this.singleTextReason,
     this.individualDefects,
+    this.customParametersData,
   });
 
   factory ValidationDataModel.fromMap(Map<String, dynamic> map) {
@@ -386,10 +388,10 @@ class ValidationDataModel {
           ? List<String>.from(map['approvedBy'] as List)
           : null,
       timestamp: (map['timestamp'] as Timestamp).toDate(),
-      defectMode: map['defectMode'] != null
-          ? DefectDetailsMode.fromString(map['defectMode'] as String)
+      textMode: map['textMode'] != null
+          ? TextDetailsMode.fromString(map['textMode'] as String)
           : null,
-      singleDefectReason: map['singleDefectReason'] as String?,
+      singleTextReason: map['singleTextReason'] as String?,
       individualDefects: map['individualDefects'] != null
           ? Map<int, String>.from(
               (map['individualDefects'] as Map).map(
@@ -400,6 +402,9 @@ class ValidationDataModel {
               ),
             )
           : null,
+          customParametersData: map['customParametersData'] != null
+    ? Map<String, dynamic>.from(map['customParametersData'] as Map)
+    : null,
     );
   }
 
@@ -411,12 +416,13 @@ class ValidationDataModel {
       if (photoUrls != null) 'photoUrls': photoUrls,
       if (approvedBy != null) 'approvedBy': approvedBy,
       'timestamp': Timestamp.fromDate(timestamp),
-      if (defectMode != null) 'defectMode': defectMode!.value,
-      if (singleDefectReason != null) 'singleDefectReason': singleDefectReason,
+      if (textMode != null) 'textMode': textMode!.value,
+      if (singleTextReason != null) 'singleTextReason': singleTextReason,
       if (individualDefects != null)
         'individualDefects': individualDefects!.map(
           (key, value) => MapEntry(key.toString(), value),
         ),
+        if (customParametersData != null) 'customParametersData': customParametersData,
     };
   }
 
@@ -427,9 +433,10 @@ class ValidationDataModel {
     List<String>? photoUrls,
     List<String>? approvedBy,
     DateTime? timestamp,
-    DefectDetailsMode? defectMode,
-    String? singleDefectReason,
+    TextDetailsMode? textMode,
+    String? singleTextReason,
     Map<int, String>? individualDefects,
+    Map<String, dynamic>? customParametersData,
   }) {
     return ValidationDataModel(
       text: text ?? this.text,
@@ -438,44 +445,45 @@ class ValidationDataModel {
       photoUrls: photoUrls ?? this.photoUrls,
       approvedBy: approvedBy ?? this.approvedBy,
       timestamp: timestamp ?? this.timestamp,
-      defectMode: defectMode ?? this.defectMode,
-      singleDefectReason: singleDefectReason ?? this.singleDefectReason,
+      textMode: textMode ?? this.textMode,
+      singleTextReason: singleTextReason ?? this.singleTextReason,
       individualDefects: individualDefects ?? this.individualDefects,
+      customParametersData: customParametersData ?? this.customParametersData,
     );
   }
 
   /// Obtiene el motivo de defecto para un producto específico
-  String? getDefectReasonForIndex(int index) {
-    if (defectMode == DefectDetailsMode.single) {
-      return singleDefectReason;
-    } else if (defectMode == DefectDetailsMode.individual) {
-      return individualDefects?[index];
-    }
-    return null;
+String? getTextReasonForIndex(int index) {
+  if (textMode == TextDetailsMode.single) {
+    return singleTextReason;
+  } else if (textMode == TextDetailsMode.individual) {
+    return individualDefects?[index];
   }
+  return null;
+}
 }
 
-/// Modo de detalle de defectos
-enum DefectDetailsMode {
-  single('single'), // Mismo motivo para todos
-  individual('individual'); // Motivo individual por producto
+/// Modo de captura de texto/descripción
+enum TextDetailsMode {
+  single('single'), // Mismo texto para todas las unidades
+  individual('individual'); // Texto individual por unidad
 
   final String value;
-  const DefectDetailsMode(this.value);
+  const TextDetailsMode(this.value);
 
-  static DefectDetailsMode fromString(String value) {
-    return DefectDetailsMode.values.firstWhere(
+  static TextDetailsMode fromString(String value) {
+    return TextDetailsMode.values.firstWhere(
       (mode) => mode.value == value,
-      orElse: () => DefectDetailsMode.single,
+      orElse: () => TextDetailsMode.single,
     );
   }
 
   String get displayName {
     switch (this) {
-      case DefectDetailsMode.single:
-        return 'Mismo motivo para todos';
-      case DefectDetailsMode.individual:
-        return 'Motivo individual por producto';
+      case TextDetailsMode.single:
+        return 'Descripción general';
+      case TextDetailsMode.individual:
+        return 'Descripciones individuales';
     }
   }
 }

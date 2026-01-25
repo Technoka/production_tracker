@@ -452,11 +452,12 @@ class _CreateEditTransitionDialogState
           ValidationTypeSelector(
             selectedType: _validationType,
             onTypeSelected: (type) {
-              setState(() {
-                _validationType = type;
-                // Resetear configuración al cambiar tipo
-                _validationConfig = ValidationConfigModel();
-              });
+              // Cuando cambia el tipo de validación
+setState(() {
+  _validationType = type;
+  // Inicializar config según tipo con valores por defecto
+  _validationConfig = _getDefaultConfigForType(type);
+});
             },
           ),
         ],
@@ -635,7 +636,7 @@ class _CreateEditTransitionDialogState
                   l10n.validationType,
                   Chip(
                     label: Text(_validationType.displayName),
-                    avatar: Icon(_getValidationIcon(_validationType), size: 16),
+                    avatar: Icon(_validationType.icon, size: 16),
                   ),
                 ),
 
@@ -977,24 +978,6 @@ class _CreateEditTransitionDialogState
     }
   }
 
-  IconData _getValidationIcon(ValidationType type) {
-    switch (type) {
-      case ValidationType.simpleApproval:
-        return Icons.check_circle;
-      case ValidationType.textRequired:
-      case ValidationType.textOptional:
-        return Icons.edit;
-      case ValidationType.quantityAndText:
-        return Icons.format_list_numbered;
-      case ValidationType.checklist:
-        return Icons.checklist;
-      case ValidationType.photoRequired:
-        return Icons.camera_alt;
-      case ValidationType.multiApproval:
-        return Icons.people;
-    }
-  }
-
   IconData _getIconData(String iconName) {
     try {
       final codePoint = int.tryParse(iconName);
@@ -1014,4 +997,70 @@ class _CreateEditTransitionDialogState
       return Colors.blue;
     }
   }
+
+  ValidationConfigModel _getDefaultConfigForType(ValidationType type) {
+  switch (type) {
+    case ValidationType.simpleApproval:
+      return ValidationConfigModel();
+
+    case ValidationType.textRequired:
+      return ValidationConfigModel(
+        textLabel: 'Descripción',
+        textMinLength: 10,
+        textMaxLength: 500,
+      );
+
+    case ValidationType.textOptional:
+      return ValidationConfigModel(
+        textLabel: 'Comentario (opcional)',
+        textMaxLength: 500,
+      );
+
+    case ValidationType.quantityAndText:
+      return ValidationConfigModel(
+        quantityLabel: 'Cantidad',
+        quantityMin: 1,
+        quantityMax: 999,
+        textLabel: 'Descripción',
+        textMinLength: 10,
+        textMaxLength: 500,
+      );
+
+    case ValidationType.checklist:
+      return ValidationConfigModel(
+        checklistItems: [
+          ChecklistItem(
+            id: 'item_1',
+            label: 'Item de ejemplo',
+            required: true,
+          ),
+        ],
+        checklistAllRequired: false,
+      );
+
+    case ValidationType.photoRequired:
+      return ValidationConfigModel(
+        minPhotos: 1,
+        maxPhotos: 5,
+      );
+
+    case ValidationType.multiApproval:
+      return ValidationConfigModel(
+        minApprovals: 2,
+      );
+
+    case ValidationType.customParameters:
+      return ValidationConfigModel(
+        customParameters: [
+          CustomParameter(
+            id: 'param_1',
+            label: 'Parámetro de ejemplo',
+            type: CustomParameterType.number,
+            required: true,
+            placeholder: 'Ingresa un valor',
+          ),
+        ],
+      );
+  }
+}
 }

@@ -167,19 +167,21 @@ class ProductionBatchService extends ChangeNotifier {
         }
 
         // Si hay datos, validamos su contenido
-        final validationError = _validateTransitionData(
-          validationType: transition.validationType,
-          config: transition.validationConfig,
-          data: validationData,
+        final validationError = _transitionService.validateTransitionData(
+          transition: transition,
+          validationData: ValidationDataModel.fromMap(validationData),
         );
 
-        if (validationError != null) {
+        if (validationError['isValid'] == 'false') {
+          print("ha habido error: ${validationError['error']}");
           return {
-            'isValid': false,
-            'error': validationError,
-            'requiresValidation': true,
-            'validationType': transition.validationType.value,
+            'isValid': validationError['isValid'],
+            'error': validationError['error'],
+            'requiresValidation': validationError['requiresValidation'],
+            'validationType': validationError['validationType'],
             'validationConfig': transition.validationConfig.toMap(),
+            'requiresApproval': validationError['requiresApproval'],
+            'requiredApprovers': validationError['requiredApprovers'],
           };
         }
       }
@@ -199,66 +201,6 @@ class ProductionBatchService extends ChangeNotifier {
         'error': 'Error interno validando la transición: $e',
         'requiresValidation': false,
       };
-    }
-  }
-
-  /// Valida los datos recibidos contra la configuración (ValidationConfigModel).
-  /// Retorna null si es válido, o un String con el mensaje de error.
-  String? _validateTransitionData({
-    required ValidationType validationType,
-    required ValidationConfigModel config,
-    required Map<String, dynamic> data,
-  }) {
-    switch (validationType) {
-      case ValidationType.simpleApproval:
-        return null; // No requiere datos
-
-      case ValidationType.textRequired:
-        return config.validateText(data['text'] as String?);
-
-      case ValidationType.textOptional:
-        // Solo valida si se escribió algo (ej: longitud max), si es null/vacío es válido
-        final text = data['text'] as String?;
-        if (text != null && text.isNotEmpty) {
-          return config.validateText(text);
-        }
-        return null;
-
-      case ValidationType.quantityAndText:
-        // Validar cantidad
-        final qty = data['quantity'] is int
-            ? data['quantity'] as int
-            : int.tryParse(data['quantity'].toString());
-
-        final qtyError = config.validateQuantity(qty);
-        if (qtyError != null) return qtyError;
-
-        // Validar texto
-        return config.validateText(data['text'] as String?);
-
-      case ValidationType.checklist:
-        // Extraer mapa de respuestas. ValidationDataModel usa 'checklistAnswers'
-        final rawAnswers = data['checklistAnswers'] ?? data['checkedItems'];
-        final Map<String, bool> answers =
-            rawAnswers != null ? Map<String, bool>.from(rawAnswers) : {};
-
-        return config.validateChecklist(answers);
-
-      case ValidationType.photoRequired:
-        final photos = data['photoUrls'] as List?;
-        final count = photos?.length ?? 0;
-        return config.validatePhotos(count);
-
-      case ValidationType.multiApproval:
-        // Validar si hay suficientes aprobaciones en el array 'approvedBy'
-        final approvedBy = data['approvedBy'] as List?;
-        final count = approvedBy?.length ?? 0;
-        final min = config.minApprovals ?? 1;
-
-        if (count < min) {
-          return 'Se requieren al menos $min aprobaciones (actuales: $count).';
-        }
-        return null;
     }
   }
 
@@ -656,6 +598,7 @@ class ProductionBatchService extends ChangeNotifier {
       );
 
       if (validationResult['isValid'] != true) {
+        print("transicion no valida");
         throw Exception(validationResult['error'] ?? 'Transición no válida');
       }
 

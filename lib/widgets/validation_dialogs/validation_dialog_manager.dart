@@ -8,6 +8,7 @@ import 'quantity_text_dialog.dart';
 import 'checklist_dialog.dart';
 import 'photo_validation_dialog.dart';
 import 'multi_approval_dialog.dart';
+import 'custom_parameters_dialog.dart';
 
 /// Manager central que muestra el diálogo de validación apropiado
 /// según el tipo de validación configurado en la transición
@@ -73,6 +74,12 @@ class ValidationDialogManager {
           transition,
           product,
         );
+        case ValidationType.customParameters:
+  return await _showCustomParametersDialog(
+    context,
+    transition,
+    product,
+  );
     }
   }
 
@@ -166,4 +173,19 @@ class ValidationDialogManager {
       ),
     );
   }
+
+  static Future<ValidationDataModel?> _showCustomParametersDialog(
+  BuildContext context,
+  StatusTransitionModel transition,
+  BatchProductModel product,
+) async {
+  return await showDialog<ValidationDataModel>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => CustomParametersDialog(
+      transition: transition,
+      product: product,
+    ),
+  );
+}
 }

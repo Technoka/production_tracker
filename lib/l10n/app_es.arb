@@ -627,7 +627,6 @@
   "historyTitle": "Historial",
   "moveNextPhaseBtn": "Avanzar Fase",
   "phaseUpdatedSuccess": "Fase actualizada correctamente",
-  "quantityLabel": "Cantidad",
   "referenceLabel": "Referencia",
 
   "@_.CHAT_EXTENDED": {},
@@ -1223,7 +1222,7 @@
 "errorDeletingTransition": "Error al eliminar la transición",
 "transitionWizardSubtitle": "Configura paso a paso la transición entre estados",
 "basicSettings": "Básico",
-"validationType": "Tipo",
+"type": "Tipo",
 "configuration": "Configuración",
 "conditionalLogic": "Lógica",
 "summary": "Resumen",
@@ -1265,8 +1264,6 @@
 "minApprovalsHint": "Ej: 2",
 "validationConfiguration": "Configuración de Validación",
 "noConfigurationRequired": "No requiere configuración",
-"defaultTextLabel": "Texto",
-"defaultQuantityLabel": "Cantidad",
 "enableConditionalLogic": "Habilitar lógica condicional",
 "conditionalLogicSubtitle": "Añade reglas automáticas basadas en los datos ingresados",
 "condition": "Condición",
@@ -1278,7 +1275,6 @@
 "actionType": "Tipo de acción",
 "message": "Mensaje",
 "messageHint": "Mensaje que se mostrará",
-"quantity": "Cantidad",
 "textLength": "Longitud del texto",
 "photoCount": "Número de fotos",
 "approvalCount": "Número de aprobaciones",
@@ -1346,5 +1342,11 @@
 
 "noTransitionConfigured": "No hay transición configurada entre estos estados",
 "transitionNotActive": "Esta transición está desactivada",
-"roleNotAuthorized": "Tu rol no está autorizado para esta transición"
+"roleNotAuthorized": "Tu rol no está autorizado para esta transición",
+
+"customParameters": "Parámetros personalizados",
+"addParameter": "Añadir parámetro",
+"removeParameter": "Quitar parámetro",
+"number": "Número",
+"booleanType": "Si/No"
 }

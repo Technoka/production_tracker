@@ -27,6 +27,8 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
   String? _quantityError;
   String? _textError;
   ConditionalActionResult? _conditionalResult;
+  TextDetailsMode _textMode = TextDetailsMode.single;
+final Map<int, TextEditingController> _individualTextControllers = {};
 
   @override
   void dispose() {
@@ -84,6 +86,96 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
                   });
                 },
               ),
+              const SizedBox(height: 16),
+
+// Selector de modo de detalles
+const Text(
+  'Detalles de texto',
+  style: TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.bold,
+  ),
+),
+const SizedBox(height: 8),
+
+SegmentedButton<TextDetailsMode>(
+  segments: [
+    ButtonSegment(
+      value: TextDetailsMode.single,
+      label: Text(TextDetailsMode.single.displayName),
+      icon: const Icon(Icons.description, size: 18),
+    ),
+    ButtonSegment(
+      value: TextDetailsMode.individual,
+      label: Text(TextDetailsMode.individual.displayName),
+      icon: const Icon(Icons.list, size: 18),
+    ),
+  ],
+  selected: {_textMode},
+  onSelectionChanged: (Set<TextDetailsMode> selected) {
+    setState(() {
+      _textMode = selected.first;
+      if (_textMode == TextDetailsMode.individual) {
+        // Inicializar controladores individuales
+        final quantity = int.tryParse(_quantityController.text) ?? 0;
+        for (int i = 0; i < quantity; i++) {
+          if (!_individualTextControllers.containsKey(i)) {
+            _individualTextControllers[i] = TextEditingController();
+          }
+        }
+      }
+    });
+  },
+),
+const SizedBox(height: 16),
+
+// Campo de texto según modo
+if (_textMode == TextDetailsMode.single)
+  TextField(
+    controller: _textController,
+    decoration: InputDecoration(
+      labelText: config.textLabel ?? l10n.description,
+      hintText: config.textPlaceholder ?? l10n.describeIssue,
+      border: const OutlineInputBorder(),
+      prefixIcon: const Icon(Icons.description),
+      helperText: 'Esta descripción se aplicará a todas las unidades',
+    ),
+    // ...
+  )
+else ...[
+  Text(
+    'Proporciona una descripción individual para cada unidad',
+    style: TextStyle(
+      fontSize: 12,
+      color: Colors.grey[700],
+    ),
+  ),
+  // ...
+  const SizedBox(height: 8),
+  
+  // Lista de campos individuales
+  ...List.generate(
+    int.tryParse(_quantityController.text) ?? 0,
+    (index) {
+      if (!_individualTextControllers.containsKey(index)) {
+        _individualTextControllers[index] = TextEditingController();
+      }
+      
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TextField(
+          controller: _individualTextControllers[index],
+          decoration: InputDecoration(
+            labelText: 'Defecto #${index + 1}',
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.error_outline, size: 20),
+          ),
+          maxLines: 2,
+        ),
+      );
+    },
+  ),
+],
               const SizedBox(height: 16),
 
               // Campo de texto/descripción
@@ -341,16 +433,38 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
         _textController.text.isNotEmpty;
   }
 
-  void _handleSubmit() {
-    if (_formKey.currentState!.validate() && _canSubmit()) {
-      final validationData = ValidationDataModel(
-        quantity: int.parse(_quantityController.text),
-        text: _textController.text.trim(),
-        timestamp: DateTime.now(),
-      );
-      Navigator.pop(context, validationData);
+void _handleSubmit() {
+  if (_formKey.currentState!.validate() && _canSubmit()) {
+    final quantity = int.parse(_quantityController.text);
+    
+    // Preparar datos según modo
+    String? singleText;
+    Map<int, String>? individualTexts;
+    
+    if (_textMode == TextDetailsMode.single) {
+      singleText = _textController.text.trim();
+    } else {
+      individualTexts = {};
+      for (int i = 0; i < quantity; i++) {
+        final text = _individualTextControllers[i]?.text.trim();
+        if (text != null && text.isNotEmpty) {
+          individualTexts[i] = text;
+        }
+      }
     }
+    
+    final validationData = ValidationDataModel(
+      quantity: quantity,
+      text: singleText,
+      textMode: _textMode,
+      singleTextReason: singleText,
+      individualDefects: individualTexts,
+      timestamp: DateTime.now(),
+    );
+    
+    Navigator.pop(context, validationData);
   }
+}
 }
 
 /// Resultado de evaluar lógica condicional

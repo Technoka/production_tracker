@@ -1,16 +1,22 @@
 
+import 'status_transition_model.dart';
+import 'package:flutter/material.dart';
+
 /// Tipo de validación para transiciones de estado
 enum ValidationType {
-  simpleApproval('simple_approval'),
-  textRequired('text_required'),
-  textOptional('text_optional'),
-  quantityAndText('quantity_and_text'),
-  checklist('checklist'),
-  photoRequired('photo_required'),
-  multiApproval('multi_approval');
+  simpleApproval('simple_approval', Colors.green, Icons.check_circle),
+  textRequired('text_required', Colors.blue, Icons.edit),
+  textOptional('text_optional', Colors.blue, Icons.edit),
+  quantityAndText('quantity_and_text', Colors.orange, Icons.format_list_numbered),
+  checklist('checklist', Colors.purple, Icons.checklist),
+  photoRequired('photo_required', Colors.pink, Icons.camera_alt),
+  multiApproval('multi_approval', Colors.teal, Icons.people),
+  customParameters('custom_parameters', Colors.amber, Icons.format_paint);
 
   final String value;
-  const ValidationType(this.value);
+  final Color color;
+  final IconData icon;
+  const ValidationType(this.value, this.color, this.icon);
 
   static ValidationType fromString(String value) {
     return ValidationType.values.firstWhere(
@@ -35,6 +41,8 @@ enum ValidationType {
         return 'Foto obligatoria';
       case ValidationType.multiApproval:
         return 'Aprobación múltiple';
+        case ValidationType.customParameters:
+  return 'Parámetros personalizados';
     }
   }
 
@@ -54,6 +62,8 @@ enum ValidationType {
         return 'Requiere adjuntar una o más fotos';
       case ValidationType.multiApproval:
         return 'Requiere aprobación de múltiples usuarios';
+        case ValidationType.customParameters:
+  return 'Requiere completar parámetros personalizados';
     }
   }
 }
@@ -88,6 +98,9 @@ class ValidationConfigModel {
   /// Placeholder del campo de cantidad
   final String? quantityPlaceholder;
 
+  /// Modo de detalle de texto
+  final TextDetailsMode? textMode;
+
   // ==================== CHECKLIST ====================
   
   /// Items de la checklist
@@ -112,6 +125,11 @@ class ValidationConfigModel {
   /// Número mínimo de aprobaciones necesarias
   final int? minApprovals;
 
+  // ==================== CUSTOM PARAMETERS ====================
+
+  /// Parámetros personalizados
+  final List<CustomParameter>? customParameters;
+
   ValidationConfigModel({
     this.textLabel,
     this.textMinLength,
@@ -127,6 +145,8 @@ class ValidationConfigModel {
     this.maxPhotos,
     this.requiredApproverRoles,
     this.minApprovals,
+    this.customParameters,
+    this.textMode,
   });
 
   factory ValidationConfigModel.fromMap(Map<String, dynamic> map) {
@@ -151,6 +171,14 @@ class ValidationConfigModel {
           ? List<String>.from(map['requiredApproverRoles'] as List)
           : null,
       minApprovals: map['minApprovals'] as int?,
+      customParameters: map['customParameters'] != null
+    ? (map['customParameters'] as List)
+        .map((item) => CustomParameter.fromMap(item as Map<String, dynamic>))
+        .toList()
+    : null,
+    textMode: map['textMode'] != null
+    ? TextDetailsMode.fromString(map['textMode'] as String)
+    : null,
     );
   }
 
@@ -171,6 +199,9 @@ class ValidationConfigModel {
       if (maxPhotos != null) 'maxPhotos': maxPhotos,
       if (requiredApproverRoles != null) 'requiredApproverRoles': requiredApproverRoles,
       if (minApprovals != null) 'minApprovals': minApprovals,
+      if (customParameters != null)
+  'customParameters': customParameters!.map((p) => p.toMap()).toList(),
+  if (textMode != null) 'textMode': textMode!.value,
     };
   }
 
@@ -371,5 +402,92 @@ class ValidationConfigTemplates {
       textMinLength: minLength,
       textMaxLength: maxLength,
     );
+  }
+}
+
+/// Parámetro personalizado
+class CustomParameter {
+  final String id;
+  final String label;
+  final CustomParameterType type;
+  final bool required;
+  final String? placeholder;
+  final dynamic defaultValue;
+
+  CustomParameter({
+    required this.id,
+    required this.label,
+    required this.type,
+    this.required = true,
+    this.placeholder,
+    this.defaultValue,
+  });
+
+  factory CustomParameter.fromMap(Map<String, dynamic> map) {
+    return CustomParameter(
+      id: map['id'] as String,
+      label: map['label'] as String,
+      type: CustomParameterType.fromString(map['type'] as String),
+      required: map['required'] as bool? ?? true,
+      placeholder: map['placeholder'] as String?,
+      defaultValue: map['defaultValue'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'label': label,
+      'type': type.value,
+      'required': required,
+      if (placeholder != null) 'placeholder': placeholder,
+      if (defaultValue != null) 'defaultValue': defaultValue,
+    };
+  }
+
+  CustomParameter copyWith({
+    String? id,
+    String? label,
+    CustomParameterType? type,
+    bool? required,
+    String? placeholder,
+    dynamic defaultValue,
+  }) {
+    return CustomParameter(
+      id: id ?? this.id,
+      label: label ?? this.label,
+      type: type ?? this.type,
+      required: required ?? this.required,
+      placeholder: placeholder ?? this.placeholder,
+      defaultValue: defaultValue ?? this.defaultValue,
+    );
+  }
+}
+
+/// Tipo de parámetro personalizado
+enum CustomParameterType {
+  text('text'),
+  number('number'),
+  boolean('boolean');
+
+  final String value;
+  const CustomParameterType(this.value);
+
+  static CustomParameterType fromString(String value) {
+    return CustomParameterType.values.firstWhere(
+      (type) => type.value == value,
+      orElse: () => CustomParameterType.text,
+    );
+  }
+
+  String get displayName {
+    switch (this) {
+      case CustomParameterType.text:
+        return 'Texto';
+      case CustomParameterType.number:
+        return 'Número';
+      case CustomParameterType.boolean:
+        return 'Sí/No';
+    }
   }
 }

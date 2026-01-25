@@ -5060,7 +5060,7 @@ abstract class AppLocalizations {
   /// No description provided for @validationType.
   ///
   /// In en, this message translates to:
-  /// **'Type'**
+  /// **'Validation Type'**
   String get validationType;
 
   /// No description provided for @validationRequired.
@@ -6449,6 +6449,12 @@ abstract class AppLocalizations {
   /// **'Configure the transition between statuses step by step'**
   String get transitionWizardSubtitle;
 
+  /// No description provided for @type.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get type;
+
   /// No description provided for @configuration.
   ///
   /// In en, this message translates to:
@@ -6658,18 +6664,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No configuration required'**
   String get noConfigurationRequired;
-
-  /// No description provided for @defaultTextLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Text'**
-  String get defaultTextLabel;
-
-  /// No description provided for @defaultQuantityLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Quantity'**
-  String get defaultQuantityLabel;
 
   /// No description provided for @enableConditionalLogic.
   ///
@@ -7054,6 +7048,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your role is not authorized for this transition'**
   String get roleNotAuthorized;
+
+  /// No description provided for @customParameters.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom parameters'**
+  String get customParameters;
+
+  /// No description provided for @addParameter.
+  ///
+  /// In en, this message translates to:
+  /// **'Add parameter'**
+  String get addParameter;
+
+  /// No description provided for @removeParameter.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove parameter'**
+  String get removeParameter;
+
+  /// No description provided for @number.
+  ///
+  /// In en, this message translates to:
+  /// **'Number'**
+  String get number;
+
+  /// No description provided for @booleanType.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes/No'**
+  String get booleanType;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -2544,7 +2544,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get validations => 'Validations';
 
   @override
-  String get validationType => 'Type';
+  String get validationType => 'Validation Type';
 
   @override
   String get validationRequired => 'Validation Required';
@@ -3256,6 +3256,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transitionWizardSubtitle => 'Configure the transition between statuses step by step';
 
   @override
+  String get type => 'Type';
+
+  @override
   String get configuration => 'Configuration';
 
   @override
@@ -3359,12 +3362,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noConfigurationRequired => 'No configuration required';
-
-  @override
-  String get defaultTextLabel => 'Text';
-
-  @override
-  String get defaultQuantityLabel => 'Quantity';
 
   @override
   String get enableConditionalLogic => 'Enable conditional logic';
@@ -3557,4 +3554,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roleNotAuthorized => 'Your role is not authorized for this transition';
+
+  @override
+  String get customParameters => 'Custom parameters';
+
+  @override
+  String get addParameter => 'Add parameter';
+
+  @override
+  String get removeParameter => 'Remove parameter';
+
+  @override
+  String get number => 'Number';
+
+  @override
+  String get booleanType => 'Yes/No';
 }

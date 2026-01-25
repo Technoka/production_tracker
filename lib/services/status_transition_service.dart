@@ -414,72 +414,139 @@ class StatusTransitionService extends ChangeNotifier {
     }
   }
 
-  /// Validar datos de una transición
-  Map<String, String?> validateTransitionData({
-    required StatusTransitionModel transition,
-    required ValidationDataModel validationData,
-  }) {
-    final errors = <String, String?>{};
+  /// Valida si una transición de estado es permitida y si los datos proporcionados cumplen los requisitos.
+  ///
+  /// Retorna un mapa con:
+  /// - 'isValid': bool
+  /// - 'error': String? (si falla)
+  /// - 'requiresValidation': bool (si necesita datos extra)
+  /// - 'validationType': String? (tipo de validación requerida)
+  /// - 'validationConfig': Map? (configuración para el UI)
+  /// - 'requiresApproval': bool (si la lógica condicional pide aprobación)
+  /// - 'requiredApprovers': List<String>? (roles que deben aprobar)
+/// Validar datos de una transición
+/// Retorna un mapa con errores (vacío si todo es válido)
+Map<String, String?> validateTransitionData({
+  required StatusTransitionModel transition,
+  required ValidationDataModel validationData,
+}) {
+  final errors = <String, String?>{};
 
-    switch (transition.validationType) {
-      case ValidationType.simpleApproval:
-        // No requiere validación adicional
-        break;
+  switch (transition.validationType) {
+    case ValidationType.simpleApproval:
+      // No requiere validación adicional
+      break;
 
-      case ValidationType.textRequired:
+    case ValidationType.textRequired:
+      final textError = transition.validationConfig.validateText(
+        validationData.text,
+      );
+      if (textError != null) errors['text'] = textError;
+      break;
+
+    case ValidationType.textOptional:
+      // Opcional, pero si se proporciona debe ser válido
+      if (validationData.text != null && validationData.text!.isNotEmpty) {
         final textError = transition.validationConfig.validateText(
           validationData.text,
         );
         if (textError != null) errors['text'] = textError;
-        break;
+      }
+      break;
 
-      case ValidationType.textOptional:
-        // Opcional, pero si se proporciona debe ser válido
-        if (validationData.text != null && validationData.text!.isNotEmpty) {
-          final textError = transition.validationConfig.validateText(
-            validationData.text,
-          );
-          if (textError != null) errors['text'] = textError;
-        }
-        break;
+    case ValidationType.quantityAndText:
+  // Validar cantidad
+  final quantityError = transition.validationConfig.validateQuantity(
+    validationData.quantity,
+  );
+  if (quantityError != null) errors['quantity'] = quantityError;
 
-      case ValidationType.quantityAndText:
-        final quantityError = transition.validationConfig.validateQuantity(
-          validationData.quantity,
-        );
-        if (quantityError != null) errors['quantity'] = quantityError;
-
-        final textError = transition.validationConfig.validateText(
-          validationData.text,
-        );
-        if (textError != null) errors['text'] = textError;
-        break;
-
-      case ValidationType.checklist:
-        final checklistError = transition.validationConfig.validateChecklist(
-          validationData.checklistAnswers ?? {},
-        );
-        if (checklistError != null) errors['checklist'] = checklistError;
-        break;
-
-      case ValidationType.photoRequired:
-        final photoError = transition.validationConfig.validatePhotos(
-          validationData.photoUrls?.length ?? 0,
-        );
-        if (photoError != null) errors['photos'] = photoError;
-        break;
-
-      case ValidationType.multiApproval:
-        final approvedCount = validationData.approvedBy?.length ?? 0;
-        final minApprovals = transition.validationConfig.minApprovals ?? 1;
-        if (approvedCount < minApprovals) {
-          errors['approvals'] = 'Se requieren al menos $minApprovals aprobaciones';
-        }
-        break;
+  // Validar texto según modo
+  if (validationData.textMode == TextDetailsMode.single) {
+    // Modo single: validar el campo text
+    final textError = transition.validationConfig.validateText(
+      validationData.text ?? validationData.singleTextReason,
+    );
+    if (textError != null) errors['text'] = textError;
+  } else if (validationData.textMode == TextDetailsMode.individual) {
+    // Modo individual: validar que haya descripciones
+    if (validationData.individualDefects == null || 
+        validationData.individualDefects!.isEmpty) {
+      errors['text'] = 'Debes proporcionar descripciones individuales';
     }
-
-    return errors;
+  } else {
+    // Sin modo especificado, validar text normal
+    final textError = transition.validationConfig.validateText(
+      validationData.text,
+    );
+    if (textError != null) errors['text'] = textError;
   }
+  break;
+
+    case ValidationType.checklist:
+      final checklistError = transition.validationConfig.validateChecklist(
+        validationData.checklistAnswers ?? {},
+      );
+      if (checklistError != null) errors['checklist'] = checklistError;
+      break;
+
+    case ValidationType.photoRequired:
+      final photoError = transition.validationConfig.validatePhotos(
+        validationData.photoUrls?.length ?? 0,
+      );
+      if (photoError != null) errors['photos'] = photoError;
+      break;
+
+    case ValidationType.multiApproval:
+      final approvedCount = validationData.approvedBy?.length ?? 0;
+      final minApprovals = transition.validationConfig.minApprovals ?? 1;
+      if (approvedCount < minApprovals) {
+        errors['approvals'] = 'Se requieren al menos $minApprovals aprobaciones';
+      }
+      break;
+
+    case ValidationType.customParameters:
+      // Validar custom parameters
+      final params = transition.validationConfig.customParameters ?? [];
+      final data = validationData.customParametersData ?? {};
+      
+      for (var param in params) {
+        if (!param.required) continue;
+        
+        // Verificar que el parámetro exista
+        if (!data.containsKey(param.id)) {
+          errors[param.id] = '${param.label} es obligatorio';
+          continue;
+        }
+        
+        final value = data[param.id];
+        
+        // Validar según tipo
+        switch (param.type) {
+          case CustomParameterType.text:
+            if (value == null || value.toString().trim().isEmpty) {
+              errors[param.id] = '${param.label} no puede estar vacío';
+            }
+            break;
+            
+          case CustomParameterType.number:
+            if (value == null || value is! int) {
+              errors[param.id] = '${param.label} debe ser un número válido';
+            }
+            break;
+            
+          case CustomParameterType.boolean:
+            if (value == null || value is! bool) {
+              errors[param.id] = '${param.label} debe ser verdadero o falso';
+            }
+            break;
+        }
+      }
+      break;
+  }
+
+  return errors;
+}
 
   /// Evaluar lógica condicional
   bool evaluateConditionalLogic({

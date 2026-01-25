@@ -617,7 +617,6 @@
   "historyTitle": "History",
   "moveNextPhaseBtn": "Next Phase",
   "phaseUpdatedSuccess": "Phase updated successfully",
-  "quantityLabel": "Quantity",
   "referenceLabel": "Reference",
 
   "@_.CHAT_EXTENDED": {},
@@ -1221,7 +1220,7 @@
 "errorDeletingTransition": "Error deleting transition",
 "transitionWizardSubtitle": "Configure the transition between statuses step by step",
 "basicSettings": "Basic",
-"validationType": "Type",
+"type": "Type",
 "configuration": "Configuration",
 "conditionalLogic": "Logic",
 "summary": "Summary",
@@ -1263,8 +1262,6 @@
 "minApprovalsHint": "Ex: 2",
 "validationConfiguration": "Validation Configuration",
 "noConfigurationRequired": "No configuration required",
-"defaultTextLabel": "Text",
-"defaultQuantityLabel": "Quantity",
 "enableConditionalLogic": "Enable conditional logic",
 "conditionalLogicSubtitle": "Add automatic rules based on entered data",
 "condition": "Condition",
@@ -1276,7 +1273,6 @@
 "actionType": "Action type",
 "message": "Message",
 "messageHint": "Message to display",
-"quantity": "Quantity",
 "textLength": "Text length",
 "photoCount": "Number of photos",
 "approvalCount": "Number of approvals",
@@ -1344,5 +1340,11 @@
 
 "noTransitionConfigured": "No transition configured between these statuses",
 "transitionNotActive": "This transition is deactivated",
-"roleNotAuthorized": "Your role is not authorized for this transition"
+"roleNotAuthorized": "Your role is not authorized for this transition",
+
+"customParameters": "Custom parameters",
+"addParameter": "Add parameter",
+"removeParameter": "Remove parameter",
+"number": "Number",
+"booleanType": "Yes/No"
 }
