@@ -63,9 +63,18 @@ class _PhotoValidationDialogState extends State<PhotoValidationDialog> {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
+                  Text(
+                    '${l10n.skuLabel} ${widget.product.productReference!}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
-                      Text(widget.transition.fromStatusName, style: const TextStyle(fontSize: 12)),
+                      Text(widget.transition.fromStatusName,
+                          style: const TextStyle(fontSize: 12)),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 6),
                         child: Icon(Icons.arrow_forward, size: 14),
@@ -94,7 +103,8 @@ class _PhotoValidationDialogState extends State<PhotoValidationDialog> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, size: 20, color: Colors.blue.shade700),
+                  Icon(Icons.info_outline,
+                      size: 20, color: Colors.blue.shade700),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -268,17 +278,20 @@ class _PhotoValidationDialogState extends State<PhotoValidationDialog> {
 
     try {
       final List<String> photoUrls = [];
-      
+
       for (int i = 0; i < _selectedImages.length; i++) {
         final image = _selectedImages[i];
-        final fileName = 'products/${widget.product.id}/${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-        
+        final fileName =
+            'products/${widget.product.id}/${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
+
         final ref = FirebaseStorage.instance.ref().child(fileName);
         final uploadTask = ref.putFile(File(image.path));
 
         uploadTask.snapshotEvents.listen((snapshot) {
           setState(() {
-            _uploadProgress = (i + snapshot.bytesTransferred / snapshot.totalBytes) / _selectedImages.length;
+            _uploadProgress =
+                (i + snapshot.bytesTransferred / snapshot.totalBytes) /
+                    _selectedImages.length;
           });
         });
 

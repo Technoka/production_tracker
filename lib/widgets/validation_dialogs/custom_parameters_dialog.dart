@@ -123,6 +123,14 @@ class _CustomParametersDialogState extends State<CustomParametersDialog> {
             ),
           ),
           const SizedBox(height: 4),
+          Text(
+            '${l10n.skuLabel} ${widget.product.productReference!}',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 4),
           Row(
             children: [
               Text(

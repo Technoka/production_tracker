@@ -67,11 +67,22 @@ class _ChecklistDialogState extends State<ChecklistDialog> {
                       widget.product.productName,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                  ),Text(
-                widget.transition.fromStatusName,
-                style: const TextStyle(fontSize: 12),
-              ),
-                  Icon(Icons.arrow_forward, size: 16, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${l10n.skuLabel} ${widget.product.productReference!}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.transition.fromStatusName,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  Icon(Icons.arrow_forward,
+                      size: 16, color: Colors.grey.shade600),
                   const SizedBox(width: 8),
                   Text(
                     widget.transition.toStatusName,
@@ -96,7 +107,8 @@ class _ChecklistDialogState extends State<ChecklistDialog> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, size: 20, color: Colors.orange.shade700),
+                    Icon(Icons.info_outline,
+                        size: 20, color: Colors.orange.shade700),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(

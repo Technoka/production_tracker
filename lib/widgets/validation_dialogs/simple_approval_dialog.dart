@@ -58,6 +58,14 @@ class SimpleApprovalDialog extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
+                  '${l10n.skuLabel} ${product.productReference!}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
                   '${l10n.quantity}: ${product.quantity}',
                   style: TextStyle(
                     fontSize: 13,

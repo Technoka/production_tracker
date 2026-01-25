@@ -65,6 +65,14 @@ class _MultiApprovalDialogState extends State<MultiApprovalDialog> {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
+                  Text(
+                    '${l10n.skuLabel} ${widget.product.productReference!}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       Text(widget.transition.fromStatusName,
@@ -138,10 +146,11 @@ class _MultiApprovalDialogState extends State<MultiApprovalDialog> {
                   }
 
                   final members = snapshot.data ?? [];
-                  
+
                   // Filtrar solo miembros con roles permitidos para aprobar
                   final eligibleMembers = members.where((member) {
-                    return widget.transition.allowedRoles.contains(member.roleId);
+                    return widget.transition.allowedRoles
+                        .contains(member.roleId);
                   }).toList();
 
                   if (eligibleMembers.isEmpty) {
@@ -158,7 +167,8 @@ class _MultiApprovalDialogState extends State<MultiApprovalDialog> {
                     itemCount: eligibleMembers.length,
                     itemBuilder: (context, index) {
                       final member = eligibleMembers[index];
-                      final isSelected = _selectedApprovers.contains(member.userId);
+                      final isSelected =
+                          _selectedApprovers.contains(member.userId);
 
                       return CheckboxListTile(
                         title: Text(member.userName),
@@ -176,7 +186,9 @@ class _MultiApprovalDialogState extends State<MultiApprovalDialog> {
                           child: Text(
                             (member.userName)[0].toUpperCase(),
                             style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.grey.shade700,
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.grey.shade700,
                             ),
                           ),
                         ),
