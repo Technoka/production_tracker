@@ -478,6 +478,9 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
 // ================= NUEVO CÃ“DIGO PARA ESTADOS DEL PRODUCTO =================
   Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
+    // Obtener el icono desde statusIcon si existe, sino usar el statusId
+    final statusIconValue = product.statusIcon ?? product.statusId ?? 'help_outline';
+    
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -487,7 +490,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             Row(
               children: [
                 Icon(
-                  _getIconData(product.statusId!),
+                  _getIconData(statusIconValue),
                   color: product.effectiveStatusColor,
                 ),
                 const SizedBox(width: 8),
@@ -531,13 +534,12 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               decoration: BoxDecoration(
                 color: product.effectiveStatusColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border:
-                    Border.all(color: product.effectiveStatusColor, width: 2),
+                border: Border.all(color: product.effectiveStatusColor, width: 2),
               ),
               child: Row(
                 children: [
                   Icon(
-                    _getIconData(product.statusId!),
+                    _getIconData(statusIconValue),
                     color: product.effectiveStatusColor,
                     size: 25,
                   ),
@@ -547,20 +549,29 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          product.statusName!,
+                          product.effectiveStatusName,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: product.effectiveStatusColor,
                           ),
                         ),
-                        Text(
-                          _getStatusDescription(product.statusName!),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[700],
+                        if (product.statusName != null)
+                          Text(
+                            product.statusName!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                            ),
+                          )
+                        else
+                          Text(
+                            _getStatusDescription(product.productStatus),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -978,6 +989,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       context,
       listen: false,
     );
+    final phaseService = Provider.of<PhaseService>(context, listen: false);
 
     return FutureBuilder<bool>(
       future: memberService.can('batch_products', 'changeStatus'),
@@ -986,13 +998,11 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
         if (!canChangeStatus) return const SizedBox.shrink();
 
-        // Cargar transiciones disponibles desde el estado actual
-        final currentStatusId = product.statusId ?? 'pending';
-
-        return FutureBuilder<List<StatusTransitionModel>>(
-          future: _loadAvailableTransitions(currentStatusId),
-          builder: (context, transSnapshot) {
-            if (transSnapshot.connectionState == ConnectionState.waiting) {
+        // Verificar si está en la última fase
+        return FutureBuilder<List<ProductionPhase>>(
+          future: phaseService.getActivePhases(widget.organizationId),
+          builder: (context, phasesSnapshot) {
+            if (phasesSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.all(16.0),
@@ -1001,52 +1011,130 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               );
             }
 
-            if (transSnapshot.hasError) {
+            if (phasesSnapshot.hasError) {
               return Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  'Error al cargar transiciones: ${transSnapshot.error}',
+                  'Error al cargar fases: ${phasesSnapshot.error}',
                   style: const TextStyle(color: Colors.red),
                 ),
               );
             }
 
-            final transitions = transSnapshot.data ?? [];
+            final phases = phasesSnapshot.data ?? [];
+            
+            // Encontrar la última fase (mayor order)
+            ProductionPhase? lastPhase;
+            if (phases.isNotEmpty) {
+              lastPhase = phases.reduce((a, b) => a.order > b.order ? a : b);
+            }
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Acciones Disponibles',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+            // Verificar si el producto está en la última fase
+            final isInLastPhase = lastPhase != null && 
+                                  product.currentPhase == lastPhase.id;
+
+            if (!isInLastPhase) {
+              // No está en la última fase, no mostrar acciones
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Acciones Disponibles',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                // TODO: solo mostrar acciones si el producto esta en la ultima fase
-                if (transitions.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.blue.shade700),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Las acciones de estado están disponibles solo cuando el producto llegue a la última fase de producción (${lastPhase?.name ?? "desconocida"})',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.blue.shade900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            // Está en la última fase, cargar transiciones disponibles
+            final currentStatusId = product.statusId ?? 'pending';
+
+            return FutureBuilder<List<StatusTransitionModel>>(
+              future: _loadAvailableTransitions(currentStatusId),
+              builder: (context, transSnapshot) {
+                if (transSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+
+                if (transSnapshot.hasError) {
+                  return Padding(
+                    padding: const EdgeInsets.all(16.0),
                     child: Text(
-                      'No hay transiciones disponibles desde este estado',
+                      'Error al cargar transiciones: ${transSnapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
+                final transitions = transSnapshot.data ?? [];
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Acciones Disponibles',
                       style: TextStyle(
-                        color: Colors.grey,
-                        fontStyle: FontStyle.italic,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  )
-                else
-                  ...transitions.map((transition) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: _buildTransitionButton(
-                        transition: transition,
-                        product: product,
-                      ),
-                    );
-                  }).toList(),
-              ],
+                    const SizedBox(height: 12),
+                    if (transitions.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        child: Text(
+                          'No hay transiciones disponibles desde este estado',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      )
+                    else
+                      ...transitions.map((transition) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: _buildTransitionButton(
+                            transition: transition,
+                            product: product,
+                          ),
+                        );
+                      }).toList(),
+                  ],
+                );
+              },
             );
           },
         );
