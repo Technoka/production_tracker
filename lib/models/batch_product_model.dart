@@ -30,6 +30,7 @@ class StatusHistoryEntry {
   final String statusId;
   final String statusName;
   final String statusColor;
+  final String statusIcon;
   final DateTime timestamp;
   final String userId;
   final String userName;
@@ -40,6 +41,7 @@ class StatusHistoryEntry {
     required this.statusId,
     required this.statusName,
     required this.statusColor,
+    required this.statusIcon,
     required this.timestamp,
     required this.userId,
     required this.userName,
@@ -52,6 +54,7 @@ class StatusHistoryEntry {
       'statusId': statusId,
       'statusName': statusName,
       'statusColor': statusColor,
+      'statusIcon': statusIcon,
       'timestamp': Timestamp.fromDate(timestamp),
       'userId': userId,
       'userName': userName,
@@ -65,6 +68,7 @@ class StatusHistoryEntry {
       statusId: map['statusId'] as String,
       statusName: map['statusName'] as String,
       statusColor: map['statusColor'] as String? ?? '#757575',
+      statusIcon: map['statusIcon'] as String? ?? '',
       timestamp: (map['timestamp'] as Timestamp).toDate(),
       userId: map['userId'] as String,
       userName: map['userName'] as String,
@@ -115,6 +119,7 @@ class BatchProductModel {
   final String? statusId; // ID del estado personalizado
   final String? statusName; // Nombre desnormalizado del estado
   final String? statusColor; // Color desnormalizado (hex)
+  final String? statusIcon;
   final List<StatusHistoryEntry> statusHistory; // Historial de cambios de estado
   
   final DateTime? sentToClientAt;
@@ -162,6 +167,7 @@ class BatchProductModel {
     this.statusId,
     this.statusName,
     this.statusColor,
+    this.statusIcon,
     this.statusHistory = const [],
     this.sentToClientAt,
     this.evaluatedAt,
@@ -210,6 +216,7 @@ class BatchProductModel {
       'statusId': statusId, // Nuevo
       'statusName': statusName, // Nuevo
       'statusColor': statusColor, // Nuevo
+      'statusIcon': statusIcon,
       'statusHistory': statusHistory.map((e) => e.toMap()).toList(), // Nuevo
       'sentToClientAt': sentToClientAt != null ? Timestamp.fromDate(sentToClientAt!) : null,
       'evaluatedAt': evaluatedAt != null ? Timestamp.fromDate(evaluatedAt!) : null,
@@ -270,6 +277,7 @@ class BatchProductModel {
       statusId: map['statusId'] as String?,
       statusName: map['statusName'] as String?,
       statusColor: map['statusColor'] as String?,
+      statusIcon: map['statusIcon'] as String?,
       statusHistory: history,
       sentToClientAt: map['sentToClientAt'] != null ? (map['sentToClientAt'] as Timestamp).toDate() : null,
       evaluatedAt: map['evaluatedAt'] != null ? (map['evaluatedAt'] as Timestamp).toDate() : null,
@@ -318,6 +326,7 @@ class BatchProductModel {
     String? statusId,
     String? statusName,
     String? statusColorValue, // Renombrado el parámetro para evitar conflicto
+    String? statusIcon,
     List<StatusHistoryEntry>? statusHistory,
     DateTime? sentToClientAt,
     DateTime? evaluatedAt,
