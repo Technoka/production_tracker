@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/screens/management/management_screen.dart';
-import 'package:gestion_produccion/screens/profile/user_preferences_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/organization_service.dart';
-import '../utils/role_utils.dart';
 import '../l10n/app_localizations.dart';
 import 'profile/profile_screen.dart';
 import 'organization/organization_home_screen.dart';
@@ -13,7 +11,6 @@ import 'production/create_production_batch_screen.dart';
 import '../widgets/production_dashboard_widget.dart';
 import '../widgets/kanban/kanban_board_widget.dart';
 import '../widgets/bottom_nav_bar_widget.dart';
-import '../widgets/sla/sla_alert_badge.dart';
 import '../../screens/dashboard/metrics_dashboard_screen.dart';
 import '../../models/user_model.dart';
 import '../../services/update_service.dart';
@@ -210,28 +207,31 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 4),
                       // RoleUtils.buildRoleBadge(user.role, compact: true),
                       // ✅ NUEVO: Badge con el rol del usuario
-            if (_memberRoleName != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _memberRoleName!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+                      if (_memberRoleName != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _memberRoleName!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ],
             ),
-
 
             const SizedBox(height: 24),
 
@@ -554,47 +554,51 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// ✅ MEJORADO
-Widget _buildUserHeader(UserModel user, AppLocalizations l10n) {
-  return Row(
-    children: [
-      // Avatar clickable
-      IconButton(
-        icon: CircleAvatar(
-          radius: 30,
-          child: Text(user.name[0].toUpperCase()),  // ✅ Usa el nuevo getter
+  Widget _buildUserHeader(UserModel user, AppLocalizations l10n) {
+    return Row(
+      children: [
+        // Avatar clickable
+        IconButton(
+          icon: CircleAvatar(
+            radius: 30,
+            child: Text(user.name[0].toUpperCase()), // ✅ Usa el nuevo getter
+          ),
+          onPressed: () {/* ir a perfil */},
         ),
-        onPressed: () { /* ir a perfil */ },
-      ),
-      const SizedBox(width: 16),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${l10n.welcome}, ${user.name}'),
-            const SizedBox(height: 4),
-            // ✅ NUEVO: Badge con el rol del usuario
-            if (_memberRoleName != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _memberRoleName!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w600,
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${l10n.welcome}, ${user.name}'),
+              const SizedBox(height: 4),
+              // ✅ NUEVO: Badge con el rol del usuario
+              if (_memberRoleName != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _memberRoleName!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
   void _showLogoutDialog(AuthService authService, AppLocalizations l10n) {
     showDialog(
