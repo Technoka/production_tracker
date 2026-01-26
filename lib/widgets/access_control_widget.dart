@@ -412,7 +412,6 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildMemberSelectionSkeleton();
         }
-        print("snapshot data: ${snapshot.data}");
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return Center(
             child: Padding(
