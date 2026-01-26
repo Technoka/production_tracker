@@ -43,12 +43,12 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: widget.client.isActive ? widget.client.colorValue.withAlpha(10) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: widget.client.isActive ? widget.client.colorValue.withAlpha(120) : Colors.grey.shade100),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withAlpha(8),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -75,13 +75,13 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                           CircleAvatar(
                             radius: 20,
                             backgroundColor:
-                                theme.primaryColor.withOpacity(0.1),
+                                widget.client.isActive ? widget.client.colorValue.withAlpha(200) : Colors.grey.shade100,
                             child: Text(
                               widget.client.initials,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: theme.primaryColor,
+                                color: Colors.black,
                               ),
                             ),
                           ),

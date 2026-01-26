@@ -17,6 +17,7 @@ class DraggableProductCard extends StatelessWidget {
   final VoidCallback? onDragEnd;
   final bool showStatus;
   final String? statusName;
+  final Color clientColor;
 
   const DraggableProductCard({
     Key? key,
@@ -29,6 +30,7 @@ class DraggableProductCard extends StatelessWidget {
     this.onDragEnd,
     required this.showStatus,
     this.statusName,
+    required this.clientColor,
   }) : super(key: key);
 
   @override
@@ -71,6 +73,7 @@ class DraggableProductCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       elevation: isFeedback ? 0 : 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      color: clientColor.withAlpha(60),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
@@ -95,14 +98,15 @@ class DraggableProductCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.inventory_2,
-                            size: 10, color: Colors.grey.shade700),
+                            size: 10, color: clientColor),
                         const SizedBox(width: 4),
                         Text(
                           'Lote: $batchNumber (#${product.productNumber}/${batch.totalProducts})',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade700,
+                            color: Colors.black,
+                            backgroundColor: clientColor.withAlpha(30),
                           ),
                         ),
                       ],
@@ -192,14 +196,14 @@ class DraggableProductCard extends StatelessWidget {
                           Row(
                             children: [
                               const Icon(Icons.tag,
-                                  size: 12, color: Colors.grey),
+                                  size: 12, color: Colors.black),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
                                   'SKU: ${product.productReference!}',
                                   style: const TextStyle(
                                     fontSize: 11,
-                                    color: Colors.grey,
+                                    color: Colors.black,
                                     fontWeight: FontWeight.w500,
                                   ),
                                   maxLines: 1,
@@ -215,12 +219,12 @@ class DraggableProductCard extends StatelessWidget {
                         Row(
                           children: [
                             const Icon(Icons.shopping_cart,
-                                size: 12, color: Colors.grey),
+                                size: 12, color: Colors.black),
                             const SizedBox(width: 4),
                             Text(
                               'Cantidad: ${product.quantity}',
                               style: const TextStyle(
-                                  fontSize: 11, color: Colors.grey),
+                                  fontSize: 11, color: Colors.black),
                             ),
                           ],
                         ),

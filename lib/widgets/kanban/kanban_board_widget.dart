@@ -9,11 +9,14 @@ import '../../models/production_batch_model.dart';
 import '../../models/user_model.dart';
 import '../../models/product_status_model.dart';
 import '../../models/organization_member_model.dart';
+import '../../models/client_model.dart';
 import '../../models/role_model.dart';
 import '../../models/permission_model.dart';
 import '../../services/phase_service.dart';
 import '../../services/production_batch_service.dart';
 import '../../services/product_status_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/client_service.dart';
 import '../../services/organization_member_service.dart';
 import '../../services/status_transition_service.dart';
 import 'draggable_product_card.dart';
@@ -796,7 +799,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
   // Continúa en PARTE 3...
 // CONTINUACIÓN PARTE 3/3
 
-  Widget _buildKanbanColumn(
+Widget _buildKanbanColumn(
     dynamic column,
     List<Map<String, dynamic>> productsData,
     bool isAtWipLimit,
@@ -804,6 +807,11 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     AppLocalizations l10n, {
     required bool isPhaseView,
   }) {
+    // 1. Necesitamos el ID de la organización para pedir los clientes
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserData;
+    final clientService = Provider.of<ClientService>(context, listen: false);
+
     final String columnName = isPhaseView
         ? (column as ProductionPhase).name
         : (column as ProductStatusModel).name;
@@ -816,71 +824,90 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
 
     final color = _parseColor(columnColor);
 
-    return Container(
-      width: 250,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isAtWipLimit
-              ? Colors.orange
-              : !hasAccess
-                  ? Colors.grey.shade400
-                  : Colors.grey.shade300,
-          width: isAtWipLimit || !hasAccess ? 2 : 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildColumnHeader(
-            columnName,
-            color,
-            columnIcon,
-            productsData.length,
-            isAtWipLimit,
-            hasAccess,
-            l10n,
-            isPhaseView: isPhaseView,
-            wipLimit: isPhaseView ? (column as ProductionPhase).wipLimit : 0,
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: productsData.isEmpty
-                ? _buildEmptyColumnState(l10n)
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: productsData.length,
-                    itemBuilder: (context, index) {
-                      final product =
-                          productsData[index]['product'] as BatchProductModel;
-                      final batch =
-                          productsData[index]['batch'] as ProductionBatchModel;
+    // 2. Envolvemos TODO el contenedor en un StreamBuilder de Clientes
+    return FutureBuilder<List<ClientModel>>(
+      future: clientService.getOrganizationClients(user!.organizationId!),
+      builder: (context, snapshot) {
+        
+        // Creamos el mapa de colores (si no hay datos aún, mapa vacío)
+        final clients = snapshot.data ?? [];
+        final Map<String, String> clientColors = {
+          for (var client in clients) client.id: client.color!
+        };
 
-                      return DraggableProductCard(
-                        key: ValueKey(product.id),
-                        product: product,
-                        allPhases: _cachedPhases,
-                        batchNumber: batch.batchNumber,
-                        batch: batch,
-                        onTap: () => _handleProductTap(product, batch),
-                        onDragStarted: () {
-                          _isDragging = true;
-                        },
-                        onDragEnd: () {
-                          _isDragging = false;
-                          _scrollSpeed = 0;
-                        },
-                        showStatus:
-                            isPhaseView, // Mostrar estado en vista por fases
-                        statusName: _getStatusName(product.statusId),
-                      );
-                    },
-                  ),
+        return Container(
+          width: 250,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isAtWipLimit
+                  ? Colors.orange
+                  : !hasAccess
+                      ? Colors.grey.shade400
+                      : Colors.grey.shade300,
+              width: isAtWipLimit || !hasAccess ? 2 : 1,
+            ),
           ),
-        ],
-      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildColumnHeader(
+                columnName,
+                color,
+                columnIcon,
+                productsData.length,
+                isAtWipLimit,
+                hasAccess,
+                l10n,
+                isPhaseView: isPhaseView,
+                wipLimit:
+                    isPhaseView ? (column as ProductionPhase).wipLimit : 0,
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: productsData.isEmpty
+                    ? _buildEmptyColumnState(l10n)
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: productsData.length,
+                        itemBuilder: (context, index) {
+                          final product = productsData[index]['product']
+                              as BatchProductModel;
+                          final batch = productsData[index]['batch']
+                              as ProductionBatchModel;
+
+                          // 3. Ahora podemos buscar el color directamente aquí
+                          // Usamos el mapa que acabamos de crear arriba
+                          Color clientColor = parseColorValue(clientColors[batch.clientId]);
+                          print('Client ID: ${batch.clientId}, Color: ${clientColors[batch.clientId]}');
+
+                          return DraggableProductCard(
+                            key: ValueKey(product.id),
+                            product: product,
+                            allPhases: _cachedPhases,
+                            batchNumber: batch.batchNumber,
+                            batch: batch,
+                            clientColor: clientColor, // <--- Pasamos el color
+                            onTap: () => _handleProductTap(product, batch),
+                            onDragStarted: () {
+                              _isDragging = true;
+                            },
+                            onDragEnd: () {
+                              _isDragging = false;
+                              _scrollSpeed = 0;
+                            },
+                            showStatus: isPhaseView,
+                            statusName: _getStatusName(product.statusId),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -1730,6 +1757,15 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
 
       default:
         return Icons.circle;
+    }
+  }
+
+    Color parseColorValue(String? color) {
+    if (color == null) return defaultColor;
+    try {
+      return Color(int.parse(color.replaceAll('#', '0xFF')));
+    } catch (e) {
+      return defaultColor;
     }
   }
 }
