@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:gestion_produccion/l10n/app_localizations.dart';
 import 'package:uuid/uuid.dart';
 import '../models/production_batch_model.dart';
 import '../models/batch_product_model.dart';
@@ -11,6 +12,8 @@ import '../models/permission_registry_model.dart';
 import 'product_status_service.dart';
 import 'status_transition_service.dart';
 import 'organization_member_service.dart';
+import '../../utils/message_events_helper.dart';
+import 'package:flutter/material.dart';
 
 /// Servicio para gestión de Lotes de Producción con soporte completo
 /// de roles, permisos (incluyendo overrides) y validaciones de estado
@@ -550,6 +553,7 @@ class ProductionBatchService extends ChangeNotifier {
     required String toStatusId,
     required String userId,
     required String userName,
+    required AppLocalizations l10n,
     Map<String, dynamic>? validationData,
     String? notes,
   }) async {
@@ -601,7 +605,6 @@ class ProductionBatchService extends ChangeNotifier {
       );
 
       if (validationResult['isValid'] != true) {
-        print("transicion no valida");
         throw Exception(validationResult['error'] ?? 'Transición no válida');
       }
 
@@ -644,6 +647,25 @@ class ProductionBatchService extends ChangeNotifier {
           .update({
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      // 🆕 Generar evento de cambio de estado con información de validación
+      final fromStatus = await _statusService.getStatusById(
+        organizationId,
+        fromStatusId,
+      );
+      
+      await MessageEventsHelper.onProductStatusChangedV2(
+        organizationId: organizationId,
+        batchId: batchId,
+        productId: productId,
+        productName: product.productName,
+        productNumber: product.productNumber,
+        productCode: product.productCode,
+        oldStatusName: fromStatus?.name ?? l10n.unknown,
+        newStatusName: toStatus.name,
+        changedBy: userName,
+        validationData: validationData,
+      );
 
       _isLoading = false;
       notifyListeners();
@@ -763,9 +785,9 @@ class ProductionBatchService extends ChangeNotifier {
     required String productId,
     required String userId,
     int? quantity,
-    double? unitPrice,
-    String? notes,
-    Map<String, dynamic>? customization,
+    DateTime? dueDate,
+    String? productNotes,
+    String? urgencyLevel,
   }) async {
     try {
       _isLoading = true;
@@ -785,14 +807,9 @@ class ProductionBatchService extends ChangeNotifier {
       };
 
       if (quantity != null) updates['quantity'] = quantity;
-      if (unitPrice != null) {
-        updates['unitPrice'] = unitPrice;
-        if (quantity != null) {
-          updates['totalPrice'] = quantity * unitPrice;
-        }
-      }
-      if (notes != null) updates['notes'] = notes;
-      if (customization != null) updates['customization'] = customization;
+      if (productNotes != null) updates['productNotes'] = productNotes;
+      if (dueDate != null) updates['dueDate'] = Timestamp.fromDate(dueDate);
+      if (urgencyLevel != null) updates['urgencyLevel'] = urgencyLevel;
 
       await _firestore
           .collection('organizations')
@@ -867,6 +884,7 @@ class ProductionBatchService extends ChangeNotifier {
           .doc(batchId)
           .update({
         'updatedAt': FieldValue.serverTimestamp(),
+        'totalProducts': FieldValue.increment(-1),
       });
 
       _isLoading = false;
