@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'permission_override_model.dart';
-import 'permission_registry_model.dart';
 import 'permission_registry_client_extension.dart';
+
+const Color defaultColor = Colors.white;
 
 class ClientModel {
   final String id;
@@ -70,7 +71,7 @@ class ClientModel {
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'isActive': isActive,
       'userId': userId,
-      'color': color,
+      'color': color ?? defaultColor,
       'clientPermissions': clientPermissions,
     };
   }
@@ -178,12 +179,12 @@ class ClientModel {
   // ==================== NUEVOS GETTERS - UI ====================
 
   /// Obtener color como objeto Color (si existe)
-  Color? get colorValue {
-    if (color == null) return null;
+  Color get colorValue {
+    if (color == null) return defaultColor;
     try {
       return Color(int.parse(color!.replaceAll('#', '0xFF')));
     } catch (e) {
-      return null;
+      return defaultColor;
     }
   }
 
