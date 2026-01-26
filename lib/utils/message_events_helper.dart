@@ -126,8 +126,9 @@ class MessageEventsHelper {
   }) async {
     await _messageService.createSystemEvent(
       organizationId: organizationId,
-      entityType: 'batch',
-      entityId: batchId,
+      entityType: 'batch_product',
+      entityId: productId,
+      parentId: batchId,
       eventType: SystemEventType.productMoved,
       eventData: {
         'productId': productId,
@@ -220,6 +221,105 @@ class MessageEventsHelper {
         'newStatus': newStatus,
         'changedBy': changedBy,
       },
+      isInternal: false,
+    );
+  }
+
+  /// Evento: Cambio de urgencia del producto
+  static Future<void> onProductUrgencyChanged({
+    required String organizationId,
+    required String batchId,
+    required String productId,
+    required String productName,
+    int? productNumber,
+    String? productCode,
+    required String oldUrgency,
+    required String newUrgency,
+    required String changedBy,
+  }) async {
+    await _messageService.createSystemEvent(
+      organizationId: organizationId,
+      entityType: 'batch_product',
+      entityId: productId,
+      parentId: batchId,
+      eventData: {
+        'batchId': batchId,
+        'productId': productId,
+        'productName': productName,
+        'productNumber': productNumber,
+        'productCode': productCode,
+        'oldUrgency': oldUrgency,
+        'newUrgency': newUrgency,
+        'changedBy': changedBy,
+      },
+      eventType: SystemEventType.productUrgencyChanged,
+      isInternal: false, // Visible para cliente
+    );
+  }
+
+  /// Evento: Cambio de fase del producto (mejorado con info de validación)
+  static Future<void> onProductPhaseChanged({
+    required String organizationId,
+    required String batchId,
+    required String productId,
+    required String productName,
+    int? productNumber,
+    String? productCode,
+    required String oldPhaseName,
+    required String newPhaseName,
+    required String changedBy,
+    Map<String, dynamic>? validationData,
+  }) async {
+    await _messageService.createSystemEvent(
+      organizationId: organizationId,
+      entityType: 'product',
+      entityId: productId,
+      eventData: {
+        'batchId': batchId,
+        'productId': productId,
+        'productName': productName,
+        'productNumber': productNumber,
+        'productCode': productCode,
+        'oldPhaseName': oldPhaseName,
+        'newPhaseName': newPhaseName,
+        'changedBy': changedBy,
+        'validationData': validationData,
+      },
+      eventType: SystemEventType.productPhaseChanged,
+      isInternal: false,
+    );
+  }
+
+  /// Evento: Cambio de estado del producto V2 (mejorado con info de validación)
+  static Future<void> onProductStatusChangedV2({
+    required String organizationId,
+    required String batchId,
+    required String productId,
+    required String productName,
+    int? productNumber,
+    String? productCode,
+    required String oldStatusName,
+    required String newStatusName,
+    required String changedBy,
+    Map<String, dynamic>? validationData,
+  }) async {
+    await _messageService.createSystemEvent(
+      organizationId: organizationId,
+      entityType: 'batch_product',
+      entityId: productId,
+      parentId: batchId,
+      eventData: {
+        'batchId': batchId,
+        'productId': productId,
+        'productName': productName,
+        'productNumber': productNumber,
+        'productCode': productCode,
+        'oldStatusName': oldStatusName,
+        'newStatusName': newStatusName,
+        'changedBy': changedBy,
+        'validationData': validationData,
+      },
+      eventType: SystemEventType.productStatusChangedV2,
       isInternal: false,
     );
   }

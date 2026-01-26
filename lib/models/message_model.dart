@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'production_batch_model.dart';
 
 /// Modelo para mensajes del chat
 /// Soporta mensajes de usuario, eventos del sistema, menciones, adjuntos y threads
@@ -17,7 +18,8 @@ class MessageModel {
 
   // Sistema (solo para eventos automáticos)
   final bool isSystemGenerated;
-  final String? eventType; // "batch_created", "phase_completed", "delay_detected", etc.
+  final String?
+      eventType; // "batch_created", "phase_completed", "delay_detected", etc.
   final Map<String, dynamic>? eventData; // Datos adicionales del evento
 
   // Interacción
@@ -88,7 +90,7 @@ class MessageModel {
       authorAvatar: data['authorAvatar'],
       isSystemGenerated: data['isSystemGenerated'] ?? false,
       eventType: data['eventType'],
-      eventData: data['eventData'] != null 
+      eventData: data['eventData'] != null
           ? Map<String, dynamic>.from(data['eventData'])
           : null,
       mentions: List<String>.from(data['mentions'] ?? []),
@@ -316,58 +318,123 @@ class SystemEventType {
   static const String materialAssigned = 'material_assigned';
   static const String batchStarted = 'batch_started';
   static const String batchCompleted = 'batch_completed';
+  static const String productUrgencyChanged = 'product_urgency_changed';
+  static const String productPhaseChanged = 'product_phase_changed';
+  static const String productStatusChangedV2 = 'product_status_changed_v2';
 
   /// Generar contenido legible para cada tipo de evento
   static String getEventContent(String eventType, Map<String, dynamic>? data) {
-    final productInfo = data?['productNumber'] != null 
+    final productInfo = data?['productNumber'] != null
         ? 'Producto #${data!['productNumber']} (SKU: ${data['productCode'] ?? 'N/A'}): '
         : '';
-    
+
     switch (eventType) {
       case batchCreated:
-        return 'Lote creado';
+        return 'Lote creado (${data?['changedBy']})';
       case batchStarted:
-        return 'Producción iniciada';
+        return 'Producción iniciada (${data?['changedBy']})';
       case batchCompleted:
-        return 'Lote completado';
+        return 'Lote completado (${data?['changedBy']})';
       case batchStatusChanged:
-        return 'Estado cambiado a ${data?['newStatus'] ?? 'desconocido'}';
+        return 'Estado cambiado a ${data?['newStatus'] ?? 'desconocido'} (${data?['changedBy']})';
       case phaseCompleted:
-        return '${productInfo}Fase "${data?['phaseName'] ?? 'desconocida'}" completada';
+        return 'Fase "${data?['phaseName'] ?? 'desconocida'}" completada (${data?['changedBy']})';
       case productMoved:
-        return '${productInfo}Movido a fase "${data?['newPhase'] ?? 'desconocida'}"';
+        return 'Movido a fase "${data?['newPhase'] ?? 'desconocida'}" (${data?['changedBy']})';
       case delayDetected:
         return '${productInfo}Retraso detectado: ${data?['delayHours'] ?? 0} horas';
       case productAdded:
-        return '${productInfo}Añadido al lote';
+        return '${productInfo}Añadido al lote (${data?['changedBy']})';
       case productRemoved:
-        return '${productInfo}Eliminado del lote';
+        return '${productInfo}Eliminado del lote (${data?['changedBy']})';
       case productStatusChanged:
-        return '${productInfo}Estado cambiado a ${data?['newStatus'] ?? 'desconocido'}';
+        return 'Estado cambiado a ${data?['newStatus'] ?? 'desconocido'} (${data?['changedBy']})';
       case memberAssigned:
-        return '${data?['memberName'] ?? 'Usuario'} asignado';
+        return '${data?['memberName'] ?? 'Usuario'} asignado (${data?['changedBy']})';
       case memberRemoved:
-        return '${data?['memberName'] ?? 'Usuario'} removido';
+        return '${data?['memberName'] ?? 'Usuario'} removido (${data?['changedBy']})';
       case invoiceIssued:
-        return 'Factura emitida: ${data?['invoiceNumber'] ?? ''}';
+        return 'Factura emitida: ${data?['invoiceNumber'] ?? ''} (${data?['changedBy']})';
       case paymentReceived:
-        return 'Pago recibido: ${data?['amount'] ?? 0}€';
+        return 'Pago recibido: ${data?['amount'] ?? 0}€ (${data?['changedBy']})';
       case noteAdded:
-        return 'Nueva nota añadida';
+        return 'Nueva nota añadida (${data?['changedBy']})';
       case fileUploaded:
-        return 'Archivo subido: ${data?['fileName'] ?? ''}';
+        return 'Archivo subido: ${data?['fileName'] ?? ''} (${data?['changedBy']})';
       case projectCreated:
-        return 'Proyecto creado: ${data?['projectName'] ?? ''}';
+        return 'Proyecto creado: ${data?['projectName'] ?? ''} (${data?['changedBy']})';
       case projectStatusChanged:
-        return 'Estado del proyecto: ${data?['newStatus'] ?? ''}';
+        return 'Estado del proyecto: ${data?['newStatus'] ?? ''} (${data?['changedBy']})';
       case projectCompleted:
-        return 'Proyecto completado';
+        return 'Proyecto completado (${data?['changedBy']})';
       case deadlineApproaching:
-        return 'Fecha de entrega próxima: ${data?['daysRemaining'] ?? 0} días';
+        return 'Fecha de entrega próxima: ${data?['daysRemaining'] ?? 0} días (${data?['changedBy']})';
       case qualityCheckCompleted:
-        return '${productInfo}Control de calidad: ${data?['result'] ?? ''}';
+        return '${productInfo}Control de calidad: ${data?['result'] ?? ''} (${data?['changedBy']})';
       case materialAssigned:
-        return 'Material asignado: ${data?['materialName'] ?? ''}';
+        return 'Material asignado: ${data?['materialName'] ?? ''} (${data?['changedBy']})';
+      case productUrgencyChanged:
+        final newUrgency = data?['newUrgency'] ?? '';
+        if (newUrgency == UrgencyLevel.urgent.value) {
+          return '⚠️ Producto cambiado a URGENTE ⚠️ (${data?['changedBy']})';
+        } else {
+          return 'El producto ya no es urgente (${data?['changedBy']})';
+        }
+
+      case productPhaseChanged:
+        final oldPhase = data?['oldPhaseName'] ?? '';
+        final newPhase = data?['newPhaseName'] ?? '';
+        String content =
+            'Movido de fase "$oldPhase" → "$newPhase" (${data?['changedBy']})';
+
+        // Agregar info de validación si existe
+        if (data?['validationData'] != null) {
+          final validation = data!['validationData'] as Map<String, dynamic>;
+          if (validation['text'] != null) {
+            content += '\n  📝 Nota: ${validation['text']}';
+          }
+          if (validation['quantity'] != null) {
+            content += '\n  🔢 Cantidad: ${validation['quantity']}';
+          }
+          if (validation['photoCount'] != null &&
+              validation['photoCount'] > 0) {
+            content += '\n  📸 Fotos adjuntas: ${validation['photoCount']}';
+          }
+        }
+        return content;
+
+      case productStatusChangedV2:
+        final oldStatus = data?['oldStatusName'] ?? '';
+        final newStatus = data?['newStatusName'] ?? '';
+        String content =
+            'Estado cambiado de "$oldStatus" → "$newStatus" (${data?['changedBy']})';
+
+        // Agregar info de validación si existe
+        if (data?['validationData'] != null) {
+          final validation = data!['validationData'] as Map<String, dynamic>;
+          if (validation['text'] != null &&
+              validation['text'].toString().isNotEmpty) {
+            content += '\n  📝 Nota: ${validation['text']}';
+          }
+          if (validation['approvedCount'] != null) {
+            content += '\n  ✅ Aprobados: ${validation['approvedCount']}';
+          }
+          if (validation['rejectedCount'] != null) {
+            content += '\n  ❌ Rechazados: ${validation['rejectedCount']}';
+          }
+          if (validation['photoCount'] != null &&
+              validation['photoCount'] > 0) {
+            content += '\n  📸 Fotos adjuntas: ${validation['photoCount']}';
+          }
+          if (validation['checklist'] != null) {
+            final checklist = validation['checklist'] as List;
+            final completed =
+                checklist.where((item) => item['checked'] == true).length;
+            content +=
+                '\n  ☑️ Checklist: $completed/${checklist.length} completados';
+          }
+        }
+        return content;
       default:
         return 'Evento del sistema';
     }

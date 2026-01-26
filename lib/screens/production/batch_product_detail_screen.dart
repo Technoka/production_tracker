@@ -21,6 +21,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/validation_dialogs/validation_dialog_manager.dart';
 import '../../models/validation_config_model.dart';
 import '../../utils/filter_utils.dart';
+import '../../l10n/app_localizations.dart';
+import '../../utils/message_events_helper.dart';
 
 class BatchProductDetailScreen extends StatefulWidget {
   final String organizationId;
@@ -168,10 +170,21 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
         // Buscar el producto específico en la lista
         final products = productSnapshot.data!;
-        final product = products.firstWhere(
-          (p) => p.id == widget.productId,
-          orElse: () => products.first, // Fallback si no se encuentra
-        );
+
+        BatchProductModel? product;
+        try {
+          product = products.firstWhere((p) => p.id == widget.productId);
+        } catch (e) {
+          product = null;
+        }
+
+        // Si el producto no se encuentra (porque se acaba de eliminar),
+        // mostramos un loader mientras el Navigator.pop de la función _showDeleteConfirmation hace efecto.
+        if (product == null) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
         return Scaffold(
           appBar: AppBar(
@@ -198,7 +211,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
                   return PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert),
-                    onSelected: (value) => _handleAction(value, product),
+                    onSelected: (value) => _handleAction(value, product!),
                     itemBuilder: (context) => [
                       const PopupMenuItem(
                         value: 'edit',
@@ -239,7 +252,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   return ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      _buildProductInfoCard(product, user),
+                      _buildProductInfoCard(product!, user),
                       const SizedBox(height: 16),
                       _buildProductStatusCard(product, user),
                       const SizedBox(height: 16),
@@ -268,7 +281,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(child: _buildProductInfoCard(product, user)),
+                          Expanded(child: _buildProductInfoCard(product!, user)),
                           const SizedBox(width: 24),
                           Expanded(
                               child: _buildProductStatusCard(product, user)),
@@ -1771,6 +1784,21 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 });
                 Navigator.pop(context); // Cerrar diálogo
 
+                // Generar evento de cambio de fase
+                await MessageEventsHelper.onProductPhaseChanged(
+                  organizationId: widget.organizationId,
+                  batchId: product.batchId,
+                  productId: product.id,
+                  productName: product.productName,
+                  productNumber: product.productNumber,
+                  productCode: product.productCode,
+                  oldPhaseName: product.currentPhaseName,
+                  newPhaseName: nextPhase.name,
+                  changedBy: user.name,
+                  validationData:
+                      null, // Sin validación en movimientos simples de Kanban
+                );
+
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -1823,6 +1851,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }
 
   Future<void> _showEditProductDialog(BatchProductModel product) async {
+    final authService = Provider.of<AuthService>(context, listen: false);
     final quantityController =
         TextEditingController(text: product.quantity.toString());
     final notesController =
@@ -1952,6 +1981,10 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       ),
     );
 
+    // Si la urgencia ha cambiado
+    final urgencyChanged = product.urgencyLevel != selectedUrgency.value;
+    final oldUrgency = product.urgencyLevel;
+
     if (result != null) {
       // Actualizar producto en Firestore
       try {
@@ -1971,6 +2004,22 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
           'urgencyLevel': result['urgencyLevel'],
           'updatedAt': FieldValue.serverTimestamp(),
         });
+
+        //Si la urgencia ha cambiado, generar mensaje de evento
+        if (urgencyChanged) {
+          // 🆕 Generar evento de cambio de urgencia
+          await MessageEventsHelper.onProductUrgencyChanged(
+            organizationId: widget.organizationId,
+            batchId: product.batchId,
+            productId: product.id,
+            productName: product.productName,
+            productNumber: product.productNumber,
+            productCode: product.productCode,
+            oldUrgency: oldUrgency,
+            newUrgency: selectedUrgency.value,
+            changedBy: authService.currentUserData!.name,
+          );
+        }
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -2002,6 +2051,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         Provider.of<ProductionBatchService>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
     final user = authService.currentUserData;
+    final l10n = AppLocalizations.of(context)!;
 
     if (user == null || _currentRole == null || _currentMember == null) {
       return;
@@ -2009,14 +2059,16 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
     try {
       final success = await batchService.changeProductStatus(
-        organizationId: widget.organizationId,
-        batchId: widget.batchId,
-        productId: widget.productId,
-        toStatusId: toStatusId,
-        userId: user.uid,
-        userName: user.name,
-        validationData: validationData,
-      );
+          organizationId: widget.organizationId,
+          batchId: widget.batchId,
+          productId: widget.productId,
+          toStatusId: toStatusId,
+          userId: user.uid,
+          userName: user.name,
+          validationData: validationData,
+          l10n: l10n);
+
+      if (!mounted) return;
 
       if (mounted) {
         if (success) {
@@ -2099,6 +2151,11 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }
 
   void _showDeleteConfirmation(BatchProductModel product) {
+    final batchService =
+        Provider.of<ProductionBatchService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserData;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -2117,26 +2174,23 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               Navigator.pop(context); // Cerrar diálogo
 
               try {
-                await FirebaseFirestore.instance
-                    .collection('organizations')
-                    .doc(widget.organizationId)
-                    .collection('production_batches')
-                    .doc(widget.batchId)
-                    .collection('batch_products')
-                    .doc(widget.productId)
-                    .delete();
+                await batchService.removeBatchProduct(
+                    organizationId: widget.organizationId,
+                    batchId: product.batchId,
+                    productId: product.id,
+                    userId: user!.uid);
 
-                if (mounted) {
-                  Navigator.pop(context); // Volver a la pantalla anterior
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Producto eliminado'),
                       backgroundColor: Colors.green,
                     ),
                   );
+                  Navigator.pop(context); // Volver a la pantalla anterior
                 }
               } catch (e) {
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error: ${e.toString()}'),

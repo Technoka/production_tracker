@@ -1324,18 +1324,19 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
         'phaseProgress.${toPhase.id}.startedAt': FieldValue.serverTimestamp(),
       });
 
-      // Generar evento de sistema (opcional - si tienes MessageEventsHelper)
-      try {
-        // Descomentar si tienes el helper de eventos:
-        
-      await MessageEventsHelper.onProductMoved(
+      try {        
+      // Generar evento de cambio de fase (mejorado)
+      await MessageEventsHelper.onProductPhaseChanged(
         organizationId: widget.organizationId,
         batchId: product.batchId,
         productId: product.id,
         productName: product.productName,
-        oldPhase: product.currentPhaseName,
-        newPhase: toPhase.name,
-        movedBy: widget.currentUser.name,
+        productNumber: product.productNumber,
+        productCode: product.productCode,
+        oldPhaseName: product.currentPhaseName,
+        newPhaseName: toPhase.name,
+        changedBy: widget.currentUser.name,
+        validationData: null, // Sin validación en movimientos simples de Kanban
       );
       
       } catch (e) {
@@ -1403,6 +1404,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
         userId: widget.currentUser.uid,
         userName: widget.currentUser.name,
         validationData: validationData,
+        l10n: l10n,
       );
 
       if (!mounted) return;
