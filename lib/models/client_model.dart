@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'permission_override_model.dart';
+import 'permission_registry_model.dart';
 import 'permission_registry_client_extension.dart';
 
 class ClientModel {
@@ -232,6 +233,50 @@ class ClientModel {
           reason: 'Client special permission: $id',
         );
         overrides[override.key] = override;
+        
+        // REGLA ESPECIAL: Si activa batches.create, también activar batch_products.create
+        // con scope 'assigned'
+        if (moduleKey == 'batches' && actionKey == 'create') {
+          final batchProductsOverride = PermissionOverridesModel.createScopeOverride(
+            moduleKey: 'batch_products',
+            actionKey: 'create',
+            newScope: PermissionScope.assigned,
+            createdBy: userId,
+            reason: 'Auto-included with batches.create for client: $id',
+          );
+          overrides[batchProductsOverride.key] = batchProductsOverride;
+          
+          // También dar permiso de view con scope assigned
+          final batchesViewOverride = PermissionOverridesModel.createScopeOverride(
+            moduleKey: 'batches',
+            actionKey: 'view',
+            newScope: PermissionScope.assigned,
+            createdBy: userId,
+            reason: 'Auto-included with batches.create for client: $id',
+          );
+          overrides[batchesViewOverride.key] = batchesViewOverride;
+          
+          final batchProductsViewOverride = PermissionOverridesModel.createScopeOverride(
+            moduleKey: 'batch_products',
+            actionKey: 'view',
+            newScope: PermissionScope.assigned,
+            createdBy: userId,
+            reason: 'Auto-included with batches.create for client: $id',
+          );
+          overrides[batchProductsViewOverride.key] = batchProductsViewOverride;
+        }
+        
+        // REGLA ESPECIAL: Si activa projects.create, también dar view con scope assigned
+        if (moduleKey == 'projects' && actionKey == 'create') {
+          final projectsViewOverride = PermissionOverridesModel.createScopeOverride(
+            moduleKey: 'projects',
+            actionKey: 'view',
+            newScope: PermissionScope.assigned,
+            createdBy: userId,
+            reason: 'Auto-included with projects.create for client: $id',
+          );
+          overrides[projectsViewOverride.key] = projectsViewOverride;
+        }
       } else if (value is String) {
         // Permiso scoped - crear scope override
         PermissionScope scope;

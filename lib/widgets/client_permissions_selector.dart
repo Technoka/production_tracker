@@ -206,6 +206,32 @@ class _ClientPermissionsSelectorState extends State<ClientPermissionsSelector> {
               isEnabled: isEnabled,
             ),
 
+          // Nota adicional si existe
+          if (permission.note != null && !widget.readOnly)
+            Padding(
+              padding: const EdgeInsets.only(left: 48, top: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 12,
+                    color: Colors.blue.shade700,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      permission.note!,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.blue.shade700,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // Nota de aprobación si aplica
           if (isEnabled && permission.requiresApproval && !widget.readOnly)
             Padding(

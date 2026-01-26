@@ -5,7 +5,6 @@ import '../../l10n/app_localizations.dart';
 import '../../models/client_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/client_service.dart';
-import '../../services/permission_service.dart';
 import '../../services/organization_member_service.dart';
 import '../../widgets/client_color_picker.dart';
 import '../../widgets/client_permissions_selector.dart';
@@ -487,24 +486,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                   ),
 
                   const SizedBox(height: 16),
-
-                  // Permisos especiales (solo si tiene permisos)
-                  if (_canEditPermissions)
-                    _buildCard(
-                      context,
-                      title: l10n.clientSpecialPermissions,
-                      icon: Icons.security_outlined,
-                      iconColor: Colors.deepPurple,
-                      children: [
-                        ClientPermissionsSelector(
-                          initialPermissions: _clientPermissions,
-                          onPermissionsChanged: _onPermissionsChanged,
-                        ),
-                      ],
-                    ),
-
-                  if (_canEditPermissions) const SizedBox(height: 16),
-
+                  
                   // Notas
                   _buildCard(
                     context,
@@ -525,6 +507,23 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                   ),
 
                   const SizedBox(height: 32),
+
+                  // Permisos especiales (solo si tiene permisos)
+                  if (_canEditPermissions)
+                    _buildCard(
+                      context,
+                      title: l10n.clientSpecialPermissions,
+                      icon: Icons.security_outlined,
+                      iconColor: Colors.deepPurple,
+                      children: [
+                        ClientPermissionsSelector(
+                          initialPermissions: _clientPermissions,
+                          onPermissionsChanged: _onPermissionsChanged,
+                        ),
+                      ],
+                    ),
+
+                  if (_canEditPermissions) const SizedBox(height: 16),
 
                   // Botones
                   FilledButton(
@@ -553,7 +552,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                     onPressed: () async {
                       if (_hasUnsavedChanges) {
                         final shouldPop = await _onWillPop();
-                        if (shouldPop && mounted) {
+                        if (shouldPop && context.mounted) {
                           Navigator.pop(context);
                         }
                       } else {
@@ -599,7 +598,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
+                    color: iconColor.withAlpha(30),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(

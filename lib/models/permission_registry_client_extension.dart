@@ -9,55 +9,37 @@ extension PermissionRegistryClientExtension on PermissionRegistry {
   /// con rol "client" asociados a ese cliente
   static List<ClientApplicablePermission> getClientApplicablePermissions() {
     return [
-      // BATCHES - Crear lotes
+      // BATCHES - Crear lotes (incluye crear productos de lote)
       const ClientApplicablePermission(
         moduleKey: 'batches',
         actionKey: 'create',
         displayName: 'Puede crear lotes',
-        description: 'El cliente puede crear lotes de producción',
+        description: 'El cliente puede crear lotes de producción y añadir productos. Scope siempre limitado a solo asignados.',
         requiresApproval: true,
+        usesScope: false, // Scope siempre 'assigned', no configurable
+        defaultScope: PermissionScope.assigned,
+        note: 'Incluye automáticamente el permiso para crear productos de lote',
       ),
       
-      // BATCH_PRODUCTS - Crear productos
-      const ClientApplicablePermission(
-        moduleKey: 'batch_products',
-        actionKey: 'create',
-        displayName: 'Puede crear productos',
-        description: 'El cliente puede crear productos personalizados',
-        requiresApproval: true,
-      ),
-      
-      // PROJECTS - Ver todos los proyectos
+      // PROJECTS - Crear proyectos
       const ClientApplicablePermission(
         moduleKey: 'projects',
-        actionKey: 'view',
-        displayName: 'Ver todos los proyectos',
-        description: 'Puede ver todos los proyectos o solo los asignados',
-        requiresApproval: false,
-        usesScope: true,
-        defaultScope: PermissionScope.assigned,
-      ),
-      
-      // BATCHES - Ver todos los lotes
-      const ClientApplicablePermission(
-        moduleKey: 'batches',
-        actionKey: 'view',
-        displayName: 'Ver todos los lotes',
-        description: 'Puede ver todos los lotes o solo los asignados',
-        requiresApproval: false,
-        usesScope: true,
-        defaultScope: PermissionScope.assigned,
-      ),
-      
-      // BATCH_PRODUCTS - Editar productos
-      const ClientApplicablePermission(
-        moduleKey: 'batch_products',
-        actionKey: 'edit',
-        displayName: 'Editar productos',
-        description: 'Puede editar información de productos',
+        actionKey: 'create',
+        displayName: 'Puede crear proyectos',
+        description: 'El cliente puede crear proyectos nuevos. Scope siempre limitado a solo asignados.',
         requiresApproval: true,
-        usesScope: true,
+        usesScope: false, // Scope siempre 'assigned', no configurable
         defaultScope: PermissionScope.assigned,
+      ),
+      
+      // PRODUCT_CATALOG - Crear productos de catálogo
+      const ClientApplicablePermission(
+        moduleKey: 'product_catalog',
+        actionKey: 'create',
+        displayName: 'Puede crear productos de catálogo',
+        description: 'El cliente puede crear productos personalizados en el catálogo',
+        requiresApproval: true,
+        usesScope: false,
       ),
       
       // CHAT - Enviar mensajes
@@ -67,6 +49,7 @@ extension PermissionRegistryClientExtension on PermissionRegistry {
         displayName: 'Enviar mensajes',
         description: 'Puede enviar mensajes en el chat',
         requiresApproval: false,
+        usesScope: false,
       ),
     ];
   }
@@ -103,6 +86,7 @@ class ClientApplicablePermission {
   final bool requiresApproval; // Si las acciones del cliente requieren aprobación
   final bool usesScope; // Si el permiso tiene scope (all/assigned)
   final PermissionScope? defaultScope; // Scope por defecto si aplica
+  final String? note; // Nota adicional para mostrar al usuario
 
   const ClientApplicablePermission({
     required this.moduleKey,
@@ -112,6 +96,7 @@ class ClientApplicablePermission {
     this.requiresApproval = false,
     this.usesScope = false,
     this.defaultScope,
+    this.note,
   });
 
   /// Genera la clave completa del permiso (module.action)

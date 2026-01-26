@@ -309,25 +309,7 @@ class _ClientScreenState extends State<ClientDetailScreen> {
                       ),
 
                     if (widget.client.color != null) const SizedBox(height: 16),
-
-                    // Permisos especiales
-                    if (widget.client.hasSpecialPermissions)
-                      _buildCard(
-                        context,
-                        title: l10n.clientSpecialPermissions,
-                        icon: Icons.security_outlined,
-                        iconColor: Colors.deepPurple,
-                        children: [
-                          ClientPermissionsSelector(
-                            initialPermissions: widget.client.clientPermissions,
-                            readOnly: true, // Solo lectura en detail screen
-                          ),
-                        ],
-                      ),
-
-                    if (widget.client.hasSpecialPermissions)
-                      const SizedBox(height: 16),
-
+                    
                     // Notas (si existen)
                     if (widget.client.hasNotes)
                       _buildCard(
@@ -347,6 +329,24 @@ class _ClientScreenState extends State<ClientDetailScreen> {
                       ),
 
                     if (widget.client.hasNotes) const SizedBox(height: 16),
+
+                    // Permisos especiales
+                    if (widget.client.hasSpecialPermissions)
+                      _buildCard(
+                        context,
+                        title: l10n.clientSpecialPermissions,
+                        icon: Icons.security_outlined,
+                        iconColor: Colors.deepPurple,
+                        children: [
+                          ClientPermissionsSelector(
+                            initialPermissions: widget.client.clientPermissions,
+                            readOnly: true, // Solo lectura en detail screen
+                          ),
+                        ],
+                      ),
+
+                    if (widget.client.hasSpecialPermissions)
+                      const SizedBox(height: 16),
 
                     // Miembros asociados
                     ClientAssociatedMembers(
