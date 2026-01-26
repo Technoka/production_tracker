@@ -9,6 +9,8 @@ class PhaseService {
 
   /// Get phases for an organization (with real-time updates)
   Stream<List<ProductionPhase>> getOrganizationPhasesStream(String organizationId) {
+    if (organizationId.isEmpty) return Stream.value([]);
+    
     return _firestore
         .collection('organizations')
         .doc(organizationId)
@@ -22,6 +24,8 @@ class PhaseService {
 
   /// Get phases for an organization (one-time fetch)
   Future<List<ProductionPhase>> getOrganizationPhases(String organizationId) async {
+    if (organizationId.isEmpty) return [];
+
     try {
       final snapshot = await _firestore
           .collection('organizations')
@@ -41,6 +45,8 @@ class PhaseService {
 
   /// Get only active phases
   Future<List<ProductionPhase>> getActivePhases(String organizationId) async {
+    if (organizationId.isEmpty) return [];
+
     try {
       final snapshot = await _firestore
           .collection('organizations')
@@ -61,6 +67,8 @@ class PhaseService {
 
   /// Get active phases stream (real-time)
   Stream<List<ProductionPhase>> getActivePhasesStream(String organizationId) {
+    if (organizationId.isEmpty) return Stream.value([]);
+    
     return _firestore
         .collection('organizations')
         .doc(organizationId)
