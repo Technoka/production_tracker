@@ -41,6 +41,8 @@ class ClientService extends ChangeNotifier {
     String? country,
     String? notes,
     String? userId, // Para portal del cliente (Fase 12)
+    String? color, // NUEVO
+    Map<String, dynamic>? clientPermissions, // NUEVO
   }) async {
     try {
       // ✅ VALIDAR PERMISOS
@@ -71,6 +73,8 @@ class ClientService extends ChangeNotifier {
         country: country,
         notes: notes,
         userId: userId,
+        color: color,
+        clientPermissions: clientPermissions,
         createdBy: createdBy,
         createdAt: now,
         updatedAt: now,
@@ -318,6 +322,8 @@ Future<List<ProjectModel>> getClientProjectsWithScope(
     String? country,
     String? notes,
     String? userId,
+    String? color, // NUEVO
+    Map<String, dynamic>? clientPermissions, // NUEVO
   }) async {
     try {
       // ✅ VALIDAR PERMISOS
@@ -346,6 +352,8 @@ Future<List<ProjectModel>> getClientProjectsWithScope(
       if (country != null) updates['country'] = country;
       if (notes != null) updates['notes'] = notes;
       if (userId != null) updates['userId'] = userId;
+      if (color != null) updates['color'] = color;
+      if (clientPermissions != null) updates['clientPermissions'] = clientPermissions;
 
       await _firestore
           .collection('organizations')
@@ -365,6 +373,72 @@ Future<List<ProjectModel>> getClientProjectsWithScope(
     } catch (e) {
       _error = 'Error inesperado al actualizar cliente: $e';
       _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+    Future<bool> updateClientColor({
+    required String organizationId,
+    required String clientId,
+    required String color,
+  }) async {
+    try {
+      final canEdit = await _memberService.can('clients', 'edit');
+      if (!canEdit) {
+        _error = 'No tienes permisos para editar clientes';
+        notifyListeners();
+        return false;
+      }
+
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .doc(clientId)
+          .update({
+        'color': color,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      return true;
+    } catch (e) {
+      _error = 'Error al actualizar color: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+    Future<bool> updateClientPermissions({
+    required String organizationId,
+    required String clientId,
+    required Map<String, dynamic> clientPermissions,
+  }) async {
+    try {
+      final canEdit = await _memberService.can('clients', 'edit');
+      if (!canEdit) {
+        _error = 'No tienes permisos para editar clientes';
+        notifyListeners();
+        return false;
+      }
+
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .doc(clientId)
+          .update({
+        'clientPermissions': clientPermissions,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // TODO: Actualizar permisos de todos los miembros con rol 'client' 
+      // asociados a este cliente
+      // Esto se implementará cuando se conecte con organization_member_service
+
+      return true;
+    } catch (e) {
+      _error = 'Error al actualizar permisos: $e';
       notifyListeners();
       return false;
     }

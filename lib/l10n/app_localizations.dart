@@ -1052,7 +1052,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteClientConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Are you sure you want to delete this client? This action cannot be undone.'**
+  /// **'This action cannot be undone. Are you sure?'**
   String get deleteClientConfirm;
 
   /// No description provided for @clientDeleted.
@@ -2528,7 +2528,7 @@ abstract class AppLocalizations {
   /// No description provided for @copy.
   ///
   /// In en, this message translates to:
-  /// **'Copiar'**
+  /// **'Copy'**
   String get copy;
 
   /// No description provided for @textCopied.
@@ -4178,7 +4178,7 @@ abstract class AppLocalizations {
   /// No description provided for @invalidColorFormat.
   ///
   /// In en, this message translates to:
-  /// **'Invalid color format. Use #RRGGBB'**
+  /// **'Invalid color format'**
   String get invalidColorFormat;
 
   /// No description provided for @phaseInUse.
@@ -4862,7 +4862,7 @@ abstract class AppLocalizations {
   /// No description provided for @scopeAssigned.
   ///
   /// In en, this message translates to:
-  /// **'Assigned only'**
+  /// **'Only assigned'**
   String get scopeAssigned;
 
   /// No description provided for @scopeNone.
@@ -7114,6 +7114,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Total'**
   String get totalLabel;
+
+  /// No description provided for @unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get unknown;
+
+  /// No description provided for @clientFormTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Client Form'**
+  String get clientFormTitle;
+
+  /// No description provided for @editingClient.
+  ///
+  /// In en, this message translates to:
+  /// **'Editing Client'**
+  String get editingClient;
+
+  /// No description provided for @creatingClient.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating Client'**
+  String get creatingClient;
+
+  /// No description provided for @selectColorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Identifying Color'**
+  String get selectColorLabel;
+
+  /// No description provided for @selectColorHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a color to visually identify the client'**
+  String get selectColorHelper;
+
+  /// No description provided for @colorPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Color'**
+  String get colorPickerTitle;
+
+  /// No description provided for @defaultColors.
+  ///
+  /// In en, this message translates to:
+  /// **'Default colors'**
+  String get defaultColors;
+
+  /// No description provided for @customColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom color'**
+  String get customColor;
+
+  /// No description provided for @clientSpecialPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Special Permissions'**
+  String get clientSpecialPermissions;
+
+  /// No description provided for @clientPermissionsHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional permissions for this client beyond the basic role'**
+  String get clientPermissionsHelper;
+
+  /// No description provided for @clientPermissionsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'These permissions will apply to all members associated with this client'**
+  String get clientPermissionsDescription;
+
+  /// No description provided for @noSpecialPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'No special permissions'**
+  String get noSpecialPermissions;
+
+  /// No description provided for @permissionsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0 {No permissions} =1 {1 permission} other {{count} permissions}}'**
+  String permissionsCount(num count);
+
+  /// No description provided for @configurePermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure permissions'**
+  String get configurePermissions;
+
+  /// No description provided for @permissionModule.
+  ///
+  /// In en, this message translates to:
+  /// **'Module'**
+  String get permissionModule;
+
+  /// No description provided for @permissionAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Action'**
+  String get permissionAction;
+
+  /// No description provided for @permissionScope.
+  ///
+  /// In en, this message translates to:
+  /// **'Scope'**
+  String get permissionScope;
+
+  /// No description provided for @requiresApprovalNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Requires administrator approval'**
+  String get requiresApprovalNote;
+
+  /// No description provided for @doesNotRequireApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Does not require approval'**
+  String get doesNotRequireApproval;
+
+  /// No description provided for @canCreateBatchesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Can create batches'**
+  String get canCreateBatchesLabel;
+
+  /// No description provided for @canCreateBatchesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Client can create production batches'**
+  String get canCreateBatchesDesc;
+
+  /// No description provided for @canCreateProductsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Can create products'**
+  String get canCreateProductsLabel;
+
+  /// No description provided for @canCreateProductsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Client can create custom products'**
+  String get canCreateProductsDesc;
+
+  /// No description provided for @canViewAllProjectsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'View all projects'**
+  String get canViewAllProjectsLabel;
+
+  /// No description provided for @canViewAllProjectsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Can view all projects or only assigned ones'**
+  String get canViewAllProjectsDesc;
+
+  /// No description provided for @canViewAllBatchesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'View all batches'**
+  String get canViewAllBatchesLabel;
+
+  /// No description provided for @canViewAllBatchesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Can view all batches or only assigned ones'**
+  String get canViewAllBatchesDesc;
+
+  /// No description provided for @canEditProductsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit products'**
+  String get canEditProductsLabel;
+
+  /// No description provided for @canEditProductsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Can edit product information'**
+  String get canEditProductsDesc;
+
+  /// No description provided for @canSendMessagesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Send messages'**
+  String get canSendMessagesLabel;
+
+  /// No description provided for @canSendMessagesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Can send messages in chat'**
+  String get canSendMessagesDesc;
+
+  /// No description provided for @colorRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a color'**
+  String get colorRequired;
+
+  /// No description provided for @permissionsUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Permissions updated successfully'**
+  String get permissionsUpdated;
+
+  /// No description provided for @permissionsUpdateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating permissions'**
+  String get permissionsUpdateError;
+
+  /// No description provided for @colorUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Color updated successfully'**
+  String get colorUpdated;
+
+  /// No description provided for @colorUpdateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating color'**
+  String get colorUpdateError;
+
+  /// No description provided for @standardClientBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard client'**
+  String get standardClientBadge;
+
+  /// No description provided for @privilegedClientBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Privileged client'**
+  String get privilegedClientBadge;
+
+  /// No description provided for @enabledPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled permissions'**
+  String get enabledPermissions;
+
+  /// No description provided for @clientColorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Client color'**
+  String get clientColorLabel;
+
+  /// No description provided for @associatedMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Associated Members'**
+  String get associatedMembers;
+
+  /// No description provided for @noAssociatedMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'No associated members'**
+  String get noAssociatedMembers;
+
+  /// No description provided for @noAssociatedMembersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Members with \'Client\' role will appear here when assigned from organization management'**
+  String get noAssociatedMembersHint;
+
+  /// No description provided for @errorLoadingMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading members'**
+  String get errorLoadingMembers;
+
+  /// No description provided for @clientDuplicatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Client duplicated successfully'**
+  String get clientDuplicatedSuccess;
+
+  /// No description provided for @duplicateClientError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error duplicating client'**
+  String get duplicateClientError;
+
+  /// No description provided for @deleteClientConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete client?'**
+  String get deleteClientConfirmTitle;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

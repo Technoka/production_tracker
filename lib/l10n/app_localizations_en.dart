@@ -486,7 +486,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteClientTitle => 'Delete Client';
 
   @override
-  String get deleteClientConfirm => 'Are you sure you want to delete this client? This action cannot be undone.';
+  String get deleteClientConfirm => 'This action cannot be undone. Are you sure?';
 
   @override
   String get clientDeleted => 'Client deleted';
@@ -1256,7 +1256,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get react => 'Reaccionar';
 
   @override
-  String get copy => 'Copiar';
+  String get copy => 'Copy';
 
   @override
   String get textCopied => 'Texto copiado';
@@ -2101,7 +2101,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderSaved => 'Order saved successfully';
 
   @override
-  String get invalidColorFormat => 'Invalid color format. Use #RRGGBB';
+  String get invalidColorFormat => 'Invalid color format';
 
   @override
   String get phaseInUse => 'This phase cannot be deleted because it has associated products';
@@ -2445,7 +2445,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scopeAll => 'All';
 
   @override
-  String get scopeAssigned => 'Assigned only';
+  String get scopeAssigned => 'Only assigned';
 
   @override
   String get scopeNone => 'None';
@@ -3587,4 +3587,157 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get totalLabel => 'Total';
+
+  @override
+  String get unknown => 'Unknown';
+
+  @override
+  String get clientFormTitle => 'Client Form';
+
+  @override
+  String get editingClient => 'Editing Client';
+
+  @override
+  String get creatingClient => 'Creating Client';
+
+  @override
+  String get selectColorLabel => 'Identifying Color';
+
+  @override
+  String get selectColorHelper => 'Choose a color to visually identify the client';
+
+  @override
+  String get colorPickerTitle => 'Select Color';
+
+  @override
+  String get defaultColors => 'Default colors';
+
+  @override
+  String get customColor => 'Custom color';
+
+  @override
+  String get clientSpecialPermissions => 'Special Permissions';
+
+  @override
+  String get clientPermissionsHelper => 'Additional permissions for this client beyond the basic role';
+
+  @override
+  String get clientPermissionsDescription => 'These permissions will apply to all members associated with this client';
+
+  @override
+  String get noSpecialPermissions => 'No special permissions';
+
+  @override
+  String permissionsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count permissions',
+      one: '1 permission',
+      zero: 'No permissions',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get configurePermissions => 'Configure permissions';
+
+  @override
+  String get permissionModule => 'Module';
+
+  @override
+  String get permissionAction => 'Action';
+
+  @override
+  String get permissionScope => 'Scope';
+
+  @override
+  String get requiresApprovalNote => 'Requires administrator approval';
+
+  @override
+  String get doesNotRequireApproval => 'Does not require approval';
+
+  @override
+  String get canCreateBatchesLabel => 'Can create batches';
+
+  @override
+  String get canCreateBatchesDesc => 'Client can create production batches';
+
+  @override
+  String get canCreateProductsLabel => 'Can create products';
+
+  @override
+  String get canCreateProductsDesc => 'Client can create custom products';
+
+  @override
+  String get canViewAllProjectsLabel => 'View all projects';
+
+  @override
+  String get canViewAllProjectsDesc => 'Can view all projects or only assigned ones';
+
+  @override
+  String get canViewAllBatchesLabel => 'View all batches';
+
+  @override
+  String get canViewAllBatchesDesc => 'Can view all batches or only assigned ones';
+
+  @override
+  String get canEditProductsLabel => 'Edit products';
+
+  @override
+  String get canEditProductsDesc => 'Can edit product information';
+
+  @override
+  String get canSendMessagesLabel => 'Send messages';
+
+  @override
+  String get canSendMessagesDesc => 'Can send messages in chat';
+
+  @override
+  String get colorRequired => 'Select a color';
+
+  @override
+  String get permissionsUpdated => 'Permissions updated successfully';
+
+  @override
+  String get permissionsUpdateError => 'Error updating permissions';
+
+  @override
+  String get colorUpdated => 'Color updated successfully';
+
+  @override
+  String get colorUpdateError => 'Error updating color';
+
+  @override
+  String get standardClientBadge => 'Standard client';
+
+  @override
+  String get privilegedClientBadge => 'Privileged client';
+
+  @override
+  String get enabledPermissions => 'Enabled permissions';
+
+  @override
+  String get clientColorLabel => 'Client color';
+
+  @override
+  String get associatedMembers => 'Associated Members';
+
+  @override
+  String get noAssociatedMembers => 'No associated members';
+
+  @override
+  String get noAssociatedMembersHint => 'Members with \'Client\' role will appear here when assigned from organization management';
+
+  @override
+  String get errorLoadingMembers => 'Error loading members';
+
+  @override
+  String get clientDuplicatedSuccess => 'Client duplicated successfully';
+
+  @override
+  String get duplicateClientError => 'Error duplicating client';
+
+  @override
+  String get deleteClientConfirmTitle => 'Delete client?';
 }

@@ -1,359 +1,629 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart'; // Importante para las fechas
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
 import '../../services/client_service.dart';
+import '../../services/organization_member_service.dart';
 import '../../models/client_model.dart';
-import 'edit_client_screen.dart';
+import '../../utils/ui_constants.dart';
+import '../../widgets/client_color_picker.dart';
+import '../../widgets/client_permissions_selector.dart';
+import '../../widgets/client_associated_members.dart';
 import '../../widgets/common_refresh.dart';
+import 'client_form_screen.dart';
 
-class ClientDetailScreen extends StatelessWidget {
+class ClientDetailScreen extends StatefulWidget {
   final ClientModel client;
+  const ClientDetailScreen({super.key, required this.client});
 
-  const ClientDetailScreen({
-    super.key,
-    required this.client,
-  });
+  @override
+  State<ClientDetailScreen> createState() => _ClientScreenState();
+}
+
+class _ClientScreenState extends State<ClientDetailScreen> {
+  // 1. Definimos variables de estado para los permisos
+  bool _canEdit = false;
+  bool _canDelete = false;
+  bool _isLoadingPermissions = true; // Para mostrar carga mientras verificamos
+
+  @override
+  void initState() {
+    super.initState();
+    // 2. Cargamos los permisos al iniciar la pantalla
+    _loadPermissions();
+  }
+
+  Future<void> _loadPermissions() async {
+    // Nota: En initState usamos listen: false porque solo leemos una vez
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+
+    final user = authService.currentUserData;
+    if (user?.organizationId == null) return;
+
+    // Verificamos permisos
+    final canEdit = await memberService.can('clients', 'edit');
+    final canDelete = await memberService.can('clients', 'delete');
+
+    // Actualizamos el estado si el widget sigue vivo (mounted)
+    if (mounted) {
+      setState(() {
+        _canEdit = canEdit;
+        _canDelete = canDelete;
+        _isLoadingPermissions = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
+    // clientService se puede mantener aquí si es para datos reactivos
     final clientService = context.watch<ClientService>();
     final l10n = AppLocalizations.of(context)!;
-    
-    final user = authService.currentUserData;
-    final organizationId = authService.currentUserData?.organizationId;
 
-    if (user == null) {
+    final user = authService.currentUserData;
+    final organizationId = user?.organizationId;
+
+    // 3. Verificamos si faltan datos o si estamos cargando permisos
+    if (user == null || organizationId == null || _isLoadingPermissions) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    final canEdit = user.canManageProduction;
-    final canDelete = user.hasAdminAccess;
-
     Future<void> handleRefresh() async {
-      if (user.organizationId != null) {
-        await clientService.getOrganizationClients(user.organizationId!);
-      }
+      // Refrescar datos si es necesario
     }
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.clientDetailTitle),
         actions: [
-          if (canEdit)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditClientScreen(client: client),
-                  ),
-                );
+          if (_canEdit || _canDelete)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) async {
+                switch (value) {
+                  case 'edit':
+                    if (_canEdit) {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ClientFormScreen(client: widget.client),
+                        ),
+                      );
+                    }
+                    break;
+                  case 'duplicate':
+                    if (_canEdit) {
+                      await _handleDuplicate(
+                          context, clientService, user, l10n);
+                    }
+                    break;
+                  case 'delete':
+                    if (_canDelete) {
+                      await _showDeleteDialog(
+                        context,
+                        clientService,
+                        organizationId,
+                        l10n,
+                      );
+                    }
+                    break;
+                }
               },
-              tooltip: l10n.edit,
-            ),
-          if (canDelete)
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: () => _showDeleteDialog(context, clientService, organizationId, l10n),
-              tooltip: l10n.delete,
+              itemBuilder: (context) => [
+                if (_canEdit)
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.edit_outlined),
+                        const SizedBox(width: 12),
+                        Text(l10n.edit),
+                      ],
+                    ),
+                  ),
+                if (_canEdit)
+                  PopupMenuItem(
+                    value: 'duplicate',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.content_copy),
+                        const SizedBox(width: 12),
+                        Text(l10n.duplicate),
+                      ],
+                    ),
+                  ),
+                if (_canDelete)
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.delete_outline, color: Colors.red),
+                        const SizedBox(width: 12),
+                        Text(
+                          l10n.delete,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
         ],
       ),
       body: CommonRefresh(
         onRefresh: handleRefresh,
         child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          children: [
-            // Header con avatar
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.primary.withOpacity(0.8),
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              // Header con avatar
+              _buildHeader(context, widget.client),
+
+              // Contenido con cards
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Información básica
+                    _buildCard(
+                      context,
+                      title: l10n.basicInfoSection,
+                      icon: Icons.info_outline,
+                      iconColor: Colors.blue,
+                      children: [
+                        _buildInfoTile(
+                          context,
+                          icon: Icons.person_outline,
+                          label: l10n.contactNameLabel,
+                          value: widget.client.name,
+                        ),
+                        const Divider(height: 24),
+                        _buildInfoTile(
+                          context,
+                          icon: Icons.business,
+                          label: l10n.companyLabel,
+                          value: widget.client.company,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Información de contacto
+                    _buildCard(
+                      context,
+                      title: l10n.contactInfo,
+                      icon: Icons.phone_outlined,
+                      iconColor: Colors.green,
+                      children: [
+                        _buildInfoTile(
+                          context,
+                          icon: Icons.email_outlined,
+                          label: l10n.emailLabel,
+                          value: widget.client.email,
+                          onTap: () => _copyToClipboard(
+                            context,
+                            widget.client.email,
+                            l10n.emailLabel,
+                          ),
+                        ),
+                        if (widget.client.hasPhone) ...[
+                          const Divider(height: 24),
+                          _buildInfoTile(
+                            context,
+                            icon: Icons.phone_outlined,
+                            label: l10n.phoneLabel,
+                            value: widget.client.phone!,
+                            onTap: () => _copyToClipboard(
+                              context,
+                              widget.client.phone!,
+                              l10n.phoneLabel,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Dirección (si existe)
+                    if (widget.client.hasAddress ||
+                        widget.client.hasCity ||
+                        widget.client.hasCountry)
+                      _buildCard(
+                        context,
+                        title: l10n.addressLabel,
+                        icon: Icons.location_on_outlined,
+                        iconColor: Colors.red,
+                        children: [
+                          if (widget.client.hasAddress)
+                            _buildInfoTile(
+                              context,
+                              icon: Icons.location_on_outlined,
+                              label: l10n.addressLabel,
+                              value: widget.client.address!,
+                            ),
+                          if (widget.client.hasCity ||
+                              widget.client.hasPostalCode) ...[
+                            if (widget.client.hasAddress)
+                              const Divider(height: 24),
+                            _buildInfoTile(
+                              context,
+                              icon: Icons.location_city,
+                              label: l10n.cityLabel,
+                              value: widget.client.hasPostalCode
+                                  ? '${widget.client.city ?? ''}, ${widget.client.postalCode}'
+                                  : widget.client.city ?? '',
+                            ),
+                          ],
+                          if (widget.client.hasCountry) ...[
+                            const Divider(height: 24),
+                            _buildInfoTile(
+                              context,
+                              icon: Icons.flag,
+                              label: l10n.countryLabel,
+                              value: widget.client.country!,
+                            ),
+                          ],
+                        ],
+                      ),
+
+                    if (widget.client.hasAddress ||
+                        widget.client.hasCity ||
+                        widget.client.hasCountry)
+                      const SizedBox(height: 16),
+
+                    // Color
+                    if (widget.client.color != null)
+                      _buildCard(
+                        context,
+                        title: l10n.clientColorLabel,
+                        icon: Icons.palette_outlined,
+                        iconColor: Colors.purple,
+                        children: [
+                          Row(
+                            children: [
+                              ClientColorIndicator(
+                                color: widget.client.color,
+                                size: 32,
+                              ),
+                              const SizedBox(width: 16),
+                              Text(
+                                UIConstants.getColorName(widget.client.color!),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+
+                    if (widget.client.color != null) const SizedBox(height: 16),
+
+                    // Permisos especiales
+                    if (widget.client.hasSpecialPermissions)
+                      _buildCard(
+                        context,
+                        title: l10n.clientSpecialPermissions,
+                        icon: Icons.security_outlined,
+                        iconColor: Colors.deepPurple,
+                        children: [
+                          ClientPermissionsSelector(
+                            initialPermissions: widget.client.clientPermissions,
+                            readOnly: true, // Solo lectura en detail screen
+                          ),
+                        ],
+                      ),
+
+                    if (widget.client.hasSpecialPermissions)
+                      const SizedBox(height: 16),
+
+                    // Notas (si existen)
+                    if (widget.client.hasNotes)
+                      _buildCard(
+                        context,
+                        title: l10n.notesSection,
+                        icon: Icons.note_outlined,
+                        iconColor: Colors.orange,
+                        children: [
+                          Text(
+                            widget.client.notes!,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                    if (widget.client.hasNotes) const SizedBox(height: 16),
+
+                    // Miembros asociados
+                    ClientAssociatedMembers(
+                      organizationId: organizationId,
+                      clientId: widget.client.id,
+                      showTitle: true,
+                    ),
                   ],
                 ),
               ),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.white,
-                    child: Text(
-                      client.initials,
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    client.name,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    client.company,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-            // Información
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle(context, l10n.contactInfoSection),
-                  const SizedBox(height: 8),
-                  _buildInfoCard(
-                    context,
-                    children: [
-                      _buildInfoTile(
-                        icon: Icons.email_outlined,
-                        label: l10n.email,
-                        value: client.email,
-                        onTap: () => _copyToClipboard(context, client.email, l10n),
-                      ),
-                      if (client.hasPhone) ...[
-                        const Divider(),
-                        _buildInfoTile(
-                          icon: Icons.phone_outlined,
-                          label: l10n.phoneLabel,
-                          value: client.phone!,
-                          onTap: () => _copyToClipboard(context, client.phone!, l10n),
-                        ),
-                      ],
-                    ],
-                  ),
+  Widget _buildHeader(BuildContext context, ClientModel client) {
+    final colorValue =
+        client.colorValue ?? Theme.of(context).colorScheme.primary;
 
-                  if (client.hasAddress || client.hasCity || client.hasPostalCode || client.hasCountry) ...[
-                    const SizedBox(height: 24),
-                    _buildSectionTitle(context, l10n.addressLabel),
-                    const SizedBox(height: 8),
-                    _buildInfoCard(
-                      context,
-                      children: [
-                        if (client.address != null)
-                          _buildInfoTile(
-                            icon: Icons.location_on_outlined,
-                            label: l10n.addressLabel,
-                            value: client.address!,
-                          ),
-                        if (client.city != null || client.postalCode != null) ...[
-                          const Divider(),
-                          _buildInfoTile(
-                            icon: Icons.location_city,
-                            label: l10n.cityZipLabel,
-                            value:
-                                '${client.city ?? ', '} ${client.postalCode ?? ''}'
-                                    .trim(),
-                          ),
-                        ],
-                        if (client.country != null) ...[
-                          const Divider(),
-                          _buildInfoTile(
-                            icon: Icons.public,
-                            label: l10n.countryLabel,
-                            value: client.country!,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-
-                  if (client.hasNotes) ...[
-                    const SizedBox(height: 24),
-                    _buildSectionTitle(context, l10n.notesSection),
-                    const SizedBox(height: 8),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          client.notes!,
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 24),
-                  _buildSectionTitle(context, l10n.registrationInfoSection),
-                  const SizedBox(height: 8),
-                  _buildInfoCard(
-                    context,
-                    children: [
-                      _buildInfoTile(
-                        icon: Icons.calendar_today,
-                        label: l10n.creationDateLabel,
-                        value: _formatDate(client.createdAt, l10n.localeName),
-                      ),
-                      if (client.updatedAt != null) ...[
-                        const Divider(),
-                        _buildInfoTile(
-                          icon: Icons.update,
-                          label: l10n.lastUpdateLabel,
-                          value: _formatDate(client.updatedAt!, l10n.localeName),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            colorValue,
+            colorValue.withOpacity(0.8),
           ],
         ),
       ),
-    )
-    );
-  }
-
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 50,
+            backgroundColor: Colors.white,
+            child: Text(
+              client.initials,
+              style: TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+                color: colorValue,
+              ),
+            ),
           ),
+          const SizedBox(height: 16),
+          Text(
+            client.name,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            client.company,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.white.withOpacity(0.9),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildInfoCard(BuildContext context, {required List<Widget> children}) {
+  Widget _buildCard(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required List<Widget> children,
+  }) {
     return Card(
-      elevation: 0,
+      elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade300),
       ),
-      child: Column(children: children),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: iconColor,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            ...children,
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildInfoTile({
+  Widget _buildInfoTile(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required String value,
     VoidCallback? onTap,
   }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.grey[600]),
-      title: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 12,
-          color: Colors.grey,
-        ),
-      ),
-      subtitle: Text(
-        value,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      trailing: onTap != null
-          ? Icon(Icons.copy, size: 20, color: Colors.grey[400])
-          : null,
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: Colors.grey.shade600,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (onTap != null)
+              Icon(
+                Icons.copy,
+                size: 16,
+                color: Colors.grey.shade400,
+              ),
+          ],
+        ),
+      ),
     );
   }
 
-  String _formatDate(DateTime date, String locale) {
-    // Usa DateFormat.yMMMMd para obtener "5 de enero de 2024" o "January 5, 2024"
-    return DateFormat.yMMMMd(locale).format(date);
-  }
-
-  void _copyToClipboard(BuildContext context, String text, AppLocalizations l10n) {
+  void _copyToClipboard(BuildContext context, String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(l10n.copiedToClipboard),
+        content: Text('$label copiado'),
         duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  void _showDeleteDialog(BuildContext context, ClientService clientService, String? organizationId, AppLocalizations l10n) {
-    if (organizationId == null) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(l10n.error),
-          content: Text(l10n.cantDeleteClientError),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
+  Future<void> _handleDuplicate(
+    BuildContext context,
+    ClientService clientService,
+    dynamic user,
+    AppLocalizations l10n,
+  ) async {
+    final success = await clientService.createClient(
+      organizationId: user.organizationId!,
+      name: '${widget.client.name} (${l10n.copy})',
+      company: widget.client.company,
+      email: widget.client.email,
+      phone: widget.client.phone,
+      address: widget.client.address,
+      city: widget.client.city,
+      postalCode: widget.client.postalCode,
+      country: widget.client.country,
+      notes: widget.client.notes,
+      createdBy: user.uid,
+      color: widget.client.color,
+      clientPermissions: widget.client.clientPermissions,
+    );
 
-    showDialog(
+    if (context.mounted) {
+      if (success != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.clientDuplicatedSuccess),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(clientService.error ?? l10n.duplicateClientError),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showDeleteDialog(
+    BuildContext context,
+    ClientService clientService,
+    String organizationId,
+    AppLocalizations l10n,
+  ) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.deleteClientTitle),
-        content: Text(l10n.deleteClientConfirm(client.name)),
+        title: Text(l10n.deleteClientConfirmTitle),
+        content: Text(l10n.deleteClientConfirm),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: Text(l10n.cancel),
           ),
           FilledButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final success = await clientService.deleteClient(organizationId, client.id);
-              if (context.mounted) {
-                if (success) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(l10n.clientDeleted),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        clientService.error ?? l10n.deleteClientError,
-                      ),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
             child: Text(l10n.delete),
           ),
         ],
       ),
     );
+
+    if (confirmed == true && context.mounted) {
+      final success = await clientService.deleteClient(
+        organizationId,
+        widget.client.id,
+      );
+
+      if (context.mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.clientDeleted),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(clientService.error ?? l10n.deleteClientError),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 }

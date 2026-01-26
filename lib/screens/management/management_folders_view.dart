@@ -1,6 +1,7 @@
 // lib/screens/management/management_folders_view.dart
 
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/screens/clients/client_form_screen.dart';
 import 'package:provider/provider.dart';
 import '../../models/client_model.dart';
 import '../../services/auth_service.dart';
@@ -11,7 +12,6 @@ import '../../l10n/app_localizations.dart';
 import '../../utils/management_view_types.dart';
 import '../../widgets/management/client_folder_card.dart';
 import '../../widgets/common_refresh.dart';
-import '../clients/create_client_screen.dart';
 
 class ManagementFoldersView extends StatelessWidget {
   final ManagementFilters filters;
@@ -178,7 +178,7 @@ class ManagementFoldersView extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const CreateClientScreen(),
+              builder: (context) => const ClientFormScreen(),
             ),
           );
         },

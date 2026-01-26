@@ -1,66 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-
-/// Permisos especiales para clientes
-/// 
-/// Permite dar acceso especial a ciertos clientes para que puedan
-/// crear lotes o productos con aprobación
-class ClientSpecialPermissions {
-  final bool canCreateBatches; // Puede crear lotes (con aprobación)
-  final bool canCreateProducts; // Puede crear productos personalizados (con aprobación)
-  final bool requiresApproval; // Si sus acciones requieren aprobación
-  final bool canViewAllProjects; // Puede ver todos los proyectos o solo los suyos
-
-  const ClientSpecialPermissions({
-    this.canCreateBatches = false,
-    this.canCreateProducts = false,
-    this.requiresApproval = true,
-    this.canViewAllProjects = false,
-  });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'canCreateBatches': canCreateBatches,
-      'canCreateProducts': canCreateProducts,
-      'requiresApproval': requiresApproval,
-      'canViewAllProjects': canViewAllProjects,
-    };
-  }
-
-  factory ClientSpecialPermissions.fromMap(Map<String, dynamic>? map) {
-    if (map == null) {
-      return const ClientSpecialPermissions();
-    }
-
-    return ClientSpecialPermissions(
-      canCreateBatches: map['canCreateBatches'] as bool? ?? false,
-      canCreateProducts: map['canCreateProducts'] as bool? ?? false,
-      requiresApproval: map['requiresApproval'] as bool? ?? true,
-      canViewAllProjects: map['canViewAllProjects'] as bool? ?? false,
-    );
-  }
-
-  ClientSpecialPermissions copyWith({
-    bool? canCreateBatches,
-    bool? canCreateProducts,
-    bool? requiresApproval,
-    bool? canViewAllProjects,
-  }) {
-    return ClientSpecialPermissions(
-      canCreateBatches: canCreateBatches ?? this.canCreateBatches,
-      canCreateProducts: canCreateProducts ?? this.canCreateProducts,
-      requiresApproval: requiresApproval ?? this.requiresApproval,
-      canViewAllProjects: canViewAllProjects ?? this.canViewAllProjects,
-    );
-  }
-
-  /// Cliente tiene algún permiso especial
-  bool get hasAnyPermission =>
-      canCreateBatches || canCreateProducts || canViewAllProjects;
-
-  /// Cliente no tiene permisos especiales
-  bool get isStandard => !hasAnyPermission;
-}
+import 'permission_override_model.dart';
+import 'permission_registry_client_extension.dart';
 
 class ClientModel {
   final String id;
@@ -73,16 +14,21 @@ class ClientModel {
   final String? postalCode;
   final String? country;
   final String? notes;
-  final String organizationId; // Organización propietaria
-  final String createdBy; // UID del usuario que lo creó
+  final String organizationId;
+  final String createdBy;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final bool isActive;
   final String? userId; // para portal del cliente
   
-  // NUEVOS CAMPOS - Permisos especiales y UI
+  // UI
   final String? color; // Color identificativo (hex)
-  final ClientSpecialPermissions specialPermissions; // Permisos especiales
+  
+  // NUEVO SISTEMA DE PERMISOS - Dinámico vinculado a permission_registry
+  /// Map de permisos del cliente en formato: 'module.action' -> valor
+  /// Para permisos boolean: 'batches.create' -> true/false
+  /// Para permisos scoped: 'projects.view' -> 'all'/'assigned'/'none'
+  final Map<String, dynamic> clientPermissions;
 
   ClientModel({
     required this.id,
@@ -102,8 +48,8 @@ class ClientModel {
     this.isActive = true,
     this.userId,
     this.color,
-    this.specialPermissions = const ClientSpecialPermissions(),
-  });
+    Map<String, dynamic>? clientPermissions,
+  }) : clientPermissions = clientPermissions ?? {};
 
   Map<String, dynamic> toMap() {
     return {
@@ -124,11 +70,18 @@ class ClientModel {
       'isActive': isActive,
       'userId': userId,
       'color': color,
-      'specialPermissions': specialPermissions.toMap(),
+      'clientPermissions': clientPermissions,
     };
   }
 
   factory ClientModel.fromMap(Map<String, dynamic> map) {
+    // Intentar cargar permisos nuevos primero
+    Map<String, dynamic> permissions = {};
+    
+    if (map.containsKey('clientPermissions') && map['clientPermissions'] != null) {
+      permissions = Map<String, dynamic>.from(map['clientPermissions'] as Map);
+    }
+
     return ClientModel(
       id: map['id'] as String,
       name: map['name'] as String,
@@ -147,9 +100,7 @@ class ClientModel {
       isActive: map['isActive'] as bool? ?? true,
       userId: map['userId'] as String?,
       color: map['color'] as String?,
-      specialPermissions: ClientSpecialPermissions.fromMap(
-        map['specialPermissions'] as Map<String, dynamic>?,
-      ),
+      clientPermissions: permissions,
     );
   }
 
@@ -171,7 +122,7 @@ class ClientModel {
     bool? isActive,
     String? userId,
     String? color,
-    ClientSpecialPermissions? specialPermissions,
+    Map<String, dynamic>? clientPermissions,
   }) {
     return ClientModel(
       id: id ?? this.id,
@@ -191,7 +142,7 @@ class ClientModel {
       isActive: isActive ?? this.isActive,
       userId: userId ?? this.userId,
       color: color ?? this.color,
-      specialPermissions: specialPermissions ?? this.specialPermissions,
+      clientPermissions: clientPermissions ?? this.clientPermissions,
     );
   }
 
@@ -223,7 +174,7 @@ class ClientModel {
         .toUpperCase();
   }
 
-  // ==================== NUEVOS GETTERS ====================
+  // ==================== NUEVOS GETTERS - UI ====================
 
   /// Obtener color como objeto Color (si existe)
   Color? get colorValue {
@@ -238,27 +189,100 @@ class ClientModel {
   /// Cliente tiene cuenta de usuario activa
   bool get hasUserAccount => userId != null;
 
-  /// Cliente tiene permisos especiales
-  bool get hasSpecialPermissions => specialPermissions.hasAnyPermission;
+  // ==================== NUEVOS GETTERS - PERMISOS ====================
 
-  /// Cliente puede crear lotes
-  bool get canCreateBatches => specialPermissions.canCreateBatches;
+  /// Cliente tiene algún permiso especial configurado
+  bool get hasSpecialPermissions => clientPermissions.isNotEmpty;
 
-  /// Cliente puede crear productos personalizados
-  bool get canCreateProducts => specialPermissions.canCreateProducts;
+  /// Verificar si el cliente tiene un permiso específico
+  /// Formato: 'module.action' (ej: 'batches.create')
+  bool hasPermission(String permissionKey) {
+    return clientPermissions.containsKey(permissionKey) &&
+        clientPermissions[permissionKey] == true;
+  }
 
-  /// Cliente requiere aprobación para sus acciones
-  bool get requiresApproval => specialPermissions.requiresApproval;
+  /// Obtener scope de un permiso (si es scoped)
+  /// Retorna 'all', 'assigned', 'none' o null si no existe
+  String? getPermissionScope(String permissionKey) {
+    if (!clientPermissions.containsKey(permissionKey)) return null;
+    final value = clientPermissions[permissionKey];
+    if (value is String) return value;
+    return null;
+  }
 
-  /// Cliente puede ver todos los proyectos
-  bool get canViewAllProjects => specialPermissions.canViewAllProjects;
+  /// Convertir permisos del cliente a Permission Overrides
+  /// Para aplicar a miembros con rol 'client' asociados a este cliente
+  PermissionOverridesModel getPermissionOverrides(String userId) {
+    final overrides = <String, PermissionOverrideEntry>{};
+    
+    for (final entry in clientPermissions.entries) {
+      final parts = entry.key.split('.');
+      if (parts.length != 2) continue;
+      
+      final moduleKey = parts[0];
+      final actionKey = parts[1];
+      final value = entry.value;
+      
+      if (value is bool && value == true) {
+        // Permiso boolean habilitado - crear enable override
+        final override = PermissionOverridesModel.createEnableOverride(
+          moduleKey: moduleKey,
+          actionKey: actionKey,
+          createdBy: userId,
+          reason: 'Client special permission: $id',
+        );
+        overrides[override.key] = override;
+      } else if (value is String) {
+        // Permiso scoped - crear scope override
+        PermissionScope scope;
+        switch (value) {
+          case 'all':
+            scope = PermissionScope.all;
+            break;
+          case 'assigned':
+            scope = PermissionScope.assigned;
+            break;
+          case 'none':
+            scope = PermissionScope.none;
+            break;
+          default:
+            scope = PermissionScope.none;
+        }
+        
+        final override = PermissionOverridesModel.createScopeOverride(
+          moduleKey: moduleKey,
+          actionKey: actionKey,
+          newScope: scope,
+          createdBy: userId,
+          reason: 'Client special permission: $id',
+        );
+        overrides[override.key] = override;
+      }
+    }
+    
+    return PermissionOverridesModel(overrides: overrides);
+  }
 
-  /// Cliente es estándar (sin permisos especiales)
-  bool get isStandardClient => specialPermissions.isStandard;
+  /// Lista de permisos habilitados legibles
+  List<String> get enabledPermissionsDisplay {
+    final permissions = <String>[];
+    final applicable = PermissionRegistryClientExtension.getClientApplicablePermissions();
+    
+    for (final applicablePermission in applicable) {
+      final key = applicablePermission.fullKey;
+      if (clientPermissions.containsKey(key)) {
+        final value = clientPermissions[key];
+        if (value == true || (value is String && value != 'none')) {
+          permissions.add(applicablePermission.displayName);
+        }
+      }
+    }
+    
+    return permissions;
+  }
 
   // ==================== OPERADORES ====================
 
-  //Arreglar dropdown con objetos repetidos
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

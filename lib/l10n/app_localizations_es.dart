@@ -486,7 +486,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get deleteClientTitle => 'Eliminar Cliente';
 
   @override
-  String get deleteClientConfirm => '¿Estás seguro de que deseas eliminar el cliente? Esta acción no se puede deshacer.';
+  String get deleteClientConfirm => 'Esta acción no se puede deshacer. ¿Estás seguro?';
 
   @override
   String get clientDeleted => 'Cliente eliminado';
@@ -1256,7 +1256,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get react => 'Reaccionar';
 
   @override
-  String get copy => 'Copiar';
+  String get copy => 'Copia';
 
   @override
   String get textCopied => 'Texto copiado';
@@ -2101,7 +2101,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get orderSaved => 'Orden guardado correctamente';
 
   @override
-  String get invalidColorFormat => 'Formato de color inválido. Usa #RRGGBB';
+  String get invalidColorFormat => 'Formato de color inválido';
 
   @override
   String get phaseInUse => 'Esta fase no se puede eliminar porque tiene productos asociados';
@@ -3587,4 +3587,157 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get totalLabel => 'Total';
+
+  @override
+  String get unknown => 'Desconocido';
+
+  @override
+  String get clientFormTitle => 'Formulario de Cliente';
+
+  @override
+  String get editingClient => 'Editando Cliente';
+
+  @override
+  String get creatingClient => 'Creando Cliente';
+
+  @override
+  String get selectColorLabel => 'Color Identificativo';
+
+  @override
+  String get selectColorHelper => 'Elige un color para identificar visualmente al cliente';
+
+  @override
+  String get colorPickerTitle => 'Seleccionar Color';
+
+  @override
+  String get defaultColors => 'Colores predefinidos';
+
+  @override
+  String get customColor => 'Color personalizado';
+
+  @override
+  String get clientSpecialPermissions => 'Permisos Especiales';
+
+  @override
+  String get clientPermissionsHelper => 'Permisos adicionales para este cliente más allá del rol básico';
+
+  @override
+  String get clientPermissionsDescription => 'Estos permisos se aplicarán a todos los miembros asociados a este cliente';
+
+  @override
+  String get noSpecialPermissions => 'Sin permisos especiales';
+
+  @override
+  String permissionsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count permisos',
+      one: '1 permiso',
+      zero: 'Sin permisos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get configurePermissions => 'Configurar permisos';
+
+  @override
+  String get permissionModule => 'Módulo';
+
+  @override
+  String get permissionAction => 'Acción';
+
+  @override
+  String get permissionScope => 'Alcance';
+
+  @override
+  String get requiresApprovalNote => 'Requiere aprobación del administrador';
+
+  @override
+  String get doesNotRequireApproval => 'No requiere aprobación';
+
+  @override
+  String get canCreateBatchesLabel => 'Puede crear lotes';
+
+  @override
+  String get canCreateBatchesDesc => 'El cliente puede crear lotes de producción';
+
+  @override
+  String get canCreateProductsLabel => 'Puede crear productos';
+
+  @override
+  String get canCreateProductsDesc => 'El cliente puede crear productos personalizados';
+
+  @override
+  String get canViewAllProjectsLabel => 'Ver todos los proyectos';
+
+  @override
+  String get canViewAllProjectsDesc => 'Puede ver todos los proyectos o solo los asignados';
+
+  @override
+  String get canViewAllBatchesLabel => 'Ver todos los lotes';
+
+  @override
+  String get canViewAllBatchesDesc => 'Puede ver todos los lotes o solo los asignados';
+
+  @override
+  String get canEditProductsLabel => 'Editar productos';
+
+  @override
+  String get canEditProductsDesc => 'Puede editar información de productos';
+
+  @override
+  String get canSendMessagesLabel => 'Enviar mensajes';
+
+  @override
+  String get canSendMessagesDesc => 'Puede enviar mensajes en el chat';
+
+  @override
+  String get colorRequired => 'Selecciona un color';
+
+  @override
+  String get permissionsUpdated => 'Permisos actualizados exitosamente';
+
+  @override
+  String get permissionsUpdateError => 'Error al actualizar permisos';
+
+  @override
+  String get colorUpdated => 'Color actualizado exitosamente';
+
+  @override
+  String get colorUpdateError => 'Error al actualizar color';
+
+  @override
+  String get standardClientBadge => 'Cliente estándar';
+
+  @override
+  String get privilegedClientBadge => 'Cliente privilegiado';
+
+  @override
+  String get enabledPermissions => 'Permisos habilitados';
+
+  @override
+  String get clientColorLabel => 'Color del cliente';
+
+  @override
+  String get associatedMembers => 'Miembros Asociados';
+
+  @override
+  String get noAssociatedMembers => 'Sin miembros asociados';
+
+  @override
+  String get noAssociatedMembersHint => 'Los miembros con rol \'Cliente\' aparecerán aquí cuando sean asignados desde la gestión de la organización';
+
+  @override
+  String get errorLoadingMembers => 'Error al cargar miembros';
+
+  @override
+  String get clientDuplicatedSuccess => 'Cliente duplicado exitosamente';
+
+  @override
+  String get duplicateClientError => 'Error al duplicar cliente';
+
+  @override
+  String get deleteClientConfirmTitle => '¿Eliminar cliente?';
 }

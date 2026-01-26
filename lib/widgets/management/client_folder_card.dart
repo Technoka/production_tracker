@@ -10,7 +10,7 @@ import '../../services/organization_member_service.dart';
 import '../../l10n/app_localizations.dart';
 import 'project_folder_card.dart';
 import '../../screens/clients/client_detail_screen.dart';
-import '../../screens/clients/edit_client_screen.dart';
+import '../../screens/clients/client_form_screen.dart';
 import '../../screens/projects/create_project_screen.dart';
 
 class ClientFolderCard extends StatefulWidget {
@@ -166,7 +166,7 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                                             context,
                                             MaterialPageRoute(
                                               builder: (context) =>
-                                                  EditClientScreen(
+                                                  ClientFormScreen(
                                                       client: widget.client),
                                             ),
                                           );
