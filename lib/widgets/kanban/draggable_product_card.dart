@@ -49,13 +49,10 @@ class DraggableProductCard extends StatelessWidget {
       feedback: Material(
         elevation: 8,
         borderRadius: BorderRadius.circular(8),
-        child: Opacity(
-          opacity: 0.8,
-          child: SizedBox(
+        child: SizedBox(
             width: 280,
             child: _buildCard(context, isFeedback: true),
           ),
-        ),
       ),
       childWhenDragging: Opacity(
         opacity: 0.3,
@@ -66,49 +63,56 @@ class DraggableProductCard extends StatelessWidget {
   }
 
   Widget _buildCard(BuildContext context, {bool isFeedback = false}) {
-    final user =
-        Provider.of<AuthService>(context, listen: false).currentUserData;
+    final user = Provider.of<AuthService>(context, listen: false).currentUserData;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       elevation: isFeedback ? 0 : 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      color: clientColor.withAlpha(60),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // --- HEADER: Lote y Badges ---
-              // (Este bloque sigue igual...)
-              Row(
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.inventory_2,
-                            size: 10, color: clientColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Lote: $batchNumber (#${product.productNumber}/${batch.totalProducts})',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                            backgroundColor: clientColor.withAlpha(30),
+      // CAMBIO 1: Color base blanco para tapar la sombra y el fondo
+      color: Colors.white,
+      // Importante: Cortar el contenido para respetar los bordes redondeados
+      clipBehavior: Clip.antiAlias, 
+      
+      // CAMBIO 2: Usar un Container/Ink con decoración para el color de fondo
+      child: Ink(
+        decoration: BoxDecoration(
+          // Usamos withOpacity(0.1) que equivale a un 10%. 
+          // Al estar sobre blanco, se verá el color real del cliente en tono pastel.
+          color: clientColor.withOpacity(0.1),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // --- HEADER: Lote y Badges ---
+                Row(
+                  children: [
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.5), // CAMBIO 3: Fondo más limpio para el badge
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.inventory_2,
+                              size: 10, color: clientColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Lote: $batchNumber (#${product.productNumber}/${batch.totalProducts})',
+                            style: const TextStyle( // CAMBIO 4: Quitamos el backgroundColor del texto que sobraba
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -290,6 +294,7 @@ class DraggableProductCard extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }
