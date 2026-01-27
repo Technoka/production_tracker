@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gestion_produccion/models/project_model.dart';
+import 'package:gestion_produccion/screens/projects/project_detail_screen.dart';
+import 'package:gestion_produccion/services/project_service.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
@@ -75,7 +78,12 @@ class _ClientScreenState extends State<ClientDetailScreen> {
     }
 
     Future<void> handleRefresh() async {
-      // Refrescar datos si es necesario
+      // Forzar rebuild del widget obteniendo nuevo snapshot
+      // El StreamBuilder de miembros se refrescará automáticamente
+      setState(() {}); // Forzar rebuild del cliente
+
+      // Refrescar cliente del servicio
+      await clientService.getClient(organizationId, widget.client.id);
     }
 
     return Scaffold(
@@ -309,7 +317,7 @@ class _ClientScreenState extends State<ClientDetailScreen> {
                       ),
 
                     if (widget.client.color != null) const SizedBox(height: 16),
-                    
+
                     // Notas (si existen)
                     if (widget.client.hasNotes)
                       _buildCard(
@@ -329,6 +337,12 @@ class _ClientScreenState extends State<ClientDetailScreen> {
                       ),
 
                     if (widget.client.hasNotes) const SizedBox(height: 16),
+
+                    // Proyectos del cliente
+                    _buildClientProjects(
+                        context, organizationId, widget.client.id),
+
+                    const SizedBox(height: 16),
 
                     // Permisos especiales
                     if (widget.client.hasSpecialPermissions)
@@ -518,6 +532,76 @@ class _ClientScreenState extends State<ClientDetailScreen> {
           ],
         ),
       ),
+    );
+  }
+
+// TODO: mostrar solo si tiene permiso projects.view
+  Widget _buildClientProjects(
+    BuildContext context,
+    String organizationId,
+    String clientId,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final projectService = Provider.of<ProjectService>(context, listen: false);
+
+    return FutureBuilder<List<ProjectModel>?>(
+      future: projectService.getClientProjects(organizationId, clientId),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+
+        final projects = snapshot.data!;
+
+        if (projects.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return _buildCard(
+          context,
+          title: l10n.projects,
+          icon: Icons.folder_outlined,
+          iconColor: widget.client.colorValue,
+          children: [
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: projects.length,
+              separatorBuilder: (_, __) => const Divider(height: 16),
+              itemBuilder: (context, index) {
+                // CORRECCIÓN 1: No castear a Map, es un ProjectModel
+                final project = projects[index];
+
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.folder_outlined),
+                  // CORRECCIÓN 2: Acceder con punto (.) en vez de corchetes ['']
+                  title: Text(project.name),
+                  subtitle: project.description != null &&
+                          project.description!.isNotEmpty
+                      ? Text(
+                          project.description!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      : null,
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProjectDetailScreen(
+                          projectId: project.id, // CORRECCIÓN 3: .id
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
