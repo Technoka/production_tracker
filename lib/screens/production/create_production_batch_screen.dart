@@ -1248,7 +1248,6 @@ class _CreateProductionBatchScreenState
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
-            totalProducts: _productsToAdd.length, // ← NUEVO
       );
 
       if (batchId == null) {
