@@ -272,8 +272,9 @@ class MessageEventsHelper {
   }) async {
     await _messageService.createSystemEvent(
       organizationId: organizationId,
-      entityType: 'product',
+      entityType: 'batch_product',
       entityId: productId,
+      parentId: batchId,
       eventData: {
         'batchId': batchId,
         'productId': productId,
@@ -541,30 +542,6 @@ class MessageEventsHelper {
         'productId': productId,
         'productName': productName,
         'addedBy': addedBy,
-      },
-      isInternal: false,
-    );
-  }
-
-  /// Evento: Fase del producto completada (dentro de proyecto)
-  static Future<void> onProductPhaseCompleted({
-    required String organizationId,
-    required String projectId,
-    required String productId,
-    required String phaseName,
-    required String completedBy,
-  }) async {
-    // Para producto: entityId debe ser "projectId/products/productId"
-    final productEntityId = '$projectId/products/$productId';
-
-    await _messageService.createSystemEvent(
-      organizationId: organizationId,
-      entityType: 'product',
-      entityId: productEntityId,
-      eventType: SystemEventType.phaseCompleted,
-      eventData: {
-        'phaseName': phaseName,
-        'completedBy': completedBy,
       },
       isInternal: false,
     );
