@@ -839,7 +839,7 @@ Widget _buildKanbanColumn(
           width: 250,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isAtWipLimit
@@ -881,7 +881,6 @@ Widget _buildKanbanColumn(
                           // 3. Ahora podemos buscar el color directamente aquí
                           // Usamos el mapa que acabamos de crear arriba
                           Color clientColor = parseColorValue(clientColors[batch.clientId]);
-                          print('Client ID: ${batch.clientId}, Color: ${clientColors[batch.clientId]}');
 
                           return DraggableProductCard(
                             key: ValueKey(product.id),
