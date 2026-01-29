@@ -1,22 +1,24 @@
 {
-  "version": "0.8.2",
+  "version": "0.9.1",
   "isActive": true,
   "features": {
     "es": [
-      "Nuevo sistema de novedades automaticas!"
+      "Nuevos sistemas de permisos, cambios de estado y transiciones"
     ],
     "en": [
-      "New system for automatic updates!"
+      "New system for permissions, status changes and transitions"
     ]
   },
   "fixes": {
     "es": [
-      "Así no tengo que enviarte un whatsapp con cada cosa que añado",
-      "Esto es la polla jajaja"
+      "El acceso de todas las acciones se controla",
+      "Hay accesos personalizables para cada miembro",
+      "Las fases, estados y transiciones entre estados son personalizables"
     ],
     "en": [
-      "This way I don¡t have to send you a message every time I add something",
-      "Esto es la polla jajaja"
+      "Access to all actions is controlled",
+      "Custom permissions for each member",
+      "Phases, status and transitions between states are customizabled"
     ]
   }
 }
