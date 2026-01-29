@@ -2875,7 +2875,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get pendingApproval => 'Pending Approval';
+  String get pendingApproval => 'Pending approval';
 
   @override
   String get loadingPhases => 'Loading phases...';
@@ -3740,4 +3740,94 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteClientConfirmTitle => 'Delete client?';
+
+  @override
+  String get clientProjects => 'Client Projects';
+
+  @override
+  String get viewAllProjects => 'View all projects';
+
+  @override
+  String get editClientPermissions => 'Edit Client Permissions';
+
+  @override
+  String get clientPermissionsApplyToAllMembers => 'These permissions will apply to all members associated with this client';
+
+  @override
+  String get clientPermissionsUpdated => 'Client permissions updated';
+
+  @override
+  String get errorUpdatingPermissions => 'Error updating permissions';
+
+  @override
+  String get clientRole => 'Client';
+
+  @override
+  String get markAllAsRead => 'Mark all as read';
+
+  @override
+  String get noNotifications => 'You have no notifications';
+
+  @override
+  String get approvalRequest => 'Approval request';
+
+  @override
+  String get requestApproved => 'Request approved';
+
+  @override
+  String get requestRejected => 'Request rejected';
+
+  @override
+  String get approveRequest => 'Approve request';
+
+  @override
+  String get rejectRequest => 'Reject request';
+
+  @override
+  String get rejectionReason => 'Rejection reason';
+
+  @override
+  String get enterRejectionReason => 'Enter rejection reason';
+
+  @override
+  String get approvalSuccessful => 'Approval successful';
+
+  @override
+  String get rejectionSuccessful => 'Rejection successful';
+
+  @override
+  String get objectNotFound => 'Object not found';
+
+  @override
+  String get requestedBy => 'Requested by';
+
+  @override
+  String get requestedAt => 'Requested at';
+
+  @override
+  String get approvedBy => 'Approved by';
+
+  @override
+  String get rejectedBy => 'Rejected by';
+
+  @override
+  String get errorApprovingRequest => 'Error approving request';
+
+  @override
+  String get reject => 'Reject';
+
+  @override
+  String get rejectionReasonRequired => 'Rejection reason is required';
+
+  @override
+  String get errorRejectingRequest => 'Error rejecting request';
+
+  @override
+  String get batchCreationPendingApproval => 'Batch creation request sent for approval';
+
+  @override
+  String get productCreationPendingApproval => 'Product creation request sent for approval';
+
+  @override
+  String get projectCreationPendingApproval => 'Project creation request sent for approval';
 }

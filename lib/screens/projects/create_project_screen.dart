@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/helpers/approval_helper.dart';
+import 'package:gestion_produccion/models/pending_object_model.dart';
+import 'package:gestion_produccion/services/notification_service.dart';
+import 'package:gestion_produccion/services/organization_member_service.dart';
+import 'package:gestion_produccion/services/pending_object_service.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/project_service.dart';
@@ -107,45 +112,122 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
       );
       return;
     }
-
-    final authService = Provider.of<AuthService>(context, listen: false);
     final projectService = Provider.of<ProjectService>(context, listen: false);
-    final user = authService.currentUserData;
 
-    if (user == null || user.organizationId == null) return;
+    setState(() => projectService.isLoading = true);
 
-    // Asegurar que el creador estÃ© en la lista si no tiene scope "all"
-    if (!_selectedMembers.contains(user.uid)) {
-      _selectedMembers.add(user.uid);
-    }
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final projectService =
+          Provider.of<ProjectService>(context, listen: false);
+      final memberService =
+          Provider.of<OrganizationMemberService>(context, listen: false);
+      final notificationService =
+          Provider.of<NotificationService>(context, listen: false);
+      final pendingService =
+          Provider.of<PendingObjectService>(context, listen: false);
+      final user = authService.currentUserData;
+      final l10n = AppLocalizations.of(context)!;
 
-    final projectId = await projectService.createProject(
-      name: _nameController.text.trim(),
-      description: _descriptionController.text.trim(),
-      clientId: _selectedClientId!,
-      organizationId: user.organizationId!,
-      startDate: DateTime.now(), // Se mantiene en el modelo pero no se muestra
-      estimatedEndDate: DateTime.now().add(const Duration(days: 30)), // Default
-      assignedMembers: _selectedMembers,
-      createdBy: user.uid,
-    );
+      if (user == null || user.organizationId == null) return;
 
-    if (mounted) {
-      if (projectId != null) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Proyecto creado exitosamente'),
-            backgroundColor: Colors.green,
-          ),
+      // Asegurar que el creador esté en la lista
+      if (!_selectedMembers.contains(user.uid)) {
+        _selectedMembers.add(user.uid);
+      }
+
+      // Verificar si requiere aprobación
+      final userIsClient = memberService.currentMember?.roleId == 'client';
+      final requiresApproval =
+          userIsClient; // Clientes siempre requieren aprobación
+
+      String? resultId;
+
+      if (requiresApproval) {
+        // FLUJO CON APROBACIÓN
+        resultId = await ApprovalHelper.createOrRequestApproval(
+          organizationId: user.organizationId!,
+          objectType: PendingObjectType.project,
+          collectionRoute: 'projects',
+          modelData: {
+            'name': _nameController.text.trim(),
+            'description': _descriptionController.text.trim(),
+            'clientId': _selectedClientId!,
+            'organizationId': user.organizationId!,
+            'startDate': Timestamp.fromDate(DateTime.now()),
+            'estimatedEndDate': Timestamp.fromDate(
+              DateTime.now().add(const Duration(days: 30)),
+            ),
+            'assignedMembers': _selectedMembers,
+            'createdBy': user.uid,
+            'status': 'active',
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          createdBy: user.uid,
+          createdByName: user.name,
+          requiresApproval: true,
+          userIsClient: true,
+          pendingService: pendingService,
+          notificationService: notificationService,
+          organizationMemberService: memberService,
+          clientId: _selectedClientId,
         );
+
+        if (mounted && resultId != null) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.projectCreationPendingApproval),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
       } else {
+        // FLUJO DIRECTO (SIN APROBACIÓN)
+        resultId = await projectService.createProject(
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          clientId: _selectedClientId!,
+          organizationId: user.organizationId!,
+          startDate: DateTime.now(),
+          estimatedEndDate: DateTime.now().add(const Duration(days: 30)),
+          assignedMembers: _selectedMembers,
+          createdBy: user.uid,
+        );
+
+        if (mounted) {
+          if (resultId != null) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Proyecto creado exitosamente'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    Text(projectService.error ?? 'Error al crear proyecto'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(projectService.error ?? 'Error al crear proyecto'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => projectService.isLoading = false);
       }
     }
   }
@@ -191,7 +273,6 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final authService = Provider.of<AuthService>(context, listen: false);
-    final permissionService = Provider.of<PermissionService>(context, listen: false);
     final user = authService.currentUserData;
 
     if (user?.organizationId == null) {
@@ -259,7 +340,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
           );
         }
 
-        return _buildForm(context, user!);
+        return _buildForm(context, user);
       },
     );
   }
@@ -647,8 +728,10 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
   }
 
   Widget _buildAccessControlCard(BuildContext context, UserModel user) {
-    final organizationService = Provider.of<OrganizationService>(context, listen: false);
-    final permissionService = Provider.of<PermissionService>(context, listen: false);
+    final organizationService =
+        Provider.of<OrganizationService>(context, listen: false);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
 
     return Card(
       elevation: 2,

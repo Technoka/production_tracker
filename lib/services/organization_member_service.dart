@@ -344,6 +344,68 @@ class OrganizationMemberService extends ChangeNotifier {
     });
   }
 
+  /// Obtener usuarios con un permiso específico
+  ///
+  /// Retorna lista de UserModel con uid y displayName
+  /// Útil para buscar usuarios que pueden aprobar solicitudes
+  Future<List<({String uid, String displayName})>> getUsersWithPermission(
+    String organizationId,
+    String moduleKey,
+    String actionKey,
+  ) async {
+    try {
+      // 1. Obtener todos los miembros activos
+      final membersSnapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('members')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      final usersWithPermission = <({String uid, String displayName})>[];
+
+      // 2. Para cada miembro, verificar si tiene el permiso
+      for (final memberDoc in membersSnapshot.docs) {
+        final member = OrganizationMemberModel.fromMap(
+          memberDoc.data(),
+          docId: memberDoc.id,
+        );
+
+        // Obtener rol del miembro
+        final role = await _getRoleModel(organizationId, member.roleId);
+        if (role == null) continue;
+
+        // Verificar si tiene el permiso usando PermissionUtils
+        final hasPermission = PermissionUtils.can(
+          member: member,
+          role: role,
+          module: moduleKey,
+          action: actionKey,
+        );
+
+        if (hasPermission) {
+          // Obtener datos del usuario
+          final userDoc =
+              await _firestore.collection('users').doc(member.userId).get();
+
+          if (userDoc.exists) {
+            final user = UserModel.fromMap(userDoc.data()!);
+            usersWithPermission.add((
+              uid: member.userId,
+              displayName: user.name,
+            ));
+          }
+        }
+      }
+
+      return usersWithPermission;
+    } catch (e) {
+      debugPrint(
+          'Error obteniendo usuarios con permiso $moduleKey.$actionKey: $e');
+      return [];
+    }
+  }
+
   // ==================== ACTUALIZACIÓN DE PERMISOS ====================
 
   /// Actualizar permission overrides de un usuario

@@ -5702,7 +5702,7 @@ abstract class AppLocalizations {
   /// No description provided for @pendingApproval.
   ///
   /// In en, this message translates to:
-  /// **'Pending Approval'**
+  /// **'Pending approval'**
   String get pendingApproval;
 
   /// No description provided for @loadingPhases.
@@ -7402,6 +7402,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete client?'**
   String get deleteClientConfirmTitle;
+
+  /// No description provided for @clientProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Client Projects'**
+  String get clientProjects;
+
+  /// No description provided for @viewAllProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'View all projects'**
+  String get viewAllProjects;
+
+  /// No description provided for @editClientPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Client Permissions'**
+  String get editClientPermissions;
+
+  /// No description provided for @clientPermissionsApplyToAllMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'These permissions will apply to all members associated with this client'**
+  String get clientPermissionsApplyToAllMembers;
+
+  /// No description provided for @clientPermissionsUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Client permissions updated'**
+  String get clientPermissionsUpdated;
+
+  /// No description provided for @errorUpdatingPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Error updating permissions'**
+  String get errorUpdatingPermissions;
+
+  /// No description provided for @clientRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Client'**
+  String get clientRole;
+
+  /// No description provided for @markAllAsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all as read'**
+  String get markAllAsRead;
+
+  /// No description provided for @noNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no notifications'**
+  String get noNotifications;
+
+  /// No description provided for @approvalRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Approval request'**
+  String get approvalRequest;
+
+  /// No description provided for @requestApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Request approved'**
+  String get requestApproved;
+
+  /// No description provided for @requestRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Request rejected'**
+  String get requestRejected;
+
+  /// No description provided for @approveRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve request'**
+  String get approveRequest;
+
+  /// No description provided for @rejectRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject request'**
+  String get rejectRequest;
+
+  /// No description provided for @rejectionReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejection reason'**
+  String get rejectionReason;
+
+  /// No description provided for @enterRejectionReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter rejection reason'**
+  String get enterRejectionReason;
+
+  /// No description provided for @approvalSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'Approval successful'**
+  String get approvalSuccessful;
+
+  /// No description provided for @rejectionSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejection successful'**
+  String get rejectionSuccessful;
+
+  /// No description provided for @objectNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Object not found'**
+  String get objectNotFound;
+
+  /// No description provided for @requestedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested by'**
+  String get requestedBy;
+
+  /// No description provided for @requestedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested at'**
+  String get requestedAt;
+
+  /// No description provided for @approvedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved by'**
+  String get approvedBy;
+
+  /// No description provided for @rejectedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected by'**
+  String get rejectedBy;
+
+  /// No description provided for @errorApprovingRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Error approving request'**
+  String get errorApprovingRequest;
+
+  /// No description provided for @reject.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get reject;
+
+  /// No description provided for @rejectionReasonRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejection reason is required'**
+  String get rejectionReasonRequired;
+
+  /// No description provided for @errorRejectingRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Error rejecting request'**
+  String get errorRejectingRequest;
+
+  /// No description provided for @batchCreationPendingApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch creation request sent for approval'**
+  String get batchCreationPendingApproval;
+
+  /// No description provided for @productCreationPendingApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Product creation request sent for approval'**
+  String get productCreationPendingApproval;
+
+  /// No description provided for @projectCreationPendingApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Project creation request sent for approval'**
+  String get projectCreationPendingApproval;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/screens/management/management_screen.dart';
+import 'package:gestion_produccion/widgets/notification_badge.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/organization_service.dart';
@@ -148,7 +149,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               )
             : Text(l10n.appTitle),
-        actions: [],
+        actions: const [
+          NotificationBadge(),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

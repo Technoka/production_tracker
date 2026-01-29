@@ -29,6 +29,9 @@ class OrganizationMemberModel {
   final bool isActive;
   final DateTime? lastActiveAt;
 
+  //Si esta asociado a un cliente
+  final String? clientId;
+
   OrganizationMemberModel({
     required this.userId,
     required this.organizationId,
@@ -42,6 +45,7 @@ class OrganizationMemberModel {
     required this.joinedAt,
     this.isActive = true,
     this.lastActiveAt,
+    this.clientId,
   });
 
   factory OrganizationMemberModel.fromMap(
@@ -69,6 +73,7 @@ class OrganizationMemberModel {
       lastActiveAt: map['lastActiveAt'] != null
           ? (map['lastActiveAt'] as Timestamp).toDate()
           : null,
+      clientId: map['clientId'] as String?,
     );
   }
 
@@ -87,6 +92,7 @@ class OrganizationMemberModel {
       'joinedAt': Timestamp.fromDate(joinedAt),
       'isActive': isActive,
       if (lastActiveAt != null) 'lastActiveAt': Timestamp.fromDate(lastActiveAt!),
+      if (clientId != null) 'clientId': clientId,
     };
   }
 
@@ -103,6 +109,7 @@ class OrganizationMemberModel {
     DateTime? joinedAt,
     bool? isActive,
     DateTime? lastActiveAt,
+    String? clientId,
   }) {
     return OrganizationMemberModel(
       userId: userId ?? this.userId,
@@ -117,6 +124,7 @@ class OrganizationMemberModel {
       joinedAt: joinedAt ?? this.joinedAt,
       isActive: isActive ?? this.isActive,
       lastActiveAt: lastActiveAt ?? this.lastActiveAt,
+      clientId: clientId ?? this.clientId,
     );
   }
 

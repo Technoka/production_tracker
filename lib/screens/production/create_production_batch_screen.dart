@@ -1,5 +1,10 @@
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/helpers/approval_helper.dart';
+import 'package:gestion_produccion/l10n/app_localizations.dart';
+import 'package:gestion_produccion/models/pending_object_model.dart';
+import 'package:gestion_produccion/services/notification_service.dart';
+import 'package:gestion_produccion/services/pending_object_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/project_model.dart';
 import '../../models/client_model.dart';
@@ -1222,6 +1227,13 @@ class _CreateProductionBatchScreenState
         Provider.of<ProductionBatchService>(context, listen: false);
     final clientService = Provider.of<ClientService>(context, listen: false);
     final phaseService = Provider.of<PhaseService>(context, listen: false);
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+    final notificationService =
+        Provider.of<NotificationService>(context, listen: false);
+    final pendingService =
+        Provider.of<PendingObjectService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       final client = await clientService.getClient(
@@ -1233,114 +1245,224 @@ class _CreateProductionBatchScreenState
         throw Exception('No se pudo obtener la información del cliente');
       }
 
-      // 1. Crear el Lote
-      final batchId = await batchService.createBatch(
-        organizationId: widget.organizationId,
-        userId: authService.currentUser!.uid,
-        projectId: _selectedProject!.id,
-        projectName: _selectedProject!.name,
-        clientId: client.id,
-        clientName: client.name,
-        createdBy: authService.currentUser!.uid,
-        batchPrefix: _prefixController.text.toUpperCase(),
-        batchNumber: _batchNumberPreview.value,
-        assignedMembers: _selectedMembers, // ← NUEVO
-        notes: _notesController.text.trim().isEmpty
-            ? null
-            : _notesController.text.trim(),
-      );
+      // Verificar si requiere aprobación
+      final userIsClient = memberService.currentMember?.roleId == 'client';
+      final requiresApproval = userIsClient;
 
-      if (batchId == null) {
-        throw Exception(
-            batchService.error ?? 'Error desconocido al crear lote');
-      }
+      if (requiresApproval) {
+        // ============ FLUJO CON APROBACIÓN ============
 
-      // 2. Si hay productos en la lista, añadirlos en batch
-      if (_productsToAdd.isNotEmpty) {
-        // Obtener fases de la organización (necesarias para crear productos)
+        // 1. Obtener fases (necesarias para productos)
         final phases =
             await phaseService.getOrganizationPhases(widget.organizationId);
-
         if (phases.isEmpty) {
-          debugPrint(
-              'Advertencia: No hay fases configuradas, no se pudieron añadir productos.');
-        } else {
-          phases.sort((a, b) => a.order.compareTo(b.order));
+          throw Exception('No hay fases configuradas');
+        }
+        phases.sort((a, b) => a.order.compareTo(b.order));
 
-          // ✅ CONSTRUIR LISTA DE BatchProductModel
-          final List<BatchProductModel> batchProducts = [];
+        // 2. Preparar datos del batch
+        final batchData = {
+          'projectId': _selectedProject!.id,
+          'projectName': _selectedProject!.name,
+          'clientId': client.id,
+          'clientName': client.name,
+          'createdBy': authService.currentUser!.uid,
+          'batchPrefix': _prefixController.text.toUpperCase(),
+          'batchNumber': _batchNumberPreview.value,
+          'assignedMembers': _selectedMembers,
+          'notes': _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
+          'status': 'active',
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
 
-          for (int i = 0; i < _productsToAdd.length; i++) {
-            final item = _productsToAdd[i];
-            final product = item['product'] as ProductCatalogModel;
-            final quantity = item['quantity'] as int;
-            final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
-            final urgency = item['urgencyLevel'] as String? ?? 'medium';
-            final notes = item['notes'] as String?;
-            final family = item['family'];
+        // 3. Preparar productos (serializar a Map)
+        final List<Map<String, dynamic>> productsData = [];
 
-            // Crear progreso de fases inicial
-            final Map<String, PhaseProgressData> phaseProgress = {};
-            for (var phase in phases) {
-              phaseProgress[phase.id] = PhaseProgressData(
-                status: phase.id == phases.first.id ? 'in_progress' : 'pending',
-                startedAt: phase.id == phases.first.id ? DateTime.now() : null,
+        for (int i = 0; i < _productsToAdd.length; i++) {
+          final item = _productsToAdd[i];
+          final product = item['product'] as ProductCatalogModel;
+          final quantity = item['quantity'] as int;
+          final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
+          final urgency = item['urgencyLevel'] as String? ?? 'medium';
+          final notes = item['notes'] as String?;
+          final family = item['family'];
+
+          // Crear progreso de fases
+          final Map<String, dynamic> phaseProgress = {};
+          for (var phase in phases) {
+            phaseProgress[phase.id] = {
+              'status': phase.id == phases.first.id ? 'in_progress' : 'pending',
+              'startedAt': phase.id == phases.first.id
+                  ? Timestamp.fromDate(DateTime.now())
+                  : null,
+            };
+          }
+
+          productsData.add({
+            'productCatalogId': product.id,
+            'productName': product.name,
+            'productReference': product.reference,
+            'family': family,
+            'description': product.description,
+            'quantity': quantity,
+            'currentPhase': phases.first.id,
+            'currentPhaseName': phases.first.name,
+            'phaseProgress': phaseProgress,
+            'productNumber': i + 1,
+            'unitPrice': product.basePrice,
+            'totalPrice': product.basePrice != null
+                ? product.basePrice! * quantity
+                : null,
+            'expectedDeliveryDate':
+                deliveryDate != null ? Timestamp.fromDate(deliveryDate) : null,
+            'urgencyLevel': urgency,
+            'productNotes': notes,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        // 4. Añadir productos al batch data
+        batchData['products'] = productsData;
+        batchData['productCount'] = productsData.length;
+
+        // 5. Crear pending object con batch + productos
+        final pendingId = await ApprovalHelper.createOrRequestApproval(
+          organizationId: widget.organizationId,
+          objectType: PendingObjectType.batch,
+          collectionRoute: 'production_batches',
+          modelData: batchData,
+          createdBy: authService.currentUser!.uid,
+          createdByName: authService.currentUser!.displayName ?? 'Usuario',
+          requiresApproval: true,
+          userIsClient: true,
+          pendingService: pendingService,
+          notificationService: notificationService,
+          organizationMemberService: memberService,
+          clientId: client.id,
+        );
+
+        if (pendingId != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.batchCreationPendingApproval),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        // ============ FLUJO DIRECTO (SIN APROBACIÓN) ============
+
+        // 1. Crear el Lote
+        final batchId = await batchService.createBatch(
+          organizationId: widget.organizationId,
+          userId: authService.currentUser!.uid,
+          projectId: _selectedProject!.id,
+          projectName: _selectedProject!.name,
+          clientId: client.id,
+          clientName: client.name,
+          createdBy: authService.currentUser!.uid,
+          batchPrefix: _prefixController.text.toUpperCase(),
+          batchNumber: _batchNumberPreview.value,
+          assignedMembers: _selectedMembers,
+          notes: _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
+        );
+
+        if (batchId == null) {
+          throw Exception(
+              batchService.error ?? 'Error desconocido al crear lote');
+        }
+
+        // 2. Si hay productos, añadirlos
+        if (_productsToAdd.isNotEmpty) {
+          final phases =
+              await phaseService.getOrganizationPhases(widget.organizationId);
+
+          if (phases.isEmpty) {
+            debugPrint('Advertencia: No hay fases configuradas');
+          } else {
+            phases.sort((a, b) => a.order.compareTo(b.order));
+
+            final List<BatchProductModel> batchProducts = [];
+
+            for (int i = 0; i < _productsToAdd.length; i++) {
+              final item = _productsToAdd[i];
+              final product = item['product'] as ProductCatalogModel;
+              final quantity = item['quantity'] as int;
+              final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
+              final urgency = item['urgencyLevel'] as String? ?? 'medium';
+              final notes = item['notes'] as String?;
+              final family = item['family'];
+
+              final Map<String, PhaseProgressData> phaseProgress = {};
+              for (var phase in phases) {
+                phaseProgress[phase.id] = PhaseProgressData(
+                  status:
+                      phase.id == phases.first.id ? 'in_progress' : 'pending',
+                  startedAt:
+                      phase.id == phases.first.id ? DateTime.now() : null,
+                );
+              }
+
+              final batchProduct = BatchProductModel(
+                id: '',
+                batchId: batchId,
+                productCatalogId: product.id,
+                productName: product.name,
+                productReference: product.reference,
+                family: family,
+                description: product.description,
+                quantity: quantity,
+                currentPhase: phases.first.id,
+                currentPhaseName: phases.first.name,
+                phaseProgress: phaseProgress,
+                productNumber: i + 1,
+                productCode: '',
+                unitPrice: product.basePrice,
+                totalPrice: product.basePrice != null
+                    ? product.basePrice! * quantity
+                    : null,
+                expectedDeliveryDate: deliveryDate,
+                urgencyLevel: urgency,
+                productNotes: notes,
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
               );
+
+              batchProducts.add(batchProduct);
             }
 
-            // Construir BatchProductModel
-            final batchProduct = BatchProductModel(
-              id: '', // Se asignará en el servicio
+            final success = await batchService.addProductsToBatch(
+              organizationId: widget.organizationId,
               batchId: batchId,
-              productCatalogId: product.id,
-              productName: product.name,
-              productReference: product.reference,
-              family: family,
-              description: product.description,
-              quantity: quantity,
-              currentPhase: phases.first.id,
-              currentPhaseName: phases.first.name,
-              phaseProgress: phaseProgress,
-              productNumber: i + 1, // Se asignará en el servicio (secuencial)
-              productCode: '', // Se generará en el servicio
-              unitPrice: product.basePrice,
-              totalPrice: product.basePrice != null
-                  ? product.basePrice! * quantity
-                  : null,
-              expectedDeliveryDate: deliveryDate,
-              urgencyLevel: urgency,
-              productNotes: notes,
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
+              products: batchProducts,
+              userId: authService.currentUser!.uid,
+              userName: authService.currentUser!.displayName ?? 'Usuario',
             );
 
-            batchProducts.add(batchProduct);
-          }
-
-          // ✅ LLAMAR A addProductsToBatch CON LA LISTA
-          final success = await batchService.addProductsToBatch(
-            organizationId: widget.organizationId,
-            batchId: batchId,
-            products: batchProducts,
-            userId: authService.currentUser!.uid,
-            userName: authService.currentUser!.displayName ?? 'Usuario',
-          );
-
-          if (!success) {
-            throw Exception('Error al añadir productos: ${batchService.error}');
+            if (!success) {
+              throw Exception(
+                  'Error al añadir productos: ${batchService.error}');
+            }
           }
         }
-      }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Lote ${_batchNumberPreview.value} creado con ${_productsToAdd.length} productos.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context, batchId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Lote ${_batchNumberPreview.value} creado con ${_productsToAdd.length} productos.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, batchId);
+        }
       }
     } catch (e) {
       if (mounted) {

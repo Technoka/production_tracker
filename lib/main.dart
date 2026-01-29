@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:gestion_produccion/models/organization_settings_model.dart';
+import 'package:gestion_produccion/services/notification_service.dart';
+import 'package:gestion_produccion/services/pending_object_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import '../../l10n/app_localizations.dart';
@@ -59,7 +61,7 @@ class MyApp extends StatelessWidget {
 
         ChangeNotifierProvider(create: (_) => AuthService()),
 
-        // ✅ OrganizationMemberService - SERVICIO CENTRAL RBAC
+        // OrganizationMemberService - SERVICIO CENTRAL RBAC
         ChangeNotifierProvider(create: (_) => OrganizationMemberService()),
         ChangeNotifierProvider(create: (_) => PermissionService()),
         ChangeNotifierProvider(create: (_) => RoleService()),
@@ -68,6 +70,10 @@ class MyApp extends StatelessWidget {
         Provider<ProductCatalogService>(create: (_) => ProductCatalogService()),
         Provider<PhaseService>(create: (_) => PhaseService()),
         Provider<MessageService>(create: (_) => MessageService()),
+
+        // Notificaciones y objetos pendientes
+        ChangeNotifierProvider(create: (_) => NotificationService()),
+        ChangeNotifierProvider(create: (_) => PendingObjectService()),
 
         // ==================== SERVICIOS CON DEPENDENCIA DE OrganizationMemberService ====================
 

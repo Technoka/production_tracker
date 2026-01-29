@@ -250,6 +250,7 @@ class PermissionRegistry {
         PermissionAction.boolean(key: 'manageSettings', displayName: 'Gestionar configuración'),
         PermissionAction.boolean(key: 'manageProductStatuses', displayName: 'Gestionar estados de productos', description: 'Crear, editar y eliminar estados de calidad'),
         PermissionAction.boolean(key: 'manageStatusTransitions', displayName: 'Gestionar transiciones de estados', description: 'Configurar cómo los productos cambian entre estados'),
+        PermissionAction.boolean(key: 'approveClientRequests', displayName: 'Aprobar solicitudes de clientes'),
       ],
     ),
 

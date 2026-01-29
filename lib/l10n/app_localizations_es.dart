@@ -2875,7 +2875,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get pendingApproval => 'Pendiente de Aprobación';
+  String get pendingApproval => 'Pendiente de aprobación';
 
   @override
   String get loadingPhases => 'Cargando fases...';
@@ -3740,4 +3740,94 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get deleteClientConfirmTitle => '¿Eliminar cliente?';
+
+  @override
+  String get clientProjects => 'Proyectos del Cliente';
+
+  @override
+  String get viewAllProjects => 'Ver todos los proyectos';
+
+  @override
+  String get editClientPermissions => 'Editar Permisos del Cliente';
+
+  @override
+  String get clientPermissionsApplyToAllMembers => 'Estos permisos se aplicarán a todos los miembros asociados a este cliente';
+
+  @override
+  String get clientPermissionsUpdated => 'Permisos del cliente actualizados';
+
+  @override
+  String get errorUpdatingPermissions => 'Error al actualizar permisos';
+
+  @override
+  String get clientRole => 'Cliente';
+
+  @override
+  String get markAllAsRead => 'Marcar todas como leídas';
+
+  @override
+  String get noNotifications => 'No tienes notificaciones';
+
+  @override
+  String get approvalRequest => 'Solicitud de aprobación';
+
+  @override
+  String get requestApproved => 'Solicitud aprobada';
+
+  @override
+  String get requestRejected => 'Solicitud rechazada';
+
+  @override
+  String get approveRequest => 'Aprobar solicitud';
+
+  @override
+  String get rejectRequest => 'Rechazar solicitud';
+
+  @override
+  String get rejectionReason => 'Motivo del rechazo';
+
+  @override
+  String get enterRejectionReason => 'Ingresa el motivo del rechazo';
+
+  @override
+  String get approvalSuccessful => 'Aprobación exitosa';
+
+  @override
+  String get rejectionSuccessful => 'Rechazo exitoso';
+
+  @override
+  String get objectNotFound => 'Objeto no encontrado';
+
+  @override
+  String get requestedBy => 'Solicitado por';
+
+  @override
+  String get requestedAt => 'Solicitado el';
+
+  @override
+  String get approvedBy => 'Aprobado por';
+
+  @override
+  String get rejectedBy => 'Rechazado por';
+
+  @override
+  String get errorApprovingRequest => 'Error al aprobar la solicitud';
+
+  @override
+  String get reject => 'Rechazar';
+
+  @override
+  String get rejectionReasonRequired => 'El motivo del rechazo es obligatorio';
+
+  @override
+  String get errorRejectingRequest => 'Error al rechazar la solicitud';
+
+  @override
+  String get batchCreationPendingApproval => 'Solicitud de lote enviada para aprobación';
+
+  @override
+  String get productCreationPendingApproval => 'Solicitud de producto enviada para aprobación';
+
+  @override
+  String get projectCreationPendingApproval => 'Solicitud de proyecto enviada para aprobación';
 }

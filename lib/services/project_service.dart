@@ -20,6 +20,10 @@ class ProjectService extends ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+  set isLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
+  }
 
   String? _error;
   String? get error => _error;
@@ -175,9 +179,8 @@ class ProjectService extends ChangeNotifier {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      _projects = snapshot.docs
-          .map((doc) => ProjectModel.fromMap(doc.data()))
-          .toList();
+      _projects =
+          snapshot.docs.map((doc) => ProjectModel.fromMap(doc.data())).toList();
       return _projects;
     });
   }
@@ -213,9 +216,8 @@ class ProjectService extends ChangeNotifier {
           .where('isActive', isEqualTo: true)
           .get();
 
-      final projects = snapshot.docs
-          .map((doc) => ProjectModel.fromMap(doc.data()))
-          .toList();
+      final projects =
+          snapshot.docs.map((doc) => ProjectModel.fromMap(doc.data())).toList();
 
       return projects;
     } catch (e) {
@@ -225,99 +227,98 @@ class ProjectService extends ChangeNotifier {
     }
   }
 
-/// Proyectos por cliente con scope de permisos (consulta filtrada directa)
-Future<List<ProjectModel>> getClientProjectsWithScope({
-  required String organizationId,
-  required String clientId,
-  required String userId,
-}) async {
-  try {
-    // 1. Obtener miembro de la organización
-    final memberDoc = await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('members')
-        .doc(userId)
-        .get();
+  /// Proyectos por cliente con scope de permisos (consulta filtrada directa)
+  Future<List<ProjectModel>> getClientProjectsWithScope({
+    required String organizationId,
+    required String clientId,
+    required String userId,
+  }) async {
+    try {
+      // 1. Obtener miembro de la organización
+      final memberDoc = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('members')
+          .doc(userId)
+          .get();
 
-    if (!memberDoc.exists) {
-      _error = 'Usuario no es miembro de la organización';
-      notifyListeners();
-      return [];
-    }
-
-    final member = OrganizationMemberModel.fromMap(
-      memberDoc.data()!,
-      docId: memberDoc.id,
-    );
-
-    // 2. Obtener rol del miembro
-    final roleDoc = await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('roles')
-        .doc(member.roleId)
-        .get();
-
-    if (!roleDoc.exists) {
-      _error = 'Rol no encontrado';
-      notifyListeners();
-      return [];
-    }
-
-    final role = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
-
-    // 3. Calcular permisos efectivos (rol + overrides)
-    final effectivePermissions = member.getEffectivePermissions(role);
-
-    // 4. Verificar permiso básico de ver proyectos
-    if (!effectivePermissions.canViewProjects) {
-      _error = 'No tienes permiso para ver proyectos';
-      notifyListeners();
-      return [];
-    }
-
-    // 5. Obtener scope del permiso
-    final scope = effectivePermissions.viewProjectsScope;
-
-    // 6. Construir query base con filtro de cliente
-    Query<Map<String, dynamic>> query = _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('projects')
-        .where('clientId', isEqualTo: clientId)
-        .where('isActive', isEqualTo: true);
-
-    // 7. Aplicar filtro según scope
-    switch (scope) {
-      case PermissionScope.all:
-        // Sin filtro adicional - ver todos los proyectos del cliente
-        break;
-        
-      case PermissionScope.assigned:
-        // Solo proyectos donde el usuario está asignado
-        query = query.where('assignedMembers', arrayContains: userId);
-        break;
-        
-      case PermissionScope.none:
-        // Sin acceso
+      if (!memberDoc.exists) {
+        _error = 'Usuario no es miembro de la organización';
+        notifyListeners();
         return [];
+      }
+
+      final member = OrganizationMemberModel.fromMap(
+        memberDoc.data()!,
+        docId: memberDoc.id,
+      );
+
+      // 2. Obtener rol del miembro
+      final roleDoc = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('roles')
+          .doc(member.roleId)
+          .get();
+
+      if (!roleDoc.exists) {
+        _error = 'Rol no encontrado';
+        notifyListeners();
+        return [];
+      }
+
+      final role = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
+
+      // 3. Calcular permisos efectivos (rol + overrides)
+      final effectivePermissions = member.getEffectivePermissions(role);
+
+      // 4. Verificar permiso básico de ver proyectos
+      if (!effectivePermissions.canViewProjects) {
+        _error = 'No tienes permiso para ver proyectos';
+        notifyListeners();
+        return [];
+      }
+
+      // 5. Obtener scope del permiso
+      final scope = effectivePermissions.viewProjectsScope;
+
+      // 6. Construir query base con filtro de cliente
+      Query<Map<String, dynamic>> query = _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('projects')
+          .where('clientId', isEqualTo: clientId)
+          .where('isActive', isEqualTo: true);
+
+      // 7. Aplicar filtro según scope
+      switch (scope) {
+        case PermissionScope.all:
+          // Sin filtro adicional - ver todos los proyectos del cliente
+          break;
+
+        case PermissionScope.assigned:
+          // Solo proyectos donde el usuario está asignado
+          query = query.where('assignedMembers', arrayContains: userId);
+          break;
+
+        case PermissionScope.none:
+          // Sin acceso
+          return [];
+      }
+
+      // 8. Ejecutar query
+      final snapshot = await query.get();
+
+      final projects =
+          snapshot.docs.map((doc) => ProjectModel.fromMap(doc.data())).toList();
+
+      return projects;
+    } catch (e) {
+      _error = 'Error al obtener proyectos del cliente: $e';
+      notifyListeners();
+      return [];
     }
-
-    // 8. Ejecutar query
-    final snapshot = await query.get();
-
-    final projects = snapshot.docs
-        .map((doc) => ProjectModel.fromMap(doc.data()))
-        .toList();
-
-    return projects;
-  } catch (e) {
-    _error = 'Error al obtener proyectos del cliente: $e';
-    notifyListeners();
-    return [];
   }
-}
 
   /// Stream de proyectos por cliente
   Stream<List<ProjectModel>> watchClientProjects(
@@ -771,9 +772,9 @@ Future<List<ProjectModel>> getClientProjectsWithScope({
         final nameMatch = project.name.toLowerCase().contains(_searchQuery);
         final descMatch =
             project.description.toLowerCase().contains(_searchQuery);
-        final tagMatch =
-            project.tags?.any((tag) => tag.toLowerCase().contains(_searchQuery)) ??
-                false;
+        final tagMatch = project.tags
+                ?.any((tag) => tag.toLowerCase().contains(_searchQuery)) ??
+            false;
         return nameMatch || descMatch || tagMatch;
       }).toList();
     }
@@ -882,7 +883,8 @@ Future<List<ProjectModel>> getClientProjectsWithScope({
 
       final snapshot = await query.get();
       var projects = snapshot.docs
-          .map((doc) => ProjectModel.fromMap(doc.data() as Map<String, dynamic>))
+          .map(
+              (doc) => ProjectModel.fromMap(doc.data() as Map<String, dynamic>))
           .toList();
 
       // Filtros que no se pueden hacer en Firestore
@@ -950,14 +952,18 @@ Future<List<ProjectModel>> getClientProjectsWithScope({
 
       final stats = {
         'total': projects.length,
-        'preparation':
-            projects.where((p) => p.status == ProjectStatus.preparation.value).length,
-        'production':
-            projects.where((p) => p.status == ProjectStatus.production.value).length,
-        'completed':
-            projects.where((p) => p.status == ProjectStatus.completed.value).length,
-        'delivered':
-            projects.where((p) => p.status == ProjectStatus.delivered.value).length,
+        'preparation': projects
+            .where((p) => p.status == ProjectStatus.preparation.value)
+            .length,
+        'production': projects
+            .where((p) => p.status == ProjectStatus.production.value)
+            .length,
+        'completed': projects
+            .where((p) => p.status == ProjectStatus.completed.value)
+            .length,
+        'delivered': projects
+            .where((p) => p.status == ProjectStatus.delivered.value)
+            .length,
         'overdue': projects.where((p) => p.isOverdue).length,
         'delayed': projects.where((p) => p.isDelayed).length,
         'urgent': projects.where((p) => p.priority <= 2).length,
@@ -990,9 +996,8 @@ Future<List<ProjectModel>> getClientProjectsWithScope({
           .where('isActive', isEqualTo: true)
           .get();
 
-      final projects = snapshot.docs
-          .map((doc) => ProjectModel.fromMap(doc.data()))
-          .toList();
+      final projects =
+          snapshot.docs.map((doc) => ProjectModel.fromMap(doc.data())).toList();
 
       return {
         'total': projects.length,
@@ -1001,8 +1006,9 @@ Future<List<ProjectModel>> getClientProjectsWithScope({
                 p.status == ProjectStatus.production.value ||
                 p.status == ProjectStatus.preparation.value)
             .length,
-        'completed':
-            projects.where((p) => p.status == ProjectStatus.completed.value).length,
+        'completed': projects
+            .where((p) => p.status == ProjectStatus.completed.value)
+            .length,
         'totalRevenue':
             projects.fold<double>(0, (sum, p) => sum + p.totalAmount),
         'totalPaid': projects.fold<double>(0, (sum, p) => sum + p.paidAmount),

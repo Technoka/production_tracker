@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/helpers/approval_helper.dart';
+import 'package:gestion_produccion/models/pending_object_model.dart';
+import 'package:gestion_produccion/services/notification_service.dart';
+import 'package:gestion_produccion/services/organization_member_service.dart';
+import 'package:gestion_produccion/services/pending_object_service.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/product_catalog_service.dart';
@@ -183,7 +188,7 @@ class _CreateProductCatalogScreenState
     return result ?? false;
   }
 
-  Future<void> _handleCreate() async {
+Future<void> _handleCreate() async {
   if (!_formKey.currentState!.validate()) return;
 
   if (_selectedClientId == null) {
@@ -221,49 +226,101 @@ class _CreateProductCatalogScreenState
   try {
     final authService = Provider.of<AuthService>(context, listen: false);
     final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
+    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
+    final notificationService = Provider.of<NotificationService>(context, listen: false);
+    final pendingService = Provider.of<PendingObjectService>(context, listen: false);
     final user = authService.currentUserData;
+    final l10n = AppLocalizations.of(context)!;
 
     if (user == null || user.organizationId == null) return;
 
-    // 1. Crear el producto en el catálogo
-    final productId = await catalogService.createProduct(
-      organizationId: user.organizationId!,
-      name: _nameController.text.trim(),
-      reference: _referenceController.text.trim(),
-      description: _descriptionController.text.trim(),
-      family: _selectedFamily,
-      clientId: _selectedClientId,
-      createdBy: user.uid,
-      isPublic: false,
-      notes: _notesController.text.trim().isNotEmpty
-          ? _notesController.text.trim()
-          : null,
-      projects: [_selectedProjectId!],
-    );
+    // Verificar si requiere aprobación
+    final userIsClient = memberService.currentMember?.roleId == 'client';
+    final requiresApproval = userIsClient;
 
-    if (productId != null) {
+    String? resultId;
 
-      if (mounted) {
-        _hasUnsavedChanges = false; // Evitar el diálogo al salir
+    if (requiresApproval) {
+      // FLUJO CON APROBACIÓN
+      resultId = await ApprovalHelper.createOrRequestApproval(
+        organizationId: user.organizationId!,
+        objectType: PendingObjectType.productCatalog,
+        collectionRoute: 'product_catalog',
+        modelData: {
+          'name': _nameController.text.trim(),
+          'reference': _referenceController.text.trim(),
+          'description': _descriptionController.text.trim(),
+          'family': _selectedFamily,
+          'clientId': _selectedClientId,
+          'createdBy': user.uid,
+          'isPublic': false,
+          'notes': _notesController.text.trim().isNotEmpty
+              ? _notesController.text.trim()
+              : null,
+          'projects': [_selectedProjectId!],
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        createdBy: user.uid,
+        createdByName: user.name,
+        requiresApproval: true,
+        userIsClient: true,
+        pendingService: pendingService,
+        notificationService: notificationService,
+        organizationMemberService: memberService,
+        clientId: _selectedClientId,
+      );
+
+      if (mounted && resultId != null) {
+        _hasUnsavedChanges = false;
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              _pendingNewFamily != null
-                  ? 'Familia "$_pendingNewFamily" y producto creados exitosamente'
-                  : 'Producto creado exitosamente',
-            ),
-            backgroundColor: Colors.green,
+            content: Text(l10n.productCreationPendingApproval),
+            backgroundColor: Colors.orange,
           ),
         );
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al crear el producto'),
-          backgroundColor: Colors.red,
-        ),
+      // FLUJO DIRECTO (SIN APROBACIÓN)
+      resultId = await catalogService.createProduct(
+        organizationId: user.organizationId!,
+        name: _nameController.text.trim(),
+        reference: _referenceController.text.trim(),
+        description: _descriptionController.text.trim(),
+        family: _selectedFamily,
+        clientId: _selectedClientId,
+        createdBy: user.uid,
+        isPublic: false,
+        notes: _notesController.text.trim().isNotEmpty
+            ? _notesController.text.trim()
+            : null,
+        projects: [_selectedProjectId!],
       );
+
+      if (mounted) {
+        if (resultId != null) {
+          _hasUnsavedChanges = false;
+          Navigator.pop(context, true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _pendingNewFamily != null
+                    ? 'Familia "$_pendingNewFamily" y producto creados exitosamente'
+                    : 'Producto creado exitosamente',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error al crear el producto'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   } catch (e) {
     if (mounted) {

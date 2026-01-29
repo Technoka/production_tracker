@@ -78,12 +78,13 @@ class _ClientScreenState extends State<ClientDetailScreen> {
     }
 
     Future<void> handleRefresh() async {
-      // Forzar rebuild del widget obteniendo nuevo snapshot
-      // El StreamBuilder de miembros se refrescará automáticamente
-      setState(() {}); // Forzar rebuild del cliente
-
-      // Refrescar cliente del servicio
+      // Refrescar cliente
       await clientService.getClient(organizationId, widget.client.id);
+
+      // Forzar rebuild para actualizar permisos y miembros
+      if (mounted) {
+        setState(() {});
+      }
     }
 
     return Scaffold(

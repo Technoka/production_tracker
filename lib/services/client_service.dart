@@ -409,40 +409,61 @@ Future<List<ProjectModel>> getClientProjectsWithScope(
     }
   }
 
-    Future<bool> updateClientPermissions({
-    required String organizationId,
-    required String clientId,
-    required Map<String, dynamic> clientPermissions,
-  }) async {
-    try {
-      final canEdit = await _memberService.can('clients', 'edit');
-      if (!canEdit) {
-        _error = 'No tienes permisos para editar clientes';
-        notifyListeners();
-        return false;
-      }
-
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('clients')
-          .doc(clientId)
-          .update({
-        'clientPermissions': clientPermissions,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      // TODO: Actualizar permisos de todos los miembros con rol 'client' 
-      // asociados a este cliente
-      // Esto se implementará cuando se conecte con organization_member_service
-
-      return true;
-    } catch (e) {
-      _error = 'Error al actualizar permisos: $e';
+Future<bool> updateClientPermissions({
+  required String organizationId,
+  required String clientId,
+  required Map<String, dynamic> clientPermissions,
+}) async {
+  try {
+    final canEdit = await _memberService.can('clients', 'edit');
+    if (!canEdit) {
+      _error = 'No tienes permisos para editar clientes';
       notifyListeners();
       return false;
     }
+
+    // 1. Actualizar permisos en el documento del cliente
+    await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('clients')
+        .doc(clientId)
+        .update({
+      'clientPermissions': clientPermissions,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    // 2. Obtener todos los miembros asociados a este cliente
+    final membersSnapshot = await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('members')
+        .where('roleId', isEqualTo: 'client')
+        .where('clientId', isEqualTo: clientId)
+        .get();
+
+    // 3. Actualizar permisos de cada miembro asociado
+    if (membersSnapshot.docs.isNotEmpty) {
+      final batch = _firestore.batch();
+
+      for (final memberDoc in membersSnapshot.docs) {
+        batch.update(memberDoc.reference, {
+          'clientPermissions': clientPermissions,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+    }
+
+    notifyListeners();
+    return true;
+  } catch (e) {
+    _error = 'Error al actualizar permisos: $e';
+    notifyListeners();
+    return false;
   }
+}
 
   // ==================== ELIMINAR CLIENTE ====================
 
