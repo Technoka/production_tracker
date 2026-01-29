@@ -245,7 +245,7 @@ Future<bool> inviteUserByEmail({
 }) async {
   try {
     // ✅ VALIDAR PERMISOS
-    final canInvite = await _memberService.can('organization', 'manageMembers');
+    final canInvite = await _memberService.can('organization', 'inviteMembers');
     if (!canInvite) {
       _error = 'No tienes permisos para invitar usuarios';
       notifyListeners();
