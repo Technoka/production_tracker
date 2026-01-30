@@ -1,6 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../services/organization_service.dart';
-
 // Enum para roles del sistema
 enum UserRole {
   admin('admin', 'Administrador'),
@@ -36,6 +34,7 @@ class UserModel {
   final DateTime? updatedAt;
   final bool isActive;
   final String? photoURL;
+  final String? clientId; // Nuevo campo para identificar clientes
 
   UserModel({
     required this.uid,
@@ -48,6 +47,7 @@ class UserModel {
     this.updatedAt,
     this.isActive = true,
     this.photoURL,
+    this.clientId,
   });
 
   // Convertir a Map para Firestore
@@ -63,6 +63,7 @@ class UserModel {
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'isActive': isActive,
       'photoURL': photoURL,
+      'clientId': clientId,
     };
   }
 
@@ -81,6 +82,7 @@ class UserModel {
           : null,
       isActive: map['isActive'] as bool? ?? true,
       photoURL: map['photoURL'] as String?,
+      clientId: map['clientId'] as String?,
     );
   }
 
@@ -120,6 +122,7 @@ class UserModel {
     DateTime? updatedAt,
     bool? isActive,
     String? photoURL,
+    String? clientId,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -132,6 +135,7 @@ class UserModel {
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,
       photoURL: photoURL ?? this.photoURL,
+      clientId: clientId ?? this.clientId,
     );
   }
 }
