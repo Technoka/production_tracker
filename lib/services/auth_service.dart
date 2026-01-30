@@ -112,25 +112,46 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return true;
     } on FirebaseAuthException catch (e) {
-      String error = 'Ha ocurrido un error: ${e.message}';
+      print("Error code: ${e.code}, message: ${e.message}");
+      
+      // Mapear el código de error a un mensaje en español
+      String errorMessage;
+      if (e.code == 'user-not-found') {
+        errorMessage = 'El usuario no existe.';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Contraseña incorrecta.';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'El formato del correo es inválido.';
+      } else if (e.code == 'invalid-credential') {
+        // Firebase Auth usa este código cuando las credenciales son incorrectas
+        errorMessage = 'Correo o contraseña incorrectos.';
+      } else if (e.code == 'too-many-requests') {
+        errorMessage = 'Demasiados intentos. Intenta más tarde.';
+      } else if (e.code == 'user-disabled') {
+        errorMessage = 'Esta cuenta ha sido deshabilitada.';
+      } else {
+        errorMessage = 'Ha ocurrido un error: ${e.message}';
+      }
+      
+      _error = errorMessage;
       _isLoading = false;
       notifyListeners();
-      if (e.code == 'user-not-found') {
-      error = 'El usuario no existe.';
-    } else if (e.code == 'wrong-password') {
-      error = 'Contraseña incorrecta.';
-    } else if (e.code == 'invalid-email') {
-      error = 'El formato del correo es inválido.';
-    }
-      // Lanzamos una excepción que capturaremos en la UI para mostrar el SnackBar
-      throw error;
+      
+      // Lanzamos la excepción con el mensaje correcto para que la UI la capture
+      throw errorMessage;
     } catch (e) {
+      // Si no es FirebaseAuthException pero sí es un String (el throw anterior), relanzar
+      if (e is String) {
+        rethrow;
+      }
+      
       _error = 'Error inesperado: $e';
       _isLoading = false;
       notifyListeners();
       return false;
     }
   }
+
 
   // Cerrar sesión
   Future<void> signOut() async {
