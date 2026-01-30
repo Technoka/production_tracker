@@ -61,8 +61,15 @@ class _LoginScreenState extends State<LoginScreen> {
     // Primero, intentar iniciar sesión con Google
     final tempSuccess = await authService.signInWithGoogle(role: null);
 
-    // Si fue exitoso, el usuario ya existe y ya está logueado
-    if (tempSuccess) return;
+    // Si es exitoso, navegar al Home
+    if (tempSuccess) {
+      if (mounted) {
+        // Usamos pushReplacementNamed para que el usuario no pueda volver
+        // al login presionando "atrás".
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+      return;
+    }
 
     // Si no fue exitoso, verificar el error
     if (authService.error == 'Selecciona un tipo de cuenta') {
@@ -254,26 +261,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               l10n.loginButton,
                               style: const TextStyle(fontSize: 16),
                             ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton(
-                    onPressed: authService.isLoading
-                        ? null
-                        : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const RegisterScreen(),
-                              ),
-                            );
-                          },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      child: Text(
-                        l10n.registerTitle,
-                        style: const TextStyle(fontSize: 16),
-                      ),
                     ),
                   ),
                   const SizedBox(height: 24),

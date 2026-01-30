@@ -1,8 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:gestion_produccion/models/organization_settings_model.dart';
+import 'package:gestion_produccion/models/user_model.dart';
+import 'package:gestion_produccion/screens/auth/welcome_screen.dart';
 import 'package:gestion_produccion/services/notification_service.dart';
 import 'package:gestion_produccion/services/pending_object_service.dart';
+import 'package:gestion_produccion/widgets/universal_loading_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import '../../l10n/app_localizations.dart';
@@ -30,6 +34,8 @@ import 'services/organization_member_service.dart';
 import 'services/kanban_service.dart';
 import 'services/permission_service.dart';
 import 'services/role_service.dart';
+import 'services/activation_code_service.dart';
+import 'services/invitation_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,17 +80,11 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationService()),
         ChangeNotifierProvider(create: (_) => PendingObjectService()),
 
-        // ==================== SERVICIOS CON DEPENDENCIA DE OrganizationMemberService ====================
+        // Invitaciones y activaciones
+        ChangeNotifierProvider(create: (_) => ActivationCodeService()),
+        ChangeNotifierProvider(create: (_) => InvitationService()),
 
-        // OrganizationService
-        ChangeNotifierProxyProvider<OrganizationMemberService,
-            OrganizationService>(
-          create: (context) => OrganizationService(
-            memberService: context.read<OrganizationMemberService>(),
-          ),
-          update: (context, memberService, previous) =>
-              previous ?? OrganizationService(memberService: memberService),
-        ),
+        // ==================== SERVICIOS CON DEPENDENCIA DE OrganizationMemberService ====================
 
         // ClientService
         ChangeNotifierProxyProvider<OrganizationMemberService, ClientService>(
@@ -137,6 +137,21 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => StatusTransitionService()),
 
         // ==================== SERVICIOS COMPLEJOS CON MÚLTIPLES DEPENDENCIAS ====================
+
+        // OrganizationService depende de: OrganizationMemberService y NotificationService
+        ChangeNotifierProxyProvider2<OrganizationMemberService,
+            NotificationService, OrganizationService>(
+          create: (context) => OrganizationService(
+            memberService: context.read<OrganizationMemberService>(),
+            notificationService: context.read<NotificationService>(),
+          ),
+          update: (context, memberService, notificationService, previous) =>
+              previous ??
+              OrganizationService(
+                memberService: memberService,
+                notificationService: notificationService,
+              ),
+        ),
 
         // ProductionBatchService depende de:
         // - ProductStatusService
@@ -211,11 +226,50 @@ class MyApp extends StatelessWidget {
               return const Locale('es'); // Fallback
             },
 
-            home: const AuthWrapper(),
+            home: Consumer<AuthService>(
+              builder: (context, authService, _) {
+                return StreamBuilder<User?>(
+                  stream: authService.authStateChanges,
+                  builder: (context, snapshot) {
+                    // Esperando autenticación
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const UniversalLoadingScreen();
+                    }
+
+                    // No hay usuario - mostrar Welcome
+                    if (!snapshot.hasData) {
+                      return const WelcomeScreen();
+                    }
+
+                    // Hay usuario - verificar si tiene organización
+                    return FutureBuilder<UserModel?>(
+                      future: authService.getUserData(),
+                      builder: (context, userSnapshot) {
+                        if (!userSnapshot.hasData) {
+                          return const UniversalLoadingScreen();
+                        }
+
+                        final user = userSnapshot.data!;
+
+                        // Si no tiene organización, mostrar opciones
+                        if (user.organizationId == null ||
+                            user.organizationId!.isEmpty) {
+                          return const WelcomeScreen();
+                        }
+
+                        // Tiene organización, ir al home
+                        return const HomeScreen();
+                      },
+                    );
+                  },
+                );
+              },
+            ),
 
             routes: {
               '/login': (context) => const LoginScreen(),
               '/home': (context) => const HomeScreen(),
+              '/welcome': (context) => const WelcomeScreen(),
             },
           );
         },
@@ -255,7 +309,7 @@ class AuthWrapper extends StatelessWidget {
         }
 
         // No hay usuario autenticado
-        return const LoginScreen();
+        return const WelcomeScreen();
       },
     );
   }
@@ -401,7 +455,7 @@ class _OrganizationSettingsWrapperState
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const LoginScreen()),
+                          builder: (context) => const WelcomeScreen()),
                     );
                   }
                 },

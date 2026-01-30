@@ -1,17 +1,37 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/screens/organization/organization_setup_wizard_screen.dart';
+import 'package:gestion_produccion/services/activation_code_service.dart';
+import 'package:gestion_produccion/services/invitation_service.dart';
+import 'package:gestion_produccion/services/organization_service.dart';
 import 'package:provider/provider.dart';
-import '../../l10n/app_localizations.dart'; // Importar
+import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
 import '../../utils/role_utils.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  final String? activationCodeId;
+  final String? companyName;
+  final String? invitationId;
+  final String? invitationOrganizationId;
+  final String? invitationRoleId;
+
+  const RegisterScreen({
+    super.key,
+    this.activationCodeId,
+    this.companyName,
+    this.invitationId,
+    this.invitationOrganizationId,
+    this.invitationRoleId,
+  });
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -23,6 +43,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _showOptionalFields = false;
+
+  bool get _isActivationMode => widget.activationCodeId != null;
+  bool get _isInvitationMode => widget.invitationId != null;
+  bool get _isNormalMode => !_isActivationMode && !_isInvitationMode;
 
   @override
   void dispose() {
@@ -38,6 +62,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final authService = Provider.of<AuthService>(context, listen: false);
+
+    // Registro normal
     final success = await authService.register(
       email: _emailController.text.trim(),
       password: _passwordController.text,
@@ -48,23 +74,113 @@ class _RegisterScreenState extends State<RegisterScreen> {
           : _phoneController.text.trim(),
     );
 
-    if (mounted) {
-      if (success) {
-        Navigator.pop(context);
+    if (!mounted) return;
+
+    if (success) {
+      // ==================== MODO ACTIVACIÓN ====================
+      if (_isActivationMode) {
+        final activationCodeService = Provider.of<ActivationCodeService>(
+          context,
+          listen: false,
+        );
+
+        // Marcar código como usado
+        await activationCodeService.markCodeAsUsed(
+          codeId: widget.activationCodeId!,
+          userId: authService.currentUser!.uid,
+          organizationId: '', // Se llenará en el wizard
+        );
+
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrganizationSetupWizardScreen(
+              companyName: widget.companyName ?? '',
+            ),
+          ),
+        );
+        return;
+      }
+
+      // ==================== MODO INVITACION ====================
+      if (_isInvitationMode) {
+        final organizationService = Provider.of<OrganizationService>(
+          context,
+          listen: false,
+        );
+        final invitationService = Provider.of<InvitationService>(
+          context,
+          listen: false,
+        );
+
+        // ✅ Crear miembro con notificación automática
+        final memberCreated =
+            await organizationService.createOrganizationMember(
+          organizationId: widget.invitationOrganizationId!,
+          userId: authService.currentUser!.uid,
+          roleId: widget.invitationRoleId!,
+        );
+
+        if (!memberCreated && mounted) {
+          // Manejar error si es necesario
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(organizationService.error ?? 'Error al unirse'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // Actualizar organizationId del usuario
+        await _firestore
+            .collection('users')
+            .doc(authService.currentUser!.uid)
+            .update({
+          'organizationId': widget.invitationOrganizationId!,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        // Recargar datos del usuario
+        await authService.loadUserData();
+
+        // Marcar invitación como usada
+        await invitationService.markInvitationAsUsed(
+          organizationId: widget.invitationOrganizationId!,
+          invitationId: widget.invitationId!,
+          userId: authService.currentUser!.uid,
+        );
+        if (!mounted) return;
+
+        // Navegar al home
+        Navigator.pushReplacementNamed(context, '/home');
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.accountCreatedSuccess),
+            content: Text(l10n.joinOrganizationSuccess),
             backgroundColor: Colors.green,
           ),
         );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authService.error ?? l10n.registerError),
-            backgroundColor: Colors.red,
-          ),
-        );
+        return;
       }
+
+      // Modo normal
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.accountCreatedSuccess),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authService.error ?? l10n.registerError),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -97,6 +213,70 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
+
+                // Mostrar info si es modo activación o invitación
+                if (_isActivationMode) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.verified, color: Colors.green[700]),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.activationCodeValidated,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green[900],
+                                ),
+                              ),
+                              Text(
+                                widget.companyName ?? '',
+                                style: TextStyle(color: Colors.green[800]),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
+                if (_isInvitationMode) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.group_add, color: Colors.blue[700]),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            l10n.invitationAccepted,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue[900],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
 
                 // Nombre completo
                 TextFormField(
@@ -202,18 +382,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
+
                 const SizedBox(height: 24),
 
                 // Selector de rol
-                RoleSelector(
-                  selectedRole: _selectedRole,
-                  onRoleChanged: (role) {
-                    setState(() {
-                      _selectedRole = role;
-                    });
-                  },
-                  showDescriptions: true,
-                ),
+                if (_isNormalMode) ...[
+                  RoleSelector(
+                    selectedRole: _selectedRole,
+                    onRoleChanged: (role) {
+                      setState(() {
+                        _selectedRole = role;
+                      });
+                    },
+                    showDescriptions: true,
+                  ),
+                ],
+
                 const SizedBox(height: 24),
 
                 // Campos opcionales
@@ -224,9 +408,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     });
                   },
                   icon: Icon(
-                    _showOptionalFields
-                        ? Icons.expand_less
-                        : Icons.expand_more,
+                    _showOptionalFields ? Icons.expand_less : Icons.expand_more,
                   ),
                   label: Text(
                     _showOptionalFields
@@ -253,7 +435,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // Botón de registro
                 FilledButton(
-                  onPressed: authService.isLoading ? null : () => _handleRegister(l10n),
+                  onPressed: authService.isLoading
+                      ? null
+                      : () => _handleRegister(l10n),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                     child: authService.isLoading

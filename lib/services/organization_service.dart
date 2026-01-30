@@ -2,17 +2,17 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:math';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/organization_model.dart';
 import '../models/user_model.dart';
 import '../models/role_model.dart';
 import '../models/organization_member_model.dart';
 import '../models/product_status_model.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'organization_member_service.dart';
+import 'notification_service.dart';
+import '../models/notification_model.dart';
 
 class OrganizationService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -20,9 +20,13 @@ class OrganizationService extends ChangeNotifier {
       bucket: 'gs://production-tracker-top.firebasestorage.app');
   final _uuid = const Uuid();
   final OrganizationMemberService _memberService;
+  final NotificationService _notificationService;
 
-  OrganizationService({required OrganizationMemberService memberService})
-      : _memberService = memberService;
+  OrganizationService({
+    required OrganizationMemberService memberService,
+    required NotificationService notificationService,
+  })  : _memberService = memberService,
+        _notificationService = notificationService;
 
   OrganizationModel? _currentOrganization;
   OrganizationModel? get currentOrganization => _currentOrganization;
@@ -244,8 +248,8 @@ Future<bool> inviteUserByEmail({
   String roleId = 'operator', // Rol que se asignará al aceptar
 }) async {
   try {
-    // ✅ VALIDAR PERMISOS
-    final canInvite = await _memberService.can('organization', 'inviteMembers');
+    //VALIDAR PERMISOS
+    final canInvite = await _memberService.can('organization', 'manageRoles');
     if (!canInvite) {
       _error = 'No tienes permisos para invitar usuarios';
       notifyListeners();
@@ -433,7 +437,34 @@ Future<bool> acceptInvitation({
     await _createOrganizationMember(
       organizationId: organizationId,
       userId: userId,
-      roleId: invitation.roleId ?? 'operator', // Usar rol de la invitación
+      roleId: invitation.roleId ?? 'operator', // Usar rol de la invitaciÃ³n
+    );
+    
+    
+    // Obtener información del nuevo usuario para la notificación
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    final userName = userDoc.exists 
+        ? (userDoc.data()?['name'] ?? 'Nuevo usuario')
+        : 'Nuevo usuario';
+    
+    // Obtener nombre del rol
+    final roleId = invitation.roleId ?? 'operator';
+    final roleDoc = await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('roles')
+        .doc(roleId)
+        .get();
+    final roleName = roleDoc.exists
+        ? (roleDoc.data()?['name'] ?? roleId)
+        : roleId;
+
+    // Notificar a todos los miembros existentes
+    await _notifyMembersNewJoin(
+      organizationId: organizationId,
+      newUserId: userId,
+      newUserName: userName,
+      roleName: roleName,
     );
     
     await loadOrganization(organizationId);
@@ -725,6 +756,59 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
 
   // ==================== CREAR MIEMBRO DE ORGANIZACIÓN ====================
 
+
+  // ==================== CREAR MIEMBRO PÚBLICO (con notificación) ====================
+
+  /// Crear miembro de organización (método público)
+  /// 
+  /// Crea un miembro y notifica a todos los miembros existentes
+  Future<bool> createOrganizationMember({
+    required String organizationId,
+    required String userId,
+    required String roleId,
+  }) async {
+    try {
+      // Crear el miembro usando el método privado
+      await _createOrganizationMember(
+        organizationId: organizationId,
+        userId: userId,
+        roleId: roleId,
+      );
+
+      // Obtener información del nuevo usuario para la notificación
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      final userName = userDoc.exists 
+          ? (userDoc.data()?['name'] ?? 'Nuevo usuario')
+          : 'Nuevo usuario';
+      
+      // Obtener nombre del rol
+      final roleDoc = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('roles')
+          .doc(roleId)
+          .get();
+      final roleName = roleDoc.exists
+          ? (roleDoc.data()?['name'] ?? roleId)
+          : roleId;
+
+      // Notificar a todos los miembros existentes
+      await _notifyMembersNewJoin(
+        organizationId: organizationId,
+        newUserId: userId,
+        newUserName: userName,
+        roleName: roleName,
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint('Error creando miembro de organización: $e');
+      _error = 'Error al crear miembro: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> _createOrganizationMember({
     required String organizationId,
     required String userId,
@@ -846,7 +930,7 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
       notifyListeners();
       return null;
     } catch (e) {
-      _error = 'Error al cargar organización: $e';
+      _error = 'Error al cargar organizaciÃ³n: $e';
       _isLoading = false;
       notifyListeners();
       return null;
@@ -929,6 +1013,31 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
         roleId: defaultRoleId,
       );
 
+      // Obtener información del nuevo usuario para la notificación
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      final userName = userDoc.exists 
+          ? (userDoc.data()?['name'] ?? 'Nuevo usuario')
+          : 'Nuevo usuario';
+      
+      // Obtener nombre del rol
+      final roleDoc = await _firestore
+          .collection('organizations')
+          .doc(organization.id)
+          .collection('roles')
+          .doc(defaultRoleId)
+          .get();
+      final roleName = roleDoc.exists
+          ? (roleDoc.data()?['name'] ?? defaultRoleId)
+          : defaultRoleId;
+
+      // Notificar a todos los miembros existentes
+      await _notifyMembersNewJoin(
+        organizationId: organization.id,
+        newUserId: userId,
+        newUserName: userName,
+        roleName: roleName,
+      );
+
       _currentOrganization = organization;
       _isLoading = false;
       notifyListeners();
@@ -956,9 +1065,61 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
       await loadOrganization(organizationId);
       return newCode;
     } catch (e) {
-      _error = 'Error al regenerar código: $e';
+      _error = 'Error al regenerar cÃ³digo: $e';
       notifyListeners();
       return null;
+    }
+  }
+
+
+  // ==================== NOTIFICACIONES ====================
+
+  /// Notificar a todos los miembros cuando alguien se une a la organización
+  Future<void> _notifyMembersNewJoin({
+    required String organizationId,
+    required String newUserId,
+    required String newUserName,
+    required String roleName,
+  }) async {
+    try {
+      // Obtener todos los miembros activos excepto el nuevo usuario
+      final membersSnapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('members')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      final memberUserIds = membersSnapshot.docs
+          .map((doc) => doc.id)
+          .where((id) => id != newUserId) // Excluir al nuevo usuario
+          .toList();
+
+      if (memberUserIds.isEmpty) {
+        debugPrint('ℹ️ No hay miembros para notificar');
+        return;
+      }
+
+      // Crear notificación para todos los miembros
+      await _notificationService.createNotification(
+        organizationId: organizationId,
+        type: NotificationType.info,
+        destinationUserIds: memberUserIds,
+        title: 'Nuevo miembro en el equipo',
+        message: '$newUserName se ha unido como $roleName',
+        metadata: {
+          'newUserId': newUserId,
+          'newUserName': newUserName,
+          'roleId': roleName,
+          'timestamp': DateTime.now().toIso8601String(),
+        },
+        priority: NotificationPriority.low,
+      );
+
+      debugPrint('✅ Notificación enviada a ${memberUserIds.length} miembros');
+    } catch (e) {
+      debugPrint('⚠️ Error al notificar miembros: $e');
+      // No lanzamos error para no interrumpir el flujo principal
     }
   }
 

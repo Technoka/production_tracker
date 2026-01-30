@@ -246,7 +246,7 @@ class PermissionRegistry {
         PermissionAction.boolean(key: 'viewMembers', displayName: 'Ver miembros'),
         PermissionAction.boolean(key: 'inviteMembers', displayName: 'Invitar miembros'),
         PermissionAction.boolean(key: 'removeMembers', displayName: 'Eliminar miembros'),
-        PermissionAction.boolean(key: 'manageRoles', displayName: 'Gestionar roles'),
+        PermissionAction.boolean(key: 'manageRoles', displayName: 'Gestionar roles y miembros'),
         PermissionAction.boolean(key: 'manageSettings', displayName: 'Gestionar configuración'),
         PermissionAction.boolean(key: 'manageProductStatuses', displayName: 'Gestionar estados de productos', description: 'Crear, editar y eliminar estados de calidad'),
         PermissionAction.boolean(key: 'manageStatusTransitions', displayName: 'Gestionar transiciones de estados', description: 'Configurar cómo los productos cambian entre estados'),

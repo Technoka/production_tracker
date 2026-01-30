@@ -98,7 +98,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'Marsot Production'**
+  /// **'Production Tracker'**
   String get appName;
 
   /// No description provided for @welcome.
@@ -344,7 +344,7 @@ abstract class AppLocalizations {
   /// No description provided for @alreadyHaveAccount.
   ///
   /// In en, this message translates to:
-  /// **'Already have an account?'**
+  /// **'Already have an account? Sign in'**
   String get alreadyHaveAccount;
 
   /// No description provided for @dontHaveAccount.
@@ -1082,7 +1082,7 @@ abstract class AppLocalizations {
   /// No description provided for @contactNameLabel.
   ///
   /// In en, this message translates to:
-  /// **'Contact Name *'**
+  /// **'Contact Name'**
   String get contactNameLabel;
 
   /// No description provided for @enterNameError.
@@ -7582,6 +7582,468 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Project creation request sent for approval'**
   String get projectCreationPendingApproval;
+
+  /// No description provided for @welcomeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your company\'s production efficiently'**
+  String get welcomeSubtitle;
+
+  /// No description provided for @joinOrganizationBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Join an organization'**
+  String get joinOrganizationBtn;
+
+  /// No description provided for @requestActivationCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Request Activation Code'**
+  String get requestActivationCodeTitle;
+
+  /// No description provided for @requestCodeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Request to create your organization'**
+  String get requestCodeSubtitle;
+
+  /// No description provided for @requestCodeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete the form and we\'ll send you an activation code via email within 24-48 hours'**
+  String get requestCodeDescription;
+
+  /// No description provided for @companyNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Company Name'**
+  String get companyNameLabel;
+
+  /// No description provided for @companyNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: My Company LLC'**
+  String get companyNameHint;
+
+  /// No description provided for @companyNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required'**
+  String get companyNameRequired;
+
+  /// No description provided for @companyNameTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is too short'**
+  String get companyNameTooShort;
+
+  /// No description provided for @contactNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact name is required'**
+  String get contactNameRequired;
+
+  /// No description provided for @contactEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Email'**
+  String get contactEmailLabel;
+
+  /// No description provided for @contactEmailRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Email is required'**
+  String get contactEmailRequired;
+
+  /// No description provided for @contactEmailInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email'**
+  String get contactEmailInvalid;
+
+  /// No description provided for @contactPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Phone'**
+  String get contactPhoneLabel;
+
+  /// No description provided for @contactPhoneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone is required'**
+  String get contactPhoneRequired;
+
+  /// No description provided for @messageOptionalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Message (Optional)'**
+  String get messageOptionalLabel;
+
+  /// No description provided for @messageOptionalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us about your company...'**
+  String get messageOptionalHint;
+
+  /// No description provided for @activationRequestInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll review your request and send you the activation code via email. The code will be valid for 7 days.'**
+  String get activationRequestInfo;
+
+  /// No description provided for @sendRequestButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Request'**
+  String get sendRequestButton;
+
+  /// No description provided for @requestSentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Request Sent!'**
+  String get requestSentTitle;
+
+  /// No description provided for @requestSentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ve received your request successfully.'**
+  String get requestSentMessage;
+
+  /// No description provided for @requestSentNextSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll receive an email with the activation code within the next 24-48 hours. Check your spam folder.'**
+  String get requestSentNextSteps;
+
+  /// No description provided for @understood.
+  ///
+  /// In en, this message translates to:
+  /// **'Understood'**
+  String get understood;
+
+  /// No description provided for @requestSendError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error sending request'**
+  String get requestSendError;
+
+  /// No description provided for @setupOrganizationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Setup Organization'**
+  String get setupOrganizationTitle;
+
+  /// No description provided for @step1BasicInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Information'**
+  String get step1BasicInfo;
+
+  /// No description provided for @step2PhaseConfiguration.
+  ///
+  /// In en, this message translates to:
+  /// **'Phase Configuration'**
+  String get step2PhaseConfiguration;
+
+  /// No description provided for @step3Ready.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready!'**
+  String get step3Ready;
+
+  /// No description provided for @phasesConfigurationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Phases help organize the production process'**
+  String get phasesConfigurationDescription;
+
+  /// No description provided for @useDefaultPhases.
+  ///
+  /// In en, this message translates to:
+  /// **'Use default phases'**
+  String get useDefaultPhases;
+
+  /// No description provided for @useDefaultPhasesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Cutting, Preparation, Sewing, Finishing, Quality Control'**
+  String get useDefaultPhasesDescription;
+
+  /// No description provided for @defaultPhasesInclude.
+  ///
+  /// In en, this message translates to:
+  /// **'Includes: Cutting, Preparation, Sewing, Finishing and Quality Control'**
+  String get defaultPhasesInclude;
+
+  /// No description provided for @organizationReadyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your organization is ready!'**
+  String get organizationReadyMessage;
+
+  /// No description provided for @organizationReadyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'You can now start managing your production and invite members'**
+  String get organizationReadyDescription;
+
+  /// No description provided for @createOrganizationError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error creating organization'**
+  String get createOrganizationError;
+
+  /// No description provided for @organizationCreatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization created successfully!'**
+  String get organizationCreatedSuccess;
+
+  /// No description provided for @enterActivationCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Activation Code'**
+  String get enterActivationCodeTitle;
+
+  /// No description provided for @enterActivationCodeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code you received via email'**
+  String get enterActivationCodeSubtitle;
+
+  /// No description provided for @activationCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Activation Code'**
+  String get activationCodeLabel;
+
+  /// No description provided for @activationCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'ORG-2025-ABC123'**
+  String get activationCodeHint;
+
+  /// No description provided for @activationCodeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Code is required'**
+  String get activationCodeRequired;
+
+  /// No description provided for @validateCodeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Validate Code'**
+  String get validateCodeButton;
+
+  /// No description provided for @codeValidatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid code! Proceed to create your account'**
+  String get codeValidatedSuccess;
+
+  /// No description provided for @codeValidationError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error validating code'**
+  String get codeValidationError;
+
+  /// No description provided for @createInvitationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Invitation'**
+  String get createInvitationTitle;
+
+  /// No description provided for @invitationCodeGenerated.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated code'**
+  String get invitationCodeGenerated;
+
+  /// No description provided for @selectRoleForInvitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Select the role for the new member'**
+  String get selectRoleForInvitation;
+
+  /// No description provided for @invitationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (optional)'**
+  String get invitationDescription;
+
+  /// No description provided for @invitationDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ex: Invitation for John - Operator'**
+  String get invitationDescriptionHint;
+
+  /// No description provided for @maxUsesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum uses'**
+  String get maxUsesLabel;
+
+  /// No description provided for @expirationDaysLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Days until expiration'**
+  String get expirationDaysLabel;
+
+  /// No description provided for @createInvitationButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Invitation'**
+  String get createInvitationButton;
+
+  /// No description provided for @invitationCreatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation created successfully'**
+  String get invitationCreatedSuccess;
+
+  /// No description provided for @invitationCreateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error creating invitation'**
+  String get invitationCreateError;
+
+  /// No description provided for @manageInvitationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Invitations'**
+  String get manageInvitationsTitle;
+
+  /// No description provided for @activeInvitationsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Invitations'**
+  String get activeInvitationsSection;
+
+  /// No description provided for @expiredInvitationsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired Invitations'**
+  String get expiredInvitationsSection;
+
+  /// No description provided for @noActiveInvitations.
+  ///
+  /// In en, this message translates to:
+  /// **'No active invitations'**
+  String get noActiveInvitations;
+
+  /// No description provided for @invitationCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get invitationCode;
+
+  /// No description provided for @invitationRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get invitationRole;
+
+  /// No description provided for @invitationCreator.
+  ///
+  /// In en, this message translates to:
+  /// **'Creator'**
+  String get invitationCreator;
+
+  /// No description provided for @invitationExpires.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires'**
+  String get invitationExpires;
+
+  /// No description provided for @invitationUses.
+  ///
+  /// In en, this message translates to:
+  /// **'Uses'**
+  String get invitationUses;
+
+  /// No description provided for @revokeInvitationAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke'**
+  String get revokeInvitationAction;
+
+  /// No description provided for @deleteInvitationAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteInvitationAction;
+
+  /// No description provided for @copyInvitationCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy code'**
+  String get copyInvitationCode;
+
+  /// No description provided for @invitationCodeCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Code copied'**
+  String get invitationCodeCopied;
+
+  /// No description provided for @revokeInvitationConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke this invitation?'**
+  String get revokeInvitationConfirm;
+
+  /// No description provided for @deleteInvitationConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this invitation?'**
+  String get deleteInvitationConfirm;
+
+  /// No description provided for @invitationRevokedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation revoked'**
+  String get invitationRevokedSuccess;
+
+  /// No description provided for @invitationDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation deleted'**
+  String get invitationDeletedSuccess;
+
+  /// No description provided for @expired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get expired;
+
+  /// No description provided for @revoked.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoked'**
+  String get revoked;
+
+  /// No description provided for @activationCodeValidated.
+  ///
+  /// In en, this message translates to:
+  /// **'Activation code validated'**
+  String get activationCodeValidated;
+
+  /// No description provided for @invitationAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'You will join this organization'**
+  String get invitationAccepted;
+
+  /// No description provided for @invalidInvitationCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid invitation code'**
+  String get invalidInvitationCode;
+
+  /// No description provided for @createAndManageInvitations.
+  ///
+  /// In en, this message translates to:
+  /// **'Create and manage invitation codes'**
+  String get createAndManageInvitations;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

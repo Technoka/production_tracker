@@ -9,7 +9,7 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
-  String get appName => 'Marsot Producción';
+  String get appName => 'Production Tracker';
 
   @override
   String get welcome => 'Bienvenido';
@@ -132,7 +132,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get name => 'Nombre';
 
   @override
-  String get alreadyHaveAccount => '¿Ya tienes una cuenta?';
+  String get alreadyHaveAccount => '¿Ya tienes cuenta? Inicia sesión';
 
   @override
   String get dontHaveAccount => '¿No tienes una cuenta?';
@@ -501,7 +501,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get basicInfoSection => 'Información Básica';
 
   @override
-  String get contactNameLabel => 'Nombre del contacto *';
+  String get contactNameLabel => 'Nombre del Contacto';
 
   @override
   String get enterNameError => 'Por favor ingresa tu nombre';
@@ -3830,4 +3830,235 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get projectCreationPendingApproval => 'Solicitud de proyecto enviada para aprobación';
+
+  @override
+  String get welcomeSubtitle => 'Gestiona la producción de tu empresa de forma eficiente';
+
+  @override
+  String get joinOrganizationBtn => 'Unirse a una organización';
+
+  @override
+  String get requestActivationCodeTitle => 'Solicitar Código de Activación';
+
+  @override
+  String get requestCodeSubtitle => 'Solicita crear tu organización';
+
+  @override
+  String get requestCodeDescription => 'Completa el formulario y te enviaremos un código de activación por email en 24-48 horas';
+
+  @override
+  String get companyNameLabel => 'Nombre de la Empresa';
+
+  @override
+  String get companyNameHint => 'Ej: Mi Empresa S.L.';
+
+  @override
+  String get companyNameRequired => 'El nombre es obligatorio';
+
+  @override
+  String get companyNameTooShort => 'El nombre es demasiado corto';
+
+  @override
+  String get contactNameRequired => 'El nombre del contacto es obligatorio';
+
+  @override
+  String get contactEmailLabel => 'Email del Contacto';
+
+  @override
+  String get contactEmailRequired => 'El email es obligatorio';
+
+  @override
+  String get contactEmailInvalid => 'Email inválido';
+
+  @override
+  String get contactPhoneLabel => 'Teléfono de Contacto';
+
+  @override
+  String get contactPhoneRequired => 'El teléfono es obligatorio';
+
+  @override
+  String get messageOptionalLabel => 'Mensaje (Opcional)';
+
+  @override
+  String get messageOptionalHint => 'Cuéntanos sobre tu empresa...';
+
+  @override
+  String get activationRequestInfo => 'Revisaremos tu solicitud y te enviaremos el código de activación por email. El código será válido por 7 días.';
+
+  @override
+  String get sendRequestButton => 'Enviar Solicitud';
+
+  @override
+  String get requestSentTitle => '¡Solicitud Enviada!';
+
+  @override
+  String get requestSentMessage => 'Hemos recibido tu solicitud exitosamente.';
+
+  @override
+  String get requestSentNextSteps => 'Recibirás un email con el código de activación en las próximas 24-48 horas. Revisa tu bandeja de spam.';
+
+  @override
+  String get understood => 'Entendido';
+
+  @override
+  String get requestSendError => 'Error al enviar solicitud';
+
+  @override
+  String get setupOrganizationTitle => 'Configurar Organización';
+
+  @override
+  String get step1BasicInfo => 'Información Básica';
+
+  @override
+  String get step2PhaseConfiguration => 'Configuración de Fases';
+
+  @override
+  String get step3Ready => '¡Listo!';
+
+  @override
+  String get phasesConfigurationDescription => 'Las fases permiten organizar el proceso de producción';
+
+  @override
+  String get useDefaultPhases => 'Usar fases predeterminadas';
+
+  @override
+  String get useDefaultPhasesDescription => 'Corte, Preparación, Costura, Terminado, Control de Calidad';
+
+  @override
+  String get defaultPhasesInclude => 'Incluye: Corte, Preparación, Costura, Terminado y Control de Calidad';
+
+  @override
+  String get organizationReadyMessage => '¡Tu organización está lista!';
+
+  @override
+  String get organizationReadyDescription => 'Ya puedes comenzar a gestionar tu producción e invitar miembros';
+
+  @override
+  String get createOrganizationError => 'Error al crear organización';
+
+  @override
+  String get organizationCreatedSuccess => '¡Organización creada exitosamente!';
+
+  @override
+  String get enterActivationCodeTitle => 'Ingresar Código de Activación';
+
+  @override
+  String get enterActivationCodeSubtitle => 'Ingresa el código que recibiste por email';
+
+  @override
+  String get activationCodeLabel => 'Código de Activación';
+
+  @override
+  String get activationCodeHint => 'ORG-2025-ABC123';
+
+  @override
+  String get activationCodeRequired => 'El código es obligatorio';
+
+  @override
+  String get validateCodeButton => 'Validar Código';
+
+  @override
+  String get codeValidatedSuccess => '¡Código válido! Procede a crear tu cuenta';
+
+  @override
+  String get codeValidationError => 'Error al validar código';
+
+  @override
+  String get createInvitationTitle => 'Crear Invitación';
+
+  @override
+  String get invitationCodeGenerated => 'Código generado';
+
+  @override
+  String get selectRoleForInvitation => 'Selecciona el rol del nuevo miembro';
+
+  @override
+  String get invitationDescription => 'Descripción (opcional)';
+
+  @override
+  String get invitationDescriptionHint => 'Ej: Invitación para Juan - Operario';
+
+  @override
+  String get maxUsesLabel => 'Usos máximos';
+
+  @override
+  String get expirationDaysLabel => 'Días hasta expiración';
+
+  @override
+  String get createInvitationButton => 'Crear Invitación';
+
+  @override
+  String get invitationCreatedSuccess => 'Invitación creada exitosamente';
+
+  @override
+  String get invitationCreateError => 'Error al crear invitación';
+
+  @override
+  String get manageInvitationsTitle => 'Gestionar Invitaciones';
+
+  @override
+  String get activeInvitationsSection => 'Invitaciones Activas';
+
+  @override
+  String get expiredInvitationsSection => 'Invitaciones Expiradas';
+
+  @override
+  String get noActiveInvitations => 'No hay invitaciones activas';
+
+  @override
+  String get invitationCode => 'Código';
+
+  @override
+  String get invitationRole => 'Rol';
+
+  @override
+  String get invitationCreator => 'Creador';
+
+  @override
+  String get invitationExpires => 'Expira';
+
+  @override
+  String get invitationUses => 'Usos';
+
+  @override
+  String get revokeInvitationAction => 'Revocar';
+
+  @override
+  String get deleteInvitationAction => 'Eliminar';
+
+  @override
+  String get copyInvitationCode => 'Copiar código';
+
+  @override
+  String get invitationCodeCopied => 'Código copiado';
+
+  @override
+  String get revokeInvitationConfirm => '¿Revocar esta invitación?';
+
+  @override
+  String get deleteInvitationConfirm => '¿Eliminar esta invitación?';
+
+  @override
+  String get invitationRevokedSuccess => 'Invitación revocada';
+
+  @override
+  String get invitationDeletedSuccess => 'Invitación eliminada';
+
+  @override
+  String get expired => 'Expirado';
+
+  @override
+  String get revoked => 'Revocado';
+
+  @override
+  String get activationCodeValidated => 'Código de activación validado';
+
+  @override
+  String get invitationAccepted => 'Te unirás a esta organización';
+
+  @override
+  String get invalidInvitationCode => 'Código de invitación inválido';
+
+  @override
+  String get createAndManageInvitations => 'Crear y gestionar códigos de invitación';
 }

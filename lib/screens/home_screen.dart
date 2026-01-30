@@ -512,7 +512,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: EdgeInsets.symmetric(vertical: 24.0),
             child: Center(
               child: Text(
-                'Versión 0.9.0 - 15/1/25 - Permisos y Roles',
+                'Versión 0.10.0 - 30/1/25 - Invitaciones y Activación',
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 12,

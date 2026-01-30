@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/screens/organization/manage_invitations_screen.dart';
 import '../../screens/organization/manage_status_transitions_screen.dart';
 import '../../screens/organization/organization_settings_screen.dart';
 import 'package:provider/provider.dart';
@@ -89,10 +90,10 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
         permissionService.hasPermission('organization', 'manageRoles');
     final canManageSettings =
         permissionService.hasPermission('organization', 'manageSettings');
-    final canManageProductStatuses =
-        permissionService.hasPermission('organization', 'manageProductStatuses');
-    final canManageStatusTransitions =
-        permissionService.hasPermission('organization', 'manageStatusTransitions');
+    final canManageProductStatuses = permissionService.hasPermission(
+        'organization', 'manageProductStatuses');
+    final canManageStatusTransitions = permissionService.hasPermission(
+        'organization', 'manageStatusTransitions');
 
     return Scaffold(
       appBar: AppBar(
@@ -154,16 +155,15 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                         ),
                         const SizedBox(height: 8),
                         _buildActionsCard(
-                          context,
-                          org,
-                          user,
-                          l10n,
-                          canManagePhases,
-                          canManageMembers,
-                          canManageSettings,
-                          canManageProductStatuses,
-                          canManageStatusTransitions
-                        ),
+                            context,
+                            org,
+                            user,
+                            l10n,
+                            canManagePhases,
+                            canManageMembers,
+                            canManageSettings,
+                            canManageProductStatuses,
+                            canManageStatusTransitions),
                       ],
                     ),
                   ),
@@ -353,8 +353,9 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     AppLocalizations l10n,
   ) {
     // Calcular total de miembros reales (suma de todos los roles)
-    final totalMembers = _roleCounts.values.fold(0, (sum, count) => sum + count);
-    
+    final totalMembers =
+        _roleCounts.values.fold(0, (sum, count) => sum + count);
+
     // Obtener roles no-clientes que tienen al menos 1 miembro
     final nonClientRolesWithMembers = _roles
         .where((role) => role.id != 'client' && (_roleCounts[role.id] ?? 0) > 0)
@@ -432,7 +433,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                   final role = entry.value;
                   final count = _roleCounts[role.id] ?? 0;
                   final isLast = index == nonClientRolesWithMembers.length - 1;
-                  
+
                   return Column(
                     children: [
                       InkWell(
@@ -560,7 +561,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                   ),
                 ],
               ),
-              
+
               // Mensaje si no hay clientes
               if (clientCount == 0) ...[
                 const SizedBox(height: 12),
@@ -585,8 +586,6 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     );
   }
 
-  
-
   /// Tarjeta de acciones
   Widget _buildActionsCard(
     BuildContext context,
@@ -597,7 +596,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     bool canManageMembers,
     bool canManageSettings,
     bool canManageProductStatuses,
-    bool canManageStatusTransitions
+    bool canManageStatusTransitions,
   ) {
     final isOwner = org.isOwner(user.uid);
 
@@ -623,7 +622,8 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
               },
             ),
 
-          if (canManagePhases && canManageProductStatuses) const Divider(height: 1),
+          if (canManagePhases && canManageProductStatuses)
+            const Divider(height: 1),
 
           // Manage Phases - solo si tiene permiso
           if (canManageProductStatuses)
@@ -642,30 +642,32 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                 );
               },
             ),
-            
-          if (canManageProductStatuses && canManageStatusTransitions) const Divider(height: 1),
+
+          if (canManageProductStatuses && canManageStatusTransitions)
+            const Divider(height: 1),
 
           if (canManageStatusTransitions)
-          ListTile(
-            leading: const Icon(Icons.published_with_changes_sharp),
-            title: Text(l10n.manageStatusTransitions),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ManageStatusTransitionsScreen(
-                    organizationId: org.id,
+            ListTile(
+              leading: const Icon(Icons.published_with_changes_sharp),
+              title: Text(l10n.manageStatusTransitions),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ManageStatusTransitionsScreen(
+                      organizationId: org.id,
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
+                );
+              },
+            ),
 
-          if (canManageStatusTransitions && canManageMembers) const Divider(height: 1),
+          if (canManageStatusTransitions && canManageMembers)
+            const Divider(height: 1),
 
           // Manage Members - solo si tiene permiso
-          if (canManageMembers)
+          if (canManageMembers) ...[
             ListTile(
               leading: const Icon(Icons.people),
               title: Text(l10n.manageMembers),
@@ -679,6 +681,23 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                 );
               },
             ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.group_add),
+              title: Text(l10n.manageInvitationsTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ManageInvitationsScreen(
+                      organizationId: org.id,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
 
           if (canManageMembers && canManageSettings) const Divider(height: 1),
 
@@ -739,7 +758,8 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
           FilledButton(
             onPressed: () async {
               Navigator.pop(context);
-              final success = await organizationService.leaveOrganization(userId);
+              final success =
+                  await organizationService.leaveOrganization(userId);
               if (success && context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
