@@ -89,6 +89,7 @@ class PermissionsModel {
     );
   }
 
+  // TODO: eliminar todas las referencias a estos metodos
   // ==================== HELPERS LEGACY (mantener por compatibilidad) ====================
   // Estos métodos facilitan la migración del código existente
 
