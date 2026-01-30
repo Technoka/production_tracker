@@ -14,13 +14,19 @@ import '../models/permission_registry_model.dart';
 
 class ProductionDashboardWidget extends StatelessWidget {
   final String organizationId;
-  const ProductionDashboardWidget({super.key, required this.organizationId});
+  final String? clientId;
+
+  const ProductionDashboardWidget({
+    super.key, 
+    required this.organizationId, 
+    this.clientId});
 
   @override
   Widget build(BuildContext context) {
     final phaseService = Provider.of<PhaseService>(context, listen: false);
-    final statusService =
-        Provider.of<ProductStatusService>(context, listen: false);
+    final statusService = Provider.of<ProductStatusService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserData!;
     final l10n = AppLocalizations.of(context)!;
 
     return StreamBuilder<List<ProductionPhase>>(
@@ -75,7 +81,7 @@ class ProductionDashboardWidget extends StatelessWidget {
             return StreamBuilder<List<ProductionBatchModel>>(
               stream:
                   Provider.of<ProductionBatchService>(context, listen: false)
-                      .watchBatches(organizationId),
+                      .watchBatches(organizationId, user.uid, clientId: clientId,),
               builder: (context, batchSnapshot) {
                 if (batchSnapshot.connectionState == ConnectionState.waiting) {
                   return const Card(
@@ -456,7 +462,7 @@ class ProductionDashboardWidget extends StatelessWidget {
     for (final batch in batches) {
       try {
         final products = await batchService
-            .watchBatchProducts(organizationId, batch.id)
+            .watchBatchProducts(organizationId, batch.id, currentUserId!)
             .first;
 
         for (final product in products) {

@@ -69,6 +69,9 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
     super.initState();
     _loadCurrentMember();
     _loadBatchInfo();
+    
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserData!;
 
     // Inicializar fecha por defecto
     _productExpectedDelivery = DateTime.now().add(const Duration(days: 21));
@@ -76,7 +79,7 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
     // Inicializar Stream aquí para evitar recargas al hacer setState
     _existingProductsStream =
         Provider.of<ProductionBatchService>(context, listen: false)
-            .watchBatchProducts(widget.organizationId, widget.batchId);
+            .watchBatchProducts(widget.organizationId, widget.batchId, user.uid);
 
     _productSearchController.addListener(() {
       setState(() {

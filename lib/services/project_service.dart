@@ -125,36 +125,31 @@ class ProjectService extends ChangeNotifier {
 
   /// Stream de proyectos con scope-awareness (NUEVO)
   /// Reemplaza a watchProjects y watchUserProjects
-  Stream<List<ProjectModel>> watchProjectsWithScope(
-    String organizationId,
-    String userId,
-  ) async* {
-    try {
-      // Obtener scope del permiso
-      final scope = await _memberService.getScope('projects', 'view');
+Stream<List<ProjectModel>> watchProjectsWithScope(
+  String organizationId,
+  String userId,
+) async* {
+  try {
+    // Obtener datos del miembro
+    final memberData = await _memberService.getCurrentMember(organizationId, userId);
 
-      Query<Map<String, dynamic>> query = _firestore
+    // Si es cliente, obtener TODOS los proyectos de SU cliente
+    if (memberData?.member.roleId == 'client') {
+      final memberClientId = memberData!.member.clientId;
+      
+      if (memberClientId == null) {
+        debugPrint('Cliente sin clientId asociado');
+        yield [];
+        return;
+      }
+      
+      final query = _firestore
           .collection('organizations')
           .doc(organizationId)
           .collection('projects')
-          .where('isActive', isEqualTo: true);
-
-      // Aplicar filtro según scope
-      switch (scope) {
-        case PermissionScope.all:
-          // Sin filtro adicional - ver todos
-          break;
-        case PermissionScope.assigned:
-          // Solo proyectos asignados
-          query = query.where('assignedMembers', arrayContains: userId);
-          break;
-        case PermissionScope.none:
-          // Sin acceso
-          yield [];
-          return;
-      }
-
-      query = query.orderBy('createdAt', descending: true);
+          .where('clientId', isEqualTo: memberClientId)
+          .where('isActive', isEqualTo: true)
+          .orderBy('createdAt', descending: true);
 
       yield* query.snapshots().map((snapshot) {
         _projects = snapshot.docs
@@ -162,11 +157,46 @@ class ProjectService extends ChangeNotifier {
             .toList();
         return _projects;
       });
-    } catch (e) {
-      debugPrint('Error en watchProjectsWithScope: $e');
-      yield [];
+      return;
     }
+
+    // Usuario normal: aplicar scope
+    final scope = await _memberService.getScope('projects', 'view');
+
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('projects')
+        .where('isActive', isEqualTo: true);
+
+    // Aplicar filtro según scope
+    switch (scope) {
+      case PermissionScope.all:
+        // Sin filtro adicional - ver todos
+        break;
+      case PermissionScope.assigned:
+        // Solo proyectos asignados
+        query = query.where('assignedMembers', arrayContains: userId);
+        break;
+      case PermissionScope.none:
+        // Sin acceso
+        yield [];
+        return;
+    }
+
+    query = query.orderBy('createdAt', descending: true);
+
+    yield* query.snapshots().map((snapshot) {
+      _projects = snapshot.docs
+          .map((doc) => ProjectModel.fromMap(doc.data()))
+          .toList();
+      return _projects;
+    });
+  } catch (e) {
+    debugPrint('Error en watchProjectsWithScope: $e');
+    yield [];
   }
+}
 
   /// @deprecated Usar watchProjectsWithScope en su lugar
   @Deprecated('Usar watchProjectsWithScope para scope-awareness')
@@ -268,6 +298,33 @@ class ProjectService extends ChangeNotifier {
       }
 
       final role = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
+
+      // Obtener datos del miembro
+      // final memberData = await _memberService.getCurrentMember(organizationId, userId);
+
+      // Si es cliente, obtener TODOS los proyectos de SU cliente
+      if (_memberService.currentMember?.roleId == 'client') {
+        // Usar el clientId del miembro (no el parámetro)
+        final memberClientId = _memberService.currentMember?.clientId;
+
+        if (memberClientId == null) {
+          debugPrint('Cliente sin clientId asociado');
+          return [];
+        }
+
+        final query = _firestore
+            .collection('organizations')
+            .doc(organizationId)
+            .collection('projects')
+            .where('clientId', isEqualTo: memberClientId)
+            .where('isActive', isEqualTo: true)
+            .orderBy('createdAt', descending: true);
+
+        final snapshot = await query.get();
+        return snapshot.docs
+            .map((doc) => ProjectModel.fromMap(doc.data()))
+            .toList();
+      }
 
       // 3. Calcular permisos efectivos (rol + overrides)
       final effectivePermissions = member.getEffectivePermissions(role);

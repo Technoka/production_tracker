@@ -27,7 +27,6 @@ class EditProductCatalogScreen extends StatefulWidget {
 
 class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
   final _formKey = GlobalKey<FormState>();
-  final ProductCatalogService _catalogService = ProductCatalogService();
 
   // Controladores
   late final TextEditingController _nameController;
@@ -135,8 +134,9 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
   }
 
   Future<void> _loadCategories() async {
+    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
     final categories =
-        await _catalogService.getOrganizationCategories(widget.product.organizationId);
+        await catalogService.getOrganizationCategories(widget.product.organizationId);
     if (mounted) {
       setState(() {
         _availableCategories = categories;
@@ -146,6 +146,7 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
 
   Future<void> _saveChanges(AppLocalizations l10n) async {
     if (!_formKey.currentState!.validate()) return;
+    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
 
     setState(() {
       _isLoading = true;
@@ -180,7 +181,7 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
         );
       }
 
-      await _catalogService.updateProduct(
+      await catalogService.updateProduct(
         organizationId: widget.product.organizationId,
         productId: widget.product.id,
         updatedBy: widget.currentUser.uid,

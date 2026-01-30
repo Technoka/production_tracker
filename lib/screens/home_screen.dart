@@ -121,6 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = authService.currentUserData;
 
     final permissionService = Provider.of<PermissionService>(context);
+    final memberService = Provider.of<OrganizationMemberService>(context);
 
     // Verificar permisos específicos
     final canViewKanban = permissionService.hasPermission('kanban', 'view');
@@ -242,6 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (canViewBatches && user.organizationId != null) ...[
               ProductionDashboardWidget(
                 organizationId: user.organizationId!,
+                clientId: memberService.getClientFilter(),
               ),
               const SizedBox(height: 24),
             ],

@@ -57,7 +57,7 @@ class ManagementFoldersView extends StatelessWidget {
           return CommonRefresh(
             onRefresh: () async {
               await Provider.of<ClientService>(context, listen: false)
-                  .getOrganizationClients(user.organizationId!);
+                  .getOrganizationClients(user.organizationId!, user.uid);
             },
             child: Center(
               child: Column(
@@ -87,7 +87,7 @@ class ManagementFoldersView extends StatelessWidget {
         return CommonRefresh(
           onRefresh: () async {
             await Provider.of<ClientService>(context, listen: false)
-                .getOrganizationClients(user.organizationId!);
+                .getOrganizationClients(user.organizationId!, user.uid);
           },
           child: FutureBuilder<bool>(
             future: _canCreateClients(context, user.organizationId!, user.uid),
@@ -223,8 +223,9 @@ class ManagementFoldersView extends StatelessWidget {
   ) async {
     try {
       final clientService = Provider.of<ClientService>(context, listen: false);
-      final productService =
-          Provider.of<ProductCatalogService>(context, listen: false);
+      final productService = Provider.of<ProductCatalogService>(context, listen: false);
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final user = authService.currentUserData!;
 
       // Obtener proyectos del cliente
       var projects =
@@ -233,12 +234,13 @@ class ManagementFoldersView extends StatelessWidget {
       int totalProducts = 0;
       int urgentCount = 0;
       int projectsCount = projects.length;
+      print("Projects count: $projectsCount");
 
       // Contar productos por proyecto
       for (final project in projects) {
         try {
           final products = await productService
-              .getProjectProductsStream(organizationId, project.id)
+              .getProjectProductsStream(organizationId, project.id, user.clientId)
               .first;
 
           totalProducts += products.length;

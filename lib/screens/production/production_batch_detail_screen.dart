@@ -491,12 +491,13 @@ class _ProductionBatchDetailScreenState
 
   Future<Map<String, double>> _calculateProgressStats(
       ProductionBatchModel batch) async {
-    final batchService =
-        Provider.of<ProductionBatchService>(context, listen: false);
+    final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserData!;
 
     try {
       final products = await batchService
-          .watchBatchProducts(widget.organizationId, widget.batchId)
+          .watchBatchProducts(widget.organizationId, widget.batchId, user.uid)
           .first;
 
       if (products.isEmpty) {
@@ -545,7 +546,7 @@ class _ProductionBatchDetailScreenState
         if (!canView) return const SizedBox.shrink();
         return StreamBuilder<List<BatchProductModel>>(
           stream: Provider.of<ProductionBatchService>(context, listen: false)
-              .watchBatchProducts(widget.organizationId, widget.batchId),
+              .watchBatchProducts(widget.organizationId, widget.batchId, user!.uid),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Card(

@@ -36,7 +36,6 @@ class ProductCatalogDetailScreen extends StatefulWidget {
 
 class _ProductCatalogDetailScreenState
     extends State<ProductCatalogDetailScreen> {
-  final ProductCatalogService _catalogService = ProductCatalogService();
   ProductCatalogModel? _product;
   bool _isLoading = true;
   
@@ -52,13 +51,14 @@ class _ProductCatalogDetailScreenState
   }
 
   Future<void> _loadData() async {
+    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
     setState(() {
       _isLoading = true;
     });
 
     try {
       // 1. Cargar producto
-      final product = await _catalogService.getProductById(
+      final product = await catalogService.getProductById(
           widget.organizationId, widget.productId);
 
       // 2. Calcular permisos
@@ -676,6 +676,7 @@ class _ProductCatalogDetailScreenState
   // --- Acciones ---
 
   Future<void> _duplicateProduct(AppLocalizations l10n) async {
+    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -696,7 +697,7 @@ class _ProductCatalogDetailScreenState
 
     if (confirm != true) return;
 
-    final newId = await _catalogService.duplicateProduct(
+    final newId = await catalogService.duplicateProduct(
       productId: _product!.id,
       createdBy: widget.currentUser.uid,
       organizationId: widget.organizationId,
@@ -732,6 +733,7 @@ class _ProductCatalogDetailScreenState
   }
 
   Future<void> _toggleActive(AppLocalizations l10n) async {
+    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -759,12 +761,12 @@ class _ProductCatalogDetailScreenState
     if (confirm != true) return;
 
     final success = _product!.isActive
-        ? await _catalogService.deactivateProduct(
+        ? await catalogService.deactivateProduct(
             organizationId: widget.organizationId,
             productId: _product!.id,
             updatedBy: widget.currentUser.uid,
           )
-        : await _catalogService.reactivateProduct(
+        : await catalogService.reactivateProduct(
             organizationId: widget.organizationId,
             productId: _product!.id,
             updatedBy: widget.currentUser.uid,
@@ -786,6 +788,7 @@ class _ProductCatalogDetailScreenState
   }
 
   Future<void> _deleteProduct(AppLocalizations l10n) async {
+    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -807,7 +810,7 @@ class _ProductCatalogDetailScreenState
 
     if (confirm != true) return;
 
-    final success = await _catalogService.deleteProduct(
+    final success = await catalogService.deleteProduct(
         widget.organizationId, _product!.id);
 
     if (mounted) {

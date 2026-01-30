@@ -30,7 +30,6 @@ class ProjectDetailScreen extends StatefulWidget {
 
 class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     with SingleTickerProviderStateMixin {
-  final ProductCatalogService _productService = ProductCatalogService();
 
   late TabController _tabController;
   int _selectedTab = 0;
@@ -64,7 +63,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     }
 
     return StreamBuilder<ProjectModel?>(
-      stream: projectService.watchProjects(user.organizationId ?? '').map(
+      stream: projectService.watchProjectsWithScope(user.organizationId!, user.uid).map(
             (projects) => projects.firstWhere(
               (p) => p.id == widget.projectId,
               orElse: () => projects.isNotEmpty
@@ -79,6 +78,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             body: const Center(child: CircularProgressIndicator()),
           );
         }
+        print("snapshot data: ${snapshot.data!.name}");
 
         if (!snapshot.hasData || snapshot.hasError) {
           return Scaffold(
@@ -175,6 +175,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       }
 
       _currentRole = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
+
+      if (_currentMember?.roleId == 'client' && project.clientId == _currentMember?.clientId) {
+        return {'canView': true};
+      }
 
       final isAssigned = project.assignedMembers.contains(user.uid);
 
@@ -433,14 +437,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   Widget _buildProductsTab(BuildContext context, UserModel user,
       ProjectModel project, Map<String, dynamic> permissions) {
     final canViewPrices = permissions['canViewPrices'] ?? false;
+    final ProductCatalogService productService = Provider.of<ProductCatalogService>(context, listen: false);
 
     return RefreshIndicator(
       onRefresh: () async {
         setState(() {});
       },
       child: StreamBuilder<List<ProductCatalogModel>>(
-        stream: _productService.getProjectProductsStream(
-            project.organizationId, project.id),
+        stream: productService.getProjectProductsStream(
+            project.organizationId, project.id, user.clientId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

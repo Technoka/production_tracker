@@ -705,6 +705,7 @@ Future<void> _handleCreate() async {
       stream: catalogService.getProjectProductsStream(
         user.organizationId!,
         _selectedProjectId!,
+        user.clientId,
       ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {

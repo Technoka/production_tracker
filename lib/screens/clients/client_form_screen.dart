@@ -10,7 +10,7 @@ import '../../widgets/client_color_picker.dart';
 import '../../widgets/client_permissions_selector.dart';
 
 /// Pantalla unificada para crear y editar clientes
-/// 
+///
 /// Modo de uso:
 /// - Para crear: ClientFormScreen()
 /// - Para editar: ClientFormScreen(client: clientToEdit)
@@ -28,7 +28,7 @@ class ClientFormScreen extends StatefulWidget {
 
 class _ClientFormScreenState extends State<ClientFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Controladores de texto
   late final TextEditingController _nameController;
   late final TextEditingController _companyController;
@@ -39,7 +39,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
   late final TextEditingController _postalCodeController;
   late final TextEditingController _countryController;
   late final TextEditingController _notesController;
-  
+
   // Estado del formulario
   String _selectedCountryCode = "+34";
   String? _selectedColor;
@@ -62,15 +62,19 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     _nameController = TextEditingController(text: client?.name ?? '');
     _companyController = TextEditingController(text: client?.company ?? '');
     _emailController = TextEditingController(text: client?.email ?? '');
-    _phoneController = TextEditingController(text: client?.phone ?? '');
+    // Quitar prefijo si existe para evitar duplicación
+    final clientPhone = widget.client?.phone ?? '';
+    _phoneController = TextEditingController(
+        text: clientPhone.replaceFirst('+$_selectedCountryCode ', ''));
     _addressController = TextEditingController(text: client?.address ?? '');
     _cityController = TextEditingController(text: client?.city ?? '');
-    _postalCodeController = TextEditingController(text: client?.postalCode ?? '');
+    _postalCodeController =
+        TextEditingController(text: client?.postalCode ?? '');
     _countryController = TextEditingController(text: client?.country ?? '');
     _notesController = TextEditingController(text: client?.notes ?? '');
 
     _selectedColor = client?.color;
-    _clientPermissions = client != null 
+    _clientPermissions = client != null
         ? Map<String, dynamic>.from(client.clientPermissions)
         : {};
 
@@ -87,11 +91,13 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
   }
 
   Future<void> _checkPermissions() async {
-    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
-    
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+
     // Solo admins/owners pueden gestionar permisos de clientes
-    final canManageRoles = await memberService.can('organization', 'manageRoles');
-    
+    final canManageRoles =
+        await memberService.can('organization', 'manageRoles');
+
     setState(() {
       _canEditPermissions = canManageRoles;
     });
@@ -194,11 +200,21 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
         company: _companyController.text.trim(),
         email: _emailController.text.trim(),
         phone: phone,
-        address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
-        city: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
-        postalCode: _postalCodeController.text.trim().isEmpty ? null : _postalCodeController.text.trim(),
-        country: _countryController.text.trim().isEmpty ? null : _countryController.text.trim(),
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        address: _addressController.text.trim().isEmpty
+            ? null
+            : _addressController.text.trim(),
+        city: _cityController.text.trim().isEmpty
+            ? null
+            : _cityController.text.trim(),
+        postalCode: _postalCodeController.text.trim().isEmpty
+            ? null
+            : _postalCodeController.text.trim(),
+        country: _countryController.text.trim().isEmpty
+            ? null
+            : _countryController.text.trim(),
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
         color: _selectedColor,
         clientPermissions: _clientPermissions,
       );
@@ -210,11 +226,21 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
         company: _companyController.text.trim(),
         email: _emailController.text.trim(),
         phone: phone,
-        address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
-        city: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
-        postalCode: _postalCodeController.text.trim().isEmpty ? null : _postalCodeController.text.trim(),
-        country: _countryController.text.trim().isEmpty ? null : _countryController.text.trim(),
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        address: _addressController.text.trim().isEmpty
+            ? null
+            : _addressController.text.trim(),
+        city: _cityController.text.trim().isEmpty
+            ? null
+            : _cityController.text.trim(),
+        postalCode: _postalCodeController.text.trim().isEmpty
+            ? null
+            : _postalCodeController.text.trim(),
+        country: _countryController.text.trim().isEmpty
+            ? null
+            : _countryController.text.trim(),
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
         createdBy: user.uid,
         color: _selectedColor,
         clientPermissions: _clientPermissions,
@@ -231,7 +257,9 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              widget.isEditMode ? l10n.clientUpdatedSuccess : l10n.clientCreatedSuccess,
+              widget.isEditMode
+                  ? l10n.clientUpdatedSuccess
+                  : l10n.clientCreatedSuccess,
             ),
             backgroundColor: Colors.green,
           ),
@@ -241,7 +269,9 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
           SnackBar(
             content: Text(
               clientService.error ??
-                  (widget.isEditMode ? l10n.updateClientError : l10n.createClientError),
+                  (widget.isEditMode
+                      ? l10n.updateClientError
+                      : l10n.createClientError),
             ),
             backgroundColor: Colors.red,
           ),
@@ -267,7 +297,8 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.isEditMode ? l10n.editClientTitle : l10n.newClientTitle),
+          title: Text(
+              widget.isEditMode ? l10n.editClientTitle : l10n.newClientTitle),
         ),
         body: SafeArea(
           child: SingleChildScrollView(
@@ -354,7 +385,8 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                           hintText: '123 456 789',
                           border: const OutlineInputBorder(),
                           prefixIcon: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                             margin: const EdgeInsets.only(right: 8),
                             child: InkWell(
                               onTap: () {
@@ -364,7 +396,8 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                                   showPhoneCode: true,
                                   onSelect: (Country country) {
                                     setState(() {
-                                      _selectedCountryCode = "+${country.phoneCode}";
+                                      _selectedCountryCode =
+                                          "+${country.phoneCode}";
                                     });
                                   },
                                 );
@@ -486,7 +519,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                   ),
 
                   const SizedBox(height: 16),
-                  
+
                   // Notas
                   _buildCard(
                     context,

@@ -138,7 +138,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
     return StreamBuilder<List<BatchProductModel>>(
       stream: Provider.of<ProductionBatchService>(context, listen: false)
-          .watchBatchProducts(widget.organizationId, widget.batchId),
+          .watchBatchProducts(widget.organizationId, widget.batchId, user!.uid),
       builder: (context, productSnapshot) {
         if (productSnapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(

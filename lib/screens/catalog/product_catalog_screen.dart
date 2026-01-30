@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/product_catalog_model.dart';
 import '../../models/user_model.dart';
@@ -23,7 +24,6 @@ class ProductCatalogScreen extends StatefulWidget {
 }
 
 class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
-  final ProductCatalogService _catalogService = ProductCatalogService();
   final TextEditingController _searchController = TextEditingController();
   
   String _searchQuery = '';
@@ -44,7 +44,8 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
   }
 
   Future<void> _loadCategories() async {
-    final categories = await _catalogService.getOrganizationCategories(widget.organizationId);
+    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
+    final categories = await catalogService.getOrganizationCategories(widget.organizationId);
     if (mounted) {
       setState(() {
         _availableCategories = categories;
@@ -59,6 +60,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!; // Referencia local
+    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
 
     return Scaffold(
       appBar: AppBar(
@@ -159,7 +161,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
           // Lista de productos
           Expanded(
             child: StreamBuilder<List<ProductCatalogModel>>(
-              stream: _catalogService.getOrganizationProductsStream(
+              stream: catalogService.getOrganizationProductsStream(
                 widget.organizationId,
                 includeInactive: _showInactive,
               ),
@@ -319,6 +321,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
   }
 
   Future<void> _toggleProductActive(ProductCatalogModel product, AppLocalizations l10n) async {
+    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -351,12 +354,12 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
     if (confirm != true) return;
 
     final success = product.isActive
-        ? await _catalogService.deactivateProduct(
+        ? await catalogService.deactivateProduct(
             organizationId: widget.organizationId,
             productId: product.id,
             updatedBy: widget.currentUser.uid,
           )
-        : await _catalogService.reactivateProduct(
+        : await catalogService.reactivateProduct(
             organizationId: widget.organizationId,
             productId: product.id,
             updatedBy: widget.currentUser.uid,

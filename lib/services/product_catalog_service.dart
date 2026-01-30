@@ -1,9 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:gestion_produccion/services/organization_member_service.dart';
 import '../models/product_catalog_model.dart';
 import 'package:rxdart/rxdart.dart';
 
-class ProductCatalogService {
+class ProductCatalogService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final OrganizationMemberService _memberService;
+
+  ProductCatalogService({required OrganizationMemberService memberService})
+      : _memberService = memberService;
 
   // ==================== CREAR PRODUCTO EN CATÁLOGO ====================
 
@@ -38,7 +44,7 @@ class ProductCatalogService {
           .where('isActive', isEqualTo: true)
           .limit(1)
           .get();
-          
+
       if (existingRef.docs.isNotEmpty) {
         throw Exception('Ya existe un producto con la referencia "$reference"');
       }
@@ -47,7 +53,8 @@ class ProductCatalogService {
           .collection('organizations')
           .doc(organizationId)
           .collection('product_catalog')
-          .doc().id;
+          .doc()
+          .id;
       print('Creating product with doc ID: $productId');
       final now = DateTime.now();
 
@@ -71,7 +78,8 @@ class ProductCatalogService {
         estimatedProductionHours: estimatedProductionHours,
         clientId: clientId,
         isPublic: isPublic,
-        approvalStatus: 'approved', // Por defecto aprobado (cambiar si necesitas workflow)
+        approvalStatus:
+            'approved', // Por defecto aprobado (cambiar si necesitas workflow)
         createdBy: createdBy,
         createdAt: now,
         updatedAt: now,
@@ -99,23 +107,20 @@ class ProductCatalogService {
   Stream<List<ProductCatalogModel>> getOrganizationProductsStream(
     String organizationId, {
     bool includeInactive = false,
-    }) {
+  }) {
     Query query = _firestore
         .collection('organizations')
         .doc(organizationId)
-        .collection('product_catalog')
-        as Query<Map<String, dynamic>>;
+        .collection('product_catalog') as Query<Map<String, dynamic>>;
 
     if (!includeInactive) {
       query = query.where('isActive', isEqualTo: true);
     }
 
-    return query
-        .orderBy('name')
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ProductCatalogModel.fromMap(doc.data() as Map<String, dynamic>))
-            .toList());
+    return query.orderBy('name').snapshots().map((snapshot) => snapshot.docs
+        .map((doc) =>
+            ProductCatalogModel.fromMap(doc.data() as Map<String, dynamic>))
+        .toList());
   }
 
   /// Obtener productos (one-time)
@@ -212,7 +217,7 @@ class ProductCatalogService {
       // Combinar y eliminar duplicados
       final allProducts = [...publicProducts, ...clientProducts];
       final uniqueProducts = <String, ProductCatalogModel>{};
-      
+
       for (final product in allProducts) {
         uniqueProducts[product.id] = product;
       }
@@ -225,7 +230,7 @@ class ProductCatalogService {
     }
   }
 
-/// Obtener productos de un cliente específico (Versión Stream en tiempo real)
+  /// Obtener productos de un cliente específico (Versión Stream en tiempo real)
   Stream<List<ProductCatalogModel>> getClientProductsStream(
     String organizationId,
     String clientId,
@@ -263,7 +268,7 @@ class ProductCatalogService {
       (publicProducts, clientProducts) {
         // Combinar ambas listas
         final allProducts = [...publicProducts, ...clientProducts];
-        
+
         // Eliminar duplicados usando un Map por ID
         final uniqueProducts = <String, ProductCatalogModel>{};
         for (final product in allProducts) {
@@ -310,7 +315,7 @@ class ProductCatalogService {
           .get();
 
       if (!doc.exists) return null;
-        return ProductCatalogModel.fromMap(doc.data()!);
+      return ProductCatalogModel.fromMap(doc.data()!);
     } catch (e) {
       print('Error getting product: $e');
       return null;
@@ -360,9 +365,10 @@ class ProductCatalogService {
               .limit(1)
               .get();
 
-          if (existingRef.docs.isNotEmpty && 
+          if (existingRef.docs.isNotEmpty &&
               existingRef.docs.first.id != productId) {
-            throw Exception('Ya existe un producto con la referencia "$reference"');
+            throw Exception(
+                'Ya existe un producto con la referencia "$reference"');
           }
         }
         updateData['reference'] = reference;
@@ -372,9 +378,11 @@ class ProductCatalogService {
       if (imageUrls != null) updateData['imageUrls'] = imageUrls;
       if (specifications != null) updateData['specifications'] = specifications;
       if (tags != null) updateData['tags'] = tags;
-      if (materialInfo != null) updateData['materialInfo'] = materialInfo.toMap();
+      if (materialInfo != null)
+        updateData['materialInfo'] = materialInfo.toMap();
       if (dimensions != null) updateData['dimensions'] = dimensions.toMap();
-      if (estimatedWeight != null) updateData['estimatedWeight'] = estimatedWeight;
+      if (estimatedWeight != null)
+        updateData['estimatedWeight'] = estimatedWeight;
       if (basePrice != null) updateData['basePrice'] = basePrice;
       if (notes != null) updateData['notes'] = notes;
       if (estimatedProductionHours != null) {
@@ -399,157 +407,170 @@ class ProductCatalogService {
 
   // ==================== GESTIÃ"N DE PRODUCTOS POR PROYECTO ====================
 
-/// Obtener productos asociados a un proyecto especÃ­fico (Stream)
-Stream<List<ProductCatalogModel>> getProjectProductsStream(
-  String organizationId,
-  String projectId,
-) {
-  return _firestore
-      .collection('organizations')
-      .doc(organizationId)
-      .collection('product_catalog')
-      .where('projects', arrayContains: projectId)
-      .where('isActive', isEqualTo: true)
-      .snapshots()
-      .map((snapshot) => snapshot.docs
-          .map((doc) => ProductCatalogModel.fromMap(doc.data()))
-          .toList());
-}
+  /// Obtener productos asociados a un proyecto especÃ­fico (Stream)
+  Stream<List<ProductCatalogModel>> getProjectProductsStream(
+    String organizationId,
+    String projectId,
+    String? clientId,
+  ) {
+    // Aplicar filtro de cliente si es necesario
+    String? effectiveClientId = clientId;
+    if (_memberService.shouldFilterByClient()) {
+      effectiveClientId = _memberService.currentClientId;
+    }
 
-/// Obtener productos de una familia especÃ­fica dentro de un proyecto (Stream)
-Stream<List<ProductCatalogModel>> getProjectFamilyProducts(
-  String organizationId,
-  String projectId,
-  String familyName,
-) {
-  return _firestore
-      .collection('organizations')
-      .doc(organizationId)
-      .collection('product_catalog')
-      .where('projects', arrayContains: projectId)
-      .where('family', isEqualTo: familyName)
-      .where('isActive', isEqualTo: true)
-      .snapshots()
-      .map((snapshot) => snapshot.docs
-          .map((doc) => ProductCatalogModel.fromMap(doc.data()))
-          .toList());
-}
+    Query query = _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('product_catalog');
 
-/// Obtener todas las familias Ãºnicas de productos en un proyecto
-Future<List<String>> getProjectFamilies(
-  String organizationId,
-  String projectId,
-) async {
-  try {
-    final snapshot = await _firestore
+    if (effectiveClientId != null) {
+      query = query.where('clientId', isEqualTo: effectiveClientId);
+    }
+
+    return query
+        .where('projects', arrayContains: projectId)
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ProductCatalogModel.fromMap(doc.data() as Map<String, dynamic>))
+            .toList());
+  }
+
+  /// Obtener productos de una familia especÃ­fica dentro de un proyecto (Stream)
+  Stream<List<ProductCatalogModel>> getProjectFamilyProducts(
+    String organizationId,
+    String projectId,
+    String familyName,
+  ) {
+    return _firestore
         .collection('organizations')
         .doc(organizationId)
         .collection('product_catalog')
         .where('projects', arrayContains: projectId)
+        .where('family', isEqualTo: familyName)
         .where('isActive', isEqualTo: true)
-        .get();
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ProductCatalogModel.fromMap(doc.data()))
+            .toList());
+  }
 
-    final families = <String>{};
-    for (var doc in snapshot.docs) {
-      final family = doc.data()['family'] as String?;
-      if (family != null && family.isNotEmpty) {
-        families.add(family);
+  /// Obtener todas las familias Ãºnicas de productos en un proyecto
+  Future<List<String>> getProjectFamilies(
+    String organizationId,
+    String projectId,
+  ) async {
+    try {
+      final snapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('product_catalog')
+          .where('projects', arrayContains: projectId)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      final families = <String>{};
+      for (var doc in snapshot.docs) {
+        final family = doc.data()['family'] as String?;
+        if (family != null && family.isNotEmpty) {
+          families.add(family);
+        }
       }
+
+      final sortedFamilies = families.toList()..sort();
+      return sortedFamilies;
+    } catch (e) {
+      print('Error al obtener familias del proyecto: $e');
+      return [];
     }
-
-    final sortedFamilies = families.toList()..sort();
-    return sortedFamilies;
-  } catch (e) {
-    print('Error al obtener familias del proyecto: $e');
-    return [];
   }
-}
 
-/// AÃ±adir un producto a un proyecto
-Future<bool> addProductToProject(
-  String organizationId,
-  String productId,
-  String projectId,
-) async {
-  try {
-    await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('product_catalog')
-        .doc(productId)
-        .update({
-      'projects': FieldValue.arrayUnion([projectId]),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-    return true;
-  } catch (e) {
-    print('Error al aÃ±adir producto al proyecto: $e');
-    return false;
+  /// AÃ±adir un producto a un proyecto
+  Future<bool> addProductToProject(
+    String organizationId,
+    String productId,
+    String projectId,
+  ) async {
+    try {
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('product_catalog')
+          .doc(productId)
+          .update({
+        'projects': FieldValue.arrayUnion([projectId]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      print('Error al aÃ±adir producto al proyecto: $e');
+      return false;
+    }
   }
-}
 
-/// Remover un producto de un proyecto
-Future<bool> removeProductFromProject(
-  String organizationId,
-  String productId,
-  String projectId,
-) async {
-  try {
-    await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('product_catalog')
-        .doc(productId)
-        .update({
-      'projects': FieldValue.arrayRemove([projectId]),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-    return true;
-  } catch (e) {
-    print('Error al remover producto del proyecto: $e');
-    return false;
+  /// Remover un producto de un proyecto
+  Future<bool> removeProductFromProject(
+    String organizationId,
+    String productId,
+    String projectId,
+  ) async {
+    try {
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('product_catalog')
+          .doc(productId)
+          .update({
+        'projects': FieldValue.arrayRemove([projectId]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      print('Error al remover producto del proyecto: $e');
+      return false;
+    }
   }
-}
 
-/// Obtener estadÃ­sticas de productos por proyecto
-Future<Map<String, dynamic>> getProjectProductStats(
-  String organizationId,
-  String projectId,
-) async {
-  try {
-    final snapshot = await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('product_catalog')
-        .where('projects', arrayContains: projectId)
-        .where('isActive', isEqualTo: true)
-        .get();
+  /// Obtener estadÃ­sticas de productos por proyecto
+  Future<Map<String, dynamic>> getProjectProductStats(
+    String organizationId,
+    String projectId,
+  ) async {
+    try {
+      final snapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('product_catalog')
+          .where('projects', arrayContains: projectId)
+          .where('isActive', isEqualTo: true)
+          .get();
 
-    final families = <String>{};
-    for (var doc in snapshot.docs) {
-      final family = doc.data()['family'] as String?;
-      if (family != null && family.isNotEmpty) {
-        families.add(family);
+      final families = <String>{};
+      for (var doc in snapshot.docs) {
+        final family = doc.data()['family'] as String?;
+        if (family != null && family.isNotEmpty) {
+          families.add(family);
+        }
       }
-    }
 
-    return {
-      'totalProducts': snapshot.docs.length,
-      'totalFamilies': families.length,
-      'families': families.toList()..sort(),
-    };
-  } catch (e) {
-    print('Error al obtener estadísticas del proyecto: $e');
-    return {
-      'totalProducts': 0,
-      'totalFamilies': 0,
-      'families': [],
-    };
+      return {
+        'totalProducts': snapshot.docs.length,
+        'totalFamilies': families.length,
+        'families': families.toList()..sort(),
+      };
+    } catch (e) {
+      print('Error al obtener estadísticas del proyecto: $e');
+      return {
+        'totalProducts': 0,
+        'totalFamilies': 0,
+        'families': [],
+      };
+    }
   }
-}
 
   // ==================== DESACTIVAR PRODUCTO ====================
-  
+
   Future<bool> deactivateProduct({
     required String organizationId,
     required String productId,
@@ -557,10 +578,11 @@ Future<Map<String, dynamic>> getProjectProductStats(
   }) async {
     try {
       await _firestore
-      .collection('organizations')
-      .doc(organizationId)
-      .collection('product_catalog')
-      .doc(productId).update({
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('product_catalog')
+          .doc(productId)
+          .update({
         'isActive': false,
         'updatedBy': updatedBy,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -573,7 +595,7 @@ Future<Map<String, dynamic>> getProjectProductStats(
   }
 
   // ==================== REACTIVAR PRODUCTO ====================
-  
+
   Future<bool> reactivateProduct({
     required String organizationId,
     required String productId,
@@ -581,10 +603,11 @@ Future<Map<String, dynamic>> getProjectProductStats(
   }) async {
     try {
       await _firestore
-      .collection('organizations')
-      .doc(organizationId)
-      .collection('product_catalog')
-      .doc(productId).update({
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('product_catalog')
+          .doc(productId)
+          .update({
         'isActive': true,
         'updatedBy': updatedBy,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -669,8 +692,8 @@ Future<Map<String, dynamic>> getProjectProductStats(
 
       for (final projectDoc in projectsSnapshot.docs) {
         final productsSnapshot = await projectDoc.reference
-          .collection('organizations')
-          .doc(organizationId)
+            .collection('organizations')
+            .doc(organizationId)
             .collection('products')
             .where('catalogProductId', isEqualTo: productId)
             .limit(1)
@@ -721,7 +744,8 @@ Future<Map<String, dynamic>> getProjectProductStats(
 
       final snapshot = await query.get();
       var products = snapshot.docs
-          .map((doc) => ProductCatalogModel.fromMap(doc.data() as Map<String, dynamic>))
+          .map((doc) =>
+              ProductCatalogModel.fromMap(doc.data() as Map<String, dynamic>))
           .toList();
 
       // Filtrado local para búsqueda de texto y tags
@@ -732,9 +756,8 @@ Future<Map<String, dynamic>> getProjectProductStats(
       }
 
       if (tags != null && tags.isNotEmpty) {
-        products = products
-            .where((product) => product.matchesTags(tags))
-            .toList();
+        products =
+            products.where((product) => product.matchesTags(tags)).toList();
       }
 
       return products;
@@ -745,7 +768,7 @@ Future<Map<String, dynamic>> getProjectProductStats(
   }
 
   // ==================== OBTENER CATEGORÍAS DE LA ORGANIZACIÓN ====================
-  
+
   Future<List<String>> getOrganizationCategories(String organizationId) async {
     try {
       final snapshot = await _firestore
@@ -770,9 +793,9 @@ Future<Map<String, dynamic>> getProjectProductStats(
       return [];
     }
   }
-  
+
   // ==================== OBTENER TODOS LOS TAGS DE LA ORGANIZACIÓN ====================
-  
+
   Future<List<String>> getOrganizationTags(String organizationId) async {
     try {
       final snapshot = await _firestore
@@ -797,6 +820,7 @@ Future<Map<String, dynamic>> getProjectProductStats(
       return [];
     }
   }
+
   Future<List<ProductCatalogModel>> searchProductsByReference(
     String organizationId,
     String referencePrefix,
@@ -807,9 +831,7 @@ Future<Map<String, dynamic>> getProjectProductStats(
           .doc(organizationId)
           .collection('product_catalog')
           .orderBy('reference')
-          .startAt([referencePrefix])
-          .endAt([referencePrefix + '\uf8ff'])
-          .get();
+          .startAt([referencePrefix]).endAt([referencePrefix + '\uf8ff']).get();
 
       return snapshot.docs
           .map((doc) => ProductCatalogModel.fromMap(doc.data()))
@@ -828,7 +850,7 @@ Future<Map<String, dynamic>> getProjectProductStats(
   ) async {
     try {
       final product = await getProductById(organizationId, productId);
-      
+
       if (product == null) {
         return {'usageCount': 0, 'activeProjects': 0};
       }
@@ -844,8 +866,9 @@ Future<Map<String, dynamic>> getProjectProductStats(
 
       for (final projectDoc in projectsSnapshot.docs) {
         final projectStatus = projectDoc.data()['status'] as String?;
-        
-        if (projectStatus == 'in_production' || projectStatus == 'in_preparation') {
+
+        if (projectStatus == 'in_production' ||
+            projectStatus == 'in_preparation') {
           final productsSnapshot = await projectDoc.reference
               .collection('products')
               .where('catalogProductId', isEqualTo: productId)
@@ -892,7 +915,7 @@ Future<Map<String, dynamic>> getProjectProductStats(
   }
 
   // ==================== DUPLICAR PRODUCTO ====================
-  
+
   Future<String?> duplicateProduct({
     required String productId,
     required String createdBy,
@@ -907,13 +930,13 @@ Future<Map<String, dynamic>> getProjectProductStats(
 
       // Generar nueva referencia si no se proporciona
       String reference = newReference ?? '${original.reference}_COPY';
-      
+
       // Verificar que la referencia sea única
       int copyNumber = 1;
       while (true) {
         final existingRef = await _firestore
-          .collection('organizations')
-          .doc(organizationId)
+            .collection('organizations')
+            .doc(organizationId)
             .collection('product_catalog')
             .where('reference', isEqualTo: reference)
             .where('isActive', isEqualTo: true)
@@ -921,7 +944,7 @@ Future<Map<String, dynamic>> getProjectProductStats(
             .get();
 
         if (existingRef.docs.isEmpty) break;
-        
+
         copyNumber++;
         reference = '${original.reference}_COPY_$copyNumber';
       }
@@ -991,10 +1014,10 @@ Future<Map<String, dynamic>> getProjectProductStats(
       if (product == null) return false;
 
       final clientPrices = product.clientPrices ?? [];
-      
+
       // Eliminar precio anterior si existe
       clientPrices.removeWhere((p) => p['clientId'] == clientId);
-      
+
       // Añadir nuevo precio
       clientPrices.add({
         'clientId': clientId,
@@ -1035,7 +1058,8 @@ Future<Map<String, dynamic>> getProjectProductStats(
       );
 
       if (clientPrice.isEmpty) {
-        return product.basePrice; // Usar precio base si no hay precio específico
+        return product
+            .basePrice; // Usar precio base si no hay precio específico
       }
 
       return clientPrice['unitPrice'] as double?;

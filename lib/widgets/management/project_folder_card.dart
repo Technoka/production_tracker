@@ -86,8 +86,14 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
       final canEdit = _checkProjectPermission(
           permissionService, user.uid, 'projects', 'edit');
 
-      final canView = _checkProjectPermission(
+      bool canView = _checkProjectPermission(
           permissionService, user.uid, 'projects', 'view');
+
+      // Si es cliente y este proyecto le pertenece, puede verlo
+      bool memberIsClient = memberService.currentMember?.roleId == 'client';
+      if (memberIsClient && widget.project.clientId == memberService.currentMember?.clientId) {
+        canView = true;
+      }
 
       if (mounted) {
         setState(() {
@@ -153,7 +159,7 @@ class _ProjectFolderCardState extends State<ProjectFolderCard> {
           child: StreamBuilder<List<ProductCatalogModel>>(
             stream: Provider.of<ProductCatalogService>(context, listen: false)
                 .getProjectProductsStream(
-                    user.organizationId!, widget.project.id),
+                    user.organizationId!, widget.project.id, user.clientId),
             builder: (context, productSnapshot) {
               final allProducts = productSnapshot.data ?? [];
 

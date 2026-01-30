@@ -357,7 +357,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
   Widget _buildClientFilterChip(UserModel user, AppLocalizations l10n) {
     return FutureBuilder<List<ClientModel>>(
       future: Provider.of<ClientService>(context, listen: false)
-          .getOrganizationClients(user.organizationId!),
+          .getOrganizationClients(user.organizationId!, user.uid),
       builder: (context, snapshot) {
         final clients = snapshot.data ?? [];
         final selectedClient =
@@ -390,7 +390,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
   Widget _buildBatchFilterChip(UserModel user, AppLocalizations l10n) {
     return StreamBuilder<List<ProductionBatchModel>>(
       stream: Provider.of<ProductionBatchService>(context, listen: false)
-          .watchBatches(user.organizationId!),
+          .watchBatches(user.organizationId!, user.uid),
       builder: (context, snapshot) {
         final batches = snapshot.data ?? [];
         final selectedBatch =
@@ -490,7 +490,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
     // Similar al filtro de batch, pero para proyectos
     return StreamBuilder<List<ProductionBatchModel>>(
         stream: Provider.of<ProductionBatchService>(context, listen: false)
-            .watchBatches(user.organizationId!),
+            .watchBatches(user.organizationId!, user.uid),
         builder: (context, batchSnapshot) {
           final batches = batchSnapshot.data ?? [];
 
@@ -533,7 +533,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
     // 2. Primer Stream: Escuchamos los clientes
     return FutureBuilder<List<ClientModel>>(
       future: clientService.getOrganizationClients(
-          user.organizationId!), // Asumo que tienes este método
+          user.organizationId!, user.uid), // Asumo que tienes este método
       builder: (context, clientSnapshot) {
         if (clientSnapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -541,6 +541,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
         // Si los clientes están cargando, no bloqueamos la UI, asumimos lista vacía temporalmente
         // o mostramos loader si prefieres bloquear todo.
         final clients = clientSnapshot.data ?? [];
+        print("Clients loaded for batch view: ${clients.length}");
 
         // 3. OPTIMIZACIÓN CRÍTICA: Convertimos la lista a un Mapa para búsqueda instantánea
         // Esto crea algo tipo: {'client_id_1': '#FF0000', 'client_id_2': '#00FF00'}
@@ -552,7 +553,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
         // 4. Segundo Stream: Escuchamos los lotes (Tu código original)
         return StreamBuilder<List<ProductionBatchModel>>(
           stream: Provider.of<ProductionBatchService>(context, listen: false)
-              .watchBatches(user.organizationId!),
+              .watchBatches(user.organizationId!, user.uid),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -563,6 +564,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
             }
 
             var batches = snapshot.data ?? [];
+        print("batches loaded for batch view: ${batches.length}");
 
             // ... (Tus filtros originales se mantienen igual) ...
             if (_searchQuery.isNotEmpty) {
@@ -612,7 +614,8 @@ class _ProductionScreenState extends State<ProductionScreen> {
                     batch,
                     user,
                     l10n,
-                    parseColorValue(clientColors[batch.clientId]), // <--- Aquí pasas el color
+                    parseColorValue(clientColors[
+                        batch.clientId]), // <--- Aquí pasas el color
                   );
                 },
               ),
@@ -623,120 +626,139 @@ class _ProductionScreenState extends State<ProductionScreen> {
     );
   }
 
-Widget _buildProductsView(UserModel user, AppLocalizations l10n) {
-  // 1. Obtenemos el servicio de clientes
-  final clientService = Provider.of<ClientService>(context, listen: false);
+  Widget _buildProductsView(UserModel user, AppLocalizations l10n) {
+    // 1. Obtenemos el servicio de clientes
+    final clientService = Provider.of<ClientService>(context, listen: false);
 
-  // 2. PRIMER NIVEL: Escuchamos los clientes para obtener sus colores
-  return FutureBuilder<List<ClientModel>>(
-    future: clientService.getOrganizationClients(user.organizationId!), 
-    builder: (context, clientSnapshot) {
-      
-      final clients = clientSnapshot.data ?? [];
-      
-      // 3. MAPEO RÁPIDO: ID Cliente -> Color Hex
-      final Map<String, String> clientColors = {
-        for (var client in clients) client.id: client.color!
-      };
+    // 2. PRIMER NIVEL: Escuchamos los clientes para obtener sus colores
+    return FutureBuilder<List<ClientModel>>(
+      future:
+          clientService.getOrganizationClients(user.organizationId!, user.uid),
+      builder: (context, clientSnapshot) {
+        final clients = clientSnapshot.data ?? [];
 
-      // 4. SEGUNDO NIVEL: Tu código original de productos
-      return FutureBuilder<List<Map<String, dynamic>>>(
-        future: _getAllProductsWithBatches(user),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+        // 3. MAPEO RÁPIDO: ID Cliente -> Color Hex
+        final Map<String, String> clientColors = {
+          for (var client in clients) client.id: client.color!
+        };
 
-          if (snapshot.hasError) {
-            return Center(child: Text('${l10n.error}: ${snapshot.error}'));
-          }
+        // 4. SEGUNDO NIVEL: Tu código original de productos
+        return FutureBuilder<List<Map<String, dynamic>>>(
+          future: _getAllProductsWithBatches(user),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          var allProducts = snapshot.data ?? [];
+            if (snapshot.hasError) {
+              return Center(child: Text('${l10n.error}: ${snapshot.error}'));
+            }
 
-          // --- TUS FILTROS (Sin cambios) ---
-          if (_searchQuery.isNotEmpty) {
-            allProducts = allProducts.where((item) {
-              final product = item['product'] as BatchProductModel;
-              final searchLower = _searchQuery.toLowerCase();
-              return product.productName.toLowerCase().contains(searchLower) ||
-                  (product.productReference?.toLowerCase().contains(searchLower) ?? false);
-            }).toList();
-          }
+            var allProducts = snapshot.data ?? [];
 
-          if (_statusFilter != null) {
-            allProducts = allProducts.where((item) =>
-                    (item['product'] as BatchProductModel).statusName == _statusFilter)
-                .toList();
-          }
+            // --- TUS FILTROS (Sin cambios) ---
+            if (_searchQuery.isNotEmpty) {
+              allProducts = allProducts.where((item) {
+                final product = item['product'] as BatchProductModel;
+                final searchLower = _searchQuery.toLowerCase();
+                return product.productName
+                        .toLowerCase()
+                        .contains(searchLower) ||
+                    (product.productReference
+                            ?.toLowerCase()
+                            .contains(searchLower) ??
+                        false);
+              }).toList();
+            }
 
-          if (_phaseFilter != null) {
-            allProducts = allProducts.where((item) =>
-                    (item['product'] as BatchProductModel).currentPhase == _phaseFilter)
-                .toList();
-          }
+            if (_statusFilter != null) {
+              allProducts = allProducts
+                  .where((item) =>
+                      (item['product'] as BatchProductModel).statusName ==
+                      _statusFilter)
+                  .toList();
+            }
 
-          if (_clientFilter != null) {
-            allProducts = allProducts.where((item) =>
-                    (item['batch'] as ProductionBatchModel).clientId == _clientFilter)
-                .toList();
-          }
+            if (_phaseFilter != null) {
+              allProducts = allProducts
+                  .where((item) =>
+                      (item['product'] as BatchProductModel).currentPhase ==
+                      _phaseFilter)
+                  .toList();
+            }
 
-          if (_batchFilter != null) {
-            allProducts = allProducts.where((item) =>
-                    (item['batch'] as ProductionBatchModel).id == _batchFilter)
-                .toList();
-          }
+            if (_clientFilter != null) {
+              allProducts = allProducts
+                  .where((item) =>
+                      (item['batch'] as ProductionBatchModel).clientId ==
+                      _clientFilter)
+                  .toList();
+            }
 
-          if (_onlyUrgent) {
-            allProducts = allProducts.where((item) =>
-                    (item['product'] as BatchProductModel).urgencyLevel == 'urgent')
-                .toList();
-          }
-          // -------------------------------
+            if (_batchFilter != null) {
+              allProducts = allProducts
+                  .where((item) =>
+                      (item['batch'] as ProductionBatchModel).id ==
+                      _batchFilter)
+                  .toList();
+            }
 
-          if (allProducts.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.widgets_outlined, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    _hasActiveFilters ? l10n.noResultsFound : l10n.noProductsFound,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ],
+            if (_onlyUrgent) {
+              allProducts = allProducts
+                  .where((item) =>
+                      (item['product'] as BatchProductModel).urgencyLevel ==
+                      'urgent')
+                  .toList();
+            }
+            // -------------------------------
+
+            if (allProducts.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.widgets_outlined,
+                        size: 64, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    Text(
+                      _hasActiveFilters
+                          ? l10n.noResultsFound
+                          : l10n.noProductsFound,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                setState(() {});
+              },
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: allProducts.length,
+                itemBuilder: (context, index) {
+                  final item = allProducts[index];
+                  final product = item['product'] as BatchProductModel;
+                  final batch = item['batch'] as ProductionBatchModel;
+
+                  return _buildProductCard(
+                      product,
+                      batch,
+                      user,
+                      l10n,
+                      parseColorValue(clientColors[
+                          batch.clientId]) // <--- Aquí pasas el nuevo parámetro
+                      );
+                },
               ),
             );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              setState(() {});
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: allProducts.length,
-              itemBuilder: (context, index) {
-                final item = allProducts[index];
-                final product = item['product'] as BatchProductModel;
-                final batch = item['batch'] as ProductionBatchModel;
-
-                return _buildProductCard(
-                  product,
-                  batch,
-                  user,
-                  l10n,
-                  parseColorValue(clientColors[batch.clientId])// <--- Aquí pasas el nuevo parámetro
-                );
-              },
-            ),
-          );
-        },
-      );
-    },
-  );
-}
+          },
+        );
+      },
+    );
+  }
 
   Widget _buildKanbanView(UserModel user, AppLocalizations l10n) {
     return KanbanBoardWidget(
@@ -755,7 +777,7 @@ Widget _buildProductsView(UserModel user, AppLocalizations l10n) {
       UserModel user) async {
     final batchService =
         Provider.of<ProductionBatchService>(context, listen: false);
-    final batches = await batchService.watchBatches(user.organizationId!).first;
+    final batches = await batchService.watchBatches(user.organizationId!, user.uid).first;
 
     List<Map<String, dynamic>> allProducts = [];
 
@@ -765,6 +787,7 @@ Widget _buildProductsView(UserModel user, AppLocalizations l10n) {
             .watchBatchProducts(
               user.organizationId!,
               batch.id,
+              user.uid,
             )
             .first;
 

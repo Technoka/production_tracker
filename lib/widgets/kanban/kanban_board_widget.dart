@@ -497,8 +497,9 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     String organizationId,
     List<ProductionPhase> phases,
   ) async {
-    final batchService =
-        Provider.of<ProductionBatchService>(context, listen: false);
+    final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserData!;
     final Map<String, List<Map<String, dynamic>>> groupedProducts = {};
 
     for (final phase in phases) {
@@ -506,7 +507,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     }
 
     try {
-      final batches = await batchService.watchBatches(organizationId).first;
+      final batches = await batchService.watchBatches(organizationId, user.uid).first;
       int totalProductsProcessed = 0;
       const maxProducts = 100;
 
@@ -521,7 +522,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
         if (!_canAccessBatch(batch)) continue;
 
         final products = await batchService
-            .watchBatchProducts(organizationId, batch.id)
+            .watchBatchProducts(organizationId, batch.id, user.uid)
             .first;
 
         for (final product in products) {
@@ -563,8 +564,9 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     String organizationId,
     List<ProductStatusModel> statuses,
   ) async {
-    final batchService =
-        Provider.of<ProductionBatchService>(context, listen: false);
+    final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserData!;
     final Map<String, List<Map<String, dynamic>>> groupedProducts = {};
 
     for (final status in statuses) {
@@ -572,7 +574,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     }
 
     try {
-      final batches = await batchService.watchBatches(organizationId).first;
+      final batches = await batchService.watchBatches(organizationId, user.uid).first;
       int totalProductsProcessed = 0;
       const maxProducts = 100;
 
@@ -587,7 +589,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
         if (!_canAccessBatch(batch)) continue;
 
         final products = await batchService
-            .watchBatchProducts(organizationId, batch.id)
+            .watchBatchProducts(organizationId, batch.id, user.uid)
             .first;
 
         for (final product in products) {
@@ -826,7 +828,7 @@ Widget _buildKanbanColumn(
 
     // 2. Envolvemos TODO el contenedor en un StreamBuilder de Clientes
     return FutureBuilder<List<ClientModel>>(
-      future: clientService.getOrganizationClients(user!.organizationId!),
+      future: clientService.getOrganizationClients(user!.organizationId!, user!.uid),
       builder: (context, snapshot) {
         
         // Creamos el mapa de colores (si no hay datos aún, mapa vacío)

@@ -65,7 +65,8 @@ class PermissionService extends ChangeNotifier {
 
       if (_currentRole != null) {
         // Calcular permisos efectivos (rol + overrides)
-        _effectivePermissions = _currentMember!.getEffectivePermissions(_currentRole!);
+        _effectivePermissions =
+            _currentMember!.getEffectivePermissions(_currentRole!);
       }
 
       _isLoading = false;
@@ -98,7 +99,8 @@ class PermissionService extends ChangeNotifier {
         docId: memberDoc.id,
       );
 
-      final role = await _roleService.getRoleById(organizationId, member.roleId);
+      final role =
+          await _roleService.getRoleById(organizationId, member.roleId);
       if (role == null) {
         yield null;
         continue;
@@ -230,7 +232,7 @@ class PermissionService extends ChangeNotifier {
       // Si el usuario actualizado es el actual, recargar permisos
       if (_currentMember?.userId == userId) {
         await loadCurrentUserPermissions(
-          userId: userId, 
+          userId: userId,
           organizationId: organizationId,
         );
       }
@@ -312,7 +314,8 @@ class PermissionService extends ChangeNotifier {
           .get();
 
       return snapshot.docs
-          .map((doc) => OrganizationMemberModel.fromMap(doc.data(), docId: doc.id))
+          .map((doc) =>
+              OrganizationMemberModel.fromMap(doc.data(), docId: doc.id))
           .toList();
     } catch (e) {
       _error = 'Error al obtener miembros: $e';
@@ -324,9 +327,9 @@ class PermissionService extends ChangeNotifier {
   // ==================== VERIFICACIÓN DE PERMISOS (ACTUALIZADO) ====================
 
   /// Verificar si el usuario actual tiene un permiso específico
-  /// 
+  ///
   /// Usa el sistema dinámico de PermissionRegistry
-  /// 
+  ///
   /// Ejemplos:
   /// - hasPermission('kanban', 'view')
   /// - hasPermission('batches', 'create')
@@ -339,14 +342,14 @@ class PermissionService extends ChangeNotifier {
   }
 
   /// Verificar scope de un permiso
-  /// 
+  ///
   /// Usa el sistema dinámico de PermissionRegistry
-  /// 
+  ///
   /// Retorna:
   /// - PermissionScope.all: puede ver/editar todos los recursos
   /// - PermissionScope.assigned: solo recursos asignados
   /// - PermissionScope.none: sin acceso
-  /// 
+  ///
   /// Ejemplos:
   /// - getPermissionScope('kanban', 'moveProducts')
   /// - getPermissionScope('batches', 'view')
@@ -359,9 +362,9 @@ class PermissionService extends ChangeNotifier {
   }
 
   /// Verificar permiso considerando el scope y si el recurso está asignado
-  /// 
+  ///
   /// Útil para queries condicionales
-  /// 
+  ///
   /// Ejemplo:
   /// ```dart
   /// final canView = permissionService.canWithScope(

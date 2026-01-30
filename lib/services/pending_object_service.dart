@@ -8,7 +8,6 @@ class PendingObjectService extends ChangeNotifier {
 
   String? get error => _error;
 
-  /// Crear pending object
   Future<String?> createPendingObject({
     required String organizationId,
     required PendingObjectType objectType,
@@ -22,6 +21,9 @@ class PendingObjectService extends ChangeNotifier {
     try {
       _error = null;
 
+      // 1. Sanitizar modelData ANTES de crear el modelo
+      final sanitizedModelData = _sanitizeModelData(modelData);
+
       final pendingRef = _firestore
           .collection('organizations')
           .doc(organizationId)
@@ -32,7 +34,7 @@ class PendingObjectService extends ChangeNotifier {
         id: pendingRef.id,
         objectType: objectType,
         collectionRoute: collectionRoute,
-        modelData: modelData,
+        modelData: sanitizedModelData, // ← Datos sanitizados
         createdBy: createdBy,
         createdByName: createdByName,
         clientId: clientId,
@@ -41,11 +43,15 @@ class PendingObjectService extends ChangeNotifier {
         parentBatchId: parentBatchId,
       );
 
-      await pendingRef.set(pendingObject.toMap());
+      final dataMap = pendingObject.toMap();
+
+      await pendingRef.set(dataMap);
 
       notifyListeners();
       return pendingRef.id;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print("❌ ERROR creating pending object: $e");
+      print("📍 Stack trace: $stackTrace");
       _error = 'Error al crear objeto pendiente: $e';
       notifyListeners();
       return null;
@@ -211,6 +217,44 @@ class PendingObjectService extends ChangeNotifier {
       _error = 'Error al eliminar objeto pendiente: $e';
       notifyListeners();
       return false;
+    }
+  }
+
+  /// Sanitizar modelData: convierte FieldValue a Timestamp
+  /// Firebase no permite FieldValue dentro de arrays/maps anidados
+  Map<String, dynamic> _sanitizeModelData(Map<String, dynamic> data) {
+    final sanitized = <String, dynamic>{};
+
+    data.forEach((key, value) {
+      sanitized[key] = _sanitizeValue(value);
+    });
+
+    return sanitized;
+  }
+
+  /// Sanitizar un valor individual recursivamente
+  dynamic _sanitizeValue(dynamic value) {
+    if (value == null) {
+      return null;
+    } else if (value is FieldValue) {
+      // Convertir FieldValue a Timestamp actual
+      return Timestamp.fromDate(DateTime.now());
+    } else if (value is DateTime) {
+      // Convertir DateTime a Timestamp
+      return Timestamp.fromDate(value);
+    } else if (value is List) {
+      // Procesar cada elemento de la lista
+      return value.map((item) => _sanitizeValue(item)).toList();
+    } else if (value is Map<String, dynamic>) {
+      // Procesar cada campo del mapa recursivamente
+      final sanitizedMap = <String, dynamic>{};
+      value.forEach((k, v) {
+        sanitizedMap[k] = _sanitizeValue(v);
+      });
+      return sanitizedMap;
+    } else {
+      // Mantener el valor tal cual
+      return value;
     }
   }
 }

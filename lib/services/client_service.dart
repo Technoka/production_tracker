@@ -108,6 +108,22 @@ class ClientService extends ChangeNotifier {
 
   /// Stream de clientes de una organización
   Stream<List<ClientModel>> watchClients(String organizationId) {
+    // Si es cliente, solo puede ver SU cliente
+    if (_memberService.isClient) {
+      final clientId = _memberService.currentClientId;
+      // if (clientId == null) return Stream.value([]);
+
+      return _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .where(FieldPath.documentId, isEqualTo: clientId) // Solo SU cliente
+          .snapshots()
+          .map((snapshot) => snapshot.docs
+              .map((doc) => ClientModel.fromMap(doc.data()))
+              .toList());
+    }
+
     return _firestore
         .collection('organizations')
         .doc(organizationId)
@@ -122,35 +138,74 @@ class ClientService extends ChangeNotifier {
     });
   }
 
-  /// Obtener clientes (one-time)
-  Future<List<ClientModel>> getOrganizationClients(
-      String organizationId) async {
-    try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
+/// Obtener clientes (one-time)
+/// Si el usuario es cliente, solo devuelve SU cliente
+Future<List<ClientModel>> getOrganizationClients(
+  String organizationId,
+  String userId,
+) async {
+  try {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
 
-      final snapshot = await _firestore
+    // Obtener datos del miembro actual
+    final memberData = await _memberService.getCurrentMember(organizationId, userId);
+
+    // Si es cliente, obtener SOLO su cliente
+    if (memberData?.member.roleId == 'client') {
+      final memberClientId = memberData!.member.clientId;
+      
+      if (memberClientId == null) {
+        debugPrint('Cliente sin clientId asociado');
+        _clients = [];
+        _isLoading = false;
+        notifyListeners();
+        return [];
+      }
+
+      // Query específico para el cliente
+      final doc = await _firestore
           .collection('organizations')
           .doc(organizationId)
           .collection('clients')
-          .where('isActive', isEqualTo: true)
-          .orderBy('name')
+          .doc(memberClientId)
           .get();
 
-      _clients =
-          snapshot.docs.map((doc) => ClientModel.fromMap(doc.data())).toList();
+      if (doc.exists) {
+        _clients = [ClientModel.fromMap(doc.data()!)];
+      } else {
+        _clients = [];
+      }
 
       _isLoading = false;
       notifyListeners();
       return _clients;
-    } catch (e) {
-      _error = 'Error al cargar clientes: $e';
-      _isLoading = false;
-      notifyListeners();
-      return [];
     }
+
+    // Usuario normal: obtener todos los clientes
+    final snapshot = await _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('clients')
+        .where('isActive', isEqualTo: true)
+        .orderBy('name')
+        .get();
+
+    _clients = snapshot.docs
+        .map((doc) => ClientModel.fromMap(doc.data()))
+        .toList();
+
+    _isLoading = false;
+    notifyListeners();
+    return _clients;
+  } catch (e) {
+    _error = 'Error al cargar clientes: $e';
+    _isLoading = false;
+    notifyListeners();
+    return [];
   }
+}
 
   /// Obtener cliente por ID (stream)
   Stream<ClientModel?> getClientStream(
@@ -229,52 +284,80 @@ class ClientService extends ChangeNotifier {
   }
 
   Stream<List<ProjectModel>> watchClientProjectsWithScope(
-    String organizationId, String clientId, String userId) async* {
-  try {
-    // Obtener scope del permiso
-    await _memberService.getCurrentMember(organizationId, userId);
-    final scope = await _memberService.getScope('projects', 'view');
+      String organizationId, String clientId, String userId) async* {
+    try {
+      // Obtener scope del permiso
+      print("before getCurrentMember watchClientProjectsWithScope");
+      await _memberService.getCurrentMember(organizationId, userId);
+      final scope = await _memberService.getScope('projects', 'view');
 
-    // Verificar acceso
-    if (scope == PermissionScope.none) {
+      // Verificar acceso
+      if (scope == PermissionScope.none) {
+        yield [];
+        return;
+      }
+
+      Query<Map<String, dynamic>> query = _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('projects')
+          .where('clientId', isEqualTo: clientId)
+          .where('isActive', isEqualTo: true);
+
+      // Aplicar filtro según scope
+      if (scope == PermissionScope.assigned) {
+        // Solo proyectos asignados
+        query = query.where('assignedMembers', arrayContains: userId);
+      }
+      // Si es 'all', no se añade filtro adicional
+
+      // Ordenar (solo UNA vez)
+      query = query.orderBy('createdAt', descending: true);
+
+      yield* query.snapshots().map((snapshot) {
+        return snapshot.docs
+            .map((doc) => ProjectModel.fromMap(doc.data()))
+            .toList();
+      });
+    } catch (e) {
+      debugPrint('Error en watchClientProjectsWithScope: $e');
       yield [];
-      return;
     }
-
-    Query<Map<String, dynamic>> query = _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('projects')
-        .where('clientId', isEqualTo: clientId)
-        .where('isActive', isEqualTo: true);
-
-    // Aplicar filtro según scope
-    if (scope == PermissionScope.assigned) {
-      // Solo proyectos asignados
-      query = query.where('assignedMembers', arrayContains: userId);
-    }
-    // Si es 'all', no se añade filtro adicional
-
-    // Ordenar (solo UNA vez)
-    query = query.orderBy('createdAt', descending: true);
-
-    yield* query.snapshots().map((snapshot) {
-      return snapshot.docs
-          .map((doc) => ProjectModel.fromMap(doc.data()))
-          .toList();
-    });
-  } catch (e) {
-    debugPrint('Error en watchClientProjectsWithScope: $e');
-    yield [];
   }
-}
 
 /// Obtener proyectos de un cliente con scope (Future, no Stream)
+/// Si el usuario es cliente, siempre obtiene SUS proyectos
 Future<List<ProjectModel>> getClientProjectsWithScope(
     String organizationId, String clientId, String userId) async {
   try {
-    // Obtener scope del permiso
-    await _memberService.getCurrentMember(organizationId, userId);
+    // Obtener datos del miembro
+    final memberData = await _memberService.getCurrentMember(organizationId, userId);
+    
+    // Si es cliente, obtener TODOS los proyectos de SU cliente
+    if (memberData?.member.roleId == 'client') {
+      // Usar el clientId del miembro (no el parámetro)
+      final memberClientId = memberData!.member.clientId;
+      
+      if (memberClientId == null) {
+        debugPrint('Cliente sin clientId asociado');
+        return [];
+      }
+      
+      final query = _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('projects')
+          .where('clientId', isEqualTo: memberClientId)
+          .where('isActive', isEqualTo: true)
+          .orderBy('createdAt', descending: true);
+
+      final snapshot = await query.get();
+      return snapshot.docs
+          .map((doc) => ProjectModel.fromMap(doc.data()))
+          .toList();
+    }
+
+    // Usuario normal: aplicar scope
     final scope = await _memberService.getScope('projects', 'view');
 
     // Verificar acceso
@@ -353,7 +436,8 @@ Future<List<ProjectModel>> getClientProjectsWithScope(
       if (notes != null) updates['notes'] = notes;
       if (userId != null) updates['userId'] = userId;
       if (color != null) updates['color'] = color;
-      if (clientPermissions != null) updates['clientPermissions'] = clientPermissions;
+      if (clientPermissions != null)
+        updates['clientPermissions'] = clientPermissions;
 
       await _firestore
           .collection('organizations')
@@ -378,7 +462,7 @@ Future<List<ProjectModel>> getClientProjectsWithScope(
     }
   }
 
-    Future<bool> updateClientColor({
+  Future<bool> updateClientColor({
     required String organizationId,
     required String clientId,
     required String color,
@@ -409,61 +493,61 @@ Future<List<ProjectModel>> getClientProjectsWithScope(
     }
   }
 
-Future<bool> updateClientPermissions({
-  required String organizationId,
-  required String clientId,
-  required Map<String, dynamic> clientPermissions,
-}) async {
-  try {
-    final canEdit = await _memberService.can('clients', 'edit');
-    if (!canEdit) {
-      _error = 'No tienes permisos para editar clientes';
+  Future<bool> updateClientPermissions({
+    required String organizationId,
+    required String clientId,
+    required Map<String, dynamic> clientPermissions,
+  }) async {
+    try {
+      final canEdit = await _memberService.can('clients', 'edit');
+      if (!canEdit) {
+        _error = 'No tienes permisos para editar clientes';
+        notifyListeners();
+        return false;
+      }
+
+      // 1. Actualizar permisos en el documento del cliente
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('clients')
+          .doc(clientId)
+          .update({
+        'clientPermissions': clientPermissions,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // 2. Obtener todos los miembros asociados a este cliente
+      final membersSnapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('members')
+          .where('roleId', isEqualTo: 'client')
+          .where('clientId', isEqualTo: clientId)
+          .get();
+
+      // 3. Actualizar permisos de cada miembro asociado
+      if (membersSnapshot.docs.isNotEmpty) {
+        final batch = _firestore.batch();
+
+        for (final memberDoc in membersSnapshot.docs) {
+          batch.update(memberDoc.reference, {
+            'clientPermissions': clientPermissions,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        await batch.commit();
+      }
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Error al actualizar permisos: $e';
       notifyListeners();
       return false;
     }
-
-    // 1. Actualizar permisos en el documento del cliente
-    await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('clients')
-        .doc(clientId)
-        .update({
-      'clientPermissions': clientPermissions,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
-    // 2. Obtener todos los miembros asociados a este cliente
-    final membersSnapshot = await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('members')
-        .where('roleId', isEqualTo: 'client')
-        .where('clientId', isEqualTo: clientId)
-        .get();
-
-    // 3. Actualizar permisos de cada miembro asociado
-    if (membersSnapshot.docs.isNotEmpty) {
-      final batch = _firestore.batch();
-
-      for (final memberDoc in membersSnapshot.docs) {
-        batch.update(memberDoc.reference, {
-          'clientPermissions': clientPermissions,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-
-      await batch.commit();
-    }
-
-    notifyListeners();
-    return true;
-  } catch (e) {
-    _error = 'Error al actualizar permisos: $e';
-    notifyListeners();
-    return false;
   }
-}
 
   // ==================== ELIMINAR CLIENTE ====================
 

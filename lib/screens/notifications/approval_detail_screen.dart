@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/services/phase_service.dart';
 import 'package:gestion_produccion/services/product_catalog_service.dart';
@@ -178,7 +179,7 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        ..._buildModelDataWidgets(pendingObject.modelData, l10n),
+                        ..._buildModelDataWidgets(pendingObject.modelData, l10n, pendingObject.objectType),
                       ],
                     ),
                   ),
@@ -316,77 +317,391 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, IconData icon) {
-    return Row(
+  // Widget _buildInfoRow(String label, String value, IconData icon) {
+  //   return Row(
+  //     children: [
+  //       Icon(icon, size: 16, color: Colors.grey.shade600),
+  //       const SizedBox(width: 8),
+  //       Text(
+  //         label,
+  //         style: TextStyle(
+  //           fontSize: 12,
+  //           color: Colors.grey.shade600,
+  //         ),
+  //       ),
+  //       const SizedBox(width: 8),
+  //       Expanded(
+  //         child: Text(
+  //           value,
+  //           style: const TextStyle(
+  //             fontSize: 14,
+  //             fontWeight: FontWeight.w500,
+  //           ),
+  //           textAlign: TextAlign.right,
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
+
+List<Widget> _buildModelDataWidgets(
+  Map<String, dynamic> modelData,
+  AppLocalizations l10n,
+  PendingObjectType objectType,
+) {
+  // Si es un lote, usar vista personalizada
+  if (objectType == PendingObjectType.batch) {
+    return _buildBatchDataWidgets(modelData, l10n);
+  }
+
+  // Para otros tipos de objetos, usar vista genérica
+  final widgets = <Widget>[];
+
+  modelData.forEach((key, value) {
+    // Omitir campos internos y arrays complejos
+    if (value != null && 
+        value.toString().isNotEmpty && 
+        key != 'products' && 
+        key != 'createdAt' && 
+        key != 'updatedAt') {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  _formatFieldName(key),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  value.toString(),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  });
+
+  return widgets;
+}
+
+/// Vista personalizada para datos de batch
+List<Widget> _buildBatchDataWidgets(
+  Map<String, dynamic> modelData,
+  AppLocalizations l10n,
+) {
+  final widgets = <Widget>[];
+
+  // 1. Batch Number
+  if (modelData['batchNumber'] != null) {
+    widgets.add(_buildInfoRow(
+      'Número de Lote',
+      modelData['batchNumber'].toString(),
+      Icons.numbers,
+    ));
+  }
+
+  // 2. Client Name
+  if (modelData['clientName'] != null) {
+    widgets.add(_buildInfoRow(
+      l10n.client,
+      modelData['clientName'].toString(),
+      Icons.business,
+    ));
+  }
+
+  // 3. Project Name
+  if (modelData['projectName'] != null) {
+    widgets.add(_buildInfoRow(
+      l10n.project,
+      modelData['projectName'].toString(),
+      Icons.folder_outlined,
+    ));
+  }
+
+  // 4. Notes (si existe)
+  if (modelData['notes'] != null && 
+      modelData['notes'].toString().isNotEmpty) {
+    widgets.add(
+      Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.note_outlined, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 8),
+                Text(
+                  'Notas',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Text(
+                modelData['notes'].toString(),
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 5. Product Count
+  final products = modelData['products'] as List?;
+  final productCount = products?.length ?? 0;
+  
+  widgets.add(_buildInfoRow(
+    'Cantidad de Productos',
+    productCount.toString(),
+    Icons.inventory_2_outlined,
+  ));
+
+  // 6. Products List
+  if (products != null && products.isNotEmpty) {
+    widgets.add(const SizedBox(height: 8));
+    widgets.add(
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          children: [
+            Icon(Icons.list_alt, size: 16, color: Colors.grey.shade600),
+            const SizedBox(width: 8),
+            Text(
+              'Productos del Lote',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    for (final product in products) {
+      widgets.add(_buildProductCard(product as Map<String, dynamic>));
+    }
+  }
+
+  return widgets;
+}
+
+/// Widget de fila de información con icono
+Widget _buildInfoRow(String label, String value, IconData icon) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Row(
       children: [
         Icon(icon, size: 16, color: Colors.grey.shade600),
         const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
+        Expanded(
+          flex: 2,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
           ),
         ),
-        const SizedBox(width: 8),
         Expanded(
+          flex: 3,
           child: Text(
             value,
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
-            textAlign: TextAlign.right,
           ),
         ),
       ],
-    );
+    ),
+  );
+}
+
+/// Card individual de producto
+Widget _buildProductCard(Map<String, dynamic> productData) {
+  final productNumber = productData['productNumber']?.toString() ?? '?';
+  final productReference = productData['productReference']?.toString() ?? 'Sin ref.';
+  final family = productData['family']?.toString();
+  final urgencyLevel = productData['urgencyLevel']?.toString() ?? 'medium';
+  final isUrgent = urgencyLevel == 'urgent' || urgencyLevel == 'high';
+  
+  // Parsear fecha
+  String? deliveryDateStr;
+  final deliveryDate = productData['expectedDeliveryDate'];
+  if (deliveryDate != null) {
+    try {
+      if (deliveryDate is Timestamp) {
+        final date = deliveryDate.toDate();
+        deliveryDateStr = '${date.day}/${date.month}/${date.year}';
+      } else if (deliveryDate is String) {
+        deliveryDateStr = deliveryDate;
+      }
+    } catch (e) {
+      deliveryDateStr = null;
+    }
   }
 
-  List<Widget> _buildModelDataWidgets(
-    Map<String, dynamic> modelData,
-    AppLocalizations l10n,
-  ) {
-    final widgets = <Widget>[];
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(
+        color: isUrgent ? Colors.orange.shade200 : Colors.grey.shade200,
+        width: isUrgent ? 2 : 1,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.03),
+          blurRadius: 4,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header con número y urgencia
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '#$productNumber',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (isUrgent)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.priority_high,
+                      size: 14,
+                      color: Colors.orange.shade700,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'URGENTE',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        
+        // Referencia
+        _buildProductInfoRow(
+          Icons.tag,
+          'Referencia',
+          productReference,
+        ),
+        
+        // Familia (si existe)
+        if (family != null && family.isNotEmpty)
+          _buildProductInfoRow(
+            Icons.category_outlined,
+            'Familia',
+            family,
+          ),
+        
+        // Fecha de entrega (si existe)
+        if (deliveryDateStr != null)
+          _buildProductInfoRow(
+            Icons.calendar_today,
+            'Entrega Estimada',
+            deliveryDateStr,
+          ),
+      ],
+    ),
+  );
+}
 
-    modelData.forEach((key, value) {
-      if (value != null && value.toString().isNotEmpty) {
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    _formatFieldName(key),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    value.toString(),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
+/// Fila de información dentro del card de producto
+Widget _buildProductInfoRow(IconData icon, String label, String value) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Row(
+      children: [
+        Icon(icon, size: 14, color: Colors.grey.shade500),
+        const SizedBox(width: 6),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
             ),
           ),
-        );
-      }
-    });
-
-    return widgets;
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   String _formatFieldName(String key) {
     // Convertir camelCase a Title Case

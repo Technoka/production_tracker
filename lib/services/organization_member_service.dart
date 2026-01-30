@@ -49,7 +49,6 @@ class OrganizationMemberService extends ChangeNotifier {
           .get();
 
       if (!memberDoc.exists) return null;
-
       final member = OrganizationMemberModel.fromMap(
         memberDoc.data()!,
         docId: memberDoc.id,
@@ -87,7 +86,6 @@ class OrganizationMemberService extends ChangeNotifier {
     }
   }
 
-  /// Refrescar datos del miembro actual (forzar recarga desde Firebase)
   /// Refrescar datos del miembro actual (forzar recarga desde Firebase)
   Future<void> refreshCurrentMember(
       String organizationId, String userId) async {
@@ -478,6 +476,19 @@ class OrganizationMemberService extends ChangeNotifier {
     _memberCache.clear();
     notifyListeners();
   }
+
+  /// Verificar si el usuario actual es cliente
+  bool get isClient => _currentMember?.roleId == 'client';
+
+  /// Obtener clientId del usuario actual (si es cliente)
+  String? get currentClientId => isClient ? _currentMember?.clientId : null;
+
+  /// Verificar si debe filtrar por clientId
+  bool shouldFilterByClient() => isClient && currentClientId != null;
+
+  /// Helper para queries: añade filtro de clientId si es necesario
+  /// Retorna null si no hay filtro, o el clientId si debe filtrarse
+  String? getClientFilter() => shouldFilterByClient() ? currentClientId : null;
 
   // ==================== HELPERS PRIVADOS ====================
 
