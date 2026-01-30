@@ -52,6 +52,7 @@ class OrganizationMemberModel {
     Map<String, dynamic> map, {
     String? docId,
   }) {
+    
     return OrganizationMemberModel(
       userId: docId ?? map['userId'] as String,
       organizationId: map['organizationId'] as String,
@@ -67,7 +68,7 @@ class OrganizationMemberModel {
       assignedPhases: map['assignedPhases'] != null
           ? List<String>.from(map['assignedPhases'] as List)
           : const [],
-      canManageAllPhases: map['canManageAllPhases'] as bool? ?? true,
+      canManageAllPhases: map['canManageAllPhases'] as bool? ?? false,
       joinedAt: (map['joinedAt'] as Timestamp).toDate(),
       isActive: map['isActive'] as bool? ?? true,
       lastActiveAt: map['lastActiveAt'] != null
