@@ -67,7 +67,6 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => RoleService()),
 
         // Servicios sin dependencias RBAC
-        Provider<ProductCatalogService>(create: (_) => ProductCatalogService()),
         Provider<PhaseService>(create: (_) => PhaseService()),
         Provider<MessageService>(create: (_) => MessageService()),
 
@@ -103,6 +102,16 @@ class MyApp extends StatelessWidget {
           ),
           update: (context, memberService, previous) =>
               previous ?? ProjectService(memberService: memberService),
+        ),
+
+        // ProductCatalogService
+        ChangeNotifierProxyProvider<OrganizationMemberService,
+            ProductCatalogService>(
+          create: (context) => ProductCatalogService(
+            memberService: context.read<OrganizationMemberService>(),
+          ),
+          update: (context, memberService, previous) =>
+              previous ?? ProductCatalogService(memberService: memberService),
         ),
 
         // KanbanService (Provider normal, no ChangeNotifier)
@@ -203,6 +212,11 @@ class MyApp extends StatelessWidget {
             },
 
             home: const AuthWrapper(),
+
+            routes: {
+              '/login': (context) => const LoginScreen(),
+              '/home': (context) => const HomeScreen(),
+            },
           );
         },
       ),
