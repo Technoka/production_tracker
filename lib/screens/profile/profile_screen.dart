@@ -52,7 +52,7 @@ class ProfileScreen extends StatelessWidget {
       body: CommonRefresh(
         onRefresh: handleRefresh,
         child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(), 
+          physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
               // Header con nombre
@@ -62,7 +62,10 @@ class ProfileScreen extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Theme.of(context).colorScheme.secondary.withOpacity(0.7), Theme.of(context).colorScheme.secondary.withOpacity(0.4)],
+                    colors: [
+                      Theme.of(context).colorScheme.secondary.withOpacity(0.7),
+                      Theme.of(context).colorScheme.secondary.withOpacity(0.4)
+                    ],
                   ),
                 ),
                 child: Column(
@@ -70,13 +73,19 @@ class ProfileScreen extends StatelessWidget {
                     const SizedBox(height: 32),
                     CircleAvatar(
                       radius: 60,
-                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      backgroundImage: (user.photoURL != null && user.photoURL!.isNotEmpty) 
-                          ? NetworkImage(user.photoURL!) 
-                          : null,
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.1),
+                      backgroundImage:
+                          (user.photoURL != null && user.photoURL!.isNotEmpty)
+                              ? NetworkImage(user.photoURL!)
+                              : null,
                       child: (user.photoURL == null || user.photoURL!.isEmpty)
                           ? Text(
-                              user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                              user.name.isNotEmpty
+                                  ? user.name[0].toUpperCase()
+                                  : '?',
                               style: TextStyle(
                                 fontSize: 48,
                                 fontWeight: FontWeight.bold,
@@ -99,12 +108,17 @@ class ProfileScreen extends StatelessWidget {
                       user.email,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).textTheme.labelLarge!.color!.withValues(alpha: 0.5),
+                        color: Theme.of(context)
+                            .textTheme
+                            .labelLarge!
+                            .color!
+                            .withValues(alpha: 0.5),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       child: RoleUtils.buildRoleBadge(user.role, compact: true),
                     ),
                     const SizedBox(height: 32),
@@ -117,7 +131,8 @@ class ProfileScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionTitle(context, l10n.personalInfo), // ✅ Traducido
+                    _buildSectionTitle(
+                        context, l10n.personalInfo), // ✅ Traducido
                     const SizedBox(height: 8),
                     _buildInfoCard(
                       context,
@@ -146,13 +161,16 @@ class ProfileScreen extends StatelessWidget {
                           icon: Icons.calendar_today_outlined,
                           label: l10n.memberSince, // ✅ Traducido
                           // Usamos DateFormat con el locale actual para formatear la fecha automáticamente
-                          value: DateFormat.yMMMMd(Localizations.localeOf(context).toString()).format(user.createdAt), 
+                          value: DateFormat.yMMMMd(
+                                  Localizations.localeOf(context).toString())
+                              .format(user.createdAt),
                         ),
                       ],
                     ),
 
                     const SizedBox(height: 24),
-                    _buildSectionTitle(context, l10n.securityTitle), // ✅ Traducido
+                    _buildSectionTitle(
+                        context, l10n.securityTitle), // ✅ Traducido
                     const SizedBox(height: 8),
                     _buildInfoCard(
                       context,
@@ -185,7 +203,8 @@ class ProfileScreen extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 24),
-                    _buildSectionTitle(context, l10n.accountSection), // ✅ Traducido
+                    _buildSectionTitle(
+                        context, l10n.accountSection), // ✅ Traducido
                     const SizedBox(height: 8),
                     _buildInfoCard(
                       context,
@@ -203,7 +222,8 @@ class ProfileScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const UserPreferencesScreen(),
+                                builder: (context) =>
+                                    const UserPreferencesScreen(),
                               ),
                             )
                           },
@@ -223,7 +243,8 @@ class ProfileScreen extends StatelessWidget {
                             l10n.logout, // ✅ Traducido
                             style: TextStyle(color: Colors.red[700]),
                           ),
-                          onTap: () => _showLogoutDialog(context, authService, l10n),
+                          onTap: () =>
+                              _showLogoutDialog(context, authService, l10n),
                         ),
                       ],
                     ),
@@ -254,7 +275,8 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard(BuildContext context, {required List<Widget> children}) {
+  Widget _buildInfoCard(BuildContext context,
+      {required List<Widget> children}) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -290,7 +312,8 @@ class ProfileScreen extends StatelessWidget {
   }
 
   // ✅ Método _showLogoutDialog actualizado para recibir l10n
-  void _showLogoutDialog(BuildContext context, AuthService authService, AppLocalizations l10n) {
+  void _showLogoutDialog(
+      BuildContext context, AuthService authService, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -304,8 +327,17 @@ class ProfileScreen extends StatelessWidget {
           FilledButton(
             onPressed: () async {
               Navigator.pop(context);
-              Navigator.pop(context);
+
               await authService.signOut();
+
+              // 3. Navegar al Login y eliminar todo el historial de pantallas anterior
+              // Verifica si el widget sigue montado antes de usar el contexto tras el await
+              if (context.mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/login', // ⚠️ Asegúrate de que esta ruta esté definida en tu main.dart
+                  (route) => false, // Esto elimina todas las rutas anteriores
+                );
+              }
             },
             style: FilledButton.styleFrom(
               backgroundColor: Colors.red,

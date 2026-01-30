@@ -32,7 +32,17 @@ class _LoginScreenState extends State<LoginScreen> {
     final success = await authService.signIn(
       email: _emailController.text.trim(),
       password: _passwordController.text,
-    );
+    );    
+    
+    // CORRECCIÓN: Si es exitoso, navegar al Home
+    if (success) {
+      if (mounted) {
+        // Usamos pushReplacementNamed para que el usuario no pueda volver
+        // al login presionando "atrás".
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+      return;
+    }
 
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
