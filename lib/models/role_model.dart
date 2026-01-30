@@ -529,7 +529,7 @@ factory RoleModel.fromMap(Map<String, dynamic> map, {String? docId}) {
   static PermissionsModel _getClientPermissions() {
     return PermissionsModel.fromMap({
       'kanban': {
-        'view': false,
+        'view': true,
         'moveProducts': false,
         'moveProductsScope': PermissionScope.none.value,
         'editProductDetails': false,
