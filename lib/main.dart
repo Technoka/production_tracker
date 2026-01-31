@@ -326,7 +326,6 @@ class OrganizationSettingsWrapper extends StatefulWidget {
 
 class _OrganizationSettingsWrapperState
     extends State<OrganizationSettingsWrapper> {
-  final AuthService _authService = AuthService();
   final OrganizationSettingsService _orgSettingsService =
       OrganizationSettingsService();
 
@@ -341,6 +340,7 @@ class _OrganizationSettingsWrapperState
   }
 
   Future<void> _loadUserConfiguration() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
     // ✅ GUARD: Evitar ejecuciones múltiples
     if (_hasLoaded) {
       return;
@@ -348,7 +348,7 @@ class _OrganizationSettingsWrapperState
     _hasLoaded = true;
 
     try {
-      final user = _authService.currentUser;
+      final user = authService.currentUser;
       if (user == null) {
         debugPrint('❌ Usuario no autenticado');
         if (mounted) {
@@ -361,7 +361,7 @@ class _OrganizationSettingsWrapperState
       }
 
       // Obtener datos del usuario
-      final userData = await _authService.getUserData();
+      final userData = await authService.getUserData();
       if (userData == null) {
         if (mounted) {
           setState(() {
@@ -423,6 +423,7 @@ class _OrganizationSettingsWrapperState
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context, listen: false);
     if (_isLoading) {
       return const Scaffold(
         body: Center(
@@ -450,7 +451,7 @@ class _OrganizationSettingsWrapperState
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () async {
-                  await _authService.signOut();
+                  await authService.signOut();
                   if (mounted) {
                     Navigator.pushReplacement(
                       context,
