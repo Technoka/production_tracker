@@ -10,10 +10,12 @@ import 'package:gestion_produccion/widgets/universal_loading_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import '../../l10n/app_localizations.dart';
-
 import 'firebase_options.dart';
+
 import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
+import 'providers/production_data_provider.dart';
+
 import 'services/auth_service.dart';
 import 'services/organization_settings_service.dart';
 
@@ -175,6 +177,33 @@ class MyApp extends StatelessWidget {
                     transitionService: transitionService,
                     memberService: memberService,
                   ),
+        ),
+
+        // ProductionDataProvider
+        ChangeNotifierProxyProvider4<ProductionBatchService, PhaseService,
+            ProductStatusService, ClientService, ProductionDataProvider>(
+          create: (_) => ProductionDataProvider(
+            batchService: ProductionBatchService(
+              statusService: ProductStatusService(
+                  memberService: OrganizationMemberService()),
+              transitionService: StatusTransitionService(),
+              memberService: OrganizationMemberService(),
+            ),
+            phaseService: PhaseService(),
+            statusService: ProductStatusService(
+                memberService: OrganizationMemberService()),
+            clientService:
+                ClientService(memberService: OrganizationMemberService()),
+          ),
+          update: (context, batchService, phaseService, statusService,
+                  clientService, previous) =>
+              previous ??
+              ProductionDataProvider(
+                batchService: batchService,
+                phaseService: phaseService,
+                statusService: statusService,
+                clientService: clientService,
+              ),
         ),
       ],
 
@@ -452,7 +481,7 @@ class _OrganizationSettingsWrapperState
               ElevatedButton(
                 onPressed: () async {
                   await authService.signOut();
-                  if (mounted) {
+                  if (context.mounted) {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(

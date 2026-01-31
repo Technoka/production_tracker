@@ -1543,5 +1543,14 @@
 "activationCodeValidated": "Código de activación validado",
 "invitationAccepted": "Te unirás a esta organización",
 "invalidInvitationCode": "Código de invitación inválido",
-"createAndManageInvitations": "Crear y gestionar códigos de invitación"
+"createAndManageInvitations": "Crear y gestionar códigos de invitación",
+"createInvitationSubtitle": "Genera un código para que nuevos miembros se unan",
+"role": "Rol",
+"selectClient": "Seleccionar cliente",
+"selectClientRequired": "Debes seleccionar un cliente para este rol",
+"noClientsAvailable": "No hay clientes disponibles. Crea un cliente primero.",
+"associatedClient": "Cliente asociado",
+"selectLanguage": "Seleccionar Idioma",
+
+"orders": "Pedidos"
 }

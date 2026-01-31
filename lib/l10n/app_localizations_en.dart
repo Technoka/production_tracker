@@ -4061,4 +4061,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get createAndManageInvitations => 'Create and manage invitation codes';
+
+  @override
+  String get createInvitationSubtitle => 'Generate a code for new members to join';
+
+  @override
+  String get role => 'Role';
+
+  @override
+  String get selectClientRequired => 'You must select a client for this role';
+
+  @override
+  String get associatedClient => 'Associated client';
+
+  @override
+  String get orders => 'Orders';
 }

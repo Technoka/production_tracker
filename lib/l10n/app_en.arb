@@ -1541,5 +1541,14 @@
 "activationCodeValidated": "Activation code validated",
 "invitationAccepted": "You will join this organization",
 "invalidInvitationCode": "Invalid invitation code",
-"createAndManageInvitations": "Create and manage invitation codes"
+"createAndManageInvitations": "Create and manage invitation codes",
+"createInvitationSubtitle": "Generate a code for new members to join",
+"role": "Role",
+"selectClient": "Select client",
+"selectClientRequired": "You must select a client for this role",
+"noClientsAvailable": "No clients available. Create a client first.",
+"associatedClient": "Associated client",
+"selectLanguage": "Select Language",
+
+"orders": "Orders"
 }

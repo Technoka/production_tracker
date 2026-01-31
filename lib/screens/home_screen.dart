@@ -18,6 +18,7 @@ import '../../services/update_service.dart';
 import '../../widgets/whats_new_dialog.dart';
 import '../../services/permission_service.dart';
 import '../../services/organization_member_service.dart';
+import '../providers/production_data_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,14 +41,11 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  /// ✅ NUEVO MÉTODO
+/// ✅ MÉTODO CORREGIDO
   Future<void> _loadUserPermissions() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final permissionService =
-        Provider.of<PermissionService>(context, listen: false);
-    final memberService =
-        Provider.of<OrganizationMemberService>(context, listen: false);
-
+    final permissionService = Provider.of<PermissionService>(context, listen: false);
+    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
     final user = authService.currentUserData;
 
     if (user == null || user.organizationId == null) {
@@ -56,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      // 1. Cargar permisos efectivos del usuario
+      // 1. Cargar permisos efectivos del usuario PRIMERO
       await permissionService.loadCurrentUserPermissions(
         userId: user.uid,
         organizationId: user.organizationId!,
@@ -66,6 +64,13 @@ class _HomeScreenState extends State<HomeScreen> {
       final memberData = await memberService.getCurrentMember(
         user.organizationId!,
         user.uid,
+      );
+
+      // 3. ✅ INICIALIZAR PRODUCTION DATA PROVIDER (DESPUÉS de permisos)
+      final productionDataProvider = Provider.of<ProductionDataProvider>(context, listen: false);
+      await productionDataProvider.initialize(
+        organizationId: user.organizationId!,
+        userId: user.uid,
       );
 
       if (mounted) {
@@ -620,6 +625,13 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () async {
               Navigator.pop(context);
               await authService.signOut();
+
+              if (context.mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/welcome', // ⚠️ Asegúrate de que esta ruta esté definida en tu main.dart
+                  (route) => false, // Esto elimina todas las rutas anteriores
+                );
+              }
             },
             style: FilledButton.styleFrom(
               backgroundColor: Colors.red,

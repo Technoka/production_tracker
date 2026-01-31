@@ -8044,6 +8044,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create and manage invitation codes'**
   String get createAndManageInvitations;
+
+  /// No description provided for @createInvitationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate a code for new members to join'**
+  String get createInvitationSubtitle;
+
+  /// No description provided for @role.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get role;
+
+  /// No description provided for @selectClientRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'You must select a client for this role'**
+  String get selectClientRequired;
+
+  /// No description provided for @associatedClient.
+  ///
+  /// In en, this message translates to:
+  /// **'Associated client'**
+  String get associatedClient;
+
+  /// No description provided for @orders.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders'**
+  String get orders;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
