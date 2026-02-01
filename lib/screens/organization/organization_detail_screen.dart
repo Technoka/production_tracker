@@ -146,24 +146,32 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                         const SizedBox(height: 24),
 
                         // Acciones rápidas
-                        Text(
-                          l10n.actionsTitle,
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildActionsCard(
-                            context,
-                            org,
-                            user,
-                            l10n,
-                            canManagePhases,
-                            canManageMembers,
-                            canManageSettings,
-                            canManageProductStatuses,
-                            canManageStatusTransitions),
+                        if (canManagePhases ||
+                            canManageMembers ||
+                            canManageSettings ||
+                            canManageProductStatuses ||
+                            canManageStatusTransitions) ...[
+                          Text(
+                            l10n.actionsTitle,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildActionsCard(
+                              context,
+                              org,
+                              user,
+                              l10n,
+                              canManagePhases,
+                              canManageMembers,
+                              canManageSettings,
+                              canManageProductStatuses,
+                              canManageStatusTransitions),
+                        ],
                       ],
                     ),
                   ),
@@ -504,7 +512,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     );
   }
 
-/// Tarjeta de Clientes
+  /// Tarjeta de Clientes
   Widget _buildClientsCard(
     BuildContext context,
     OrganizationModel org,
@@ -529,7 +537,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
         child: Container(
           padding: const EdgeInsets.all(16.0),
           // ✅ SOLUCIÓN: Usamos una altura fija para que 'Expanded' funcione
-          height: 170, 
+          height: 170,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -634,6 +642,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
       ),
     );
   }
+
   /// Tarjeta de acciones
   Widget _buildActionsCard(
     BuildContext context,
