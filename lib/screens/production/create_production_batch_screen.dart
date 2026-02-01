@@ -5,11 +5,10 @@ import 'package:gestion_produccion/l10n/app_localizations.dart';
 import 'package:gestion_produccion/models/pending_object_model.dart';
 import 'package:gestion_produccion/services/notification_service.dart';
 import 'package:gestion_produccion/services/pending_object_service.dart';
+import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/project_model.dart';
-import '../../models/client_model.dart';
 import '../../services/auth_service.dart';
-import '../../services/project_service.dart';
 import '../../services/client_service.dart';
 import '../../services/production_batch_service.dart';
 import '../../models/production_batch_model.dart';
@@ -22,14 +21,11 @@ import '../../services/phase_service.dart';
 import '../../services/organization_member_service.dart';
 import '../../utils/filter_utils.dart';
 import '../../models/batch_product_model.dart';
-import '../../models/organization_member_model.dart';
 import '../../widgets/access_control_widget.dart';
 import '../../models/permission_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/role_model.dart';
 import '../../providers/production_data_provider.dart';
-
-// TODO: comprobar que se usa scope y assignedMembers correctamente
 
 class CreateProductionBatchScreen extends StatefulWidget {
   final String organizationId;
@@ -70,7 +66,6 @@ class _CreateProductionBatchScreenState
   final _productNotesController = TextEditingController();
 
   // RBAC
-  OrganizationMemberWithUser? _currentMember;
   List<String> _selectedMembers = [];
   // -------------------------------------------
 
@@ -128,8 +123,6 @@ class _CreateProductionBatchScreenState
       // 3. Actualizar la UI (Sync) -> DENTRO del setState
       if (mounted) {
         setState(() {
-          _currentMember = member;
-
           if (shouldPreselectUser) {
             _selectedMembers.add(currentUserId);
           }
@@ -159,15 +152,9 @@ class _CreateProductionBatchScreenState
   }
 
   Future<void> _loadProject() async {
-    final projectService = Provider.of<ProjectService>(context, listen: false);
-    final authService = Provider.of<AuthService>(context, listen: false);
+    final productionProvider = Provider.of<ProductionDataProvider>(context);
 
-    // TODO: falta añadir canWithScope ('projects', 'view')
-
-    final project = await projectService.getProject(
-      widget.organizationId,
-      widget.projectId!,
-    );
+    final project = productionProvider.getProjectById(widget.projectId!);
 
     if (project != null && mounted) {
       setState(() {
@@ -756,6 +743,8 @@ class _CreateProductionBatchScreenState
   Widget _buildAddProductsSection() {
     // 1. Acceder al provider
     final productionProvider = Provider.of<ProductionDataProvider>(context);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
 
     // 2. Obtener productos cacheados
     final allProducts = productionProvider.catalogProducts;
@@ -827,7 +816,7 @@ class _CreateProductionBatchScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // --- SELECTOR DE FAMILIA ---
-                    
+
                     // Si no hay proyecto seleccionado, no se puede seleccionar familia
                     if (_selectedProject == null)
                       Opacity(
@@ -903,27 +892,29 @@ class _CreateProductionBatchScreenState
                       final List<DropdownMenuItem<String>> dropdownItems = [];
 
                       // OPCIÓN 1: Crear nuevo producto
-                      dropdownItems.add(
-                        const DropdownMenuItem(
-                          value: '__CREATE_NEW__',
-                          child: Row(
-                            children: [
-                              Icon(Icons.add_circle_outline,
-                                  color: Colors.blue, size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'Crear nuevo producto',
-                                style: TextStyle(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              SizedBox(height: 4),
-                              Divider(height: 1),
-                              SizedBox(height: 4),
-                            ],
+                      if (permissionService.canCreateBatchProducts) {
+                        dropdownItems.add(
+                          const DropdownMenuItem(
+                            value: '__CREATE_NEW__',
+                            child: Row(
+                              children: [
+                                Icon(Icons.add_circle_outline,
+                                    color: Colors.blue, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Crear nuevo producto',
+                                  style: TextStyle(
+                                      color: Colors.blue,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(height: 4),
+                                Divider(height: 1),
+                                SizedBox(height: 4),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      }
 
                       // OPCIONES: Productos existentes
                       dropdownItems
