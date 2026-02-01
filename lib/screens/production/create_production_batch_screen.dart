@@ -27,6 +27,7 @@ import '../../widgets/access_control_widget.dart';
 import '../../models/permission_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/role_model.dart';
+import '../../providers/production_data_provider.dart';
 
 // TODO: comprobar que se usa scope y assignedMembers correctamente
 
@@ -614,11 +615,12 @@ class _CreateProductionBatchScreenState
     );
   }
 
-  // ... (Resto de métodos auxiliares: _buildSelectedProjectCard, _buildProjectSelector, _createBatch, _formatDate, UpperCaseTextFormatter se mantienen igual)
-
-  // Incluyo los métodos mínimos necesarios para que el archivo sea funcional al copiar
   Widget _buildSelectedProjectCard() {
-    // ... (Igual que en tu archivo original)
+    final productionProvider = Provider.of<ProductionDataProvider>(context);
+
+    // Buscar el cliente en el provider usando el clientId del proyecto seleccionado
+    final client = productionProvider.getClientById(_selectedProject!.clientId);
+
     return Card(
       elevation: 0,
       color: Theme.of(context).colorScheme.primaryContainer,
@@ -638,23 +640,15 @@ class _CreateProductionBatchScreenState
                     ),
                   ),
                   const SizedBox(height: 4),
-                  StreamBuilder<ClientModel?>(
-                    stream: Provider.of<ClientService>(context, listen: false)
-                        .getClientStream(
-                            widget.organizationId, _selectedProject!.clientId),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData && snapshot.data != null) {
-                        return Text(
-                          'Cliente: ${snapshot.data!.name}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[700],
-                          ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
+                  // Usamos el cliente obtenido del provider directamente
+                  if (client != null)
+                    Text(
+                      'Cliente: ${client.name}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -664,6 +658,9 @@ class _CreateProductionBatchScreenState
                 onPressed: () {
                   setState(() {
                     _selectedProject = null;
+                    // También reseteamos productos al deseleccionar
+                    _selectedFamily = null;
+                    _selectedProduct = null;
                   });
                 },
                 tooltip: 'Cambiar proyecto',
@@ -675,101 +672,94 @@ class _CreateProductionBatchScreenState
   }
 
   Widget _buildProjectSelector() {
-    return StreamBuilder<List<ProjectModel>>(
-      stream: Provider.of<ProjectService>(context, listen: false)
-          .watchProjectsWithScope(
-              widget.organizationId, _currentMember!.userId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    // 1. Acceder al provider
+    final productionProvider = Provider.of<ProductionDataProvider>(context);
 
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
+    // 2. Usar listas cacheadas en lugar de streams
+    final projects = productionProvider.projects;
+    final clients = productionProvider.clients;
 
-        final projects = snapshot.data ?? [];
+    // Crear mapa de clientes para acceso rápido
+    final clientMap = {for (var c in clients) c.id: c};
 
-        if (projects.isEmpty) {
-          return Column(
+    if (productionProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (projects.isEmpty) {
+      return Column(
+        children: [
+          Text(
+            'No hay proyectos disponibles',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Crear proyecto primero'),
+          ),
+        ],
+      );
+    }
+
+    return FilterUtils.buildFullWidthDropdown<String>(
+      context: context,
+      label: 'Proyecto',
+      value: _selectedProject?.id,
+      icon: Icons.folder_outlined,
+      hintText: 'Seleccionar proyecto...',
+      isRequired: true,
+      items: projects.map((project) {
+        final client = clientMap[project.clientId];
+        return DropdownMenuItem(
+          value: project.id,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'No hay proyectos disponibles',
-                style: TextStyle(color: Colors.grey[600]),
+                project.name,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('Crear proyecto primero'),
-              ),
+              if (client != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  'Cliente: ${client.name}',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
             ],
-          );
-        }
-
-        // Cargar información de clientes para mostrar en el dropdown
-        return StreamBuilder<List<ClientModel>>(
-          stream: Provider.of<ClientService>(context, listen: false)
-              .watchClients(widget.organizationId),
-          builder: (context, clientSnapshot) {
-            final clients = clientSnapshot.data ?? [];
-            final clientMap = {for (var c in clients) c.id: c};
-
-            return FilterUtils.buildFullWidthDropdown<String>(
-              context: context,
-              label: 'Proyecto',
-              value: _selectedProject?.id,
-              icon: Icons.folder_outlined,
-              hintText: 'Seleccionar proyecto...',
-              isRequired: true,
-              items: projects.map((project) {
-                final client = clientMap[project.clientId];
-                return DropdownMenuItem(
-                  value: project.id,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        project.name,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      if (client != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          'Cliente: ${client.name}',
-                          overflow: TextOverflow.ellipsis,
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.grey[600]),
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              }).toList(),
-              onChanged: (projectId) {
-                if (projectId == null) return;
-                setState(() {
-                  _selectedProject =
-                      projects.firstWhere((p) => p.id == projectId);
-                });
-              },
-              validator: (value) {
-                if (value == null) {
-                  return 'Debes seleccionar un proyecto';
-                }
-                return null;
-              },
-            );
-          },
+          ),
         );
+      }).toList(),
+      onChanged: (projectId) {
+        if (projectId == null) return;
+        setState(() {
+          _selectedProject = projects.firstWhere((p) => p.id == projectId);
+          _selectedFamily = null;
+          _selectedProduct = null;
+        });
+      },
+      validator: (value) {
+        if (value == null) {
+          return 'Debes seleccionar un proyecto';
+        }
+        return null;
       },
     );
   }
 
   Widget _buildAddProductsSection() {
+    // 1. Acceder al provider
+    final productionProvider = Provider.of<ProductionDataProvider>(context);
+
+    // 2. Obtener productos cacheados
+    final allProducts = productionProvider.catalogProducts;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -808,25 +798,16 @@ class _CreateProductionBatchScreenState
             ),
             const Divider(height: 24),
 
-            // Usamos un StreamBuilder común para obtener todos los productos
-            // y luego filtrar familias y productos en memoria para los dropdowns
-            StreamBuilder<List<ProductCatalogModel>>(
-              stream: Provider.of<ProductCatalogService>(context, listen: false)
-                  .getOrganizationProductsStream(widget.organizationId),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
+            Builder(
+              builder: (context) {
+                // Si está cargando datos iniciales
+                if (productionProvider.isLoading && allProducts.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                // Obtenemos todos los productos
-                final allProducts = snapshot.data ?? [];
-
-                // Filtramos productos relevantes para este cliente/proyecto si es necesario
-                // (Por ahora mostramos todos los de la organización que coincidan en familia,
-                // pero podríamos filtrar por clientId si _selectedProject está definido)
+                // Filtrar productos relevantes para este cliente/proyecto
                 var relevantProducts = allProducts;
                 if (_selectedProject != null) {
-                  // Opcional: filtrar solo productos de este cliente o públicos
                   relevantProducts = allProducts
                       .where((p) =>
                           p.clientId == _selectedProject!.clientId ||
@@ -846,7 +827,7 @@ class _CreateProductionBatchScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // --- SELECTOR DE FAMILIA ---
-
+                    
                     // Si no hay proyecto seleccionado, no se puede seleccionar familia
                     if (_selectedProject == null)
                       Opacity(
@@ -873,21 +854,16 @@ class _CreateProductionBatchScreenState
                             ? 'No hay familias definidas'
                             : 'Seleccionar familia...',
                         items: families.map((f) {
-                          // Lógica segura para capitalizar la primera letra solo visualmente
                           final String text = f ?? '';
                           final String displayName = text.isNotEmpty
                               ? '${text[0].toUpperCase()}${text.substring(1)}'
                               : text;
 
                           return DropdownMenuItem(
-                            value:
-                                f, // ⚠️ IMPORTANTE: Mantener 'f' original para que el filtro funcione
-                            child: Text(
-                                displayName), // Aquí mostramos la versión con mayúscula
+                            value: f,
+                            child: Text(displayName),
                           );
                         }).toList(),
-                        // ------------------------
-
                         onChanged: (val) {
                           setState(() {
                             _selectedFamily = val;
@@ -898,9 +874,9 @@ class _CreateProductionBatchScreenState
 
                     const SizedBox(height: 12),
 
-                    // --- SELECTOR DE PRODUCTO (Filtrado por Familia) ---
+                    // --- SELECTOR DE PRODUCTO ---
                     Builder(builder: (context) {
-                      // Si no hay familia seleccionada
+                      // ... (Misma lógica de filtrado de productos por familia) ...
                       if (_selectedFamily == null || _selectedProject == null) {
                         return Opacity(
                           opacity: 0.5,
@@ -918,12 +894,12 @@ class _CreateProductionBatchScreenState
                         );
                       }
 
-                      // Filtrar productos por la familia seleccionada
                       final familyProducts = relevantProducts
                           .where((p) => p.family == _selectedFamily)
                           .toList();
 
-                      // Preparamos los items del dropdown
+                      // ... (Resto de la construcción de dropdownItems igual) ...
+
                       final List<DropdownMenuItem<String>> dropdownItems = [];
 
                       // OPCIÓN 1: Crear nuevo producto
@@ -942,9 +918,7 @@ class _CreateProductionBatchScreenState
                                     fontWeight: FontWeight.bold),
                               ),
                               SizedBox(height: 4),
-                              Divider(
-                                height: 1,
-                              ),
+                              Divider(height: 1),
                               SizedBox(height: 4),
                             ],
                           ),
@@ -967,7 +941,6 @@ class _CreateProductionBatchScreenState
                                 ),
                               )));
 
-                      // Validar selección actual
                       final isSelectionValid = _selectedProduct != null &&
                           familyProducts
                               .any((p) => p.id == _selectedProduct!.id);
