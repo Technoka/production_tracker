@@ -1,15 +1,11 @@
 // lib/screens/production/production_screen.dart
 // ✅ OPTIMIZADO: Usa ProductionDataProvider para eliminar queries redundantes
 
-import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/production_batch_model.dart';
 import '../../models/batch_product_model.dart';
-import '../../models/phase_model.dart';
 import '../../models/user_model.dart';
-import '../../models/client_model.dart';
-import '../../models/product_status_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/permission_service.dart';
 import '../../providers/production_data_provider.dart';
@@ -585,7 +581,6 @@ class _ProductionScreenState extends State<ProductionScreen> {
 
         return KanbanBoardWidget(
           organizationId: user.organizationId!,
-          currentUser: user,
           initialClientFilter: _clientFilter,
           initialBatchFilter: _batchFilter,
           initialProjectFilter: _projectFilter,
