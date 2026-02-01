@@ -1,23 +1,17 @@
 // lib/widgets/kanban/kanban_board_widget.dart
 
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/providers/production_data_provider.dart';
+import 'package:gestion_produccion/services/permission_service.dart';
+import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/batch_product_model.dart';
 import '../../models/phase_model.dart';
 import '../../models/production_batch_model.dart';
-import '../../models/user_model.dart';
 import '../../models/product_status_model.dart';
-import '../../models/organization_member_model.dart';
-import '../../models/client_model.dart';
-import '../../models/role_model.dart';
-import '../../models/permission_model.dart';
-import '../../services/phase_service.dart';
 import '../../services/production_batch_service.dart';
-import '../../services/product_status_service.dart';
 import '../../services/auth_service.dart';
-import '../../services/client_service.dart';
-import '../../services/organization_member_service.dart';
 import '../../services/status_transition_service.dart';
 import 'draggable_product_card.dart';
 import '../../screens/production/batch_product_detail_screen.dart';
@@ -29,7 +23,6 @@ enum KanbanViewMode { phases, statuses }
 
 class KanbanBoardWidget extends StatefulWidget {
   final String organizationId;
-  final UserModel currentUser;
   final double? maxHeight;
   final bool showFilters;
   final String? initialBatchFilter;
@@ -40,7 +33,6 @@ class KanbanBoardWidget extends StatefulWidget {
   const KanbanBoardWidget({
     Key? key,
     required this.organizationId,
-    required this.currentUser,
     this.maxHeight,
     this.showFilters = false,
     this.initialBatchFilter,
@@ -54,7 +46,6 @@ class KanbanBoardWidget extends StatefulWidget {
 }
 
 class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
-  final PhaseService _phaseService = PhaseService();
   final ScrollController _scrollController = ScrollController();
 
   bool _isDragging = false;
@@ -66,18 +57,6 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
   String? _projectFilter;
   bool _onlyUrgentFilter = false;
 
-  Map<String, List<Map<String, dynamic>>> _cachedProductsByPhase = {};
-  Map<String, List<Map<String, dynamic>>> _cachedProductsByStatus = {};
-  List<ProductionPhase> _cachedPhases = [];
-  List<ProductStatusModel> _cachedStatuses = [];
-
-  // Permisos y miembros
-  OrganizationMemberModel? _currentMember;
-  RoleModel? _currentRole;
-  PermissionsModel? _effectivePermissions;
-  List<String> _accessiblePhases = [];
-  bool _isLoadingPermissions = true;
-
   @override
   void initState() {
     super.initState();
@@ -86,75 +65,12 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     _projectFilter = widget.initialProjectFilter;
     _onlyUrgentFilter = widget.initialUrgentFilter ?? false;
     _startAutoScroll();
-    _loadUserPermissions();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
-  }
-
-  /// Cargar permisos del usuario actual
-  Future<void> _loadUserPermissions() async {
-    try {
-      final memberService = Provider.of<OrganizationMemberService>(
-        context,
-        listen: false,
-      );
-
-      // Obtener miembro actual con rol y permisos
-      final memberData = await memberService.getCurrentMember(
-        widget.organizationId,
-        widget.currentUser.uid,
-      );
-
-      if (memberData == null) {
-        setState(() => _isLoadingPermissions = false);
-        return;
-      }
-
-      // Obtener el rol completo para calcular permisos efectivos
-      final roleDoc = await FirebaseFirestore.instance
-          .collection('organizations')
-          .doc(widget.organizationId)
-          .collection('roles')
-          .doc(memberData.member.roleId)
-          .get();
-
-      if (!roleDoc.exists) {
-        setState(() => _isLoadingPermissions = false);
-        return;
-      }
-
-      final role = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
-      final effectivePermissions =
-          memberData.member.getEffectivePermissions(role);
-
-      // Determinar fases accesibles
-      List<String> accessiblePhases = [];
-      if (memberData.member.canManageAllPhases) {
-        // Puede ver todas las fases
-        final allPhases = await _phaseService
-            .getOrganizationPhasesStream(widget.organizationId)
-            .first;
-        accessiblePhases = allPhases.map((p) => p.id).toList();
-      } else {
-        // Solo sus fases asignadas
-        accessiblePhases = memberData.member.assignedPhases;
-      }
-
-      setState(() {
-        _currentMember = memberData.member;
-        _currentRole = role;
-        _effectivePermissions = effectivePermissions;
-        _accessiblePhases = accessiblePhases;
-        _isLoadingPermissions = false;
-      });
-    } catch (e) {
-      debugPrint('Error loading user permissions: $e');
-      setState(() => _isLoadingPermissions = false);
-    }
   }
 
   void _startAutoScroll() {
@@ -196,19 +112,6 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-
-    if (_isLoadingPermissions) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(l10n.loadingPermissions),
-          ],
-        ),
-      );
-    }
 
     return Column(
       children: [
@@ -318,345 +221,188 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
   // ==================== VISTA POR FASES ====================
 
   Widget _buildPhaseView(AppLocalizations l10n) {
-    return StreamBuilder<List<ProductionPhase>>(
-      stream: _phaseService.getOrganizationPhasesStream(widget.organizationId),
-      builder: (context, phasesSnapshot) {
-        if (phasesSnapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text(l10n.loadingPhases),
-              ],
-            ),
-          );
-        }
+    final productionProvider = Provider.of<ProductionDataProvider>(context);
 
-        if (!phasesSnapshot.hasData || phasesSnapshot.data!.isEmpty) {
-          return _buildEmptyState(l10n, isPhaseView: true);
-        }
+    if (!productionProvider.isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        // Filtrar fases según permisos
-        final allPhases = phasesSnapshot.data!.where((p) => p.isActive).toList()
-          ..sort((a, b) => a.order.compareTo(b.order));
+    // ✅ Obtener fases del provider (sin query)
+    final phases = productionProvider.phases.where((p) => p.isActive).toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
 
-        final accessiblePhases = _filterAccessiblePhases(allPhases);
+    if (phases.isEmpty) {
+      return _buildNoAccessState(l10n);
+    }
 
-        if (accessiblePhases.isEmpty) {
-          return _buildNoAccessState(l10n);
-        }
+    // Obtener datos ya cacheados
+    final batches = productionProvider.filterBatches(
+      clientId: _clientFilter,
+      projectId: _projectFilter,
+    );
 
-        _cachedPhases = accessiblePhases;
+    // Obtener productos agrupados por fase/estado
+    final productsByPhase = _groupProductsByPhase(
+      productionProvider.getAllProducts(),
+      batches,
+    );
 
-        return FutureBuilder<Map<String, List<Map<String, dynamic>>>>(
-          future: _getAllProductsGroupedByPhase(
-            widget.organizationId,
-            accessiblePhases,
+    // Contar productos totales
+    final totalProducts = productsByPhase.values
+        .fold<int>(0, (sum, products) => sum + products.length);
+
+    return Column(
+      children: [
+        if (totalProducts > 100)
+          _buildTooManyProductsWarning(l10n, totalProducts),
+        Expanded(
+          child: _buildKanbanBoard(
+            phases,
+            productsByPhase,
+            l10n,
+            isPhaseView: true,
           ),
-          builder: (context, productsSnapshot) {
-            if (productsSnapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(l10n.loadingProducts),
-                  ],
-                ),
-              );
-            }
-
-            final productsByPhase = productsSnapshot.data ?? {};
-            _cachedProductsByPhase = productsByPhase;
-
-            // Contar productos totales
-            final totalProducts = productsByPhase.values
-                .fold<int>(0, (sum, products) => sum + products.length);
-
-            return Column(
-              children: [
-                if (totalProducts > 100)
-                  _buildTooManyProductsWarning(l10n, totalProducts),
-                Expanded(
-                  child: _buildKanbanBoard(
-                    accessiblePhases,
-                    productsByPhase,
-                    l10n,
-                    isPhaseView: true,
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+        ),
+      ],
     );
   }
-
-  // Continúa en PARTE 2...
-// CONTINUACIÓN PARTE 2/3
 
   // ==================== VISTA POR ESTADOS ====================
 
   Widget _buildStatusView(AppLocalizations l10n) {
-    final _statusService = Provider.of<ProductStatusService>(context);
+    final productionProvider = Provider.of<ProductionDataProvider>(context);
 
-    return StreamBuilder<List<ProductStatusModel>>(
-      stream: _statusService.watchStatuses(widget.organizationId),
-      builder: (context, statusesSnapshot) {
-        if (statusesSnapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text(l10n.loadingStatuses),
-              ],
-            ),
-          );
-        }
+    if (!productionProvider.isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        if (!statusesSnapshot.hasData || statusesSnapshot.data!.isEmpty) {
-          return _buildEmptyState(l10n, isPhaseView: false);
-        }
+    // Obtener datos ya cacheados
+    final batches = productionProvider.filterBatches(
+      clientId: _clientFilter,
+      projectId: _projectFilter,
+    );
 
-        final statuses = statusesSnapshot.data!
-            .where((s) => s.isActive)
-            .toList()
-          ..sort((a, b) => a.order.compareTo(b.order));
+    final statuses = productionProvider.statuses
+        .where((s) => s.isActive)
+        .toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
 
-        _cachedStatuses = statuses;
+    if (statuses.isEmpty) {
+      return _buildNoAccessState(l10n);
+    }
 
-        return FutureBuilder<Map<String, List<Map<String, dynamic>>>>(
-          future: _getAllProductsGroupedByStatus(
-            widget.organizationId,
+    // Obtener productos agrupados por estado
+    final productsByStatus = _groupProductsByStatus(
+      productionProvider.getAllProducts(),
+      batches,
+    );
+
+    // Contar productos totales
+    final totalProducts = productsByStatus.values
+        .fold<int>(0, (sum, products) => sum + products.length);
+
+    return Column(
+      children: [
+        if (totalProducts > 100)
+          _buildTooManyProductsWarning(l10n, totalProducts),
+        Expanded(
+          child: _buildKanbanBoard(
             statuses,
+            productsByStatus,
+            l10n,
+            isPhaseView: false,
           ),
-          builder: (context, productsSnapshot) {
-            if (productsSnapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(l10n.loadingProducts),
-                  ],
-                ),
-              );
-            }
-
-            final productsByStatus = productsSnapshot.data ?? {};
-            _cachedProductsByStatus = productsByStatus;
-
-            // Contar productos totales
-            final totalProducts = productsByStatus.values
-                .fold<int>(0, (sum, products) => sum + products.length);
-
-            return Column(
-              children: [
-                if (totalProducts > 100)
-                  _buildTooManyProductsWarning(l10n, totalProducts),
-                Expanded(
-                  child: _buildKanbanBoard(
-                    statuses,
-                    productsByStatus,
-                    l10n,
-                    isPhaseView: false,
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+        ),
+      ],
     );
   }
 
-  /// Filtrar fases accesibles según permisos del usuario
-  List<ProductionPhase> _filterAccessiblePhases(List<ProductionPhase> phases) {
-    if (_currentMember == null) return [];
+  Map<String, List<Map<String, dynamic>>> _groupProductsByPhase(
+    List<Map<String, dynamic>> allProducts,
+    List batches,
+  ) {
+    final productionProvider = Provider.of<ProductionDataProvider>(context);
+    final phases = productionProvider.phases.where((p) => p.isActive).toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
 
-    // Si puede gestionar todas las fases, devolver todas
-    if (_currentMember!.canManageAllPhases) {
-      return phases;
-    }
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
 
-    // Filtrar solo las fases asignadas
-    return phases
-        .where((phase) => _accessiblePhases.contains(phase.id))
-        .toList();
-  }
-
-  /// Obtener todos los productos agrupados por fase
-  Future<Map<String, List<Map<String, dynamic>>>> _getAllProductsGroupedByPhase(
-    String organizationId,
-    List<ProductionPhase> phases,
-  ) async {
-    final batchService = Provider.of<ProductionBatchService>(context, listen: false);
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = authService.currentUserData!;
-    final Map<String, List<Map<String, dynamic>>> groupedProducts = {};
-
+    // Inicializar todas las fases
     for (final phase in phases) {
-      groupedProducts[phase.id] = [];
+      grouped[phase.id] = [];
     }
 
-    try {
-      final batches = await batchService.watchBatches(organizationId, user.uid).first;
-      int totalProductsProcessed = 0;
-      const maxProducts = 100;
+    // Filtrar y agrupar productos
+    for (final item in allProducts) {
+      final product = item['product'];
+      final batch = item['batch'];
 
-      for (final batch in batches) {
-        // Aplicar filtros de batch/client/project
-        if (_batchFilter != null && batch.id != _batchFilter) continue;
-        if (_clientFilter != null && batch.clientId != _clientFilter) continue;
-        if (_projectFilter != null && batch.projectId != _projectFilter)
-          continue;
+      // Aplicar filtros
+      if (!batches.any((b) => b.id == batch.id)) continue;
+      if (_onlyUrgentFilter && product.urgencyLevel != 'urgent') continue;
 
-        // Verificar acceso al batch según scope
-        if (!_canAccessBatch(batch)) continue;
-
-        final products = await batchService
-            .watchBatchProducts(organizationId, batch.id, user.uid)
-            .first;
-
-        for (final product in products) {
-          if (totalProductsProcessed >= maxProducts) {
-            return groupedProducts;
-          }
-
-          bool passesFilter = true;
-
-          // Filtro de urgencia
-          if (_onlyUrgentFilter) {
-            if (product.urgencyLevel != UrgencyLevel.urgent.value) {
-              passesFilter = false;
-            }
-          }
-
-          if (passesFilter) {
-            final phaseId = product.currentPhase;
-            if (groupedProducts.containsKey(phaseId)) {
-              groupedProducts[phaseId]!.add({
-                'product': product,
-                'batch': batch,
-              });
-              totalProductsProcessed++;
-            }
-          }
-        }
+      // Agrupar por fase
+      final phaseId = product.currentPhase;
+      if (grouped.containsKey(phaseId)) {
+        grouped[phaseId]!.add(item);
       }
-    } catch (e) {
-      debugPrint('Error loading products by phase: $e');
     }
 
-    return groupedProducts;
+    return grouped;
   }
 
-  /// Obtener todos los productos agrupados por estado
-  Future<Map<String, List<Map<String, dynamic>>>>
-      _getAllProductsGroupedByStatus(
-    String organizationId,
-    List<ProductStatusModel> statuses,
-  ) async {
-    final batchService = Provider.of<ProductionBatchService>(context, listen: false);
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = authService.currentUserData!;
-    final Map<String, List<Map<String, dynamic>>> groupedProducts = {};
+  Map<String, List<Map<String, dynamic>>> _groupProductsByStatus(
+    List<Map<String, dynamic>> allProducts,
+    List batches,
+  ) {
+    final productionProvider = Provider.of<ProductionDataProvider>(context);
+    final statuses = productionProvider.statuses
+        .where((s) => s.isActive)
+        .toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
 
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+
+    // Inicializar todos los estados
     for (final status in statuses) {
-      groupedProducts[status.id] = [];
+      grouped[status.id] = [];
     }
 
-    try {
-      final batches = await batchService.watchBatches(organizationId, user.uid).first;
-      int totalProductsProcessed = 0;
-      const maxProducts = 100;
+    // Filtrar y agrupar productos
+    for (final item in allProducts) {
+      final product = item['product'];
+      final batch = item['batch'];
 
-      for (final batch in batches) {
-        // Aplicar filtros
-        if (_batchFilter != null && batch.id != _batchFilter) continue;
-        if (_clientFilter != null && batch.clientId != _clientFilter) continue;
-        if (_projectFilter != null && batch.projectId != _projectFilter)
-          continue;
+      // Aplicar filtros
+      if (!batches.any((b) => b.id == batch.id)) continue;
+      if (_onlyUrgentFilter && product.urgencyLevel != 'urgent') continue;
 
-        // Verificar acceso
-        if (!_canAccessBatch(batch)) continue;
-
-        final products = await batchService
-            .watchBatchProducts(organizationId, batch.id, user.uid)
-            .first;
-
-        for (final product in products) {
-          if (totalProductsProcessed >= maxProducts) {
-            return groupedProducts;
-          }
-
-          bool passesFilter = true;
-
-          if (_onlyUrgentFilter) {
-            if (product.urgencyLevel != UrgencyLevel.urgent.value) {
-              passesFilter = false;
-            }
-          }
-
-          if (passesFilter) {
-            final statusId = product.statusId ?? 'pending';
-            if (groupedProducts.containsKey(statusId)) {
-              groupedProducts[statusId]!.add({
-                'product': product,
-                'batch': batch,
-              });
-              totalProductsProcessed++;
-            }
-          }
-        }
+      // Agrupar por estado
+      if (product.statusId != null && grouped.containsKey(product.statusId)) {
+        grouped[product.statusId]!.add(item);
       }
-    } catch (e) {
-      debugPrint('Error loading products by status: $e');
     }
 
-    return groupedProducts;
-  }
-
-  /// Verificar si el usuario tiene acceso a un batch
-  bool _canAccessBatch(ProductionBatchModel batch) {
-    if (_effectivePermissions == null) return false;
-
-    // Si tiene scope "all" en batches, puede ver todos
-    if (_effectivePermissions!.viewBatchesScope == PermissionScope.all) {
-      return true;
-    }
-
-    // Si tiene scope "assigned", verificar si está asignado
-    if (_effectivePermissions!.viewBatchesScope == PermissionScope.assigned) {
-      return batch.assignedMembers.contains(widget.currentUser.uid);
-    }
-
-    return false;
+    return grouped;
   }
 
   /// Verificar si el usuario puede mover productos desde una fase
-  bool _canMoveFromPhase(String phaseId) {
-    if (_currentMember == null) return false;
-    return _currentMember!.canManagePhase(phaseId);
+  bool _canMoveFromPhase(BuildContext context, String phaseId) {
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
+    return permissionService.canManagePhase(phaseId);
   }
 
-  /// Verificar si el usuario puede mover productos a una fase
-  bool _canMoveToPhase(String phaseId) {
-    if (_currentMember == null) return false;
-    return _currentMember!.canManagePhase(phaseId);
+  bool _canMoveToPhase(BuildContext context, String phaseId) {
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
+    return permissionService.canManagePhase(phaseId);
   }
 
-  /// Verificar si el usuario puede cambiar estados
-  bool _canChangeStatus() {
-    if (_effectivePermissions == null) return false;
-    return _effectivePermissions!.canChangeProductStatus;
+  bool _canChangeStatus(BuildContext context) {
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
+    return permissionService.canChangeProductStatus;
   }
 
   // ==================== BOARD PRINCIPAL ====================
@@ -687,12 +433,13 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
           final productsData = productsByColumn[columnId] ?? [];
 
           // Verificar si tiene acceso a esta columna
-          final bool hasAccess =
-              isPhaseView ? _canMoveToPhase(columnId) : _canChangeStatus();
+          final bool hasAccess = isPhaseView
+              ? _canMoveToPhase(context, columnId)
+              : _canChangeStatus(context);
 
           final bool isAtWipLimit = isPhaseView &&
               (column as ProductionPhase).wipLimit > 0 &&
-              productsData.length >= (column as ProductionPhase).wipLimit;
+              productsData.length >= column.wipLimit;
 
           return DragTarget<Map<String, dynamic>>(
             onWillAccept: (data) {
@@ -708,19 +455,19 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
 
               // Vista por fases: verificar permisos de fase
               if (isPhaseView) {
-                if (!_canMoveFromPhase(fromColumnId)) {
-                  _showPermissionDeniedSnackbar(
-                    l10n.cannotMoveFromPhase,
-                    l10n,
-                  );
+                if (!_canMoveFromPhase(context, fromColumnId)) {
+                  // _showPermissionDeniedSnackbar(
+                  //   l10n.cannotMoveFromPhase,
+                  //   l10n,
+                  // );
                   return false;
                 }
 
-                if (!_canMoveToPhase(columnId)) {
-                  _showPermissionDeniedSnackbar(
-                    l10n.cannotMoveToPhase,
-                    l10n,
-                  );
+                if (!_canMoveToPhase(context, columnId)) {
+                  // _showPermissionDeniedSnackbar(
+                  //   l10n.cannotMoveToPhase,
+                  //   l10n,
+                  // );
                   return false;
                 }
 
@@ -729,7 +476,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        '${l10n.wipLimitReachedIn} ${(column as ProductionPhase).name}',
+                        '${l10n.wipLimitReachedIn} ${column.name}',
                       ),
                       backgroundColor: Colors.orange,
                     ),
@@ -739,11 +486,11 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
               }
               // Vista por estados: verificar permisos de cambio de estado
               else {
-                if (!_canChangeStatus()) {
-                  _showPermissionDeniedSnackbar(
-                    l10n.cannotChangeStatus,
-                    l10n,
-                  );
+                if (!_canChangeStatus(context)) {
+                  // _showPermissionDeniedSnackbar(
+                  //   l10n.cannotChangeStatus,
+                  //   l10n,
+                  // );
                   return false;
                 }
               }
@@ -801,7 +548,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
   // Continúa en PARTE 3...
 // CONTINUACIÓN PARTE 3/3
 
-Widget _buildKanbanColumn(
+  Widget _buildKanbanColumn(
     dynamic column,
     List<Map<String, dynamic>> productsData,
     bool isAtWipLimit,
@@ -809,10 +556,7 @@ Widget _buildKanbanColumn(
     AppLocalizations l10n, {
     required bool isPhaseView,
   }) {
-    // 1. Necesitamos el ID de la organización para pedir los clientes
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = authService.currentUserData;
-    final clientService = Provider.of<ClientService>(context, listen: false);
+    final productionProvider = Provider.of<ProductionDataProvider>(context);
 
     final String columnName = isPhaseView
         ? (column as ProductionPhase).name
@@ -824,91 +568,80 @@ Widget _buildKanbanColumn(
         ? (column as ProductionPhase).icon
         : (column as ProductStatusModel).icon;
 
-    final color = _parseColor(columnColor);
+    final color = UIConstants.parseColor(columnColor);
 
-    // 2. Envolvemos TODO el contenedor en un StreamBuilder de Clientes
-    return FutureBuilder<List<ClientModel>>(
-      future: clientService.getOrganizationClients(user!.organizationId!, user!.uid),
-      builder: (context, snapshot) {
-        
-        // Creamos el mapa de colores (si no hay datos aún, mapa vacío)
-        final clients = snapshot.data ?? [];
-        final Map<String, String> clientColors = {
-          for (var client in clients) client.id: client.color!
-        };
-
-        return Container(
-          width: 250,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isAtWipLimit
-                  ? Colors.orange
-                  : !hasAccess
-                      ? Colors.grey.shade400
-                      : Colors.grey.shade300,
-              width: isAtWipLimit || !hasAccess ? 2 : 1,
-            ),
+    return Container(
+      width: 250,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isAtWipLimit
+              ? Colors.orange
+              : !hasAccess
+                  ? Colors.grey.shade400
+                  : Colors.grey.shade300,
+          width: isAtWipLimit || !hasAccess ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildColumnHeader(
+            columnName,
+            color,
+            columnIcon,
+            productsData.length,
+            isAtWipLimit,
+            hasAccess,
+            l10n,
+            isPhaseView: isPhaseView,
+            wipLimit: isPhaseView ? (column as ProductionPhase).wipLimit : 0,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildColumnHeader(
-                columnName,
-                color,
-                columnIcon,
-                productsData.length,
-                isAtWipLimit,
-                hasAccess,
-                l10n,
-                isPhaseView: isPhaseView,
-                wipLimit:
-                    isPhaseView ? (column as ProductionPhase).wipLimit : 0,
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: productsData.isEmpty
-                    ? _buildEmptyColumnState(l10n)
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: productsData.length,
-                        itemBuilder: (context, index) {
-                          final product = productsData[index]['product']
-                              as BatchProductModel;
-                          final batch = productsData[index]['batch']
-                              as ProductionBatchModel;
+          const Divider(height: 1),
+          Expanded(
+            child: productsData.isEmpty
+                ? _buildEmptyColumnState(l10n)
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: productsData.length,
+                    itemBuilder: (context, index) {
+                      final product =
+                          productsData[index]['product'] as BatchProductModel;
+                      final batch =
+                          productsData[index]['batch'] as ProductionBatchModel;
 
-                          // 3. Ahora podemos buscar el color directamente aquí
-                          // Usamos el mapa que acabamos de crear arriba
-                          Color clientColor = parseColorValue(clientColors[batch.clientId]);
+                      // 3. Ahora podemos buscar el color directamente aquí
+                      // Usamos el mapa que acabamos de crear arriba
+                      Color clientColor = UIConstants.parseColor(
+                          productionProvider
+                              .getClientById(batch.clientId)!
+                              .color!);
 
-                          return DraggableProductCard(
-                            key: ValueKey(product.id),
-                            product: product,
-                            allPhases: _cachedPhases,
-                            batchNumber: batch.batchNumber,
-                            batch: batch,
-                            clientColor: clientColor, // <--- Pasamos el color
-                            onTap: () => _handleProductTap(product, batch),
-                            onDragStarted: () {
-                              _isDragging = true;
-                            },
-                            onDragEnd: () {
-                              _isDragging = false;
-                              _scrollSpeed = 0;
-                            },
-                            showStatus: isPhaseView,
-                            statusName: _getStatusName(product.statusId),
-                          );
+                      return DraggableProductCard(
+                        key: ValueKey(product.id),
+                        product: product,
+                        allPhases: productionProvider.phases,
+                        batchNumber: batch.batchNumber,
+                        batch: batch,
+                        clientColor: clientColor, // <--- Pasamos el color
+                        onTap: () => _handleProductTap(product, batch),
+                        onDragStarted: () {
+                          _isDragging = true;
                         },
-                      ),
-              ),
-            ],
+                        onDragEnd: () {
+                          _isDragging = false;
+                          _scrollSpeed = 0;
+                        },
+                        showStatus: isPhaseView,
+                        statusName: _getStatusName(product.statusId!),
+                      );
+                    },
+                  ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -941,7 +674,7 @@ Widget _buildKanbanColumn(
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(
-                  _getIcon(iconName),
+                  UIConstants.getIcon(iconName),
                   color: Colors.white,
                   size: 16,
                 ),
@@ -1021,12 +754,22 @@ Widget _buildKanbanColumn(
     ProductionPhase toPhase,
     AppLocalizations l10n,
   ) async {
+    final productionProvider =
+        Provider.of<ProductionDataProvider>(context, listen: false);
+
+    if (!_canMoveFromPhase(context, data['phaseId'] as String)) {
+      return;
+    }
+
     final product = data['product'] as BatchProductModel;
     final batch = data['batch'] as ProductionBatchModel;
 
+    final phases = productionProvider.phases.where((p) => p.isActive).toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
+
     final currentPhaseIndex =
-        _cachedPhases.indexWhere((p) => p.id == product.currentPhase);
-    final newPhaseIndex = _cachedPhases.indexWhere((p) => p.id == toPhase.id);
+        phases.indexWhere((p) => p.id == product.currentPhase);
+    final newPhaseIndex = phases.indexWhere((p) => p.id == toPhase.id);
     final isForward = newPhaseIndex > currentPhaseIndex;
 
     final result = await showDialog<bool>(
@@ -1125,190 +868,81 @@ Widget _buildKanbanColumn(
   }
 
   Future<void> _showStatusChangeConfirmationDialog(
-  Map<String, dynamic> data,
-  ProductStatusModel toStatus,
-  AppLocalizations l10n,
-) async {
-  final product = data['product'] as BatchProductModel;
-  final fromStatusId = product.statusId ?? 'pending';
-
-  // 1. Obtener la transición configurada
-  final transitionService = Provider.of<StatusTransitionService>(context, listen: false);
-  
-  final transition = await transitionService.getTransitionBetweenStatuses(
-    organizationId: widget.organizationId,
-    fromStatusId: fromStatusId,
-    toStatusId: toStatus.id,
-  );
-
-  // Si no existe transición configurada, mostrar error
-  if (transition == null) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.noTransitionConfigured ?? 'No hay transición configurada entre estos estados'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  // Verificar que la transición esté activa
-  if (!transition.isActive) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.transitionNotActive ?? 'Esta transición está desactivada'),
-        backgroundColor: Colors.orange,
-      ),
-    );
-    return;
-  }
-
-  // 2. Verificar permisos del usuario (rol permitido)
-  if (_currentRole != null && !transition.allowedRoles.contains(_currentRole!.id)) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.roleNotAuthorized),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  // 3. Mostrar diálogo de validación apropiado
-  final validationData = await ValidationDialogManager.showValidationDialog(
-    context: context,
-    transition: transition,
-    product: product,
-  );
-
-  // Si el usuario canceló, salir
-  if (validationData == null) {
-    return;
-  }
-
-  // 4. Ejecutar el cambio de estado con los datos validados
-  await _handleStatusChange(
-    data,
-    toStatus,
-    l10n,
-    validationData.toMap(),
-  );
-}
-
-  /// Diálogo de validación con campos requeridos
-  Future<void> _showValidationDialog({
-    required Map<String, dynamic> data,
-    required ProductStatusModel toStatus,
-    required Map<String, dynamic> validationResult,
-    required AppLocalizations l10n,
-  }) async {
+    Map<String, dynamic> data,
+    ProductStatusModel toStatus,
+    AppLocalizations l10n,
+  ) async {
     final product = data['product'] as BatchProductModel;
-    final validationType = validationResult['validationType'];
-    final validationConfig = validationResult['validationConfig'];
+    final fromStatusId = product.statusId ?? 'pending';
 
-    final quantityController = TextEditingController();
-    final textController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
+    // 1. Obtener la transición configurada
+    final transitionService =
+        Provider.of<StatusTransitionService>(context, listen: false);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
 
-    final result = await showDialog<Map<String, dynamic>?>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.validationRequired),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.productName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-
-                // Campo de cantidad si es requerido
-                if (validationType == 'quantity_and_text' ||
-                    validationType == 'quantity_required') ...[
-                  TextFormField(
-                    controller: quantityController,
-                    decoration: InputDecoration(
-                      labelText: l10n.validationDefectiveQuantity,
-                      hintText: l10n.enterQuantity,
-                      border: const OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return l10n.fillRequiredFields;
-                      }
-                      final qty = int.tryParse(value);
-                      if (qty == null || qty < 1) {
-                        return 'Cantidad inválida';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // Campo de texto si es requerido
-                if (validationType == 'quantity_and_text' ||
-                    validationType == 'text_required') ...[
-                  TextFormField(
-                    controller: textController,
-                    decoration: InputDecoration(
-                      labelText: l10n.defectDescription,
-                      hintText: l10n.enterDescription,
-                      border: const OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return l10n.fillRequiredFields;
-                      }
-                      if (value.length < 10) {
-                        return 'Mínimo 10 caracteres';
-                      }
-                      return null;
-                    },
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, null),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                final validationData = <String, dynamic>{};
-                if (quantityController.text.isNotEmpty) {
-                  validationData['quantity'] =
-                      int.parse(quantityController.text);
-                }
-                if (textController.text.isNotEmpty) {
-                  validationData['text'] = textController.text;
-                }
-                Navigator.pop(context, validationData);
-              }
-            },
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
+    final transition = await transitionService.getTransitionBetweenStatuses(
+      organizationId: widget.organizationId,
+      fromStatusId: fromStatusId,
+      toStatusId: toStatus.id,
     );
 
-    if (result != null) {
-      await _handleStatusChange(data, toStatus, l10n, result);
+    // Si no existe transición configurada, mostrar error
+    if (transition == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.noTransitionConfigured),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
     }
+
+    // Verificar que la transición esté activa
+    if (!transition.isActive) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.transitionNotActive),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // 2. Verificar permisos del usuario (rol permitido)
+    if (permissionService.currentRole != null &&
+        !transition.allowedRoles.contains(permissionService.currentRole!.id)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.roleNotAuthorized),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // 3. Mostrar diálogo de validación apropiado
+    final validationData = await ValidationDialogManager.showValidationDialog(
+      context: context,
+      transition: transition,
+      product: product,
+    );
+
+    // Si el usuario canceló, salir
+    if (validationData == null) {
+      return;
+    }
+
+    // 4. Ejecutar el cambio de estado con los datos validados
+    await _handleStatusChange(
+      data,
+      toStatus,
+      l10n,
+      validationData.toMap(),
+    );
   }
 
   // ==================== MANEJO DE MOVIMIENTOS ====================
@@ -1319,14 +953,13 @@ Widget _buildKanbanColumn(
     AppLocalizations l10n,
   ) async {
     try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final user = authService.currentUserData!;
+
       final product = data['product'] as BatchProductModel;
-      final batch = data['batch'] as ProductionBatchModel;
       final fromPhaseId = product.currentPhase;
 
       if (fromPhaseId == toPhase.id) return;
-
-      final batchService =
-          Provider.of<ProductionBatchService>(context, listen: false);
 
       // Actualizar la fase del producto directamente en Firestore
       await FirebaseFirestore.instance
@@ -1343,52 +976,35 @@ Widget _buildKanbanColumn(
 
         // Actualizar progreso de fases
         'phaseProgress.$fromPhaseId.status': 'completed',
-        'phaseProgress.$fromPhaseId.completedAt':
-            FieldValue.serverTimestamp(),
-        'phaseProgress.$fromPhaseId.completedBy': widget.currentUser.uid,
-        'phaseProgress.$fromPhaseId.completedByName': widget.currentUser.name,
+        'phaseProgress.$fromPhaseId.completedAt': FieldValue.serverTimestamp(),
+        'phaseProgress.$fromPhaseId.completedBy': user.uid,
+        'phaseProgress.$fromPhaseId.completedByName': user.name,
 
         'phaseProgress.${toPhase.id}.status': 'in_progress',
         'phaseProgress.${toPhase.id}.startedAt': FieldValue.serverTimestamp(),
       });
 
-      try {        
-      // Generar evento de cambio de fase (mejorado)
-      await MessageEventsHelper.onProductPhaseChanged(
-        organizationId: widget.organizationId,
-        batchId: product.batchId,
-        productId: product.id,
-        productName: product.productName,
-        productNumber: product.productNumber,
-        productCode: product.productCode,
-        oldPhaseName: product.currentPhaseName,
-        newPhaseName: toPhase.name,
-        changedBy: widget.currentUser.name,
-        validationData: null, // Sin validación en movimientos simples de Kanban
-      );
-      
+      try {
+        // Generar evento de cambio de fase (mejorado)
+        await MessageEventsHelper.onProductPhaseChanged(
+          organizationId: widget.organizationId,
+          batchId: product.batchId,
+          productId: product.id,
+          productName: product.productName,
+          productNumber: product.productNumber,
+          productCode: product.productCode,
+          oldPhaseName: product.currentPhaseName,
+          newPhaseName: toPhase.name,
+          changedBy: user.name,
+          validationData:
+              null, // Sin validación en movimientos simples de Kanban
+        );
       } catch (e) {
         debugPrint('Error generating event: $e');
         // No bloquear si falla el evento
       }
 
       if (!mounted) return;
-
-      // Actualizar caché local
-      setState(() {
-        _cachedProductsByPhase[fromPhaseId]?.removeWhere(
-            (item) => (item['product'] as BatchProductModel).id == product.id);
-
-        final updatedProduct = product.copyWith(
-          currentPhase: toPhase.id,
-          currentPhaseName: toPhase.name,
-        );
-
-        _cachedProductsByPhase[toPhase.id]?.add({
-          'product': updatedProduct,
-          'batch': batch,
-        });
-      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1415,13 +1031,16 @@ Widget _buildKanbanColumn(
     Map<String, dynamic>? validationData,
   ) async {
     try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final user = authService.currentUserData!;
+
       final product = data['product'] as BatchProductModel;
-      final batch = data['batch'] as ProductionBatchModel;
       final fromStatusId = product.statusId ?? 'pending';
 
       if (fromStatusId == toStatus.id) return;
 
-      final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+      final batchService =
+          Provider.of<ProductionBatchService>(context, listen: false);
 
       // Cambiar el estado del producto
       final success = await batchService.changeProductStatus(
@@ -1429,8 +1048,8 @@ Widget _buildKanbanColumn(
         batchId: product.batchId,
         productId: product.id,
         toStatusId: toStatus.id,
-        userId: widget.currentUser.uid,
-        userName: widget.currentUser.name,
+        userId: user.uid,
+        userName: user.name,
         validationData: validationData,
         l10n: l10n,
       );
@@ -1438,21 +1057,6 @@ Widget _buildKanbanColumn(
       if (!mounted) return;
 
       if (success) {
-        setState(() {
-          _cachedProductsByStatus[fromStatusId]?.removeWhere((item) =>
-              (item['product'] as BatchProductModel).id == product.id);
-
-          final updatedProduct = product.copyWith(
-            statusId: toStatus.id,
-            statusName: toStatus.name,
-          );
-
-          _cachedProductsByStatus[toStatus.id]?.add({
-            'product': updatedProduct,
-            'batch': batch,
-          });
-        });
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.statusChangedSuccess),
@@ -1474,47 +1078,6 @@ Widget _buildKanbanColumn(
     }
   }
 
-  // Continúa en siguiente mensaje (helpers finales)...
-// CONTINUACIÓN PARTE 4/4 FINAL
-
-  // ==================== VALIDACIONES ====================
-
-  Future<Map<String, dynamic>> _validateStatusTransition({
-    required BatchProductModel product,
-    required String fromStatusId,
-    required String toStatusId,
-  }) async {
-    if (_currentRole == null) {
-      return {
-        'isValid': false,
-        'error': 'No se pudo verificar el rol del usuario',
-        'requiresValidation': false,
-      };
-    }
-
-    final batchService =
-        Provider.of<ProductionBatchService>(context, listen: false);
-
-    try {
-      final result = await batchService.validateStatusTransition(
-        organizationId: widget.organizationId,
-        fromStatusId: fromStatusId,
-        toStatusId: toStatusId,
-        userName: widget.currentUser.name,
-        userId: widget.currentUser.uid,
-      );
-
-      return result;
-    } catch (e) {
-      debugPrint('Error validating transition: $e');
-      return {
-        'isValid': false,
-        'error': 'Error al validar transición: $e',
-        'requiresValidation': false,
-      };
-    }
-  }
-
   // ==================== WIDGETS DE ESTADOS VACÍOS ====================
 
   Widget _buildEmptyColumnState(AppLocalizations l10n) {
@@ -1533,35 +1096,6 @@ Widget _buildKanbanColumn(
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(AppLocalizations l10n, {required bool isPhaseView}) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            isPhaseView ? Icons.view_kanban : Icons.assignment_turned_in,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            isPhaseView
-                ? l10n.noPhasesConfigured
-                : 'No hay estados configurados',
-            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isPhaseView
-                ? l10n.configurePhasesFirst
-                : 'Configura estados primero',
-            style: TextStyle(color: Colors.grey.shade500),
-          ),
-        ],
       ),
     );
   }
@@ -1657,27 +1191,15 @@ Widget _buildKanbanColumn(
     );
   }
 
-  void _showPermissionDeniedSnackbar(String message, AppLocalizations l10n) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.lock_outline, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
+  String _getStatusName(String statusId) {
+    final productionProvider = Provider.of<ProductionDataProvider>(context);
 
-  String _getStatusName(String? statusId) {
-    if (statusId == null) return 'Pending';
+    final statuses = productionProvider.statuses
+        .where((s) => s.isActive)
+        .toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
 
-    final status = _cachedStatuses.firstWhere(
+    final status = statuses.firstWhere(
       (s) => s.id == statusId,
       orElse: () => ProductStatusModel(
         id: statusId,
@@ -1694,79 +1216,5 @@ Widget _buildKanbanColumn(
     );
 
     return status.name;
-  }
-
-  Color _parseColor(String colorString) {
-    try {
-      return Color(int.parse(colorString.replaceAll('#', '0xFF')));
-    } catch (e) {
-      return Colors.blue;
-    }
-  }
-
-  IconData _getIcon(String iconName) {
-    switch (iconName.toLowerCase()) {
-      // Iconos de fases
-      case 'planned':
-        return Icons.calendar_today;
-      case 'cutting':
-        return Icons.content_cut;
-      case 'skiving':
-        return Icons.layers;
-      case 'assembly':
-        return Icons.construction;
-      case 'studio':
-        return Icons.brush;
-      case 'finishing':
-        return Icons.brush;
-      case 'quality':
-        return Icons.verified;
-      case 'packaging':
-        return Icons.inventory_2;
-
-      // Iconos de estados
-      case 'pending':
-        return Icons.schedule;
-      case 'hold':
-        return Icons.pause_circle_outline;
-      case 'cao':
-        return Icons.report_problem;
-      case 'control':
-        return Icons.fact_check;
-      case 'ok':
-        return Icons.check_circle;
-      case 'approved':
-        return Icons.thumb_up;
-      case 'rejected':
-        return Icons.thumb_down;
-
-      // Genéricos
-      case 'work':
-        return Icons.work;
-      case 'build':
-        return Icons.build;
-      case 'engineering':
-        return Icons.engineering;
-      case 'shield':
-        return Icons.shield;
-      case 'verified':
-        return Icons.verified;
-      case 'star':
-        return Icons.star;
-      case 'flag':
-        return Icons.flag;
-
-      default:
-        return Icons.circle;
-    }
-  }
-
-    Color parseColorValue(String? color) {
-    if (color == null) return defaultColor;
-    try {
-      return Color(int.parse(color.replaceAll('#', '0xFF')));
-    } catch (e) {
-      return defaultColor;
-    }
   }
 }
