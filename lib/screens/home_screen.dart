@@ -340,7 +340,6 @@ class _HomeScreenState extends State<HomeScreen> {
             borderRadius: BorderRadius.circular(12),
             child: KanbanBoardWidget(
               organizationId: user.organizationId!,
-              currentUser: user,
               maxHeight: 600,
             ),
           ),
