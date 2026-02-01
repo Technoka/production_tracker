@@ -86,6 +86,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ActivationCodeService()),
         ChangeNotifierProvider(create: (_) => InvitationService()),
 
+        // Providers de datos de producción
+        ChangeNotifierProvider(create: (_) => ProductionDataProvider()),
+
         // ==================== SERVICIOS CON DEPENDENCIA DE OrganizationMemberService ====================
 
         // ClientService
@@ -177,33 +180,6 @@ class MyApp extends StatelessWidget {
                     transitionService: transitionService,
                     memberService: memberService,
                   ),
-        ),
-
-        // ProductionDataProvider
-        ChangeNotifierProxyProvider4<ProductionBatchService, PhaseService,
-            ProductStatusService, ClientService, ProductionDataProvider>(
-          create: (_) => ProductionDataProvider(
-            batchService: ProductionBatchService(
-              statusService: ProductStatusService(
-                  memberService: OrganizationMemberService()),
-              transitionService: StatusTransitionService(),
-              memberService: OrganizationMemberService(),
-            ),
-            phaseService: PhaseService(),
-            statusService: ProductStatusService(
-                memberService: OrganizationMemberService()),
-            clientService:
-                ClientService(memberService: OrganizationMemberService()),
-          ),
-          update: (context, batchService, phaseService, statusService,
-                  clientService, previous) =>
-              previous ??
-              ProductionDataProvider(
-                batchService: batchService,
-                phaseService: phaseService,
-                statusService: statusService,
-                clientService: clientService,
-              ),
         ),
       ],
 

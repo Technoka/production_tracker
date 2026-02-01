@@ -6,29 +6,36 @@ import '../models/batch_product_model.dart';
 import '../models/phase_model.dart';
 import '../models/product_status_model.dart';
 import '../models/client_model.dart';
+import '../models/product_catalog_model.dart';
+import '../models/project_model.dart';
 import '../services/production_batch_service.dart';
 import '../services/phase_service.dart';
 import '../services/product_status_service.dart';
 import '../services/client_service.dart';
+import '../services/product_catalog_service.dart';
+import '../services/project_service.dart';
 
-/// Provider centralizado para datos de producción
-/// 
+/// Provider centralizado para datos de producción y catálogo
+///
 /// Obtiene streams UNA VEZ y los comparte entre todas las pantallas.
 /// Esto elimina queries duplicadas y mejora el rendimiento drásticamente.
-/// 
+///
 /// **Beneficios:**
 /// - Reduce queries a Firebase en ~70%
 /// - Sincronización automática en tiempo real
 /// - Datos cacheados en memoria
 /// - Filtrado eficiente sin nuevas queries
 class ProductionDataProvider extends ChangeNotifier {
-  final ProductionBatchService _batchService;
-  final PhaseService _phaseService;
-  final ProductStatusService _statusService;
-  final ClientService _clientService;
+  // ✅ Servicios opcionales que se asignan durante initialize()
+  ProductionBatchService? _batchService;
+  PhaseService? _phaseService;
+  ProductStatusService? _statusService;
+  ClientService? _clientService;
+  ProductCatalogService? _catalogService;
+  ProjectService? _projectService;
 
   // ==================== DATOS CACHEADOS ====================
-  
+
   List<ProductionBatchModel> _batches = [];
   List<ProductionBatchModel> get batches => _batches;
 
@@ -44,8 +51,14 @@ class ProductionDataProvider extends ChangeNotifier {
   List<ClientModel> _clients = [];
   List<ClientModel> get clients => _clients;
 
+  List<ProductCatalogModel> _catalogProducts = [];
+  List<ProductCatalogModel> get catalogProducts => _catalogProducts;
+
+  List<ProjectModel> _projects = [];
+  List<ProjectModel> get projects => _projects;
+
   // ==================== ESTADO DE CARGA ====================
-  
+
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
 
@@ -58,25 +71,32 @@ class ProductionDataProvider extends ChangeNotifier {
   String? _currentOrganizationId;
   String? _currentUserId;
 
-  ProductionDataProvider({
-    required ProductionBatchService batchService,
-    required PhaseService phaseService,
-    required ProductStatusService statusService,
-    required ClientService clientService,
-  })  : _batchService = batchService,
-        _phaseService = phaseService,
-        _statusService = statusService,
-        _clientService = clientService;
+  // ✅ Constructor vacío - servicios se pasan en initialize()
+  ProductionDataProvider();
 
   // ==================== INICIALIZACIÓN ====================
 
   /// Inicializar streams para la organización actual
-  /// 
+  ///
   /// Debe llamarse UNA VEZ desde HomeScreen después de cargar permisos
   Future<void> initialize({
     required String organizationId,
     required String userId,
+    required ProductionBatchService batchService,
+    required PhaseService phaseService,
+    required ProductStatusService statusService,
+    required ClientService clientService,
+    required ProductCatalogService catalogService,
+    required ProjectService projectService,
   }) async {
+    // Guardar referencias a los servicios
+    _batchService = batchService;
+    _phaseService = phaseService;
+    _statusService = statusService;
+    _clientService = clientService;
+    _catalogService = catalogService;
+    _projectService = projectService;
+
     // Si ya está inicializado para esta organización, no hacer nada
     if (_isInitialized &&
         _currentOrganizationId == organizationId &&
@@ -97,6 +117,8 @@ class ProductionDataProvider extends ChangeNotifier {
         _initializePhasesStream(organizationId),
         _initializeStatusesStream(organizationId),
         _initializeClientsStream(organizationId),
+        _initializeCatalogProductsStream(organizationId),
+        _initializeProjectsStream(organizationId, userId),
       ]);
 
       _isInitialized = true;
@@ -112,25 +134,36 @@ class ProductionDataProvider extends ChangeNotifier {
   }
 
   /// Inicializar stream de lotes
-  Future<void> _initializeBatchesStream(String organizationId, String userId) async {
-    _batchService.watchBatches(organizationId, userId).listen(
+  Future<void> _initializeBatchesStream(
+      String organizationId, String userId) async {
+    if (_batchService == null) {
+      debugPrint('❌ BatchService is null');
+      return;
+    }
+
+    _batchService!.watchBatches(organizationId, userId).listen(
       (batches) async {
         _batches = batches;
-        
+
         // Para cada lote, obtener sus productos
         // Esto se hace UNA VEZ y luego se mantiene sincronizado
         for (final batch in batches) {
-          _batchService.watchBatchProducts(organizationId, batch.id, userId).listen(
+          if (_batchService == null) continue;
+
+          _batchService!
+              .watchBatchProducts(organizationId, batch.id, userId)
+              .listen(
             (products) {
               _batchProducts[batch.id] = products;
               notifyListeners();
             },
             onError: (error) {
-              debugPrint('❌ Error watching products for batch ${batch.id}: $error');
+              debugPrint(
+                  '❌ Error watching products for batch ${batch.id}: $error');
             },
           );
         }
-        
+
         notifyListeners();
       },
       onError: (error) {
@@ -143,7 +176,12 @@ class ProductionDataProvider extends ChangeNotifier {
 
   /// Inicializar stream de fases
   Future<void> _initializePhasesStream(String organizationId) async {
-    _phaseService.getActivePhasesStream(organizationId).listen(
+    if (_phaseService == null) {
+      debugPrint('❌ PhaseService is null');
+      return;
+    }
+
+    _phaseService!.getActivePhasesStream(organizationId).listen(
       (phases) {
         _phases = phases;
         notifyListeners();
@@ -158,7 +196,12 @@ class ProductionDataProvider extends ChangeNotifier {
 
   /// Inicializar stream de estados
   Future<void> _initializeStatusesStream(String organizationId) async {
-    _statusService.watchStatuses(organizationId).listen(
+    if (_statusService == null) {
+      debugPrint('❌ StatusService is null');
+      return;
+    }
+
+    _statusService!.watchStatuses(organizationId).listen(
       (statuses) {
         _statuses = statuses;
         notifyListeners();
@@ -173,7 +216,12 @@ class ProductionDataProvider extends ChangeNotifier {
 
   /// Inicializar stream de clientes
   Future<void> _initializeClientsStream(String organizationId) async {
-    _clientService.watchClients(organizationId).listen(
+    if (_clientService == null) {
+      debugPrint('❌ ClientService is null');
+      return;
+    }
+
+    _clientService!.watchClients(organizationId).listen(
       (clients) {
         _clients = clients;
         notifyListeners();
@@ -186,10 +234,51 @@ class ProductionDataProvider extends ChangeNotifier {
     );
   }
 
+  /// Inicializar stream de productos de catálogo
+  Future<void> _initializeCatalogProductsStream(String organizationId) async {
+    if (_catalogService == null) {
+      debugPrint('❌ CatalogService is null');
+      return;
+    }
+
+    _catalogService!.getOrganizationProductsStream(organizationId).listen(
+      (products) {
+        _catalogProducts = products;
+        notifyListeners();
+      },
+      onError: (error) {
+        _error = 'Error al cargar productos de catálogo: $error';
+        notifyListeners();
+        debugPrint('❌ Error watching catalog products: $error');
+      },
+    );
+  }
+
+  /// Inicializar stream de proyectos
+  Future<void> _initializeProjectsStream(
+      String organizationId, String userId) async {
+    if (_projectService == null) {
+      debugPrint('❌ ProjectService is null');
+      return;
+    }
+
+    _projectService!.watchProjectsWithScope(organizationId, userId).listen(
+      (projects) {
+        _projects = projects;
+        notifyListeners();
+      },
+      onError: (error) {
+        _error = 'Error al cargar proyectos: $error';
+        notifyListeners();
+        debugPrint('❌ Error watching projects: $error');
+      },
+    );
+  }
+
   // ==================== MÉTODOS DE ACCESO OPTIMIZADOS ====================
 
   /// Obtener todos los productos de todos los lotes (para Production Screen)
-  /// 
+  ///
   /// Retorna una lista aplanada con información del lote incluida
   List<Map<String, dynamic>> getAllProducts() {
     final List<Map<String, dynamic>> allProducts = [];
@@ -248,10 +337,33 @@ class ProductionDataProvider extends ChangeNotifier {
     }
   }
 
+  /// Obtener producto de catálogo por ID
+  ProductCatalogModel? getCatalogProductById(String productId) {
+    try {
+      return _catalogProducts.firstWhere((product) => product.id == productId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Obtener proyecto por ID
+  ProjectModel? getProjectById(String projectId) {
+    try {
+      return _projects.firstWhere((project) => project.id == projectId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Obtener proyectos de un cliente
+  List<ProjectModel> getProjectsByClientId(String clientId) {
+    return _projects.where((project) => project.clientId == clientId).toList();
+  }
+
   // ==================== FILTRADO EFICIENTE EN MEMORIA ====================
 
   /// Filtrar lotes por criterios
-  /// 
+  ///
   /// Mucho más eficiente que hacer nuevas queries a Firebase
   List<ProductionBatchModel> filterBatches({
     String? clientId,
@@ -265,7 +377,8 @@ class ProductionDataProvider extends ChangeNotifier {
     }
 
     if (projectId != null) {
-      filtered = filtered.where((batch) => batch.projectId == projectId).toList();
+      filtered =
+          filtered.where((batch) => batch.projectId == projectId).toList();
     }
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
@@ -324,7 +437,8 @@ class ProductionDataProvider extends ChangeNotifier {
       filtered = filtered.where((item) {
         final product = item['product'] as BatchProductModel;
         return product.productName.toLowerCase().contains(query) ||
-            (product.productReference?.toLowerCase().contains(query) ?? false) ||
+            (product.productReference?.toLowerCase().contains(query) ??
+                false) ||
             (product.productCode.toLowerCase().contains(query));
       }).toList();
     }
@@ -353,12 +467,76 @@ class ProductionDataProvider extends ChangeNotifier {
     }).toList();
   }
 
+  /// Filtrar productos de catálogo por criterios
+  List<ProductCatalogModel> filterCatalogProducts({
+    String? clientId,
+    String? projectId,
+    String? family,
+    String? searchQuery,
+  }) {
+    var filtered = _catalogProducts;
+
+    if (clientId != null) {
+      filtered =
+          filtered.where((product) => product.clientId == clientId).toList();
+    }
+
+    if (projectId != null) {
+      filtered = filtered
+          .where((product) => product.projects.contains(projectId))
+          .toList();
+    }
+
+    if (family != null) {
+      filtered = filtered.where((product) => product.family == family).toList();
+    }
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      final query = searchQuery.toLowerCase();
+      filtered = filtered.where((product) {
+        return product.name.toLowerCase().contains(query) ||
+            (product.reference?.toLowerCase().contains(query) ?? false) ||
+            (product.description?.toLowerCase().contains(query) ?? false);
+      }).toList();
+    }
+
+    return filtered;
+  }
+
+  /// Filtrar proyectos por criterios
+  List<ProjectModel> filterProjects({
+    String? clientId,
+    String? searchQuery,
+    String? status,
+  }) {
+    var filtered = _projects;
+
+    if (clientId != null) {
+      filtered =
+          filtered.where((project) => project.clientId == clientId).toList();
+    }
+
+    if (status != null) {
+      filtered = filtered.where((project) => project.status == status).toList();
+    }
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      final query = searchQuery.toLowerCase();
+      filtered = filtered.where((project) {
+        return project.name.toLowerCase().contains(query) ||
+            project.description.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    return filtered;
+  }
+
   // ==================== ESTADÍSTICAS RÁPIDAS ====================
 
   /// Obtener estadísticas de producción (sin queries adicionales)
   Map<String, int> getProductionStats() {
     final allProducts = getAllProducts();
-    
+
     int totalProducts = allProducts.length;
     int pendingProducts = 0;
     int inProgressProducts = 0;
@@ -367,7 +545,7 @@ class ProductionDataProvider extends ChangeNotifier {
 
     for (final item in allProducts) {
       final product = item['product'] as BatchProductModel;
-      
+
       // Por urgencia
       if (product.urgencyLevel == 'urgent') {
         urgentProducts++;
@@ -398,7 +576,7 @@ class ProductionDataProvider extends ChangeNotifier {
   /// Obtener conteo de productos por fase
   Map<String, int> getProductCountByPhase() {
     final Map<String, int> counts = {};
-    
+
     for (final phase in _phases) {
       counts[phase.id] = 0;
     }
@@ -415,7 +593,7 @@ class ProductionDataProvider extends ChangeNotifier {
   /// Obtener conteo de productos por estado
   Map<String, int> getProductCountByStatus() {
     final Map<String, int> counts = {};
-    
+
     for (final status in _statuses) {
       counts[status.id] = 0;
     }
@@ -431,6 +609,83 @@ class ProductionDataProvider extends ChangeNotifier {
     return counts;
   }
 
+  // ==================== ESTADÍSTICAS POR CLIENTE ====================
+
+  /// Obtener estadísticas de un cliente específico
+  ///
+  /// Retorna:
+  /// - projectsCount: Número de proyectos únicos del cliente
+  /// - batchProductsCount: Número total de productos en lotes de este cliente
+  /// - catalogProductsCount: Número total de productos de catálogo del cliente
+  Map<String, int> getClientStats(String clientId) {
+    // Contar productos en lotes del cliente
+    final clientBatchProducts = getAllProducts().where((item) {
+      final batch = item['batch'] as ProductionBatchModel;
+      return batch.clientId == clientId;
+    }).length;
+
+    // Contar proyectos únicos del cliente
+    final projectIds = <String>{};
+    for (final project in _projects) {
+      if (project.clientId == clientId) {
+        projectIds.add(project.id);
+      }
+    }
+
+    // Productos específicos del cliente + productos en sus proyectos
+    final catalogProductsForClient = _catalogProducts.where((product) {
+      // Productos específicos del cliente
+      if (product.clientId == clientId) return true;
+
+      // Productos en proyectos del cliente
+      for (final projectId in projectIds) {
+        if (product.projects.contains(projectId)) return true;
+      }
+
+      return false;
+    }).length;
+
+    return {
+      'projectsCount': projectIds.length,
+      'batchProductsCount': clientBatchProducts,
+      'catalogProductsCount': catalogProductsForClient,
+    };
+  }
+
+  // ==================== ESTADÍSTICAS POR PROYECTO ====================
+
+  /// Obtener estadísticas de un proyecto específico
+  ///
+  /// Retorna:
+  /// - familiesCount: Número de familias diferentes de productos del catálogo
+  /// - catalogProductsCount: Número total de productos de catálogo del proyecto
+  /// - batchProductsCount: Número total de productos en lotes del proyecto
+  Map<String, int> getProjectStats(String projectId) {
+    final projectCatalogProducts = _catalogProducts
+        .where((product) => product.projects.contains(projectId))
+        .toList();
+
+    // Contar familias únicas en el catálogo
+    final families = <String>{};
+    for (final product in projectCatalogProducts) {
+      if (product.family != null && product.family!.isNotEmpty) {
+        families.add(product.family!);
+      }
+    }
+
+    // También contar productos en lotes (para referencia)
+    final batchProducts = getAllProducts().where((item) {
+      final batch = item['batch'] as ProductionBatchModel;
+      return batch.projectId == projectId;
+    }).length;
+
+    return {
+      'familiesCount': families.length,
+      'catalogProductsCount': projectCatalogProducts.length,
+      'batchProductsCount': batchProducts,
+    };
+  }
+
   // ==================== UTILIDADES ====================
 
   /// Limpiar datos al cerrar sesión
@@ -440,6 +695,8 @@ class ProductionDataProvider extends ChangeNotifier {
     _phases = [];
     _statuses = [];
     _clients = [];
+    _catalogProducts = [];
+    _projects = [];
     _isInitialized = false;
     _isLoading = false;
     _error = null;
@@ -450,11 +707,24 @@ class ProductionDataProvider extends ChangeNotifier {
 
   /// Forzar recarga de datos
   Future<void> refresh() async {
-    if (_currentOrganizationId != null && _currentUserId != null) {
+    if (_currentOrganizationId != null &&
+        _currentUserId != null &&
+        _batchService != null &&
+        _phaseService != null &&
+        _statusService != null &&
+        _clientService != null &&
+        _catalogService != null &&
+        _projectService != null) {
       _isInitialized = false;
       await initialize(
         organizationId: _currentOrganizationId!,
         userId: _currentUserId!,
+        batchService: _batchService!,
+        phaseService: _phaseService!,
+        statusService: _statusService!,
+        clientService: _clientService!,
+        catalogService: _catalogService!,
+        projectService: _projectService!,
       );
     }
   }

@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/screens/management/management_screen.dart';
+import 'package:gestion_produccion/services/client_service.dart';
+import 'package:gestion_produccion/services/phase_service.dart';
+import 'package:gestion_produccion/services/product_catalog_service.dart';
+import 'package:gestion_produccion/services/product_status_service.dart';
+import 'package:gestion_produccion/services/production_batch_service.dart';
+import 'package:gestion_produccion/services/project_service.dart';
 import 'package:gestion_produccion/widgets/notification_badge.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
@@ -41,11 +47,13 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-/// ✅ MÉTODO CORREGIDO
   Future<void> _loadUserPermissions() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final permissionService = Provider.of<PermissionService>(context, listen: false);
-    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+
     final user = authService.currentUserData;
 
     if (user == null || user.organizationId == null) {
@@ -67,10 +75,20 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       // 3. ✅ INICIALIZAR PRODUCTION DATA PROVIDER (DESPUÉS de permisos)
-      final productionDataProvider = Provider.of<ProductionDataProvider>(context, listen: false);
+      final productionDataProvider =
+          Provider.of<ProductionDataProvider>(context, listen: false);
       await productionDataProvider.initialize(
         organizationId: user.organizationId!,
         userId: user.uid,
+        batchService:
+            Provider.of<ProductionBatchService>(context, listen: false),
+        phaseService: Provider.of<PhaseService>(context, listen: false),
+        statusService:
+            Provider.of<ProductStatusService>(context, listen: false),
+        clientService: Provider.of<ClientService>(context, listen: false),
+        catalogService:
+            Provider.of<ProductCatalogService>(context, listen: false),
+            projectService: Provider.of<ProjectService>(context, listen: false),
       );
 
       if (mounted) {

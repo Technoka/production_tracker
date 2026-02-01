@@ -26,6 +26,133 @@ class PermissionService extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
+  // ==================== CACHÉ DE PERMISOS COMUNES ====================
+  
+  Map<String, bool> _cachedPermissions = {};
+
+  // Getters rápidos para permisos comunes (acceso O(1))
+  
+  // BATCHES
+  bool get canViewBatches => _getCached('batches_view');
+  bool get canCreateBatches => _getCached('batches_create');
+  bool get canEditBatches => _getCached('batches_edit');
+  bool get canDeleteBatches => _getCached('batches_delete');
+  bool get canStartProduction => _getCached('batches_startProduction');
+  bool get canCompleteBatch => _getCached('batches_completeBatch');
+
+  // BATCH PRODUCTS
+  bool get canViewBatchProducts => _getCached('batch_products_view');
+  bool get canCreateBatchProducts => _getCached('batch_products_create');
+  bool get canEditBatchProducts => _getCached('batch_products_edit');
+  bool get canDeleteBatchProducts => _getCached('batch_products_delete');
+  bool get canChangeProductStatus => _getCached('batch_products_changeStatus');
+  bool get canChangeProductUrgency => _getCached('batch_products_changeUrgency');
+
+  // PROJECTS
+  bool get canViewProjects => _getCached('projects_view');
+  bool get canCreateProjects => _getCached('projects_create');
+  bool get canEditProjects => _getCached('projects_edit');
+  bool get canDeleteProjects => _getCached('projects_delete');
+
+  // CLIENTS
+  bool get canViewClients => _getCached('clients_view');
+  bool get canCreateClients => _getCached('clients_create');
+  bool get canEditClients => _getCached('clients_edit');
+  bool get canDeleteClients => _getCached('clients_delete');
+
+  // CATALOG
+  bool get canViewCatalog => _getCached('product_catalog_view');
+  bool get canCreateCatalogProducts => _getCached('product_catalog_create');
+  bool get canEditCatalogProducts => _getCached('product_catalog_edit');
+  bool get canDeleteCatalogProducts => _getCached('product_catalog_delete');
+
+  // PHASES
+  bool get canViewPhases => _getCached('phases_view');
+  bool get canManagePhases => _getCached('phases_manage');
+
+  // KANBAN
+  bool get canViewKanban => _getCached('kanban_view');
+  bool get canMoveProducts => _getCached('kanban_moveProducts');
+
+  // ORGANIZATION
+  bool get canManageMembers => _getCached('organization_manageMembers');
+  bool get canManageRoles => _getCached('organization_manageRoles');
+  bool get canManageSettings => _getCached('organization_manageSettings');
+  bool get canManageProductStatuses => _getCached('organization_manageProductStatuses');
+
+  // REPORTS
+  bool get canViewReports => _getCached('reports_view');
+  bool get canGenerateReports => _getCached('reports_generate');
+  bool get canExportReports => _getCached('reports_export');
+
+  /// Obtener permiso cacheado
+  bool _getCached(String key) {
+    return _cachedPermissions[key] ?? false;
+  }
+
+  /// Cachear permisos comunes para acceso rápido
+  void _cacheCommonPermissions() {
+    if (_effectivePermissions == null) {
+      _cachedPermissions = {};
+      return;
+    }
+
+    _cachedPermissions = {
+      // BATCHES
+      'batches_view': _effectivePermissions!.can('batches', 'view'),
+      'batches_create': _effectivePermissions!.can('batches', 'create'),
+      'batches_edit': _effectivePermissions!.can('batches', 'edit'),
+      'batches_delete': _effectivePermissions!.can('batches', 'delete'),
+
+      // BATCH PRODUCTS
+      'batch_products_view': _effectivePermissions!.can('batch_products', 'view'),
+      'batch_products_create': _effectivePermissions!.can('batch_products', 'create'),
+      'batch_products_edit': _effectivePermissions!.can('batch_products', 'edit'),
+      'batch_products_delete': _effectivePermissions!.can('batch_products', 'delete'),
+      'batch_products_changeStatus': _effectivePermissions!.can('batch_products', 'changeStatus'),
+      'batch_products_changeUrgency': _effectivePermissions!.can('batch_products', 'changeUrgency'),
+
+      // PROJECTS
+      'projects_view': _effectivePermissions!.can('projects', 'view'),
+      'projects_create': _effectivePermissions!.can('projects', 'create'),
+      'projects_edit': _effectivePermissions!.can('projects', 'edit'),
+      'projects_delete': _effectivePermissions!.can('projects', 'delete'),
+
+      // CLIENTS
+      'clients_view': _effectivePermissions!.can('clients', 'view'),
+      'clients_create': _effectivePermissions!.can('clients', 'create'),
+      'clients_edit': _effectivePermissions!.can('clients', 'edit'),
+      'clients_delete': _effectivePermissions!.can('clients', 'delete'),
+
+      // CATALOG
+      'product_catalog_view': _effectivePermissions!.can('product_catalog', 'view'),
+      'product_catalog_create': _effectivePermissions!.can('product_catalog', 'create'),
+      'product_catalog_edit': _effectivePermissions!.can('product_catalog', 'edit'),
+      'product_catalog_delete': _effectivePermissions!.can('product_catalog', 'delete'),
+
+      // PHASES
+      'phases_view': _effectivePermissions!.can('phases', 'view'),
+      'phases_manage': _effectivePermissions!.can('phases', 'manage'),
+
+      // KANBAN
+      'kanban_view': _effectivePermissions!.can('kanban', 'view'),
+      'kanban_moveProducts': _effectivePermissions!.can('kanban', 'moveProducts'),
+
+      // ORGANIZATION
+      'organization_manageMembers': _effectivePermissions!.can('organization', 'manageMembers'),
+      'organization_manageRoles': _effectivePermissions!.can('organization', 'manageRoles'),
+      'organization_manageSettings': _effectivePermissions!.can('organization', 'manageSettings'),
+      'organization_manageProductStatuses': _effectivePermissions!.can('organization', 'manageProductStatuses'),
+
+      // REPORTS
+      'reports_view': _effectivePermissions!.can('reports', 'view'),
+      'reports_generate': _effectivePermissions!.can('reports', 'generate'),
+      'reports_export': _effectivePermissions!.can('reports', 'export'),
+    };
+
+    debugPrint('✅ Permisos comunes cacheados: ${_cachedPermissions.length}');
+  }
+
   // ==================== INICIALIZACIÓN ====================
 
   /// Cargar permisos efectivos del usuario actual
@@ -65,9 +192,11 @@ class PermissionService extends ChangeNotifier {
 
       if (_currentRole != null) {
         // Calcular permisos efectivos (rol + overrides)
-        _effectivePermissions =
-            _currentMember!.getEffectivePermissions(_currentRole!);
+        _effectivePermissions = _currentMember!.getEffectivePermissions(_currentRole!);
       }
+
+      // ✅ CACHEAR PERMISOS COMUNES
+        _cacheCommonPermissions();
 
       _isLoading = false;
       notifyListeners();
@@ -236,6 +365,8 @@ class PermissionService extends ChangeNotifier {
           organizationId: organizationId,
         );
       }
+
+
 
       _isLoading = false;
       notifyListeners();
@@ -406,6 +537,7 @@ class PermissionService extends ChangeNotifier {
     _effectivePermissions = null;
     _error = null;
     _isLoading = false;
+    _cachedPermissions = {};
     notifyListeners();
   }
 }
