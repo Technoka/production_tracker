@@ -186,6 +186,7 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
         'expectedDeliveryDate': _productExpectedDelivery,
         'urgencyLevel': _productUrgencyLevel,
         'notes': _productNotesController.text.trim(),
+        'family': _selectedFamily,
       });
 
       // Resetear formulario
