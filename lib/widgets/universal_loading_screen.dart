@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 
@@ -8,7 +9,7 @@ class UniversalLoadingScreen extends StatelessWidget {
 
   const UniversalLoadingScreen({
     super.key,
-    this.message = "Cargando datos...",
+    this.message = "Loading",
     this.showOrganization = false,
   });
 
@@ -17,13 +18,14 @@ class UniversalLoadingScreen extends StatelessWidget {
     // Intentamos obtener datos del usuario (si existen) para mostrar contexto
     final authService = Provider.of<AuthService>(context, listen: false);
     final user = authService.currentUserData;
+    final l10n = AppLocalizations.of(context)!;
     
+    message == l10n.loading;
+
     // Usamos el color primario del tema para el fondo
-    final backgroundColor = Theme.of(context).primaryColor;
-    final textColor = Colors.white;
+    const textColor = Colors.white;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
       body: SafeArea(
         child: Center(
           child: Column(
@@ -39,8 +41,8 @@ class UniversalLoadingScreen extends StatelessWidget {
 
               // 2. Nombre de la App
               Text(
-                "PRODUCTION TRACKER",
-                style: TextStyle(
+                l10n.appName.toUpperCase(),
+                style: const TextStyle(
                   color: textColor,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -48,6 +50,7 @@ class UniversalLoadingScreen extends StatelessWidget {
                 ),
               ),
               
+              // todo: Agregar nombre de organización si está disponible
               // 3. Nombre de la Organización (Si el usuario tiene una y está logueado)
               if (showOrganization && user != null && user.role != null) ...[const SizedBox(height: 24), // Un poco más de espacio respecto al título
 
@@ -107,7 +110,7 @@ class UniversalLoadingScreen extends StatelessWidget {
               const SizedBox(height: 48),
 
               // 4. Indicador de carga
-              CircularProgressIndicator(
+              const CircularProgressIndicator(
                 strokeWidth: 3,
                 valueColor: AlwaysStoppedAnimation<Color>(textColor),
               ),
