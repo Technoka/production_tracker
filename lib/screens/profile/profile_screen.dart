@@ -334,7 +334,7 @@ class ProfileScreen extends StatelessWidget {
               // Verifica si el widget sigue montado antes de usar el contexto tras el await
               if (context.mounted) {
                 Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/login', // ⚠️ Asegúrate de que esta ruta esté definida en tu main.dart
+                  '/welcome', // ⚠️ Asegúrate de que esta ruta esté definida en tu main.dart
                   (route) => false, // Esto elimina todas las rutas anteriores
                 );
               }
