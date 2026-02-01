@@ -5,14 +5,16 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_storage/firebase_storage.dart'; // Importar storage
 import '../models/user_model.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart'; // Importar compresor
+import 'package:cloud_functions/cloud_functions.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instanceFor(
-    bucket: 'gs://production-tracker-top.firebasestorage.app'
-  );
+      bucket: 'gs://production-tracker-top.firebasestorage.app');
+
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
   User? get currentUser => _auth.currentUser;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -113,7 +115,7 @@ class AuthService extends ChangeNotifier {
       return true;
     } on FirebaseAuthException catch (e) {
       print("Error code: ${e.code}, message: ${e.message}");
-      
+
       // Mapear el código de error a un mensaje en español
       String errorMessage;
       if (e.code == 'user-not-found') {
@@ -132,11 +134,11 @@ class AuthService extends ChangeNotifier {
       } else {
         errorMessage = 'Ha ocurrido un error: ${e.message}';
       }
-      
+
       _error = errorMessage;
       _isLoading = false;
       notifyListeners();
-      
+
       // Lanzamos la excepción con el mensaje correcto para que la UI la capture
       throw errorMessage;
     } catch (e) {
@@ -144,14 +146,13 @@ class AuthService extends ChangeNotifier {
       if (e is String) {
         rethrow;
       }
-      
+
       _error = 'Error inesperado: $e';
       _isLoading = false;
       notifyListeners();
       return false;
     }
   }
-
 
   // Cerrar sesión
   Future<void> signOut() async {
@@ -160,15 +161,15 @@ class AuthService extends ChangeNotifier {
       _currentUserData = null;
       _error = null;
       _isLoading = false;
-      
+
       // Cerrar sesión de Google primero (sin await para evitar bloqueos)
       _googleSignIn.signOut().catchError((e) {
         debugPrint('Error al cerrar sesión de Google: $e');
       });
-      
+
       // Cerrar sesión de Firebase
       await _auth.signOut();
-      
+
       // Notificar cambios
       notifyListeners();
     } catch (e) {
@@ -190,7 +191,7 @@ class AuthService extends ChangeNotifier {
 
       // 1. Iniciar flujo
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
+
       if (googleUser == null) {
         _isLoading = false;
         notifyListeners();
@@ -198,10 +199,12 @@ class AuthService extends ChangeNotifier {
       }
 
       // 2. Obtener auth
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       if (googleAuth.accessToken == null && googleAuth.idToken == null) {
-        throw Exception("Tokens de Google nulos. Verifica la configuración de GCP.");
+        throw Exception(
+            "Tokens de Google nulos. Verifica la configuración de GCP.");
       }
 
       // 3. Credencial Firebase
@@ -211,7 +214,8 @@ class AuthService extends ChangeNotifier {
       );
 
       // 4. Login en Firebase
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+      final UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
       final user = userCredential.user;
 
       if (user == null) {
@@ -225,7 +229,8 @@ class AuthService extends ChangeNotifier {
         // --- USUARIO NUEVO ---
         if (role == null) {
           await signOut();
-          _error = 'Selecciona un tipo de cuenta'; // Este string exacto es el que espera tu LoginScreen
+          _error =
+              'Selecciona un tipo de cuenta'; // Este string exacto es el que espera tu LoginScreen
           _isLoading = false;
           notifyListeners();
           return false;
@@ -234,12 +239,13 @@ class AuthService extends ChangeNotifier {
         // Validación defensiva del email
         final email = user.email;
         if (email == null) {
-          throw Exception("Tu cuenta de Google no comparte el email. No podemos registrarte.");
+          throw Exception(
+              "Tu cuenta de Google no comparte el email. No podemos registrarte.");
         }
 
         final userModel = UserModel(
           uid: user.uid,
-          email: email, 
+          email: email,
           name: user.displayName ?? 'Usuario',
           role: role,
           createdAt: DateTime.now(),
@@ -247,45 +253,48 @@ class AuthService extends ChangeNotifier {
           // Asegúrate de pasar todos los campos que tu modelo requiera
         );
 
-        await _firestore.collection('users').doc(user.uid).set(userModel.toMap());
+        await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .set(userModel.toMap());
         _currentUserData = userModel;
-        
       } else {
         // --- USUARIO EXISTENTE ---
         // Aquí suele estar el error: los datos en Firestore están corruptos o incompletos
         try {
-           // Usamos el mapa directamente para evitar que fromMap crashee si falta algo
-           final data = userDoc.data();
-           if (data == null) throw Exception("Documento de usuario vacío");
-           
-           // Intenta cargar, si falla fromMap, capturamos el error específico
-           _currentUserData = UserModel.fromMap(data);
-           
-           if (!_currentUserData!.isActive) {
-             await signOut();
-             _error = 'Tu cuenta ha sido desactivada.';
-             _isLoading = false;
-             notifyListeners();
-             return false;
-           }
+          // Usamos el mapa directamente para evitar que fromMap crashee si falta algo
+          final data = userDoc.data();
+          if (data == null) throw Exception("Documento de usuario vacío");
+
+          // Intenta cargar, si falla fromMap, capturamos el error específico
+          _currentUserData = UserModel.fromMap(data);
+
+          if (!_currentUserData!.isActive) {
+            await signOut();
+            _error = 'Tu cuenta ha sido desactivada.';
+            _isLoading = false;
+            notifyListeners();
+            return false;
+          }
         } catch (e) {
           print("Error al mapear usuario existente: $e");
           // Si el usuario existe pero está corrupto, ¿qué hacemos?
           // Opción: Sobreescribirlo o lanzar error
-          throw Exception("Error en tus datos de perfil: $e. Contacta soporte.");
+          throw Exception(
+              "Error en tus datos de perfil: $e. Contacta soporte.");
         }
       }
 
       _isLoading = false;
       notifyListeners();
       return true;
-
     } on FirebaseAuthException catch (e) {
       _error = _getErrorMessage(e.code);
       _isLoading = false;
       notifyListeners();
       return false;
-    } catch (e, stackTrace) { // Agregamos stackTrace para ver en consola
+    } catch (e, stackTrace) {
+      // Agregamos stackTrace para ver en consola
       print("Error detallado: $e");
       print(stackTrace);
       _error = 'Error: $e'; // Mostramos el error real en pantalla
@@ -381,7 +390,8 @@ class AuthService extends ChangeNotifier {
       final Uint8List imageBytes = await imageFile.readAsBytes();
 
       // 2. Comprimir
-      final Uint8List compressedBytes = await FlutterImageCompress.compressWithList(
+      final Uint8List compressedBytes =
+          await FlutterImageCompress.compressWithList(
         imageBytes,
         minWidth: 256,
         minHeight: 256,
@@ -390,7 +400,8 @@ class AuthService extends ChangeNotifier {
       );
 
       // 3. Subir
-      await ref.putData(compressedBytes, SettableMetadata(contentType: 'image/png'));
+      await ref.putData(
+          compressedBytes, SettableMetadata(contentType: 'image/png'));
       final downloadUrl = await ref.getDownloadURL();
 
       // 4. Actualizar perfil
@@ -399,7 +410,7 @@ class AuthService extends ChangeNotifier {
         'photoURL': downloadUrl,
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      
+
       await loadUserData(); // Refrescar datos locales
 
       _isLoading = false;
@@ -412,6 +423,7 @@ class AuthService extends ChangeNotifier {
       return null;
     }
   }
+
   // Cambiar contraseña
   Future<bool> changePassword({
     required String currentPassword,
@@ -454,38 +466,36 @@ class AuthService extends ChangeNotifier {
   }
 
   // Cargar datos del usuario desde Firestore
-Future<void> loadUserData() async {
-  if (currentUser == null) {
-    _currentUserData = null;
-    notifyListeners();
-    return;
-  }
+  Future<void> loadUserData() async {
+    if (currentUser == null) {
+      _currentUserData = null;
+      notifyListeners();
+      return;
+    }
 
-  try {
-    final doc = await _firestore
-        .collection('users')
-        .doc(currentUser!.uid)
-        .get();
-    
-    if (doc.exists && doc.data() != null) {
-      // Usamos un try-catch interno por si el mapeo de datos falla
-      try {
-        _currentUserData = UserModel.fromMap(doc.data()!);
-      } catch (mapError) {
-        debugPrint('Error de mapeo en UserModel: $mapError');
+    try {
+      final doc =
+          await _firestore.collection('users').doc(currentUser!.uid).get();
+
+      if (doc.exists && doc.data() != null) {
+        // Usamos un try-catch interno por si el mapeo de datos falla
+        try {
+          _currentUserData = UserModel.fromMap(doc.data()!);
+        } catch (mapError) {
+          debugPrint('Error de mapeo en UserModel: $mapError');
+          _currentUserData = null;
+        }
+      } else {
         _currentUserData = null;
       }
-    } else {
+    } catch (e) {
+      debugPrint('Error al cargar datos del usuario: $e');
       _currentUserData = null;
-    }
-  } catch (e) {
-    debugPrint('Error al cargar datos del usuario: $e');
-    _currentUserData = null;
-  } finally {
-    // ESTO ES LO MÁS IMPORTANTE: 
-    // Siempre avisamos a la app que la carga terminó, sea con éxito o error.
-    _isLoading = false; 
-    notifyListeners();
+    } finally {
+      // ESTO ES LO MÁS IMPORTANTE:
+      // Siempre avisamos a la app que la carga terminó, sea con éxito o error.
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -540,21 +550,18 @@ Future<void> loadUserData() async {
         .doc(user.uid)
         .snapshots()
         .map((snapshot) {
-          if (!snapshot.exists || snapshot.data() == null) return null;
-          // Asegúrate de que tu UserModel tenga fromMap
-          return UserModel.fromMap(snapshot.data()!);
-        });
+      if (!snapshot.exists || snapshot.data() == null) return null;
+      // Asegúrate de que tu UserModel tenga fromMap
+      return UserModel.fromMap(snapshot.data()!);
+    });
   }
 
-    /// Obtener cliente por ID (one-time)
+  /// Obtener cliente por ID (one-time)
   Future<UserModel?> getUserById(
     String userId,
   ) async {
     try {
-      final doc = await _firestore
-          .collection('users')
-            .doc(userId)
-          .get();
+      final doc = await _firestore.collection('users').doc(userId).get();
 
       if (!doc.exists) return null;
       return UserModel.fromMap(doc.data()!);
@@ -563,4 +570,180 @@ Future<void> loadUserData() async {
       return null;
     }
   }
+
+// ==================== MÉTODOS CLOUD FUNCTIONS ====================
+
+/// Crear usuario con email/password y unirse a organización
+/// Usa Cloud Function para seguridad
+Future<Map<String, dynamic>?> createUserWithEmailAndJoin({
+  required String email,
+  required String password,
+  required String name,
+  String? phone,
+  required String invitationId,
+  required String organizationId,
+  required String roleId,
+  String? clientId,
+}) async {
+  try {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    // Llamar Cloud Function
+    final result = await _functions
+        .httpsCallable('createUserWithEmailAndJoin')
+        .call({
+      'email': email,
+      'password': password,
+      'name': name,
+      'phone': phone,
+      'invitationId': invitationId,
+      'organizationId': organizationId,
+      'roleId': roleId,
+      'clientId': clientId,
+    });
+
+    // Iniciar sesión con el nuevo usuario
+    await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    // Cargar datos del usuario
+    await loadUserData();
+
+    _isLoading = false;
+    notifyListeners();
+
+    return {
+      'success': true,
+      'userId': result.data['userId'],
+      'organizationId': result.data['organizationId'],
+    };
+  } on FirebaseFunctionsException catch (e) {
+    // Mensajes de error más claros
+    if (e.code == 'already-exists' || e.message?.contains('already exists') == true) {
+      _error = 'Este correo ya está registrado';
+    } else {
+      _error = e.message ?? 'Error al crear cuenta';
+    }
+    _isLoading = false;
+    notifyListeners();
+    return null;
+  } on FirebaseAuthException catch (e) {
+    // Errores específicos de Firebase Auth
+    if (e.code == 'email-already-in-use') {
+      _error = 'Este correo ya está registrado';
+    } else {
+      _error = _getErrorMessage(e.code);
+    }
+    _isLoading = false;
+    notifyListeners();
+    return null;
+  } catch (e) {
+    _error = 'Error inesperado: $e';
+    _isLoading = false;
+    notifyListeners();
+    return null;
+  }
+}
+
+/// Unirse a organización con Google Sign-In
+/// Usuario ya está autenticado, solo se une
+Future<Map<String, dynamic>?> joinOrganizationWithGoogle({
+  required String invitationId,
+  required String organizationId,
+  required String roleId,
+  String? clientId,
+  String? name,
+  String? phone,
+}) async {
+  try {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    // Verificar que el usuario esté autenticado
+    if (_auth.currentUser == null) {
+      throw Exception('Usuario no autenticado');
+    }
+
+    // Llamar Cloud Function
+    final result = await _functions
+        .httpsCallable('joinOrganizationWithGoogle')
+        .call({
+      'invitationId': invitationId,
+      'organizationId': organizationId,
+      'roleId': roleId,
+      'clientId': clientId,
+      'name': name ?? _auth.currentUser!.displayName,
+      'phone': phone,
+    });
+
+    // Recargar datos del usuario
+    await loadUserData();
+
+    _isLoading = false;
+    notifyListeners();
+
+    return {
+      'success': true,
+      'userId': result.data['userId'],
+      'organizationId': result.data['organizationId'],
+    };
+  } on FirebaseFunctionsException catch (e) {
+    _error = e.message ?? 'Error al unirse';
+    _isLoading = false;
+    notifyListeners();
+    return null;
+  } catch (e) {
+    _error = 'Error inesperado: $e';
+    _isLoading = false;
+    notifyListeners();
+    return null;
+  }
+}
+
+/// Sign in with Google (solo autenticación, sin unirse)
+/// Para uso en RegisterScreen antes de unirse
+Future<UserCredential?> signInWithGoogleOnly() async {
+  try {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    // Trigger Google Sign In
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+    if (googleUser == null) {
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    }
+
+    // Obtain auth details
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
+    // Create credential
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    // Sign in to Firebase
+    final userCredential = await _auth.signInWithCredential(credential);
+
+    _isLoading = false;
+    notifyListeners();
+
+    return userCredential;
+  } catch (e) {
+    _error = 'Error con Google Sign-In: $e';
+    _isLoading = false;
+    notifyListeners();
+    return null;
+  }
+}
 }

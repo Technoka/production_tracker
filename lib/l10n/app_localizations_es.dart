@@ -2858,7 +2858,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get statusChangeError => 'Error al cambiar el estado';
 
   @override
-  String get fillRequiredFields => 'Completa los campos requeridos';
+  String get fillRequiredFields => 'Rellena los campos requeridos para crear tu cuenta';
 
   @override
   String get defectDescription => 'Descripción del Defecto';
@@ -3011,7 +3011,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get createFamily => 'Crear familia';
 
   @override
-  String get optional => 'Opcional';
+  String get optional => 'opcional';
 
   @override
   String get exitWithoutSaving => 'Salir sin guardar';
@@ -4076,4 +4076,37 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get orders => 'Pedidos';
+
+  @override
+  String get joiningOrganization => 'Te estás uniendo a';
+
+  @override
+  String get asRole => 'Como';
+
+  @override
+  String get completeYourProfile => 'Completa tu perfil';
+
+  @override
+  String get passwordMinLength => 'Mínimo 6 caracteres';
+
+  @override
+  String get createWithGoogle => 'Crear con Google';
+
+  @override
+  String get createWithEmail => 'Crear con Email';
+
+  @override
+  String get registrationError => 'Error al crear la cuenta';
+
+  @override
+  String get createAccount => 'Crear cuenta';
+
+  @override
+  String get accountAlreadyExists => 'Cuenta ya existe';
+
+  @override
+  String get accountExistsMessage => 'Este correo ya está registrado.';
+
+  @override
+  String get signInAndJoin => 'Iniciar sesión y unirme';
 }

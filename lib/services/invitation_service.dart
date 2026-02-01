@@ -1,14 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'dart:math';
 import '../models/invitation_model.dart';
 
 /// Service para gestión de invitaciones directas
-/// 
-/// Permite a los admins crear invitaciones con código y rol predefinido
-/// para que nuevos usuarios se unan automáticamente
+///
+/// VERSIÓN 2.0: Usa colección global /invitations y Cloud Functions
 class InvitationService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
   String? _error;
   String? get error => _error;
@@ -18,12 +19,14 @@ class InvitationService extends ChangeNotifier {
 
   // ==================== CREAR INVITACIÓN ====================
 
-  /// Crear invitación directa
+  /// Crear invitación directa en colección global
   Future<InvitationModel?> createInvitation({
     required String organizationId,
     required String roleId,
     required String createdBy,
     String? description,
+    String? clientId,
+    String? clientName,
     int maxUses = 1,
     int daysUntilExpiration = 7,
   }) async {
@@ -32,15 +35,15 @@ class InvitationService extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      // Generar código único
       final code = _generateInvitationCode();
 
-      // Crear invitación
       final invitation = InvitationModel(
-        id: '', // Se asignará automáticamente
+        id: '',
         organizationId: organizationId,
         code: code,
         roleId: roleId,
+        clientId: clientId,
+        clientName: clientName,
         createdBy: createdBy,
         createdAt: DateTime.now(),
         expiresAt: DateTime.now().add(Duration(days: daysUntilExpiration)),
@@ -48,9 +51,8 @@ class InvitationService extends ChangeNotifier {
         description: description,
       );
 
+      // ✅ Colección global
       final docRef = await _firestore
-          .collection('organizations')
-          .doc(organizationId)
           .collection('invitations')
           .add(invitation.toMap());
 
@@ -67,9 +69,9 @@ class InvitationService extends ChangeNotifier {
     }
   }
 
-  // ==================== VALIDAR Y USAR INVITACIÓN ====================
+  // ==================== VALIDAR INVITACIÓN ====================
 
-  /// Validar código de invitación
+  /// Validar código usando Cloud Function
   Future<InvitationModel?> validateInvitationCode({
     required String code,
   }) async {
@@ -78,113 +80,131 @@ class InvitationService extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      // Buscar en todas las organizaciones
-      // (podría optimizarse con un índice global, pero por ahora así funciona)
-      final orgsSnapshot = await _firestore
-          .collection('organizations')
-          .get();
+      debugPrint('🔍 Validando código: $code');
 
-      for (final orgDoc in orgsSnapshot.docs) {
-        final invitationsSnapshot = await _firestore
-            .collection('organizations')
-            .doc(orgDoc.id)
-            .collection('invitations')
-            .where('code', isEqualTo: code.toUpperCase())
-            .limit(1)
-            .get();
+      final result = await _functions
+          .httpsCallable('validateInvitationCode')
+          .call({'code': code.toUpperCase()});
 
-        if (invitationsSnapshot.docs.isNotEmpty) {
-          final invitation = InvitationModel.fromMap(
-            invitationsSnapshot.docs.first.data(),
-            invitationsSnapshot.docs.first.id,
-          );
+      debugPrint('✅ Respuesta recibida: ${result.data}');
 
-          // Verificar validez
-          if (!invitation.canBeUsed) {
-            if (invitation.isExpired) {
-              _error = 'Esta invitación ha expirado';
-            } else if (invitation.isRevoked) {
-              _error = 'Esta invitación ha sido revocada';
-            } else if (invitation.hasReachedMaxUses) {
-              _error = 'Esta invitación ya alcanzó el máximo de usos';
-            } else {
-              _error = 'Esta invitación no está activa';
-            }
-            _isLoading = false;
-            notifyListeners();
-            return null;
-          }
-
-          _isLoading = false;
-          notifyListeners();
-          return invitation;
-        }
+      // Manejar la respuesta de forma segura
+      final responseData = result.data;
+      
+      if (responseData == null) {
+        throw Exception('Respuesta vacía del servidor');
       }
 
-      _error = 'Código de invitación inválido';
+      // Convertir a Map de forma segura
+      Map<String, dynamic> dataMap;
+      if (responseData is Map) {
+        dataMap = Map<String, dynamic>.from(responseData);
+      } else {
+        throw Exception('Formato de respuesta inválido');
+      }
+
+      // Obtener el objeto invitation
+      final invitationData = dataMap['invitation'];
+      if (invitationData == null) {
+        throw Exception('No se encontró información de invitación');
+      }
+
+      Map<String, dynamic> invitationMap;
+      if (invitationData is Map) {
+        invitationMap = Map<String, dynamic>.from(invitationData);
+      } else {
+        throw Exception('Formato de invitación inválido');
+      }
+
+      debugPrint('📦 Datos de invitación: $invitationMap');
+
+      // Crear el modelo manualmente
+      final invitation = InvitationModel(
+        id: invitationMap['id']?.toString() ?? '',
+        organizationId: invitationMap['organizationId']?.toString() ?? '',
+        code: invitationMap['code']?.toString() ?? '',
+        type: invitationMap['type']?.toString() ?? 'direct',
+        roleId: invitationMap['roleId']?.toString() ?? '',
+        clientId: invitationMap['clientId']?.toString(),
+        clientName: invitationMap['clientName']?.toString(),
+        createdBy: invitationMap['createdBy']?.toString() ?? '',
+        createdAt: _parseTimestamp(invitationMap['createdAt']),
+        expiresAt: _parseTimestamp(invitationMap['expiresAt']),
+        maxUses: _parseInt(invitationMap['maxUses']) ?? 1,
+        status: invitationMap['status']?.toString() ?? 'active',
+        usedCount: _parseInt(invitationMap['usedCount']) ?? 0,
+        usedBy: _parseStringList(invitationMap['usedBy']),
+        description: invitationMap['description']?.toString(),
+      );
+
+      debugPrint('✅ Invitación creada: ${invitation.code}');
+
+      _isLoading = false;
+      notifyListeners();
+      return invitation;
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint('❌ Error FirebaseFunctions: ${e.code} - ${e.message}');
+      _error = e.message ?? 'Código inválido';
       _isLoading = false;
       notifyListeners();
       return null;
     } catch (e) {
-      _error = 'Error al validar invitación: $e';
+      debugPrint('❌ Error general: $e');
+      _error = 'Error validando código: $e';
       _isLoading = false;
       notifyListeners();
       return null;
     }
   }
 
-  /// Marcar invitación como usada
-  Future<bool> markInvitationAsUsed({
-    required String organizationId,
-    required String invitationId,
-    required String userId,
-  }) async {
-    try {
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('invitations')
-          .doc(invitationId)
-          .update({
-        'usedCount': FieldValue.increment(1),
-        'usedBy': FieldValue.arrayUnion([userId]),
-      });
+  // ==================== HELPERS DE PARSING ====================
 
-      // Si alcanzó el máximo de usos, marcar como used
-      final invDoc = await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('invitations')
-          .doc(invitationId)
-          .get();
-
-      if (invDoc.exists) {
-        final inv = InvitationModel.fromMap(invDoc.data()!, invDoc.id);
-        if (inv.hasReachedMaxUses) {
-          await _firestore
-              .collection('organizations')
-              .doc(organizationId)
-              .collection('invitations')
-              .doc(invitationId)
-              .update({'status': 'used'});
-        }
-      }
-
-      return true;
-    } catch (e) {
-      debugPrint('Error marcando invitación como usada: $e');
-      return false;
+  /// Parsear Timestamp a DateTime
+  DateTime _parseTimestamp(dynamic value) {
+    if (value == null) return DateTime.now();
+    
+    if (value is Timestamp) {
+      return value.toDate();
     }
+    
+    if (value is Map) {
+      // Formato: {_seconds: xxx, _nanoseconds: xxx}
+      final seconds = value['_seconds'] ?? value['seconds'];
+      
+      if (seconds != null) {
+        return DateTime.fromMillisecondsSinceEpoch(
+          (seconds as num).toInt() * 1000,
+        );
+      }
+    }
+    
+    return DateTime.now();
   }
 
-  // ==================== GESTIÓN DE INVITACIONES ====================
+  /// Parsear número de forma segura
+  int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
 
-  /// Stream de invitaciones activas de una organización
+  /// Parsear lista de strings
+  List<String> _parseStringList(dynamic value) {
+    if (value == null) return [];
+    if (value is List) {
+      return value.map((e) => e.toString()).toList();
+    }
+    return [];
+  }
+
+  // ==================== GESTIÓN ====================
+
   Stream<List<InvitationModel>> watchActiveInvitations(String organizationId) {
     return _firestore
-        .collection('organizations')
-        .doc(organizationId)
         .collection('invitations')
+        .where('organizationId', isEqualTo: organizationId)
         .where('status', isEqualTo: 'active')
         .orderBy('createdAt', descending: true)
         .snapshots()
@@ -193,15 +213,13 @@ class InvitationService extends ChangeNotifier {
             .toList());
   }
 
-  /// Obtener todas las invitaciones de una organización
   Future<List<InvitationModel>> getOrganizationInvitations(
     String organizationId,
   ) async {
     try {
       final snapshot = await _firestore
-          .collection('organizations')
-          .doc(organizationId)
           .collection('invitations')
+          .where('organizationId', isEqualTo: organizationId)
           .orderBy('createdAt', descending: true)
           .get();
 
@@ -209,52 +227,47 @@ class InvitationService extends ChangeNotifier {
           .map((doc) => InvitationModel.fromMap(doc.data(), doc.id))
           .toList();
     } catch (e) {
-      debugPrint('Error obteniendo invitaciones: $e');
+      debugPrint('Error: $e');
       return [];
     }
   }
 
-  /// Revocar invitación
-  Future<bool> revokeInvitation({
-    required String organizationId,
+  Future<InvitationModel?> getInvitationById({
     required String invitationId,
   }) async {
     try {
+      final doc =
+          await _firestore.collection('invitations').doc(invitationId).get();
+      if (!doc.exists) return null;
+      return InvitationModel.fromMap(doc.data()!, doc.id);
+    } catch (e) {
+      debugPrint('Error: $e');
+      return null;
+    }
+  }
+
+  Future<bool> revokeInvitation({required String invitationId}) async {
+    try {
       await _firestore
-          .collection('organizations')
-          .doc(organizationId)
           .collection('invitations')
           .doc(invitationId)
-          .update({
-        'status': 'revoked',
-      });
-
+          .update({'status': 'revoked'});
       notifyListeners();
       return true;
     } catch (e) {
-      _error = 'Error al revocar invitación: $e';
+      _error = 'Error: $e';
       notifyListeners();
       return false;
     }
   }
 
-  /// Eliminar invitación
-  Future<bool> deleteInvitation({
-    required String organizationId,
-    required String invitationId,
-  }) async {
+  Future<bool> deleteInvitation({required String invitationId}) async {
     try {
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('invitations')
-          .doc(invitationId)
-          .delete();
-
+      await _firestore.collection('invitations').doc(invitationId).delete();
       notifyListeners();
       return true;
     } catch (e) {
-      _error = 'Error al eliminar invitación: $e';
+      _error = 'Error: $e';
       notifyListeners();
       return false;
     }
@@ -262,14 +275,12 @@ class InvitationService extends ChangeNotifier {
 
   // ==================== UTILIDADES ====================
 
-  /// Generar código de invitación único (8 caracteres)
   String _generateInvitationCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     final random = Random.secure();
     return List.generate(8, (_) => chars[random.nextInt(chars.length)]).join();
   }
 
-  /// Limpiar error
   void clearError() {
     _error = null;
     notifyListeners();

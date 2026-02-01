@@ -1406,7 +1406,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginError.
   ///
   /// In en, this message translates to:
-  /// **'Error logging in'**
+  /// **'Login error'**
   String get loginError;
 
   /// No description provided for @accountTypeTitle.
@@ -5672,7 +5672,7 @@ abstract class AppLocalizations {
   /// No description provided for @fillRequiredFields.
   ///
   /// In en, this message translates to:
-  /// **'Fill required fields'**
+  /// **'Fill in the required fields to create your account'**
   String get fillRequiredFields;
 
   /// No description provided for @defectDescription.
@@ -5966,7 +5966,7 @@ abstract class AppLocalizations {
   /// No description provided for @optional.
   ///
   /// In en, this message translates to:
-  /// **'Optional'**
+  /// **'optional'**
   String get optional;
 
   /// No description provided for @exitWithoutSaving.
@@ -8074,6 +8074,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Orders'**
   String get orders;
+
+  /// No description provided for @joiningOrganization.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re joining'**
+  String get joiningOrganization;
+
+  /// No description provided for @asRole.
+  ///
+  /// In en, this message translates to:
+  /// **'As'**
+  String get asRole;
+
+  /// No description provided for @completeYourProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete your profile'**
+  String get completeYourProfile;
+
+  /// No description provided for @passwordMinLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum 6 characters'**
+  String get passwordMinLength;
+
+  /// No description provided for @createWithGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create with Google'**
+  String get createWithGoogle;
+
+  /// No description provided for @createWithEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Create with Email'**
+  String get createWithEmail;
+
+  /// No description provided for @registrationError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error creating account'**
+  String get registrationError;
+
+  /// No description provided for @createAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get createAccount;
+
+  /// No description provided for @accountAlreadyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'Account already exists'**
+  String get accountAlreadyExists;
+
+  /// No description provided for @accountExistsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This email is already registered.'**
+  String get accountExistsMessage;
+
+  /// No description provided for @signInAndJoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in and join'**
+  String get signInAndJoin;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

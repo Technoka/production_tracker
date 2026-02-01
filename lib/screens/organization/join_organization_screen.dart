@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:gestion_produccion/services/invitation_service.dart';
 import 'package:provider/provider.dart';
-import '../../services/organization_service.dart';
+import '../../services/invitation_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../screens/auth/register_screen.dart';
 
@@ -23,50 +22,48 @@ class _JoinOrganizationScreenState extends State<JoinOrganizationScreen> {
     super.dispose();
   }
 
-Future<void> _handleJoinOrganization() async {
-  if (!_formKey.currentState!.validate()) return;
-  final l10n = AppLocalizations.of(context)!;
+  Future<void> _handleJoinOrganization() async {
+    if (!_formKey.currentState!.validate()) return;
+    final l10n = AppLocalizations.of(context)!;
 
-  final invitationService = Provider.of<InvitationService>(
-    context,
-    listen: false,
-  );
+    final invitationService = Provider.of<InvitationService>(
+      context,
+      listen: false,
+    );
 
-  // Validar código de invitación
-  final invitation = await invitationService.validateInvitationCode(
-    code: _codeController.text.trim(),
-  );
+    // ✅ Validar código usando Cloud Function
+    final invitation = await invitationService.validateInvitationCode(
+      code: _codeController.text.trim(),
+    );
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  if (invitation == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          invitationService.error ?? l10n.invalidInvitationCode,
+    if (invitation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            invitationService.error ?? l10n.invalidInvitationCode,
+          ),
+          backgroundColor: Colors.red,
         ),
-        backgroundColor: Colors.red,
+      );
+      return;
+    }
+
+    // ✅ Navegar a registro con datos de invitación
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RegisterScreen(
+          invitation: invitation,
+        ),
       ),
     );
-    return;
   }
-
-  // Navegar a registro con los datos de la invitación
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => RegisterScreen(
-        invitationId: invitation.id,
-        invitationOrganizationId: invitation.organizationId,
-        invitationRoleId: invitation.roleId,
-      ),
-    ),
-  );
-}
 
   @override
   Widget build(BuildContext context) {
-    final organizationService = Provider.of<OrganizationService>(context);
+    final invitationService = Provider.of<InvitationService>(context);
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -109,15 +106,12 @@ Future<void> _handleJoinOrganization() async {
                     controller: _codeController,
                     textCapitalization: TextCapitalization.characters,
                     inputFormatters: [
-                      // 1. Primero: Convertir todo a mayúsculas
                       TextInputFormatter.withFunction((oldValue, newValue) {
-                        return newValue.copyWith(text: newValue.text.toUpperCase());
+                        return newValue.copyWith(
+                            text: newValue.text.toUpperCase());
                       }),
-                      
-                      // 2. Segundo: Permitir SOLO los caracteres de tu lista
-                      // La lista es: ABCDEFGHJKLMNPQRSTUVWXYZ23456789
-                      // Excluye: I, O, 0, 1 (para evitar confusiones)
-                      FilteringTextInputFormatter.allow(RegExp(r'[A-HJKLMNP-Z2-9]')),
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'[A-HJKLMNP-Z2-9]')),
                     ],
                     textAlign: TextAlign.center,
                     style: const TextStyle(
@@ -172,12 +166,12 @@ Future<void> _handleJoinOrganization() async {
 
                   // Botón unirse
                   FilledButton(
-                    onPressed: organizationService.isLoading
+                    onPressed: invitationService.isLoading
                         ? null
                         : _handleJoinOrganization,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      child: organizationService.isLoading
+                      child: invitationService.isLoading
                           ? const SizedBox(
                               height: 20,
                               width: 20,

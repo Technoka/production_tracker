@@ -1550,5 +1550,23 @@
 "associatedClient": "Associated client",
 "selectLanguage": "Select Language",
 
-"orders": "Orders"
+"orders": "Orders",
+
+"joiningOrganization": "You're joining",
+"asRole": "As",
+"completeYourProfile": "Complete your profile",
+"fillRequiredFields": "Fill in the required fields to create your account",
+"nameRequired": "Name is required",
+"phoneLabel": "Phone",
+"optional": "optional",
+"passwordMinLength": "Minimum 6 characters",
+"passwordTooShort": "Password must be at least 6 characters",
+"createWithGoogle": "Create with Google",
+"createWithEmail": "Create with Email",
+"registrationError": "Error creating account",
+"createAccount": "Create account",
+"accountAlreadyExists": "Account already exists",
+"accountExistsMessage": "This email is already registered.",
+"signInAndJoin": "Sign in and join",
+"loginError": "Login error"
 }

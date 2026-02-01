@@ -673,7 +673,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get termsAndConditions => 'By creating an account, you agree to our Terms and Conditions and Privacy Policy';
 
   @override
-  String get loginError => 'Error logging in';
+  String get loginError => 'Login error';
 
   @override
   String get accountTypeTitle => 'Account Type';
@@ -2858,7 +2858,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusChangeError => 'Error changing status';
 
   @override
-  String get fillRequiredFields => 'Fill required fields';
+  String get fillRequiredFields => 'Fill in the required fields to create your account';
 
   @override
   String get defectDescription => 'Defect Description';
@@ -3011,7 +3011,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createFamily => 'Create family';
 
   @override
-  String get optional => 'Optional';
+  String get optional => 'optional';
 
   @override
   String get exitWithoutSaving => 'Exit without saving';
@@ -4076,4 +4076,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orders => 'Orders';
+
+  @override
+  String get joiningOrganization => 'You\'re joining';
+
+  @override
+  String get asRole => 'As';
+
+  @override
+  String get completeYourProfile => 'Complete your profile';
+
+  @override
+  String get passwordMinLength => 'Minimum 6 characters';
+
+  @override
+  String get createWithGoogle => 'Create with Google';
+
+  @override
+  String get createWithEmail => 'Create with Email';
+
+  @override
+  String get registrationError => 'Error creating account';
+
+  @override
+  String get createAccount => 'Create account';
+
+  @override
+  String get accountAlreadyExists => 'Account already exists';
+
+  @override
+  String get accountExistsMessage => 'This email is already registered.';
+
+  @override
+  String get signInAndJoin => 'Sign in and join';
 }

@@ -12,6 +12,8 @@ class InvitationModel {
   
   // Configuración
   final String roleId; // Rol predefinido que se asignará
+  final String? clientId; // ID del cliente asociado (si rol es 'client')
+  final String? clientName; // Nombre del cliente asociado (si rol es 'client')
   final String createdBy; // userId del admin que creó
   final DateTime createdAt;
   final DateTime expiresAt;
@@ -31,6 +33,8 @@ class InvitationModel {
     required this.code,
     this.type = 'direct',
     required this.roleId,
+    this.clientId,
+    this.clientName,
     required this.createdBy,
     required this.createdAt,
     required this.expiresAt,
@@ -49,6 +53,8 @@ class InvitationModel {
       code: map['code'] ?? '',
       type: map['type'] ?? 'direct',
       roleId: map['roleId'] ?? 'operator',
+      clientId: map['clientId'],
+      clientName: map['clientName'],
       createdBy: map['createdBy'] ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       expiresAt: (map['expiresAt'] as Timestamp?)?.toDate() ?? 
@@ -68,6 +74,8 @@ class InvitationModel {
       'code': code,
       'type': type,
       'roleId': roleId,
+      'clientId': clientId,
+      'clientName': clientName,
       'createdBy': createdBy,
       'createdAt': Timestamp.fromDate(createdAt),
       'expiresAt': Timestamp.fromDate(expiresAt),
@@ -114,6 +122,8 @@ class InvitationModel {
     String? code,
     String? type,
     String? roleId,
+    String? clientId,
+    String? clientName,
     String? createdBy,
     DateTime? createdAt,
     DateTime? expiresAt,
@@ -129,6 +139,8 @@ class InvitationModel {
       code: code ?? this.code,
       type: type ?? this.type,
       roleId: roleId ?? this.roleId,
+      clientId: clientId ?? this.clientId,
+      clientName: clientName ?? this.clientName,
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
       expiresAt: expiresAt ?? this.expiresAt,

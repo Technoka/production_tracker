@@ -1552,5 +1552,23 @@
 "associatedClient": "Cliente asociado",
 "selectLanguage": "Seleccionar Idioma",
 
-"orders": "Pedidos"
+"orders": "Pedidos",
+
+"joiningOrganization": "Te estás uniendo a",
+"asRole": "Como",
+"completeYourProfile": "Completa tu perfil",
+"fillRequiredFields": "Rellena los campos requeridos para crear tu cuenta",
+"nameRequired": "El nombre es obligatorio",
+"phoneLabel": "Teléfono",
+"optional": "opcional",
+"passwordMinLength": "Mínimo 6 caracteres",
+"passwordTooShort": "La contraseña debe tener al menos 6 caracteres",
+"createWithGoogle": "Crear con Google",
+"createWithEmail": "Crear con Email",
+"registrationError": "Error al crear la cuenta",
+"createAccount": "Crear cuenta",
+"accountAlreadyExists": "Cuenta ya existe",
+"accountExistsMessage": "Este correo ya está registrado.",
+"signInAndJoin": "Iniciar sesión y unirme",
+"loginError": "Error al iniciar sesión"
 }

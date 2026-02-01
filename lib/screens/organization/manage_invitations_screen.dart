@@ -51,7 +51,6 @@ class ManageInvitationsScreen extends StatelessWidget {
         Provider.of<InvitationService>(context, listen: false);
 
     final success = await invitationService.revokeInvitation(
-      organizationId: organizationId,
       invitationId: invitation.id,
     );
 
@@ -108,7 +107,6 @@ class ManageInvitationsScreen extends StatelessWidget {
         Provider.of<InvitationService>(context, listen: false);
 
     final success = await invitationService.deleteInvitation(
-      organizationId: organizationId,
       invitationId: invitation.id,
     );
 
@@ -361,6 +359,15 @@ class ManageInvitationsScreen extends StatelessWidget {
                         fontSize: 13,
                       ),
                     ),
+                    if (invitation.clientName != null) ...[
+                    Text(
+                      ' (${invitation.clientName})',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    ],
                   ],
                 );
               },

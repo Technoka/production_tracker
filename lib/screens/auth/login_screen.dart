@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
-import 'register_screen.dart';
 import 'password_reset_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -34,11 +33,10 @@ class _LoginScreenState extends State<LoginScreen> {
       password: _passwordController.text,
     );    
     
-    // CORRECCIÓN: Si es exitoso, navegar al Home
+    // Si es exitoso, navegar al Home
     if (success) {
       if (mounted) {
-        // Usamos pushReplacementNamed para que el usuario no pueda volver
-        // al login presionando "atrás".
+        // Usamos pushReplacementNamed para evitar volver al login con "atrás"
         Navigator.pushReplacementNamed(context, '/home');
       }
       return;
@@ -64,8 +62,6 @@ class _LoginScreenState extends State<LoginScreen> {
     // Si es exitoso, navegar al Home
     if (tempSuccess) {
       if (mounted) {
-        // Usamos pushReplacementNamed para que el usuario no pueda volver
-        // al login presionando "atrás".
         Navigator.pushReplacementNamed(context, '/home');
       }
       return;
@@ -126,13 +122,20 @@ class _LoginScreenState extends State<LoginScreen> {
       // Intentar de nuevo con el rol seleccionado
       final success = await authService.signInWithGoogle(role: role);
 
+      if (success) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+        return;
+      }
+
       if (!success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:
                 Text(authService.error ?? l10n.googleLoginError),
             backgroundColor: Colors.red,
-          duration: const Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -154,155 +157,172 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Icon(
-                    Icons.factory,
-                    size: 80,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    l10n.appTitle,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+        // ✅ CAMBIO: Usamos Stack para superponer la flecha sobre el contenido centrado
+        child: Stack(
+          children: [
+            // 1. Contenido original (Formulario centrado)
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Icon(
+                        Icons.factory,
+                        size: 80,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        l10n.appName,
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.loginSubtitle,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 48),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: l10n.emailLabel,
+                          prefixIcon: const Icon(Icons.email_outlined),
+                          border: const OutlineInputBorder(),
                         ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.loginSubtitle,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 48),
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: l10n.emailLabel,
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      border: const OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return l10n.enterEmailError;
-                      }
-                      if (!value.contains('@')) {
-                        return l10n.enterValidEmailError;
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: l10n.password,
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return l10n.enterEmailError;
+                          }
+                          if (!value.contains('@')) {
+                            return l10n.enterValidEmailError;
+                          }
+                          return null;
                         },
                       ),
-                      border: const OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return l10n.enterPasswordError;
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PasswordResetScreen(),
-                          ),
-                        );
-                      },
-                      child: Text(l10n.forgotPasswordLink),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: authService.isLoading ? null : () => _handleLogin(l10n),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      child: authService.isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(
-                              l10n.loginButton,
-                              style: const TextStyle(fontSize: 16),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          labelText: l10n.password,
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
                             ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: Colors.grey[400])),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          l10n.orContinueWith,
-                          style: TextStyle(color: Colors.grey[600]),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                          border: const OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return l10n.enterPasswordError;
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const PasswordResetScreen(),
+                              ),
+                            );
+                          },
+                          child: Text(l10n.forgotPasswordLink),
                         ),
                       ),
-                      Expanded(child: Divider(color: Colors.grey[400])),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: authService.isLoading ? null : () => _handleLogin(l10n),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          child: authService.isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Text(
+                                  l10n.loginButton,
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(child: Divider(color: Colors.grey[400])),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              l10n.orContinueWith,
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ),
+                          Expanded(child: Divider(color: Colors.grey[400])),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      OutlinedButton.icon(
+                        onPressed:
+                            authService.isLoading ? null : () => _handleGoogleSignIn(l10n),
+                        icon: Image.asset(
+                          'assets/google_logo.png',
+                          height: 24,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(Icons.g_mobiledata, size: 24);
+                          },
+                        ),
+                        label: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12.0),
+                          child: Text(
+                            l10n.continueWithGoogle,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.grey[300]!),
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  OutlinedButton.icon(
-                    onPressed:
-                        authService.isLoading ? null : () => _handleGoogleSignIn(l10n),
-                    icon: Image.asset(
-                      'assets/google_logo.png',
-                      height: 24,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(Icons.g_mobiledata, size: 24);
-                      },
-                    ),
-                    label: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12.0),
-                      child: Text(
-                        l10n.continueWithGoogle,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.grey[300]!),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
+            
+            // 2. ✅ Botón de volver atrás (arriba a la izquierda)
+            Positioned(
+              top: 8,
+              left: 8,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                tooltip: l10n.back, // Asegúrate de tener esta key o usa string fijo
+                onPressed: () => Navigator.pushReplacementNamed(context, '/welcome'),
+              ),
+            ),
+          ],
         ),
       ),
     );

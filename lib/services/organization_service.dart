@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gestion_produccion/models/permission_override_model.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -40,23 +41,22 @@ class OrganizationService extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
+  /// Obtener una organización por ID
+  Future<OrganizationModel?> getOrganization(String organizationId) async {
+    try {
+      final doc = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .get();
 
-/// Obtener una organización por ID
-Future<OrganizationModel?> getOrganization(String organizationId) async {
-  try {
-    final doc = await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .get();
-    
-    if (!doc.exists) return null;
-    
-    return OrganizationModel.fromMap(doc.data()!);
-  } catch (e) {
-    debugPrint('Error getting organization: $e');
-    return null;
+      if (!doc.exists) return null;
+
+      return OrganizationModel.fromMap(doc.data()!);
+    } catch (e) {
+      debugPrint('Error getting organization: $e');
+      return null;
+    }
   }
-}
 
   // ==================== CREAR ORGANIZACIÓN ====================
 
@@ -147,7 +147,8 @@ Future<OrganizationModel?> getOrganization(String organizationId) async {
       }
 
       await batch.commit();
-      debugPrint('✅ Roles predeterminados inicializados: ${defaultRoles.length}');
+      debugPrint(
+          '✅ Roles predeterminados inicializados: ${defaultRoles.length}');
     } catch (e) {
       debugPrint('❌ Error inicializando roles: $e');
       rethrow;
@@ -155,342 +156,339 @@ Future<OrganizationModel?> getOrganization(String organizationId) async {
   }
 
   /// Obtener nombre de organización (sin requerir permisos - es dato público)
-Future<String?> getOrganizationName(String organizationId) async {
-  try {
-    // 1. Optimización: Verificar si es la organización actual cargada en memoria
-    if (_currentOrganization != null && _currentOrganization!.id == organizationId) {
-      return _currentOrganization!.name;
-    }
-
-    // 2. Si no, buscar en Firestore (lectura ligera solo del documento)
-    final doc = await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .get();
-
-    if (doc.exists && doc.data() != null) {
-      return doc.data()!['name'] as String?;
-    }
-    
-    return null;
-  } catch (e) {
-    debugPrint('Error al obtener nombre de organización: $e');
-    return null;
-  }
-}
-
-
-
-
-Future<String?> uploadOrganizationLogo(
-  String orgId,
-  XFile imageFile, {
-  String? currentUserId, // Para validar permisos
-}) async {
-  try {
-    // ✅ VALIDAR PERMISOS
-    if (currentUserId != null) {
-      final canEdit = await _memberService.can('organization', 'edit');
-      if (!canEdit) {
-        _error = 'No tienes permisos para cambiar el logo';
-        notifyListeners();
-        return null;
+  Future<String?> getOrganizationName(String organizationId) async {
+    try {
+      // 1. Optimización: Verificar si es la organización actual cargada en memoria
+      if (_currentOrganization != null &&
+          _currentOrganization!.id == organizationId) {
+        return _currentOrganization!.name;
       }
+
+      // 2. Si no, buscar en Firestore (lectura ligera solo del documento)
+      final doc = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        return doc.data()!['name'] as String?;
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('Error al obtener nombre de organización: $e');
+      return null;
     }
-
-    _isLoading = true;
-    notifyListeners();
-
-    final ref = _storage.ref().child('organizations/$orgId/logo.png');
-    final Uint8List imageBytes = await imageFile.readAsBytes();
-
-    // Comprimir imagen
-    final Uint8List compressedBytes = await FlutterImageCompress.compressWithList(
-      imageBytes,
-      minWidth: 256,
-      minHeight: 256,
-      quality: 90,
-      format: CompressFormat.png, 
-    );
-
-    final uploadTask = ref.putData(
-      compressedBytes, 
-      SettableMetadata(contentType: 'image/png') 
-    );
-    
-    await uploadTask.whenComplete(() => null);
-    final String downloadUrl = await ref.getDownloadURL();
-    
-    // Actualizar organización con nuevo logo
-    await updateOrganization(
-      organizationId: orgId,
-      logoUrl: downloadUrl,
-      currentUserId: currentUserId,
-    );
-    
-    _isLoading = false;
-    notifyListeners();
-    return downloadUrl;
-  } catch (e) {
-    debugPrint('Error subiendo logo: $e');
-    _error = 'Error al subir logo: $e';
-    _isLoading = false;
-    notifyListeners();
-    return null;
   }
-}
 
-Future<bool> inviteUserByEmail({
-  required String email,
-  required String organizationId,
-  required String invitedBy,
-  required String invitedByName,
-  String roleId = 'operator', // Rol que se asignará al aceptar
-}) async {
-  try {
-    //VALIDAR PERMISOS
-    final canInvite = await _memberService.can('organization', 'manageRoles');
-    if (!canInvite) {
-      _error = 'No tienes permisos para invitar usuarios';
+  Future<String?> uploadOrganizationLogo(
+    String orgId,
+    XFile imageFile, {
+    String? currentUserId, // Para validar permisos
+  }) async {
+    try {
+      // ✅ VALIDAR PERMISOS
+      if (currentUserId != null) {
+        final canEdit = await _memberService.can('organization', 'edit');
+        if (!canEdit) {
+          _error = 'No tienes permisos para cambiar el logo';
+          notifyListeners();
+          return null;
+        }
+      }
+
+      _isLoading = true;
       notifyListeners();
-      return false;
+
+      final ref = _storage.ref().child('organizations/$orgId/logo.png');
+      final Uint8List imageBytes = await imageFile.readAsBytes();
+
+      // Comprimir imagen
+      final Uint8List compressedBytes =
+          await FlutterImageCompress.compressWithList(
+        imageBytes,
+        minWidth: 256,
+        minHeight: 256,
+        quality: 90,
+        format: CompressFormat.png,
+      );
+
+      final uploadTask = ref.putData(
+          compressedBytes, SettableMetadata(contentType: 'image/png'));
+
+      await uploadTask.whenComplete(() => null);
+      final String downloadUrl = await ref.getDownloadURL();
+
+      // Actualizar organización con nuevo logo
+      await updateOrganization(
+        organizationId: orgId,
+        logoUrl: downloadUrl,
+        currentUserId: currentUserId,
+      );
+
+      _isLoading = false;
+      notifyListeners();
+      return downloadUrl;
+    } catch (e) {
+      debugPrint('Error subiendo logo: $e');
+      _error = 'Error al subir logo: $e';
+      _isLoading = false;
+      notifyListeners();
+      return null;
     }
+  }
 
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  Future<bool> inviteUserByEmail({
+    required String email,
+    required String organizationId,
+    required String invitedBy,
+    required String invitedByName,
+    String roleId = 'operator', // Rol que se asignará al aceptar
+  }) async {
+    try {
+      //VALIDAR PERMISOS
+      final canInvite = await _memberService.can('organization', 'manageRoles');
+      if (!canInvite) {
+        _error = 'No tienes permisos para invitar usuarios';
+        notifyListeners();
+        return false;
+      }
 
-    // Verificar que la organización existe
-    final orgDoc = await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .get();
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
 
-    if (!orgDoc.exists) {
-      throw Exception('Organización no encontrada');
-    }
+      // Verificar que la organización existe
+      final orgDoc = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .get();
 
-    final org = OrganizationModel.fromMap(orgDoc.data()!);
+      if (!orgDoc.exists) {
+        throw Exception('Organización no encontrada');
+      }
 
-    // Verificar si el usuario ya está en la organización
-    final userQuery = await _firestore
-        .collection('users')
-        .where('email', isEqualTo: email)
-        .limit(1)
-        .get();
+      final org = OrganizationModel.fromMap(orgDoc.data()!);
 
-    if (userQuery.docs.isNotEmpty) {
-      final user = UserModel.fromMap(userQuery.docs.first.data());
-      if (user.organizationId == organizationId) {
-        _error = 'Este usuario ya pertenece a la organización';
+      // Verificar si el usuario ya está en la organización
+      final userQuery = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (userQuery.docs.isNotEmpty) {
+        final user = UserModel.fromMap(userQuery.docs.first.data());
+        if (user.organizationId == organizationId) {
+          _error = 'Este usuario ya pertenece a la organización';
+          _isLoading = false;
+          notifyListeners();
+          return false;
+        }
+        if (user.organizationId != null) {
+          _error = 'Este usuario ya pertenece a otra organización';
+          _isLoading = false;
+          notifyListeners();
+          return false;
+        }
+      }
+
+      // Verificar si ya existe invitación pendiente
+      final existingInvite = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('invitations')
+          .where('email', isEqualTo: email)
+          .where('status', isEqualTo: 'pending')
+          .limit(1)
+          .get();
+
+      if (existingInvite.docs.isNotEmpty) {
+        _error = 'Ya existe una invitación pendiente para este email';
         _isLoading = false;
         notifyListeners();
         return false;
       }
-      if (user.organizationId != null) {
-        _error = 'Este usuario ya pertenece a otra organización';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-    }
 
-    // Verificar si ya existe invitación pendiente
-    final existingInvite = await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('invitations')
-        .where('email', isEqualTo: email)
-        .where('status', isEqualTo: 'pending')
-        .limit(1)
-        .get();
+      // Crear invitación
+      final invitationId = _uuid.v4();
+      final invitation = InvitationModel(
+        id: invitationId,
+        organizationId: organizationId,
+        organizationName: org.name,
+        email: email,
+        invitedBy: invitedBy,
+        invitedByName: invitedByName,
+        roleId: roleId, // Guardar el rol que se asignará
+        createdAt: DateTime.now(),
+        expiresAt: DateTime.now().add(const Duration(days: 7)),
+      );
 
-    if (existingInvite.docs.isNotEmpty) {
-      _error = 'Ya existe una invitación pendiente para este email';
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('invitations')
+          .doc(invitationId)
+          .set(invitation.toMap());
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Error al enviar invitación: $e';
       _isLoading = false;
       notifyListeners();
       return false;
     }
-
-    // Crear invitación
-    final invitationId = _uuid.v4();
-    final invitation = InvitationModel(
-      id: invitationId,
-      organizationId: organizationId,
-      organizationName: org.name,
-      email: email,
-      invitedBy: invitedBy,
-      invitedByName: invitedByName,
-      roleId: roleId, // Guardar el rol que se asignará
-      createdAt: DateTime.now(),
-      expiresAt: DateTime.now().add(const Duration(days: 7)),
-    );
-
-    await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('invitations')
-        .doc(invitationId)
-        .set(invitation.toMap());
-
-    _isLoading = false;
-    notifyListeners();
-    return true;
-  } catch (e) {
-    _error = 'Error al enviar invitación: $e';
-    _isLoading = false;
-    notifyListeners();
-    return false;
   }
-}
 
-Stream<List<InvitationModel>> getPendingInvitations(String email) async* {
-  try {
-    // Obtener todas las organizaciones
-    final orgsSnapshot = await _firestore.collection('organizations').get();
-    
-    final allInvitations = <InvitationModel>[];
-    
-    for (final orgDoc in orgsSnapshot.docs) {
-      final orgId = orgDoc.id;
-      
-      // Buscar invitaciones para este email en esta organización
-      final invitationsSnapshot = await _firestore
-          .collection('organizations')
-          .doc(orgId)
-          .collection('invitations')
-          .where('email', isEqualTo: email)
-          .where('status', isEqualTo: 'pending')
-          .get();
-      
-      for (final invDoc in invitationsSnapshot.docs) {
-        final invitation = InvitationModel.fromMap(invDoc.data());
-        if (!invitation.isExpired) {
-          allInvitations.add(invitation);
+  Stream<List<InvitationModel>> getPendingInvitations(String email) async* {
+    try {
+      // Obtener todas las organizaciones
+      final orgsSnapshot = await _firestore.collection('organizations').get();
+
+      final allInvitations = <InvitationModel>[];
+
+      for (final orgDoc in orgsSnapshot.docs) {
+        final orgId = orgDoc.id;
+
+        // Buscar invitaciones para este email en esta organización
+        final invitationsSnapshot = await _firestore
+            .collection('organizations')
+            .doc(orgId)
+            .collection('invitations')
+            .where('email', isEqualTo: email)
+            .where('status', isEqualTo: 'pending')
+            .get();
+
+        for (final invDoc in invitationsSnapshot.docs) {
+          final invitation = InvitationModel.fromMap(invDoc.data());
+          if (!invitation.isExpired) {
+            allInvitations.add(invitation);
+          }
         }
       }
-    }
-    
-    yield allInvitations;
-  } catch (e) {
-    debugPrint('Error obteniendo invitaciones: $e');
-    yield [];
-  }
-}
 
-Future<bool> acceptInvitation({
-  required BuildContext context,
-  required String invitationId,
-  required String userId,
-  required String organizationId,
-}) async {
-  void msg(String text, {bool isError = false}) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(text),
-        backgroundColor: isError ? Colors.red : Colors.blue,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  try {
-    final invRef = _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('invitations')
-        .doc(invitationId);
-    
-    final DocumentSnapshot invDoc;
-    try {
-      invDoc = await invRef.get().timeout(const Duration(seconds: 5));
+      yield allInvitations;
     } catch (e) {
-      msg("Timeout al obtener invitación", isError: true);
-      return false;
+      debugPrint('Error obteniendo invitaciones: $e');
+      yield [];
     }
-
-    if (!invDoc.exists) {
-      msg("ERROR: La invitación no existe", isError: true);
-      return false;
-    }
-
-    final invitation = InvitationModel.fromMap(invDoc.data()! as Map<String, dynamic>);
-
-    // Verificar si está expirada
-    if (invitation.isExpired) {
-      msg("Esta invitación ha expirado", isError: true);
-      return false;
-    }
-
-    await _firestore.runTransaction((transaction) async {
-      transaction.update(_firestore.collection('users').doc(userId), {
-        'organizationId': organizationId,
-      });
-      transaction.update(_firestore.collection('organizations').doc(organizationId), {
-        'memberIds': FieldValue.arrayUnion([userId]),
-      });
-      transaction.update(invRef, {'status': 'accepted'});
-    });
-    
-    // Crear miembro con rol especificado en la invitación
-    await _createOrganizationMember(
-      organizationId: organizationId,
-      userId: userId,
-      roleId: invitation.roleId ?? 'operator', // Usar rol de la invitaciÃ³n
-    );
-    
-    
-    // Obtener información del nuevo usuario para la notificación
-    final userDoc = await _firestore.collection('users').doc(userId).get();
-    final userName = userDoc.exists 
-        ? (userDoc.data()?['name'] ?? 'Nuevo usuario')
-        : 'Nuevo usuario';
-    
-    // Obtener nombre del rol
-    final roleId = invitation.roleId ?? 'operator';
-    final roleDoc = await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('roles')
-        .doc(roleId)
-        .get();
-    final roleName = roleDoc.exists
-        ? (roleDoc.data()?['name'] ?? roleId)
-        : roleId;
-
-    // Notificar a todos los miembros existentes
-    await _notifyMembersNewJoin(
-      organizationId: organizationId,
-      newUserId: userId,
-      newUserName: userName,
-      roleName: roleName,
-    );
-    
-    await loadOrganization(organizationId);
-    return true;
-
-  } catch (e) {
-    msg("Error al aceptar invitación: $e", isError: true);
-    return false;
   }
-}
 
-Future<bool> rejectInvitation(String invitationId, String organizationId) async {
-  try {
-    await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('invitations')
-        .doc(invitationId)
-        .update({'status': 'rejected'});
-    return true;
-  } catch (e) {
-    _error = 'Error al rechazar invitación: $e';
-    notifyListeners();
-    return false;
+  Future<bool> acceptInvitation({
+    required BuildContext context,
+    required String invitationId,
+    required String userId,
+    required String organizationId,
+  }) async {
+    void msg(String text, {bool isError = false}) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(text),
+          backgroundColor: isError ? Colors.red : Colors.blue,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+
+    try {
+      final invRef = _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('invitations')
+          .doc(invitationId);
+
+      final DocumentSnapshot invDoc;
+      try {
+        invDoc = await invRef.get().timeout(const Duration(seconds: 5));
+      } catch (e) {
+        msg("Timeout al obtener invitación", isError: true);
+        return false;
+      }
+
+      if (!invDoc.exists) {
+        msg("ERROR: La invitación no existe", isError: true);
+        return false;
+      }
+
+      final invitation =
+          InvitationModel.fromMap(invDoc.data()! as Map<String, dynamic>);
+
+      // Verificar si está expirada
+      if (invitation.isExpired) {
+        msg("Esta invitación ha expirado", isError: true);
+        return false;
+      }
+
+      await _firestore.runTransaction((transaction) async {
+        transaction.update(_firestore.collection('users').doc(userId), {
+          'organizationId': organizationId,
+        });
+        transaction.update(
+            _firestore.collection('organizations').doc(organizationId), {
+          'memberIds': FieldValue.arrayUnion([userId]),
+        });
+        transaction.update(invRef, {'status': 'accepted'});
+      });
+
+      // Crear miembro con rol especificado en la invitación
+      await _createOrganizationMember(
+        organizationId: organizationId,
+        userId: userId,
+        roleId: invitation.roleId ?? 'operator', // Usar rol de la invitaciÃ³n
+      );
+
+      // Obtener información del nuevo usuario para la notificación
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      final userName = userDoc.exists
+          ? (userDoc.data()?['name'] ?? 'Nuevo usuario')
+          : 'Nuevo usuario';
+
+      // Obtener nombre del rol
+      final roleId = invitation.roleId ?? 'operator';
+      final roleDoc = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('roles')
+          .doc(roleId)
+          .get();
+      final roleName =
+          roleDoc.exists ? (roleDoc.data()?['name'] ?? roleId) : roleId;
+
+      // Notificar a todos los miembros existentes
+      await _notifyMembersNewJoin(
+        organizationId: organizationId,
+        newUserId: userId,
+        newUserName: userName,
+        roleName: roleName,
+      );
+
+      await loadOrganization(organizationId);
+      return true;
+    } catch (e) {
+      msg("Error al aceptar invitación: $e", isError: true);
+      return false;
+    }
   }
-}
+
+  Future<bool> rejectInvitation(
+      String invitationId, String organizationId) async {
+    try {
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('invitations')
+          .doc(invitationId)
+          .update({'status': 'rejected'});
+      return true;
+    } catch (e) {
+      _error = 'Error al rechazar invitación: $e';
+      notifyListeners();
+      return false;
+    }
+  }
 
   // ==================== INICIALIZAR ESTADOS PREDETERMINADOS ====================
 
@@ -526,7 +524,8 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
       );
 
       await batch.commit();
-      debugPrint('✅ Estados predeterminados inicializados: ${defaultStatuses.length}');
+      debugPrint(
+          '✅ Estados predeterminados inicializados: ${defaultStatuses.length}');
     } catch (e) {
       debugPrint('❌ Error inicializando estados: $e');
       rethrow;
@@ -537,13 +536,13 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
 
   // Stream de miembros
   Stream<List<UserModel>> watchOrganizationMembers(String organizationId) {
-  return _firestore
-      .collection('users')
-      .where('organizationId', isEqualTo: organizationId)
-      .snapshots()
-      .map((snapshot) =>
-          snapshot.docs.map((doc) => UserModel.fromMap(doc.data())).toList());
-}
+    return _firestore
+        .collection('users')
+        .where('organizationId', isEqualTo: organizationId)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => UserModel.fromMap(doc.data())).toList());
+  }
 
   /// Actualizar rol de un miembro (requiere permisos de admin)
   Future<bool> updateMemberRole({
@@ -756,16 +755,16 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
 
   // ==================== CREAR MIEMBRO DE ORGANIZACIÓN ====================
 
-
   // ==================== CREAR MIEMBRO PÚBLICO (con notificación) ====================
 
   /// Crear miembro de organización (método público)
-  /// 
+  ///
   /// Crea un miembro y notifica a todos los miembros existentes
   Future<bool> createOrganizationMember({
     required String organizationId,
     required String userId,
     required String roleId,
+    String? clientId,
   }) async {
     try {
       // Crear el miembro usando el método privado
@@ -773,14 +772,15 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
         organizationId: organizationId,
         userId: userId,
         roleId: roleId,
+        clientId: clientId,
       );
 
       // Obtener información del nuevo usuario para la notificación
       final userDoc = await _firestore.collection('users').doc(userId).get();
-      final userName = userDoc.exists 
+      final userName = userDoc.exists
           ? (userDoc.data()?['name'] ?? 'Nuevo usuario')
           : 'Nuevo usuario';
-      
+
       // Obtener nombre del rol
       final roleDoc = await _firestore
           .collection('organizations')
@@ -788,9 +788,8 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
           .collection('roles')
           .doc(roleId)
           .get();
-      final roleName = roleDoc.exists
-          ? (roleDoc.data()?['name'] ?? roleId)
-          : roleId;
+      final roleName =
+          roleDoc.exists ? (roleDoc.data()?['name'] ?? roleId) : roleId;
 
       // Notificar a todos los miembros existentes
       await _notifyMembersNewJoin(
@@ -813,6 +812,7 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
     required String organizationId,
     required String userId,
     required String roleId,
+    String? clientId, // NUEVO
   }) async {
     try {
       // Obtener información del rol
@@ -838,6 +838,24 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
 
       final user = UserModel.fromMap(userDoc.data()!);
 
+      // Obtener permissionOverrides del cliente si existe
+      PermissionOverridesModel? permissionOverrides;
+      if (clientId != null) {
+        final clientDoc = await _firestore
+            .collection('organizations')
+            .doc(organizationId)
+            .collection('clients')
+            .doc(clientId)
+            .get();
+
+        if (clientDoc.exists &&
+            clientDoc.data()?['clientPermissions'] != null) {
+          permissionOverrides = PermissionOverridesModel.fromMap(
+            clientDoc.data()!['clientPermissions'] as Map<String, dynamic>,
+          );
+        }
+      }
+
       // Crear miembro
       final member = OrganizationMemberModel(
         userId: userId,
@@ -847,6 +865,8 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
         roleColor: role.color,
         joinedAt: DateTime.now(),
         isActive: true,
+        clientId: clientId, // NUEVO
+        permissionOverrides: permissionOverrides, // NUEVO
       );
 
       await _firestore
@@ -993,10 +1013,7 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
       }
 
       // Añadir usuario a la organización
-      await _firestore
-          .collection('organizations')
-          .doc(organization.id)
-          .update({
+      await _firestore.collection('organizations').doc(organization.id).update({
         'memberIds': FieldValue.arrayUnion([userId]),
       });
 
@@ -1015,10 +1032,10 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
 
       // Obtener información del nuevo usuario para la notificación
       final userDoc = await _firestore.collection('users').doc(userId).get();
-      final userName = userDoc.exists 
+      final userName = userDoc.exists
           ? (userDoc.data()?['name'] ?? 'Nuevo usuario')
           : 'Nuevo usuario';
-      
+
       // Obtener nombre del rol
       final roleDoc = await _firestore
           .collection('organizations')
@@ -1054,13 +1071,10 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
     try {
       final newCode = _generateInviteCode();
 
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .update({
-          'inviteCode': newCode,
-          'updatedAt': FieldValue.serverTimestamp(),
-          });
+      await _firestore.collection('organizations').doc(organizationId).update({
+        'inviteCode': newCode,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
       await loadOrganization(organizationId);
       return newCode;
@@ -1070,7 +1084,6 @@ Future<bool> rejectInvitation(String invitationId, String organizationId) async 
       return null;
     }
   }
-
 
   // ==================== NOTIFICACIONES ====================
 
