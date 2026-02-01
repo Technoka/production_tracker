@@ -191,6 +191,7 @@ class _CreateProductionBatchScreenState
         'notes': _productNotesController.text.trim().isEmpty
             ? null
             : _productNotesController.text.trim(),
+        'family': _selectedFamily,
       });
       // Resetear selección
       _selectedProduct = null;
