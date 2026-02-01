@@ -504,7 +504,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     );
   }
 
-  /// Tarjeta de Clientes
+/// Tarjeta de Clientes
   Widget _buildClientsCard(
     BuildContext context,
     OrganizationModel org,
@@ -525,58 +525,107 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
       },
       borderRadius: BorderRadius.circular(12),
       child: Card(
+        elevation: 2,
         child: Container(
-          padding: const EdgeInsets.all(12.0),
-          constraints: const BoxConstraints(
-            minHeight: 160, // Misma altura que la tarjeta de miembros
-          ),
+          padding: const EdgeInsets.all(16.0),
+          // ✅ SOLUCIÓN: Usamos una altura fija para que 'Expanded' funcione
+          height: 170, 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              // Título con icono y total
+              // 1. Header (Icono y Número)
               Row(
                 children: [
-                  const Icon(Icons.business_center,
-                      color: Colors.teal, size: 24),
-                  const SizedBox(width: 8),
-                  Text(
-                    '$clientCount',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.teal,
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.teal.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    child: const Icon(Icons.business_center,
+                        color: Colors.teal, size: 20),
                   ),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      l10n.clientsCard,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$clientCount',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal,
+                          height: 1.0,
+                        ),
                       ),
-                    ),
+                      Text(
+                        l10n.clientsCard,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
 
-              // Mensaje si no hay clientes
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+
+              // 2. Contenido Central (Usando Expanded de forma segura)
               if (clientCount == 0) ...[
-                const SizedBox(height: 12),
-                const Divider(height: 1),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Text(
-                    l10n.noClientsMessage,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[500],
-                      fontStyle: FontStyle.italic,
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.person_off_outlined,
+                            size: 32, color: Colors.grey[300]),
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.noClientsMessage,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[500],
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                ),
+              ] else ...[
+                const Expanded(
+                  child: Center(
+                    child: Opacity(
+                      opacity: 0.1,
+                      child: Icon(
+                        Icons.groups_outlined,
+                        size: 40,
+                        color: Colors.teal,
+                      ),
+                    ),
+                  ),
+                ),
+                // Footer
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      l10n.listView, // Usa l10n.viewList si existe
+                      style: const TextStyle(
+                        color: Colors.teal,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_forward,
+                        size: 16, color: Colors.teal),
+                  ],
                 ),
               ],
             ],
@@ -585,7 +634,6 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
       ),
     );
   }
-
   /// Tarjeta de acciones
   Widget _buildActionsCard(
     BuildContext context,
@@ -717,62 +765,6 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                 );
               },
             ),
-
-          // Leave Organization - solo si no es owner
-          if (!isOwner) ...[
-            if (canManageSettings) const Divider(height: 1),
-            ListTile(
-              leading: Icon(Icons.exit_to_app, color: Colors.red[700]),
-              title: Text(
-                l10n.leaveOrganizationAction,
-                style: TextStyle(color: Colors.red[700]),
-              ),
-              onTap: () => _showLeaveDialog(
-                context,
-                Provider.of<OrganizationService>(context, listen: false),
-                user.uid,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  void _showLeaveDialog(
-    BuildContext context,
-    OrganizationService organizationService,
-    String userId,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.leaveOrganizationAction),
-        content: Text(l10n.leaveOrganizationWarning),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final success =
-                  await organizationService.leaveOrganization(userId);
-              if (success && context.mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.leaveOrganizationSuccess),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: Text(l10n.exitButton),
-          ),
         ],
       ),
     );
