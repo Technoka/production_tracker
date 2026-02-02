@@ -18,6 +18,7 @@ class DraggableProductCard extends StatelessWidget {
   final bool showStatus;
   final String? statusName;
   final Color clientColor;
+  final bool canDrag;
 
   const DraggableProductCard({
     Key? key,
@@ -31,11 +32,16 @@ class DraggableProductCard extends StatelessWidget {
     required this.showStatus,
     this.statusName,
     required this.clientColor,
+    this.canDrag = true,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // (El código del LongPressDraggable sigue igual...)
+    //Si no puede arrastrar, mostrar tarjeta normal
+    if (!canDrag) {
+      return _buildCard(context);
+    }
+
     return LongPressDraggable<Map<String, dynamic>>(
       data: {
         'product': product,
@@ -50,9 +56,9 @@ class DraggableProductCard extends StatelessWidget {
         elevation: 8,
         borderRadius: BorderRadius.circular(8),
         child: SizedBox(
-            width: 280,
-            child: _buildCard(context, isFeedback: true),
-          ),
+          width: 280,
+          child: _buildCard(context, isFeedback: true),
+        ),
       ),
       childWhenDragging: Opacity(
         opacity: 0.3,
@@ -63,7 +69,8 @@ class DraggableProductCard extends StatelessWidget {
   }
 
   Widget _buildCard(BuildContext context, {bool isFeedback = false}) {
-    final user = Provider.of<AuthService>(context, listen: false).currentUserData;
+    final user =
+        Provider.of<AuthService>(context, listen: false).currentUserData;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -72,12 +79,12 @@ class DraggableProductCard extends StatelessWidget {
       // CAMBIO 1: Color base blanco para tapar la sombra y el fondo
       color: Colors.white,
       // Importante: Cortar el contenido para respetar los bordes redondeados
-      clipBehavior: Clip.antiAlias, 
-      
+      clipBehavior: Clip.antiAlias,
+
       // CAMBIO 2: Usar un Container/Ink con decoración para el color de fondo
       child: Ink(
         decoration: BoxDecoration(
-          // Usamos withOpacity(0.1) que equivale a un 10%. 
+          // Usamos withOpacity(0.1) que equivale a un 10%.
           // Al estar sobre blanco, se verá el color real del cliente en tono pastel.
           color: clientColor.withOpacity(0.1),
         ),
@@ -93,208 +100,213 @@ class DraggableProductCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.5), // CAMBIO 3: Fondo más limpio para el badge
+                        color: Colors.white.withOpacity(
+                            0.5), // CAMBIO 3: Fondo más limpio para el badge
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.inventory_2,
-                              size: 10, color: clientColor),
+                          Icon(Icons.inventory_2, size: 10, color: clientColor),
                           const SizedBox(width: 4),
                           Text(
                             'Lote: $batchNumber (#${product.productNumber}/${batch.totalProducts})',
-                            style: const TextStyle( // CAMBIO 4: Quitamos el backgroundColor del texto que sobraba
+                            style: const TextStyle(
+                              // CAMBIO 4: Quitamos el backgroundColor del texto que sobraba
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
                           ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  if (product.urgencyLevel == UrgencyLevel.urgent.value)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: product.statusLegacyColor.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        product.urgencyDisplayName,
-                        style: TextStyle(
-                          color: product.urgencyColor,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              // --- NOMBRE Y ESTADO ---
-              // (Este bloque sigue igual...)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      product.productName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  SLAStatusIndicator(
-                    organizationId: batch.organizationId,
-                    productId: product.id,
-                    compact: true, // Modo compacto para que salga solo el icono/badge
-                  ),
-                  const SizedBox(width: 8),
-                  if (product.statusId != ProductStatus.pending.value && showStatus)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: product.effectiveStatusColor.withAlpha(50),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        product.statusName!,
-                        style: TextStyle(
-                          color: product.effectiveStatusColor,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              // ✅ ESTRUCTURA NUEVA: Bloque de Info + Botón de Chat Centrado
-              Row(
-                // Al usar center aquí, el elemento de la derecha (el botón)
-                // se centrará respecto a la altura total del elemento de la izquierda (la columna de texto)
-                crossAxisAlignment: CrossAxisAlignment.center, 
-                children: [
-                  // --- Columna Izquierda: SKU, Cantidad, Detalles ---
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // --- SKU (Si existe) ---
-                        if (product.productReference != null) ...[
-                          Row(
-                            children: [
-                              const Icon(Icons.tag,
-                                  size: 12, color: Colors.black),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  'SKU: ${product.productReference!}',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
                         ],
-
-                        // --- Cantidad ---
-                        Row(
-                          children: [
-                            const Icon(Icons.shopping_cart,
-                                size: 12, color: Colors.black),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Cantidad: ${product.quantity}',
-                              style: const TextStyle(
-                                  fontSize: 11, color: Colors.black),
-                            ),
-                          ],
+                      ),
+                    ),
+                    const Spacer(),
+                    if (product.urgencyLevel == UrgencyLevel.urgent.value)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: product.statusLegacyColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4),
                         ),
+                        child: Text(
+                          product.urgencyDisplayName,
+                          style: TextStyle(
+                            color: product.urgencyColor,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
 
-                        // --- Material y Color (Si existen) ---
-                        if (product.color != null ||
-                            product.material != null) ...[
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              if (product.color != null) ...[
-                                const Icon(Icons.palette,
-                                    size: 12, color: Colors.grey),
+                const SizedBox(height: 8),
+
+                // --- NOMBRE Y ESTADO ---
+                // (Este bloque sigue igual...)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        product.productName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SLAStatusIndicator(
+                      organizationId: batch.organizationId,
+                      productId: product.id,
+                      compact:
+                          true, // Modo compacto para que salga solo el icono/badge
+                    ),
+                    const SizedBox(width: 8),
+                    if (product.statusId != ProductStatus.pending.value &&
+                        showStatus)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: product.effectiveStatusColor.withAlpha(50),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          product.statusName!,
+                          style: TextStyle(
+                            color: product.effectiveStatusColor,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                // ✅ ESTRUCTURA NUEVA: Bloque de Info + Botón de Chat Centrado
+                Row(
+                  // Al usar center aquí, el elemento de la derecha (el botón)
+                  // se centrará respecto a la altura total del elemento de la izquierda (la columna de texto)
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // --- Columna Izquierda: SKU, Cantidad, Detalles ---
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // --- SKU (Si existe) ---
+                          if (product.productReference != null) ...[
+                            Row(
+                              children: [
+                                const Icon(Icons.tag,
+                                    size: 12, color: Colors.black),
                                 const SizedBox(width: 4),
-                                Flexible(
-                                  child: Text(
-                                    product.color!,
-                                    style: const TextStyle(
-                                        fontSize: 11, color: Colors.grey),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                              if (product.color != null &&
-                                  product.material != null)
-                                const Text(' • ',
-                                    style: TextStyle(color: Colors.grey)),
-                              if (product.material != null)
                                 Expanded(
                                   child: Text(
-                                    product.material!,
+                                    'SKU: ${product.productReference!}',
                                     style: const TextStyle(
-                                        fontSize: 11, color: Colors.grey),
+                                      fontSize: 11,
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                          ],
+
+                          // --- Cantidad ---
+                          Row(
+                            children: [
+                              const Icon(Icons.shopping_cart,
+                                  size: 12, color: Colors.black),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Cantidad: ${product.quantity}',
+                                style: const TextStyle(
+                                    fontSize: 11, color: Colors.black),
+                              ),
                             ],
                           ),
-                        ],
-                      ],
-                    ),
-                  ),
 
-                  // --- Columna Derecha: Botón de Chat ---
-                  // Se centrará automáticamente por el Row padre.
-                  if (user != null && !isFeedback)
-                   Padding(
-                     padding: const EdgeInsets.only(left: 8.0), // Un poco de espacio a la izquierda del botón
-                     child: ChatButton(
-                          organizationId: batch.organizationId,
-                          entityType: 'batch_product',
-                          entityId: product.id,
-                          parentId: product.batchId,
-                          entityName:
-                              '${product.productName} - ${product.productReference}',
-                          user: user,
-                          showInAppBar: true),
-                   )
-                ],
-              ),
-            ],
+                          // --- Material y Color (Si existen) ---
+                          if (product.color != null ||
+                              product.material != null) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                if (product.color != null) ...[
+                                  const Icon(Icons.palette,
+                                      size: 12, color: Colors.grey),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      product.color!,
+                                      style: const TextStyle(
+                                          fontSize: 11, color: Colors.grey),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                                if (product.color != null &&
+                                    product.material != null)
+                                  const Text(' • ',
+                                      style: TextStyle(color: Colors.grey)),
+                                if (product.material != null)
+                                  Expanded(
+                                    child: Text(
+                                      product.material!,
+                                      style: const TextStyle(
+                                          fontSize: 11, color: Colors.grey),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    // --- Columna Derecha: Botón de Chat ---
+                    // Se centrará automáticamente por el Row padre.
+                    if (user != null && !isFeedback)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            left:
+                                8.0), // Un poco de espacio a la izquierda del botón
+                        child: ChatButton(
+                            organizationId: batch.organizationId,
+                            entityType: 'batch_product',
+                            entityId: product.id,
+                            parentId: product.batchId,
+                            entityName:
+                                '${product.productName} - ${product.productReference}',
+                            user: user,
+                            showInAppBar: true),
+                      )
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 }

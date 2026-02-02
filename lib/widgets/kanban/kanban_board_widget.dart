@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
+import 'package:gestion_produccion/services/organization_member_service.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:provider/provider.dart';
@@ -57,6 +58,9 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
   String? _projectFilter;
   bool _onlyUrgentFilter = false;
 
+  Map<String, List<String>> _availableTransitions = {};
+  bool _isLoadingTransitions = true;
+
   @override
   void initState() {
     super.initState();
@@ -65,12 +69,49 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     _projectFilter = widget.initialProjectFilter;
     _onlyUrgentFilter = widget.initialUrgentFilter ?? false;
     _startAutoScroll();
+    _loadAvailableTransitions();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadAvailableTransitions() async {
+    try {
+      final transitionService = Provider.of<StatusTransitionService>(
+        context,
+        listen: false,
+      );
+      final memberService =
+          Provider.of<OrganizationMemberService>(context, listen: false);
+
+      // Obtener todas las transiciones posibles
+      final allTransitions = await transitionService.getAvailableTransitions(
+        organizationId: widget.organizationId,
+        userRoleId: memberService.currentRole!.id,
+      );
+
+      // Crear mapa de transiciones disponibles por estado origen
+      final Map<String, List<String>> transitionsMap = {};
+
+      for (final transition in allTransitions) {
+        if (transition.isActive) {
+          transitionsMap
+              .putIfAbsent(transition.fromStatusId, () => [])
+              .add(transition.toStatusId);
+        }
+      }
+
+      setState(() {
+        _availableTransitions = transitionsMap;
+        _isLoadingTransitions = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading transitions: $e');
+      setState(() => _isLoadingTransitions = false);
+    }
   }
 
   void _startAutoScroll() {
@@ -493,6 +534,22 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
                   // );
                   return false;
                 }
+
+                // Verificar si la transición está disponible
+                final fromStatusId = productData.statusId ?? 'pending';
+                final toStatusId = columnId;
+
+                final availableTargets =
+                    _availableTransitions[fromStatusId] ?? [];
+                if (!availableTargets.contains(toStatusId)) {
+                  // ScaffoldMessenger.of(context).showSnackBar(
+                  //   SnackBar(
+                  //     content: Text(l10n.invalidTransition),
+                  //     backgroundColor: Colors.red,
+                  //   ),
+                  // );
+                  return false;
+                }
               }
 
               return true;
@@ -619,21 +676,35 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
                               .getClientById(batch.clientId)!
                               .color!);
 
+                      // ✅ Determinar si se puede arrastrar
+                      final String columnId = isPhaseView
+                          ? (column as ProductionPhase).id
+                          : (column as ProductStatusModel).id;
+
+                      final bool canDrag = isPhaseView
+                          ? _canMoveFromPhase(context, product.currentPhase)
+                          : _canChangeStatus(context);
+
                       return DraggableProductCard(
                         key: ValueKey(product.id),
                         product: product,
                         allPhases: productionProvider.phases,
                         batchNumber: batch.batchNumber,
                         batch: batch,
-                        clientColor: clientColor, // <--- Pasamos el color
+                        clientColor: clientColor,
+                        canDrag: canDrag,
                         onTap: () => _handleProductTap(product, batch),
-                        onDragStarted: () {
-                          _isDragging = true;
-                        },
-                        onDragEnd: () {
-                          _isDragging = false;
-                          _scrollSpeed = 0;
-                        },
+                        onDragStarted: canDrag
+                            ? () {
+                                _isDragging = true;
+                              }
+                            : null,
+                        onDragEnd: canDrag
+                            ? () {
+                                _isDragging = false;
+                                _scrollSpeed = 0;
+                              }
+                            : null,
                         showStatus: isPhaseView,
                         statusName: _getStatusName(product.statusId!),
                       );
@@ -754,12 +825,15 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     ProductionPhase toPhase,
     AppLocalizations l10n,
   ) async {
+    print("dentro de on phase move, data: ${data}, toPhase: ${toPhase}");
     final productionProvider =
         Provider.of<ProductionDataProvider>(context, listen: false);
+    print("after provider");
 
-    if (!_canMoveFromPhase(context, data['phaseId'] as String)) {
+    if (!_canMoveFromPhase(context, data['fromPhase'] as String)) {
       return;
     }
+    print("after canmovefromphase");
 
     final product = data['product'] as BatchProductModel;
     final batch = data['batch'] as ProductionBatchModel;
