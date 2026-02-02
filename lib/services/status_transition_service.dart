@@ -167,22 +167,56 @@ class StatusTransitionService extends ChangeNotifier {
   /// Stream de todas las transiciones activas
   Stream<List<StatusTransitionModel>> watchTransitions(String organizationId) {
     return _firestore
-      .collection('organizations')
-      .doc(organizationId)
-      .collection('status_transitions')
-      .orderBy('fromStatusId')
-      .orderBy('toStatusId')
-      .snapshots()
-      .map((snapshot) {
-    _transitions = snapshot.docs
-        .map((doc) => StatusTransitionModel.fromMap(doc.data(), docId: doc.id))
-        .toList();
-    return _transitions;
-  });
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('status_transitions')
+        .orderBy('fromStatusId')
+        .orderBy('toStatusId')
+        .snapshots()
+        .map((snapshot) {
+      _transitions = snapshot.docs
+          .map(
+              (doc) => StatusTransitionModel.fromMap(doc.data(), docId: doc.id))
+          .toList();
+      return _transitions;
+    });
+  }
+
+  /// Future de todas las transiciones activas
+  Future<List<StatusTransitionModel>> getAvailableTransitions({
+    required String organizationId,
+    String? userRoleId,
+  }) async {
+    try {
+      final snapshot = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('status_transitions')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      var transitions = snapshot.docs
+          .map(
+              (doc) => StatusTransitionModel.fromMap(doc.data(), docId: doc.id))
+          .toList();
+
+      // Filtrar por rol si se proporciona
+      if (userRoleId != null) {
+        transitions = transitions
+            .where((t) => t.allowedRoles.contains(userRoleId))
+            .toList();
+      }
+
+      return transitions;
+    } catch (e) {
+      _error = 'Error al obtener transiciones: $e';
+      notifyListeners();
+      return [];
+    }
   }
 
   /// Obtener transiciones disponibles desde un estado
-  Future<List<StatusTransitionModel>> getAvailableTransitions({
+  Future<List<StatusTransitionModel>> getAvailableTransitionsFromStatus({
     required String organizationId,
     required String fromStatusId,
     String? userRoleId,
@@ -197,7 +231,8 @@ class StatusTransitionService extends ChangeNotifier {
           .get();
 
       var transitions = snapshot.docs
-          .map((doc) => StatusTransitionModel.fromMap(doc.data(), docId: doc.id))
+          .map(
+              (doc) => StatusTransitionModel.fromMap(doc.data(), docId: doc.id))
           .toList();
 
       // Filtrar por rol si se proporciona
@@ -424,129 +459,130 @@ class StatusTransitionService extends ChangeNotifier {
   /// - 'validationConfig': Map? (configuración para el UI)
   /// - 'requiresApproval': bool (si la lógica condicional pide aprobación)
   /// - 'requiredApprovers': List<String>? (roles que deben aprobar)
-/// Validar datos de una transición
-/// Retorna un mapa con errores (vacío si todo es válido)
-Map<String, String?> validateTransitionData({
-  required StatusTransitionModel transition,
-  required ValidationDataModel validationData,
-}) {
-  final errors = <String, String?>{};
+  /// Validar datos de una transición
+  /// Retorna un mapa con errores (vacío si todo es válido)
+  Map<String, String?> validateTransitionData({
+    required StatusTransitionModel transition,
+    required ValidationDataModel validationData,
+  }) {
+    final errors = <String, String?>{};
 
-  switch (transition.validationType) {
-    case ValidationType.simpleApproval:
-      // No requiere validación adicional
-      break;
+    switch (transition.validationType) {
+      case ValidationType.simpleApproval:
+        // No requiere validación adicional
+        break;
 
-    case ValidationType.textRequired:
-      final textError = transition.validationConfig.validateText(
-        validationData.text,
-      );
-      if (textError != null) errors['text'] = textError;
-      break;
-
-    case ValidationType.textOptional:
-      // Opcional, pero si se proporciona debe ser válido
-      if (validationData.text != null && validationData.text!.isNotEmpty) {
+      case ValidationType.textRequired:
         final textError = transition.validationConfig.validateText(
           validationData.text,
         );
         if (textError != null) errors['text'] = textError;
-      }
-      break;
+        break;
 
-    case ValidationType.quantityAndText:
-  // Validar cantidad
-  final quantityError = transition.validationConfig.validateQuantity(
-    validationData.quantity,
-  );
-  if (quantityError != null) errors['quantity'] = quantityError;
+      case ValidationType.textOptional:
+        // Opcional, pero si se proporciona debe ser válido
+        if (validationData.text != null && validationData.text!.isNotEmpty) {
+          final textError = transition.validationConfig.validateText(
+            validationData.text,
+          );
+          if (textError != null) errors['text'] = textError;
+        }
+        break;
 
-  // Validar texto según modo
-  if (validationData.textMode == TextDetailsMode.single) {
-    // Modo single: validar el campo text
-    final textError = transition.validationConfig.validateText(
-      validationData.text ?? validationData.singleTextReason,
-    );
-    if (textError != null) errors['text'] = textError;
-  } else if (validationData.textMode == TextDetailsMode.individual) {
-    // Modo individual: validar que haya descripciones
-    if (validationData.individualDefects == null || 
-        validationData.individualDefects!.isEmpty) {
-      errors['text'] = 'Debes proporcionar descripciones individuales';
+      case ValidationType.quantityAndText:
+        // Validar cantidad
+        final quantityError = transition.validationConfig.validateQuantity(
+          validationData.quantity,
+        );
+        if (quantityError != null) errors['quantity'] = quantityError;
+
+        // Validar texto según modo
+        if (validationData.textMode == TextDetailsMode.single) {
+          // Modo single: validar el campo text
+          final textError = transition.validationConfig.validateText(
+            validationData.text ?? validationData.singleTextReason,
+          );
+          if (textError != null) errors['text'] = textError;
+        } else if (validationData.textMode == TextDetailsMode.individual) {
+          // Modo individual: validar que haya descripciones
+          if (validationData.individualDefects == null ||
+              validationData.individualDefects!.isEmpty) {
+            errors['text'] = 'Debes proporcionar descripciones individuales';
+          }
+        } else {
+          // Sin modo especificado, validar text normal
+          final textError = transition.validationConfig.validateText(
+            validationData.text,
+          );
+          if (textError != null) errors['text'] = textError;
+        }
+        break;
+
+      case ValidationType.checklist:
+        final checklistError = transition.validationConfig.validateChecklist(
+          validationData.checklistAnswers ?? {},
+        );
+        if (checklistError != null) errors['checklist'] = checklistError;
+        break;
+
+      case ValidationType.photoRequired:
+        final photoError = transition.validationConfig.validatePhotos(
+          validationData.photoUrls?.length ?? 0,
+        );
+        if (photoError != null) errors['photos'] = photoError;
+        break;
+
+      case ValidationType.multiApproval:
+        final approvedCount = validationData.approvedBy?.length ?? 0;
+        final minApprovals = transition.validationConfig.minApprovals ?? 1;
+        if (approvedCount < minApprovals) {
+          errors['approvals'] =
+              'Se requieren al menos $minApprovals aprobaciones';
+        }
+        break;
+
+      case ValidationType.customParameters:
+        // Validar custom parameters
+        final params = transition.validationConfig.customParameters ?? [];
+        final data = validationData.customParametersData ?? {};
+
+        for (var param in params) {
+          if (!param.required) continue;
+
+          // Verificar que el parámetro exista
+          if (!data.containsKey(param.id)) {
+            errors[param.id] = '${param.label} es obligatorio';
+            continue;
+          }
+
+          final value = data[param.id];
+
+          // Validar según tipo
+          switch (param.type) {
+            case CustomParameterType.text:
+              if (value == null || value.toString().trim().isEmpty) {
+                errors[param.id] = '${param.label} no puede estar vacío';
+              }
+              break;
+
+            case CustomParameterType.number:
+              if (value == null || value is! int) {
+                errors[param.id] = '${param.label} debe ser un número válido';
+              }
+              break;
+
+            case CustomParameterType.boolean:
+              if (value == null || value is! bool) {
+                errors[param.id] = '${param.label} debe ser verdadero o falso';
+              }
+              break;
+          }
+        }
+        break;
     }
-  } else {
-    // Sin modo especificado, validar text normal
-    final textError = transition.validationConfig.validateText(
-      validationData.text,
-    );
-    if (textError != null) errors['text'] = textError;
+
+    return errors;
   }
-  break;
-
-    case ValidationType.checklist:
-      final checklistError = transition.validationConfig.validateChecklist(
-        validationData.checklistAnswers ?? {},
-      );
-      if (checklistError != null) errors['checklist'] = checklistError;
-      break;
-
-    case ValidationType.photoRequired:
-      final photoError = transition.validationConfig.validatePhotos(
-        validationData.photoUrls?.length ?? 0,
-      );
-      if (photoError != null) errors['photos'] = photoError;
-      break;
-
-    case ValidationType.multiApproval:
-      final approvedCount = validationData.approvedBy?.length ?? 0;
-      final minApprovals = transition.validationConfig.minApprovals ?? 1;
-      if (approvedCount < minApprovals) {
-        errors['approvals'] = 'Se requieren al menos $minApprovals aprobaciones';
-      }
-      break;
-
-    case ValidationType.customParameters:
-      // Validar custom parameters
-      final params = transition.validationConfig.customParameters ?? [];
-      final data = validationData.customParametersData ?? {};
-      
-      for (var param in params) {
-        if (!param.required) continue;
-        
-        // Verificar que el parámetro exista
-        if (!data.containsKey(param.id)) {
-          errors[param.id] = '${param.label} es obligatorio';
-          continue;
-        }
-        
-        final value = data[param.id];
-        
-        // Validar según tipo
-        switch (param.type) {
-          case CustomParameterType.text:
-            if (value == null || value.toString().trim().isEmpty) {
-              errors[param.id] = '${param.label} no puede estar vacío';
-            }
-            break;
-            
-          case CustomParameterType.number:
-            if (value == null || value is! int) {
-              errors[param.id] = '${param.label} debe ser un número válido';
-            }
-            break;
-            
-          case CustomParameterType.boolean:
-            if (value == null || value is! bool) {
-              errors[param.id] = '${param.label} debe ser verdadero o falso';
-            }
-            break;
-        }
-      }
-      break;
-  }
-
-  return errors;
-}
 
   /// Evaluar lógica condicional
   bool evaluateConditionalLogic({

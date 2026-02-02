@@ -108,7 +108,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
     try {
       // Obtener todas las transiciones desde el estado actual
-      final transitions = await transitionService.getAvailableTransitions(
+      final transitions = await transitionService.getAvailableTransitionsFromStatus(
         organizationId: widget.organizationId,
         fromStatusId: currentStatusId,
         userRoleId: _currentRole!.id,
