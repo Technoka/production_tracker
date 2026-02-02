@@ -78,6 +78,32 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(KanbanBoardWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Si los filtros que vienen del padre han cambiado, actualizamos el estado local
+    if (widget.initialBatchFilter != oldWidget.initialBatchFilter) {
+      setState(() {
+        _batchFilter = widget.initialBatchFilter;
+      });
+    }
+    if (widget.initialClientFilter != oldWidget.initialClientFilter) {
+      setState(() {
+        _clientFilter = widget.initialClientFilter;
+      });
+    }
+    if (widget.initialProjectFilter != oldWidget.initialProjectFilter) {
+      setState(() {
+        _projectFilter = widget.initialProjectFilter;
+      });
+    }
+    if (widget.initialUrgentFilter != oldWidget.initialUrgentFilter) {
+      setState(() {
+        _onlyUrgentFilter = widget.initialUrgentFilter ?? false;
+      });
+    }
+  }
+
   Future<void> _loadAvailableTransitions() async {
     try {
       final transitionService = Provider.of<StatusTransitionService>(
@@ -280,12 +306,18 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     final batches = productionProvider.filterBatches(
       clientId: _clientFilter,
       projectId: _projectFilter,
+      searchQuery: null,
     );
+
+    // ✅ Filtrar también por lote si se especifica
+    final filteredBatches = _batchFilter != null
+        ? batches.where((b) => b.id == _batchFilter).toList()
+        : batches;
 
     // Obtener productos agrupados por fase/estado
     final productsByPhase = _groupProductsByPhase(
       productionProvider.getAllProducts(),
-      batches,
+      filteredBatches,
     );
 
     // Contar productos totales
@@ -321,7 +353,13 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     final batches = productionProvider.filterBatches(
       clientId: _clientFilter,
       projectId: _projectFilter,
+      searchQuery: null,
     );
+
+    // ✅ Filtrar también por lote si se especifica
+    final filteredBatches = _batchFilter != null
+        ? batches.where((b) => b.id == _batchFilter).toList()
+        : batches;
 
     final statuses = productionProvider.statuses
         .where((s) => s.isActive)
@@ -335,7 +373,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     // Obtener productos agrupados por estado
     final productsByStatus = _groupProductsByStatus(
       productionProvider.getAllProducts(),
-      batches,
+      filteredBatches,
     );
 
     // Contar productos totales
