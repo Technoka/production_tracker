@@ -11,6 +11,7 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
   final String organizationId;
   final String entityType;
   final String entityId;
+  final String? parentId;
   final UserModel currentUser;
   final MessageService _messageService = MessageService();
 
@@ -22,6 +23,7 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
     required this.entityType,
     required this.entityId,
     required this.currentUser,
+    this.parentId,
   });
 
   @override
@@ -70,6 +72,7 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
         organizationId: organizationId,
         entityType: entityType,
         entityId: entityId,
+        parentId: parentId,
         includeInternal: true,
         limit: 500, // Cargar más para búsqueda
       ),
@@ -148,15 +151,12 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
   List<MessageModel> _searchMessages(String searchQuery) {
     return _allMessages.where((message) {
       // Buscar en el contenido del mensaje
-      final matchesContent = message.content
-          .toLowerCase()
-          .contains(searchQuery);
+      final matchesContent =
+          message.content.toLowerCase().contains(searchQuery);
 
       // Buscar en el nombre del autor
-      final matchesAuthor = message.authorName
-              ?.toLowerCase()
-              .contains(searchQuery) ??
-          false;
+      final matchesAuthor =
+          message.authorName?.toLowerCase().contains(searchQuery) ?? false;
 
       // Buscar en menciones (opcional)
       final matchesMentions = message.mentions.any(
@@ -196,7 +196,8 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
                         : null,
                     child: message.authorAvatar == null
                         ? Text(
-                            message.authorName?.substring(0, 1).toUpperCase() ?? 'U',
+                            message.authorName?.substring(0, 1).toUpperCase() ??
+                                'U',
                             style: const TextStyle(fontSize: 10),
                           )
                         : null,
@@ -239,7 +240,8 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
                 spacing: 4,
                 children: [
                   if (message.isInternal)
-                    _buildBadge('Interno', Colors.orange[100]!, Colors.orange[900]!),
+                    _buildBadge(
+                        'Interno', Colors.orange[100]!, Colors.orange[900]!),
                   if (message.isPinned)
                     _buildBadge('Fijado', Colors.blue[100]!, Colors.blue[900]!),
                 ],
