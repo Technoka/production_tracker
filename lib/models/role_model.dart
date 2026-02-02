@@ -13,10 +13,10 @@ class RoleModel {
   final String icon; // Material Icons name
   final bool isDefault; // Rol predeterminado del sistema
   final bool isCustom; // Rol personalizado por la organización
-  
+
   // Permisos del rol (ahora usando el sistema dinámico)
   final PermissionsModel permissions;
-  
+
   // Metadata
   final String organizationId;
   final String createdBy;
@@ -41,12 +41,12 @@ class RoleModel {
   // PARCHE TEMPORAL PARA RoleModel.fromMap
 // Este código debe reemplazar el método fromMap en role_model.dart (líneas 41-64)
 
-factory RoleModel.fromMap(Map<String, dynamic> map, {String? docId}) {
-  // Normalizar permisos usando el registry
-  final permissionsMap = map['permissions'] as Map<String, dynamic>?;
-  final normalizedPermissions = permissionsMap != null
-      ? PermissionRegistry.normalizePermissions(permissionsMap)
-      : PermissionRegistry.createEmptyPermissions();
+  factory RoleModel.fromMap(Map<String, dynamic> map, {String? docId}) {
+    // Normalizar permisos usando el registry
+    final permissionsMap = map['permissions'] as Map<String, dynamic>?;
+    final normalizedPermissions = permissionsMap != null
+        ? PermissionRegistry.normalizePermissions(permissionsMap)
+        : PermissionRegistry.createEmptyPermissions();
 
     return RoleModel(
       id: docId ?? map['id'] as String,
@@ -56,15 +56,15 @@ factory RoleModel.fromMap(Map<String, dynamic> map, {String? docId}) {
       icon: map['icon'] as String ?? 'person',
       isDefault: map['isDefault'] as bool? ?? false,
       isCustom: map['isCustom'] as bool? ?? false,
-    permissions: PermissionsModel.fromMap(normalizedPermissions),
+      permissions: PermissionsModel.fromMap(normalizedPermissions),
       organizationId: map['organizationId'] as String,
       createdBy: map['createdBy'] as String,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: map['updatedAt'] != null
           ? (map['updatedAt'] as Timestamp).toDate()
           : null,
-  );
-}
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -133,7 +133,7 @@ factory RoleModel.fromMap(Map<String, dynamic> map, {String? docId}) {
   /// Normalizar permisos del rol
   RoleModel normalize() {
     if (hasValidPermissions) return this;
-    
+
     return copyWith(
       permissions: permissions.normalize(),
     );
@@ -148,7 +148,7 @@ factory RoleModel.fromMap(Map<String, dynamic> map, {String? docId}) {
   int get hashCode => id.hashCode;
 
   // ==================== ROLES PREDETERMINADOS ====================
-  
+
   /// Crea los roles predeterminados del sistema usando el registry dinámico
   static List<RoleModel> getDefaultRoles({
     required String organizationId,
@@ -251,13 +251,14 @@ factory RoleModel.fromMap(Map<String, dynamic> map, {String? docId}) {
 
   // ==================== PERMISOS PREDETERMINADOS POR ROL ====================
 
+// TODO: revisar esto y reinicializar permisos de roles con esto actualizado
   /// Admin: casi todos los permisos
   static PermissionsModel _getAdminPermissions() {
     final fullPerms = PermissionRegistry.createFullPermissions();
-    
+
     // Remover solo algunos permisos críticos de owner
     fullPerms['organization']?['deleteOrganization'] = false;
-    
+
     return PermissionsModel.fromMap(fullPerms);
   }
 
