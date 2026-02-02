@@ -1,11 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'permission_registry_model.dart';
 
 /// Re-exportar tipos del registry para fácil acceso
-export 'permission_registry_model.dart' show PermissionScope, PermissionActionType;
+export 'permission_registry_model.dart'
+    show PermissionScope, PermissionActionType;
 
 /// Modelo simplificado de Permisos usando el Registry dinámico
-/// 
+///
 /// Este modelo es ahora solo un wrapper sobre Map<String, dynamic>
 /// que utiliza PermissionRegistry para validación y estructura
 class PermissionsModel {
@@ -41,18 +41,18 @@ class PermissionsModel {
   /// Copiar con cambios
   PermissionsModel copyWith(Map<String, dynamic> changes) {
     final newPermissions = Map<String, dynamic>.from(_permissions);
-    
+
     for (final moduleKey in changes.keys) {
       if (!newPermissions.containsKey(moduleKey)) {
         newPermissions[moduleKey] = <String, dynamic>{};
       }
-      
+
       final moduleChanges = changes[moduleKey] as Map<String, dynamic>;
       final modulePerms = newPermissions[moduleKey] as Map<String, dynamic>;
-      
+
       modulePerms.addAll(moduleChanges);
     }
-    
+
     return PermissionsModel(newPermissions);
   }
 
@@ -98,7 +98,8 @@ class PermissionsModel {
   bool get canMoveProducts => can('kanban', 'moveProducts');
   PermissionScope get moveProductsScope => getScope('kanban', 'moveProducts');
   bool get canEditProductDetails => can('kanban', 'editProductDetails');
-  PermissionScope get editProductDetailsScope => getScope('kanban', 'editProductDetails');
+  PermissionScope get editProductDetailsScope =>
+      getScope('kanban', 'editProductDetails');
 
   /// PHASES
   bool get canViewPhases => can('phases', 'view');
@@ -126,11 +127,14 @@ class PermissionsModel {
   bool get canEditProducts => can('batch_products', 'edit');
   PermissionScope get editProductsScope => getScope('batch_products', 'edit');
   bool get canDeleteProducts => can('batch_products', 'delete');
-  PermissionScope get deleteProductsScope => getScope('batch_products', 'delete');
+  PermissionScope get deleteProductsScope =>
+      getScope('batch_products', 'delete');
   bool get canChangeProductStatus => can('batch_products', 'changeStatus');
-  PermissionScope get changeProductStatusScope => getScope('batch_products', 'changeStatus');
+  PermissionScope get changeProductStatusScope =>
+      getScope('batch_products', 'changeStatus');
   bool get canChangeProductUrgency => can('batch_products', 'changeUrgency');
-  PermissionScope get changeProductUrgencyScope => getScope('batch_products', 'changeUrgency');
+  PermissionScope get changeProductUrgencyScope =>
+      getScope('batch_products', 'changeUrgency');
 
   /// PROJECTS
   bool get canViewProjects => can('projects', 'view');
@@ -176,7 +180,8 @@ class PermissionsModel {
   // ==================== VALIDACIÓN ====================
 
   /// Validar estructura
-  bool get isValid => PermissionRegistry.validatePermissionsStructure(_permissions);
+  bool get isValid =>
+      PermissionRegistry.validatePermissionsStructure(_permissions);
 
   /// Normalizar permisos (añadir campos faltantes)
   PermissionsModel normalize() {
