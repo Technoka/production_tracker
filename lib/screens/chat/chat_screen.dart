@@ -77,14 +77,15 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _markAsRead() {
-    final user = Provider.of<AuthService>(context, listen: false).currentUserData;
-    
+    final user =
+        Provider.of<AuthService>(context, listen: false).currentUserData;
+
     if (user != null) {
       Provider.of<MessageService>(context, listen: false).markMessagesAsRead(
         organizationId: widget.organizationId,
         entityType: widget.entityType, // 'batch_product'
-        entityId: widget.entityId,     // productId
-        parentId: widget.parentId,      // batchId (Importante)
+        entityId: widget.entityId, // productId
+        parentId: widget.parentId, // batchId (Importante)
         userId: user.uid,
       );
     }
@@ -192,20 +193,21 @@ class _ChatScreenState extends State<ChatScreen> {
 
           // Copiar
           // Copiar
-      if (!message.isSystemGenerated)
-        ListTile(
-          leading: const Icon(Icons.copy),
-          title: const Text('Copiar'),
-          onTap: () async { // 1. Marca como async
-            Navigator.pop(context);
-            
-            // 2. Implementación de copiar
-            await Clipboard.setData(ClipboardData(text: message.content));
-            
-            // 3. Feedback (asumiendo que tienes esta función)
-            _showSuccess('Texto copiado');
-          },
-        ),
+          if (!message.isSystemGenerated)
+            ListTile(
+              leading: const Icon(Icons.copy),
+              title: const Text('Copiar'),
+              onTap: () async {
+                // 1. Marca como async
+                Navigator.pop(context);
+
+                // 2. Implementación de copiar
+                await Clipboard.setData(ClipboardData(text: message.content));
+
+                // 3. Feedback (asumiendo que tienes esta función)
+                _showSuccess('Texto copiado');
+              },
+            ),
 
           // Fijar/Desfijar
           if (!message.isSystemGenerated)
@@ -465,6 +467,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 organizationId: widget.organizationId,
                 entityType: widget.entityType,
                 entityId: widget.entityId,
+                parentId: widget.parentId,
                 currentUser: _currentUser!,
               ),
             );
@@ -472,7 +475,7 @@ class _ChatScreenState extends State<ChatScreen> {
             // Si se seleccionó un mensaje, scroll hacia él
             if (result != null) {
               // TODO: Implementar scroll to message
-              _showSuccess('Mensaje encontrado');
+              // _showSuccess('Mensaje encontrado');
             }
           },
           tooltip: l10n.search,
