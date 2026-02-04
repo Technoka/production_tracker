@@ -5,7 +5,7 @@ import '../../services/auth_service.dart';
 import '../../models/invitation_model.dart';
 
 /// Pantalla de registro con invitación
-/// 
+///
 /// VERSIÓN 2.0: Dos opciones de registro
 /// 1. Crear con Google (Google Sign-In + Cloud Function)
 /// 2. Crear con Email (Formulario + Cloud Function)
@@ -74,12 +74,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     // 2. Verificar si el usuario ya existe en Firestore
     final existingUser = await authService.getUserData();
-    
+
     // Si ya tiene organización, significa que ya está registrado
     if (existingUser != null && existingUser.organizationId != null) {
       // ❌ Cuenta ya registrada - Mostrar error y hacer logout
       await authService.signOut();
-      
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -125,6 +125,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   /// Crear cuenta con Email/Password
   Future<void> _handleEmailSignUp() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Validar que NO sea @gmail.com
+    final email = _emailController.text.trim().toLowerCase();
+    if (email.endsWith('@gmail.com')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.useGoogleSignIn),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
 
     // Validar contraseña
     if (_passwordController.text.length < 6) {
@@ -219,7 +232,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        widget.invitation.organizationId, // TODO: Mostrar nombre
+                        widget.invitation.organizationName,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -228,7 +241,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '${l10n.asRole}: ${widget.invitation.roleId}', // TODO: Mostrar nombre rol
+                        '${l10n.asRole}: ${widget.invitation.roleId}',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 13,
@@ -338,8 +351,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // Botón Google
                 OutlinedButton.icon(
-                  onPressed:
-                      authService.isLoading ? null : _handleGoogleSignUp,
+                  onPressed: authService.isLoading ? null : _handleGoogleSignUp,
                   icon: Image.asset(
                     'assets/google_logo.png',
                     height: 24,
