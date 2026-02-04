@@ -4109,4 +4109,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signInAndJoin => 'Sign in and join';
+
+  @override
+  String get useGoogleSignIn => 'Gmail accounts must use Google authentication';
 }

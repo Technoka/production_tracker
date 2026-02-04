@@ -1568,5 +1568,6 @@
 "accountAlreadyExists": "Account already exists",
 "accountExistsMessage": "This email is already registered.",
 "signInAndJoin": "Sign in and join",
-"loginError": "Login error"
+"loginError": "Login error",
+"useGoogleSignIn": "Gmail accounts must use Google authentication"
 }

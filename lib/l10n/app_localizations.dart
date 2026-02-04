@@ -8140,6 +8140,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign in and join'**
   String get signInAndJoin;
+
+  /// No description provided for @useGoogleSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Gmail accounts must use Google authentication'**
+  String get useGoogleSignIn;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

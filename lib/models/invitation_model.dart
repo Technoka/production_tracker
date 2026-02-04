@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class InvitationModel {
   final String id;
   final String organizationId;
+  final String organizationName;
   final String code; // Código único (ej: "INV-ABC123")
   final String type; // 'direct' (por ahora solo este tipo)
   
@@ -30,6 +31,7 @@ class InvitationModel {
   InvitationModel({
     required this.id,
     required this.organizationId,
+    required this.organizationName,
     required this.code,
     this.type = 'direct',
     required this.roleId,
@@ -49,7 +51,8 @@ class InvitationModel {
   factory InvitationModel.fromMap(Map<String, dynamic> map, String id) {
     return InvitationModel(
       id: id,
-      organizationId: map['organizationId'] ?? '',
+      organizationId: map['organizationId'] ?? 'Unknown org id',
+      organizationName: map['organizationName'] ?? 'Unknown org name',
       code: map['code'] ?? '',
       type: map['type'] ?? 'direct',
       roleId: map['roleId'] ?? 'operator',
@@ -71,6 +74,7 @@ class InvitationModel {
   Map<String, dynamic> toMap() {
     return {
       'organizationId': organizationId,
+      'organizationName': organizationName,
       'code': code,
       'type': type,
       'roleId': roleId,
@@ -119,6 +123,7 @@ class InvitationModel {
   InvitationModel copyWith({
     String? id,
     String? organizationId,
+    String? organizationName,
     String? code,
     String? type,
     String? roleId,
@@ -136,6 +141,7 @@ class InvitationModel {
     return InvitationModel(
       id: id ?? this.id,
       organizationId: organizationId ?? this.organizationId,
+      organizationName: organizationName ?? this.organizationName,
       code: code ?? this.code,
       type: type ?? this.type,
       roleId: roleId ?? this.roleId,

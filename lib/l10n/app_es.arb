@@ -1570,5 +1570,6 @@
 "accountAlreadyExists": "Cuenta ya existe",
 "accountExistsMessage": "Este correo ya está registrado.",
 "signInAndJoin": "Iniciar sesión y unirme",
-"loginError": "Error al iniciar sesión"
+"loginError": "Error al iniciar sesión",
+"useGoogleSignIn": "Las cuentas de Gmail deben usar autenticación con Google"
 }
