@@ -11,10 +11,12 @@ import 'create_invitation_screen.dart';
 /// Pantalla para gestionar invitaciones activas y expiradas
 class ManageInvitationsScreen extends StatelessWidget {
   final String organizationId;
+  final String organizationName;
 
   const ManageInvitationsScreen({
     super.key,
     required this.organizationId,
+    required this.organizationName,
   });
 
   Future<void> _handleRevoke(
@@ -147,6 +149,7 @@ class ManageInvitationsScreen extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (context) => CreateInvitationScreen(
                     organizationId: organizationId,
+                    organizationName: organizationName,
                   ),
                 ),
               );
@@ -188,6 +191,7 @@ class ManageInvitationsScreen extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (context) => CreateInvitationScreen(
                             organizationId: organizationId,
+                            organizationName: organizationName,
                           ),
                         ),
                       );
@@ -220,8 +224,7 @@ class ManageInvitationsScreen extends StatelessWidget {
                       ),
                 ),
                 const SizedBox(height: 12),
-                ...activeInvitations.map((invitation) =>
-                    _buildInvitationCard(
+                ...activeInvitations.map((invitation) => _buildInvitationCard(
                       context,
                       invitation,
                       roleService,
@@ -241,8 +244,7 @@ class ManageInvitationsScreen extends StatelessWidget {
                       ),
                 ),
                 const SizedBox(height: 12),
-                ...expiredInvitations.map((invitation) =>
-                    _buildInvitationCard(
+                ...expiredInvitations.map((invitation) => _buildInvitationCard(
                       context,
                       invitation,
                       roleService,
@@ -288,7 +290,9 @@ class ManageInvitationsScreen extends StatelessWidget {
                           color: isActive ? Colors.blue[50] : Colors.grey[200],
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: isActive ? Colors.blue[200]! : Colors.grey[400]!,
+                            color: isActive
+                                ? Colors.blue[200]!
+                                : Colors.grey[400]!,
                           ),
                         ),
                         child: Text(
@@ -297,7 +301,8 @@ class ManageInvitationsScreen extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                             letterSpacing: 1,
-                            color: isActive ? Colors.blue[900] : Colors.grey[700],
+                            color:
+                                isActive ? Colors.blue[900] : Colors.grey[700],
                           ),
                         ),
                       ),
@@ -305,7 +310,8 @@ class ManageInvitationsScreen extends StatelessWidget {
                       IconButton(
                         icon: const Icon(Icons.copy, size: 20),
                         onPressed: () {
-                          Clipboard.setData(ClipboardData(text: invitation.code));
+                          Clipboard.setData(
+                              ClipboardData(text: invitation.code));
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(l10n.invitationCodeCopied)),
                           );
@@ -341,7 +347,8 @@ class ManageInvitationsScreen extends StatelessWidget {
 
             // Rol
             FutureBuilder(
-              future: roleService.getRoleById(organizationId, invitation.roleId),
+              future:
+                  roleService.getRoleById(organizationId, invitation.roleId),
               builder: (context, snapshot) {
                 final roleName = snapshot.data?.name ?? invitation.roleId;
                 return Row(
@@ -360,13 +367,13 @@ class ManageInvitationsScreen extends StatelessWidget {
                       ),
                     ),
                     if (invitation.clientName != null) ...[
-                    Text(
-                      ' (${invitation.clientName})',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                      Text(
+                        ' (${invitation.clientName})',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
-                    ),
                     ],
                   ],
                 );

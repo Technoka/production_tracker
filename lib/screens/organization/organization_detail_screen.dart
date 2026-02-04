@@ -749,6 +749,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                   MaterialPageRoute(
                     builder: (context) => ManageInvitationsScreen(
                       organizationId: org.id,
+                      organizationName: org.name,
                     ),
                   ),
                 );

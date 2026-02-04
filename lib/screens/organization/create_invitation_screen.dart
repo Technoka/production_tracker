@@ -16,10 +16,12 @@ import '../../utils/filter_utils.dart';
 /// Si el rol es 'client', permite asociar el miembro a un cliente existente
 class CreateInvitationScreen extends StatefulWidget {
   final String organizationId;
+  final String organizationName;
 
   const CreateInvitationScreen({
     super.key,
     required this.organizationId,
+    required this.organizationName,
   });
 
   @override
@@ -82,6 +84,7 @@ class _CreateInvitationScreenState extends State<CreateInvitationScreen> {
 
     final invitation = await invitationService.createInvitation(
       organizationId: widget.organizationId,
+      organizationName: widget.organizationName,
       roleId: _selectedRoleId!,
       createdBy: user.uid,
       description: _descriptionController.text.trim().isEmpty

@@ -22,6 +22,7 @@ class InvitationService extends ChangeNotifier {
   /// Crear invitación directa en colección global
   Future<InvitationModel?> createInvitation({
     required String organizationId,
+    required String organizationName,
     required String roleId,
     required String createdBy,
     String? description,
@@ -40,6 +41,7 @@ class InvitationService extends ChangeNotifier {
       final invitation = InvitationModel(
         id: '',
         organizationId: organizationId,
+        organizationName: organizationName,
         code: code,
         roleId: roleId,
         clientId: clientId,
@@ -122,6 +124,7 @@ class InvitationService extends ChangeNotifier {
       final invitation = InvitationModel(
         id: invitationMap['id']?.toString() ?? '',
         organizationId: invitationMap['organizationId']?.toString() ?? '',
+        organizationName: invitationMap['organizationName']?.toString() ?? '',
         code: invitationMap['code']?.toString() ?? '',
         type: invitationMap['type']?.toString() ?? 'direct',
         roleId: invitationMap['roleId']?.toString() ?? '',
