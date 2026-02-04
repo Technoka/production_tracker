@@ -4,7 +4,6 @@ import '../../l10n/app_localizations.dart';
 import '../../services/notification_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/notification_model.dart';
-import '../../widgets/common_refresh.dart';
 import 'approval_detail_screen.dart';
 
 class NotificationsScreen extends StatelessWidget {
@@ -15,7 +14,7 @@ class NotificationsScreen extends StatelessWidget {
     final authService = Provider.of<AuthService>(context);
     final notificationService = Provider.of<NotificationService>(context);
     final l10n = AppLocalizations.of(context)!;
-    
+
     final user = authService.currentUserData;
     final organizationId = user?.organizationId;
 
@@ -104,7 +103,8 @@ class NotificationsScreen extends StatelessWidget {
                           MaterialPageRoute(
                             builder: (context) => ApprovalDetailScreen(
                               notificationId: notification.id,
-                              pendingObjectId: notification.metadata['pendingObjectId'] as String,
+                              pendingObjectId: notification
+                                  .metadata['pendingObjectId'] as String,
                             ),
                           ),
                         );
@@ -137,7 +137,9 @@ class NotificationsScreen extends StatelessWidget {
                               Text(
                                 notification.title,
                                 style: TextStyle(
-                                  fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+                                  fontWeight: isRead
+                                      ? FontWeight.normal
+                                      : FontWeight.bold,
                                   fontSize: 14,
                                 ),
                               ),
