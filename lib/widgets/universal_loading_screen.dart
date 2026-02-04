@@ -23,7 +23,7 @@ class UniversalLoadingScreen extends StatelessWidget {
     message == l10n.loading;
 
     // Usamos el color primario del tema para el fondo
-    const textColor = Colors.white;
+    final textColor = Theme.of(context).primaryColor;
 
     return Scaffold(
       body: SafeArea(
@@ -42,7 +42,7 @@ class UniversalLoadingScreen extends StatelessWidget {
               // 2. Nombre de la App
               Text(
                 l10n.appName.toUpperCase(),
-                style: const TextStyle(
+                style: TextStyle(
                   color: textColor,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -110,7 +110,7 @@ class UniversalLoadingScreen extends StatelessWidget {
               const SizedBox(height: 48),
 
               // 4. Indicador de carga
-              const CircularProgressIndicator(
+              CircularProgressIndicator(
                 strokeWidth: 3,
                 valueColor: AlwaysStoppedAnimation<Color>(textColor),
               ),
