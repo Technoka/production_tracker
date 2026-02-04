@@ -1037,7 +1037,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get productDeletedSuccess => 'Product deleted successfully';
 
   @override
-  String get deleteError => 'Error al eliminar:';
+  String get deleteError => 'Error when deleting:';
 
   @override
   String get productIsInactiveMessage => 'This product is deactivated';
@@ -1235,70 +1235,70 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactAdminPhasesPart2 => 'para configurar las fases.';
 
   @override
-  String get chatInfo => 'Info del chat';
+  String get chatInfo => 'Chat info';
 
   @override
-  String get muteNotifications => 'Silenciar notificaciones';
+  String get muteNotifications => 'Mute notifications';
 
   @override
-  String get pinnedMessages => 'Mensajes fijados';
+  String get pinnedMessages => 'Pinned messages';
 
   @override
-  String get noMessagesYet => 'No hay mensajes aún';
+  String get noMessagesYet => 'No messages yet';
 
   @override
-  String get beFirstToMessage => 'Sé el primero en enviar un mensaje';
+  String get beFirstToMessage => 'Be the first to send something';
 
   @override
-  String get reply => 'Responder';
+  String get reply => 'Answer';
 
   @override
-  String get react => 'Reaccionar';
+  String get react => 'React';
 
   @override
   String get copy => 'Copy';
 
   @override
-  String get textCopied => 'Texto copiado';
+  String get textCopied => 'Text copied';
 
   @override
-  String get unpin => 'Desfijar';
+  String get unpin => 'Unpin';
 
   @override
-  String get pin => 'Fijar';
+  String get pin => 'Pin';
 
   @override
-  String get messageUnpinned => 'Mensaje desfijado';
+  String get messageUnpinned => 'Message unpinned';
 
   @override
-  String get messagePinned => 'Mensaje fijado';
+  String get messagePinned => 'Message pinned';
 
   @override
-  String get editMessage => 'Editar mensaje';
+  String get editMessage => 'Edit message';
 
   @override
-  String get newContentHint => 'Nuevo contenido...';
+  String get newContentHint => 'New content...';
 
   @override
-  String get messageEdited => 'Mensaje editado';
+  String get messageEdited => 'Message edited';
 
   @override
-  String get editError => 'Error al editar:';
+  String get editError => 'Error when editing:';
 
   @override
-  String get deleteMessage => 'Eliminar mensaje';
+  String get deleteMessage => 'Delete message';
 
   @override
-  String get deleteMessageConfirm => '¿Estás seguro de que quieres eliminar este mensaje?';
+  String get deleteMessageConfirm => 'Are you sure you want to delete this message?';
 
   @override
-  String get messageDeleted => 'Mensaje eliminado';
+  String get messageDeleted => 'Message deleted';
 
   @override
-  String get sendMessageError => 'Error al enviar mensaje:';
+  String get sendMessageError => 'Error when sending message:';
 
   @override
-  String get reactionError => 'Error al reaccionar:';
+  String get reactionError => 'Error when reacting:';
 
   @override
   String get assignPhasesTitle => 'Assign Phases';
@@ -4112,4 +4112,73 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get useGoogleSignIn => 'Gmail accounts must use Google authentication';
+
+  @override
+  String get messageAnsweringTo => 'Respondiendo a';
+
+  @override
+  String get searchMessagesPlaceholder => 'Write to search message content, usernames or mentions';
+
+  @override
+  String get mondayShort => 'Mon';
+
+  @override
+  String get tuesdayShort => 'Tue';
+
+  @override
+  String get wednesdayShort => 'Wed';
+
+  @override
+  String get thursdayShort => 'Thu';
+
+  @override
+  String get fridayShort => 'Fri';
+
+  @override
+  String get saturdayShort => 'Sat';
+
+  @override
+  String get sundayShort => 'Sun';
+
+  @override
+  String get system => 'System';
+
+  @override
+  String get answer => 'Anwer';
+
+  @override
+  String get writeAMessage => 'Write a message...';
+
+  @override
+  String get internalMessageDescription => 'Internal message (only team)';
+
+  @override
+  String get messageReactWith => 'React with';
+
+  @override
+  String get originalMessage => 'Original message';
+
+  @override
+  String get edited => 'edited';
+
+  @override
+  String get internal => 'Internal';
+
+  @override
+  String get pinned => 'Pinned';
+
+  @override
+  String get answerPlural => 'Answers';
+
+  @override
+  String get mute => 'Mute';
+
+  @override
+  String get batchChat => 'Batch chat';
+
+  @override
+  String get projectChat => 'Project chat';
+
+  @override
+  String get productChat => 'Product chat';
 }

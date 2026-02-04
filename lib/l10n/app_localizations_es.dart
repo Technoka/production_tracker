@@ -4112,4 +4112,73 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get useGoogleSignIn => 'Las cuentas de Gmail deben usar autenticación con Google';
+
+  @override
+  String get messageAnsweringTo => 'Respondiendo a';
+
+  @override
+  String get searchMessagesPlaceholder => 'Escribe para buscar contenido de mensajes, nombres de usuario o menciones';
+
+  @override
+  String get mondayShort => 'Lun';
+
+  @override
+  String get tuesdayShort => 'Mar';
+
+  @override
+  String get wednesdayShort => 'Mie';
+
+  @override
+  String get thursdayShort => 'Jue';
+
+  @override
+  String get fridayShort => 'Vie';
+
+  @override
+  String get saturdayShort => 'Sab';
+
+  @override
+  String get sundayShort => 'Dom';
+
+  @override
+  String get system => 'Sistema';
+
+  @override
+  String get answer => 'Responder';
+
+  @override
+  String get writeAMessage => 'Escribe un mensaje...';
+
+  @override
+  String get internalMessageDescription => 'Mensaje interno (solo equipo)';
+
+  @override
+  String get messageReactWith => 'Reaccionar con';
+
+  @override
+  String get originalMessage => 'Mensaje original';
+
+  @override
+  String get edited => 'editado';
+
+  @override
+  String get internal => 'Interno';
+
+  @override
+  String get pinned => 'Fijado';
+
+  @override
+  String get answerPlural => 'Respuestas';
+
+  @override
+  String get mute => 'Silenciar';
+
+  @override
+  String get batchChat => 'Chat de lote';
+
+  @override
+  String get projectChat => 'Chat del proyecto';
+
+  @override
+  String get productChat => 'Chat del producto';
 }

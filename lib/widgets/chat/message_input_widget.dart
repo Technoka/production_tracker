@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
+import 'package:gestion_produccion/l10n/app_localizations.dart';
+import 'dart:io' show Platform;
 import '../../models/message_model.dart';
 
 /// Widget de input para enviar mensajes
@@ -74,8 +78,41 @@ class _MessageInputState extends State<MessageInput> {
     return matches.map((m) => m.group(1)!).toList();
   }
 
+  /// Verificar si estamos en desktop (web o desktop app)
+  bool get _isDesktop {
+    if (kIsWeb) return true;
+    try {
+      return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Manejar el evento de tecla presionada
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    // Solo procesar cuando se suelta la tecla
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    // Enter sin Shift: enviar mensaje (solo en desktop)
+    if (_isDesktop && 
+        event.logicalKey == LogicalKeyboardKey.enter && 
+        !HardwareKeyboard.instance.isShiftPressed) {
+      _handleSend();
+      return KeyEventResult.handled;
+    }
+
+    // Shift+Enter: nueva línea (comportamiento por defecto)
+    // No necesitamos hacer nada especial, el TextField lo maneja automáticamente
+
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -110,29 +147,33 @@ class _MessageInputState extends State<MessageInput> {
 
                   // Campo de texto
                   Expanded(
-                    child: Container(
-                      constraints: const BoxConstraints(maxHeight: 150),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        maxLines: null,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: InputDecoration(
-                          hintText: widget.replyingTo != null
-                              ? 'Responder...'
-                              : 'Escribe un mensaje...',
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
+                    child: Focus(
+                      onKeyEvent: _handleKeyEvent,
+                      child: Container(
+                        constraints: const BoxConstraints(maxHeight: 150),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(24),
                         ),
-                        onSubmitted: (_) => _handleSend(),
-                        enabled: !widget.isLoading,
+                        child: TextField(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          maxLines: null,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: InputDecoration(
+                            hintText: widget.replyingTo != null
+                                ? l10n.answer
+                                : l10n.writeAMessage,
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                          ),
+                          // En móvil, mantener el comportamiento por defecto de onSubmitted
+                          onSubmitted: !_isDesktop ? (_) => _handleSend() : null,
+                          enabled: !widget.isLoading,
+                        ),
                       ),
                     ),
                   ),
@@ -174,7 +215,7 @@ class _MessageInputState extends State<MessageInput> {
               ),
             ),
 
-            // Toggle de mensaje interno
+            // Toggle de mensaje interno (solo si showInternalToggle es true)
             if (widget.showInternalToggle)
               Padding(
                 padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
@@ -188,7 +229,7 @@ class _MessageInputState extends State<MessageInput> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Mensaje interno (solo equipo)',
+                        l10n.internalMessageDescription,
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[700],
@@ -213,6 +254,8 @@ class _MessageInputState extends State<MessageInput> {
 
   /// Preview del mensaje al que se está respondiendo
   Widget _buildReplyPreview() {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -237,7 +280,7 @@ class _MessageInputState extends State<MessageInput> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Respondiendo a ${widget.replyingTo!.authorName ?? 'Usuario'}',
+                  '${l10n.messageAnsweringTo} ${widget.replyingTo!.authorName ?? 'User?'}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -286,6 +329,8 @@ class EmojiReactionPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -293,7 +338,7 @@ class EmojiReactionPicker extends StatelessWidget {
         children: [
           // Título
           Text(
-            'Reaccionar con',
+            l10n.messageReactWith,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,

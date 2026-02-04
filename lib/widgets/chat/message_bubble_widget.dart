@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import '../../models/message_model.dart';
 import '../../models/user_model.dart';
+import '../../services/user_cache_service.dart';
 
 /// Widget de burbuja de mensaje reutilizable
 /// Soporta mensajes de usuario y eventos del sistema
@@ -14,6 +16,7 @@ class MessageBubble extends StatelessWidget {
   final VoidCallback? onReply;
   final bool showAvatar;
   final bool showTimestamp;
+  final bool showAuthorName;
 
   const MessageBubble({
     Key? key,
@@ -25,9 +28,11 @@ class MessageBubble extends StatelessWidget {
     this.onReply,
     this.showAvatar = true,
     this.showTimestamp = true,
+    this.showAuthorName = true,
   }) : super(key: key);
 
   bool get isOwnMessage => message.authorId == currentUser.uid;
+  static const SYSTEM_MESSAGE_MAX_WIDTH = 250.0;
 
   @override
   Widget build(BuildContext context) {
@@ -42,30 +47,36 @@ class MessageBubble extends StatelessWidget {
   /// Mensaje de usuario normal
   Widget _buildUserMessage(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start, // Alinear al fondo visualmente
         mainAxisAlignment:
             isOwnMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
-          // Avatar (izquierda para otros, oculto para propios)
-          if (!isOwnMessage && showAvatar) ...[
-            _buildAvatar(),
+          // Avatar (solo si no es propio)
+          if (!isOwnMessage) ...[
+            if (showAvatar)
+              _buildAvatar()
+            else
+              // Mantiene el hueco del avatar para que el texto se alinee verticalmente bien
+              const SizedBox(width: 40),
             const SizedBox(width: 8),
           ],
 
-          // Contenido del mensaje
+          // Usamos Flexible para que el mensaje se pueda encoger, pero no obligamos a expandirse
           Flexible(
             child: GestureDetector(
               onTap: onTap,
               onLongPress: onLongPress,
               child: Column(
+                // Alineación INTERNA de la columna (texto y burbuja)
                 crossAxisAlignment: isOwnMessage
                     ? CrossAxisAlignment.end
                     : CrossAxisAlignment.start,
                 children: [
-                  // Nombre del autor (solo si no es propio)
-                  if (!isOwnMessage)
+                  // Nombre del autor
+                  if (!isOwnMessage && showAuthorName)
                     Padding(
                       padding: const EdgeInsets.only(left: 12, bottom: 2),
                       child: Text(
@@ -78,22 +89,34 @@ class MessageBubble extends StatelessWidget {
                       ),
                     ),
 
-                  // Burbuja del mensaje
+                  // BURBUJA DEL MENSAJE
                   Container(
+                    // ⚠️ AQUÍ ESTÁ EL CONTROL DE ANCHO
+                    // Usamos constraints para definir el máximo, pero el contenedor
+                    // se ajustará al contenido si es más pequeño.
                     constraints: BoxConstraints(
                       maxWidth: MediaQuery.of(context).size.width * 0.75,
                     ),
                     decoration: BoxDecoration(
-                      color: isOwnMessage
-                          ? Colors.blue
-                          : Colors.grey[200],
-                      borderRadius: BorderRadius.circular(16),
+                      color: isOwnMessage ? Colors.blue : Colors.grey[200],
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(16),
+                        topRight: const Radius.circular(16),
+                        bottomLeft: isOwnMessage
+                            ? const Radius.circular(16)
+                            : const Radius.circular(2),
+                        bottomRight: isOwnMessage
+                            ? const Radius.circular(2)
+                            : const Radius.circular(16),
+                      ),
                     ),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 10,
                     ),
                     child: Column(
+                      mainAxisSize: MainAxisSize
+                          .min, // La columna ocupa lo mínimo necesario
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Respuesta a otro mensaje
@@ -115,16 +138,23 @@ class MessageBubble extends StatelessWidget {
                           ...message.attachments.map(_buildAttachment),
                         ],
 
-                        // Timestamp y estado
-                        if (showTimestamp) ...[
-                          const SizedBox(height: 4),
-                          _buildTimestamp(context),
-                        ],
+                        // Timestamp y ticks (Alineados al final del texto)
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            // Espacio flexible vacío para empujar la hora a la derecha
+                            // si el texto es muy corto pero queremos la hora a la derecha de la burbuja
+                            const SizedBox(width: 4),
+                            _buildTimestamp(context),
+                          ],
+                        ),
                       ],
                     ),
                   ),
 
-                  // Reacciones
+                  // Reacciones, Badges, etc (fuera de la burbuja)
                   if (message.reactions.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     _buildReactions(context),
@@ -151,77 +181,92 @@ class MessageBubble extends StatelessWidget {
               ),
             ),
           ),
-
-          // Avatar (derecha para propios)
-          if (isOwnMessage && showAvatar) ...[
-            const SizedBox(width: 8),
-            _buildAvatar(),
-          ],
         ],
       ),
     );
   }
 
-  /// Evento del sistema
+  /// Evento del sistema (centrado con ancho máximo 200px)
   Widget _buildSystemEvent(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue[200]!),
-              ),
-              child: Row(
-                children: [
-                  // Icono del evento
-                  Text(
-                    SystemEventType.getEventIcon(message.eventType ?? ''),
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                  const SizedBox(width: 8),
-
-                  // Contenido
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          message.content,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.blue[900],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        if (showTimestamp) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            _formatTimestamp(message.createdAt),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.blue[700],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: SYSTEM_MESSAGE_MAX_WIDTH),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blue[200]!),
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icono del evento
+              Text(
+                SystemEventType.getEventIcon(message.eventType ?? ''),
+                style: const TextStyle(fontSize: 20),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+
+              // Contenido
+              Text(
+                message.content,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.blue[900],
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              // Timestamp
+              if (showTimestamp) ...[
+                const SizedBox(height: 4),
+                Text(
+                  _formatTimestamp(message.createdAt),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.blue[700],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  /// Avatar del usuario
+  /// Avatar del usuario con foto actualizada de la base de datos
   Widget _buildAvatar() {
+    // Si el mensaje tiene authorId, obtener la foto actual del usuario
+    if (message.authorId != null) {
+      return FutureBuilder<UserBasicData?>(
+        future: UserCacheService().getUserBasicData(message.authorId!),
+        builder: (context, snapshot) {
+          final photoURL = snapshot.data?.photoURL ?? message.authorAvatar;
+          final name = snapshot.data?.name ?? message.authorName ?? 'User?';
+
+          return CircleAvatar(
+            radius: 16,
+            backgroundColor: Colors.grey[300],
+            backgroundImage: photoURL != null ? NetworkImage(photoURL) : null,
+            child: photoURL == null
+                ? Text(
+                    name.substring(0, 1).toUpperCase(),
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold),
+                  )
+                : null,
+          );
+        },
+      );
+    }
+
+    // Fallback si no hay authorId
     return CircleAvatar(
       radius: 16,
       backgroundColor: Colors.grey[300],
@@ -230,7 +275,7 @@ class MessageBubble extends StatelessWidget {
           : null,
       child: message.authorAvatar == null
           ? Text(
-              message.authorName?.substring(0, 1).toUpperCase() ?? 'U',
+              message.authorName?.substring(0, 1).toUpperCase() ?? '?',
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             )
           : null,
@@ -239,35 +284,41 @@ class MessageBubble extends StatelessWidget {
 
   /// Preview de respuesta
   Widget _buildReplyPreview(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.all(8),
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isOwnMessage ? Colors.white.withOpacity(0.2) : Colors.grey[300],
+        color: isOwnMessage ? Colors.white.withOpacity(0.2) : Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isOwnMessage ? Colors.white.withOpacity(0.3) : Colors.grey[400]!,
+        border: Border(
+          left: BorderSide(
+            color: Theme.of(context).primaryColor,
+            width: 3,
+          ),
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.reply,
-            size: 16,
-            color: isOwnMessage ? Colors.white70 : Colors.grey[600],
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              'Respondiendo a un mensaje',
-              style: TextStyle(
-                fontSize: 12,
-                color: isOwnMessage ? Colors.white70 : Colors.grey[600],
-                fontStyle: FontStyle.italic,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          Text(
+            l10n.messageAnsweringTo,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isOwnMessage ? Colors.white70 : Colors.grey[600],
             ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            l10n.originalMessage,
+            style: TextStyle(
+              fontSize: 13,
+              color: isOwnMessage ? Colors.white : Colors.black87,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -322,6 +373,8 @@ class MessageBubble extends StatelessWidget {
 
   /// Timestamp y estado de lectura
   Widget _buildTimestamp(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -335,7 +388,7 @@ class MessageBubble extends StatelessWidget {
         if (message.editedAt != null) ...[
           const SizedBox(width: 4),
           Text(
-            '(editado)',
+            '(${l10n.edited})',
             style: TextStyle(
               fontSize: 11,
               fontStyle: FontStyle.italic,
@@ -345,7 +398,7 @@ class MessageBubble extends StatelessWidget {
         ],
         if (isOwnMessage && message.readBy.length > 1) ...[
           const SizedBox(width: 4),
-          Icon(
+          const Icon(
             Icons.done_all,
             size: 14,
             color: Colors.white70,
@@ -368,7 +421,8 @@ class MessageBubble extends StatelessWidget {
       children: groupedReactions.entries.map((entry) {
         final emoji = entry.key;
         final reactions = entry.value;
-        final hasUserReacted = reactions.any((r) => r.userId == currentUser.uid);
+        final hasUserReacted =
+            reactions.any((r) => r.userId == currentUser.uid);
 
         return GestureDetector(
           onTap: () => onReactionTap?.call(emoji),
@@ -410,6 +464,8 @@ class MessageBubble extends StatelessWidget {
 
   /// Badge de mensaje interno
   Widget _buildInternalBadge(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
@@ -422,7 +478,7 @@ class MessageBubble extends StatelessWidget {
           Icon(Icons.lock, size: 12, color: Colors.orange[900]),
           const SizedBox(width: 4),
           Text(
-            'Interno',
+            l10n.internal,
             style: TextStyle(
               fontSize: 11,
               color: Colors.orange[900],
@@ -436,6 +492,8 @@ class MessageBubble extends StatelessWidget {
 
   /// Badge de mensaje fijado
   Widget _buildPinnedBadge(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
@@ -448,7 +506,7 @@ class MessageBubble extends StatelessWidget {
           Icon(Icons.push_pin, size: 12, color: Colors.blue[900]),
           const SizedBox(width: 4),
           Text(
-            'Fijado',
+            l10n.pinned,
             style: TextStyle(
               fontSize: 11,
               color: Colors.blue[900],
@@ -462,6 +520,8 @@ class MessageBubble extends StatelessWidget {
 
   /// Badge de thread con respuestas
   Widget _buildThreadBadge(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return GestureDetector(
       onTap: onReply,
       child: Container(
@@ -476,7 +536,7 @@ class MessageBubble extends StatelessWidget {
             Icon(Icons.forum, size: 12, color: Colors.grey[700]),
             const SizedBox(width: 4),
             Text(
-              '${message.threadCount} ${message.threadCount == 1 ? 'respuesta' : 'respuestas'}',
+              '${message.threadCount} ${message.threadCount == 1 ? l10n.answer : l10n.answerPlural}',
               style: TextStyle(
                 fontSize: 11,
                 color: Colors.grey[700],

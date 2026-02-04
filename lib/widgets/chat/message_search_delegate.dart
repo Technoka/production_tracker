@@ -3,7 +3,6 @@ import '../../../l10n/app_localizations.dart';
 import '../../models/message_model.dart';
 import '../../models/user_model.dart';
 import '../../services/message_service.dart';
-import 'message_bubble_widget.dart';
 
 /// Delegate para búsqueda de mensajes
 /// Implementa búsqueda en memoria (gratis, sin servicios externos)
@@ -16,7 +15,6 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
   final MessageService _messageService = MessageService();
 
   List<MessageModel> _allMessages = [];
-  bool _isLoading = true;
 
   MessageSearchDelegate({
     required this.organizationId,
@@ -25,9 +23,6 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
     required this.currentUser,
     this.parentId,
   });
-
-  @override
-  String get searchFieldLabel => 'Buscar mensajes...';
 
   @override
   List<Widget> buildActions(BuildContext context) {
@@ -169,6 +164,7 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
 
   Widget _buildSearchResultItem(BuildContext context, MessageModel message) {
     final highlightedContent = _highlightQuery(message.content, query);
+    final l10n = AppLocalizations.of(context)!;
 
     return InkWell(
       onTap: () {
@@ -207,8 +203,8 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
                 Expanded(
                   child: Text(
                     message.isSystemGenerated
-                        ? 'Sistema'
-                        : message.authorName ?? 'Usuario',
+                        ? l10n.system
+                        : message.authorName ?? 'User?',
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
@@ -216,7 +212,7 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
                   ),
                 ),
                 Text(
-                  _formatDate(message.createdAt),
+                  _formatDate(context, message.createdAt),
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -335,7 +331,7 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Buscar en mensajes',
+            l10n.searchMessages,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
@@ -346,7 +342,7 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Text(
-              'Escribe para buscar en el contenido de los mensajes, nombres de usuario o menciones',
+              l10n.searchMessagesPlaceholder,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -359,16 +355,17 @@ class MessageSearchDelegate extends SearchDelegate<MessageModel?> {
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(BuildContext context, DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
+    final l10n = AppLocalizations.of(context)!;
 
     if (difference.inDays == 0) {
       return '${date.hour}:${date.minute.toString().padLeft(2, '0')}';
     } else if (difference.inDays == 1) {
-      return 'Ayer';
+      return l10n.yesterday;
     } else if (difference.inDays < 7) {
-      const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+      final weekDays = [l10n.mondayShort, l10n.tuesdayShort, l10n.wednesdayShort, l10n.thursdayShort, l10n.fridayShort, l10n.saturdayShort, l10n.sundayShort];
       return weekDays[date.weekday - 1];
     } else {
       return '${date.day}/${date.month}/${date.year}';

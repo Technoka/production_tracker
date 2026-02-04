@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/message_model.dart';
 import '../../models/user_model.dart';
 import '../../services/message_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/chat_role_helper.dart';
 import '../../widgets/chat/message_bubble_widget.dart';
 import '../../widgets/chat/message_input_widget.dart';
 import '../../widgets/chat/message_search_delegate.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/services.dart';
 
 /// Pantalla de chat reutilizable para lotes, proyectos y productos
 class ChatScreen extends StatefulWidget {
@@ -36,18 +38,27 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final MessageService _messageService = MessageService();
   final AuthService _authService = AuthService();
+  final ChatRoleHelper _roleHelper = ChatRoleHelper();
   final ScrollController _scrollController = ScrollController();
+  
+  Stream<List<MessageModel>>? _messagesStream;
 
   UserModel? _currentUser;
   MessageModel? _replyingTo;
   bool _isLoading = false;
   bool _showScrollToBottom = false;
+  bool _isUserClient = false;
+  bool _isCheckingRole = true;
+
+  // Tiempo máximo para considerar mensajes consecutivos (5 minutos)
+  static const Duration _consecutiveMessageThreshold = Duration(minutes: 5);
 
   @override
   void initState() {
     super.initState();
     _loadCurrentUser();
     _scrollController.addListener(_onScroll);
+    _setupStream();
 
     // Marcar mensajes como leídos al entrar
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -59,6 +70,20 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _setupStream() {
+    // Calculamos si mostramos internos basándonos en el estado ACTUAL
+    final showInternal = !_isUserClient && widget.showInternalMessages;
+
+    _messagesStream = _messageService.getMessages(
+      organizationId: widget.organizationId,
+      entityType: widget.entityType,
+      entityId: widget.entityId,
+      parentId: widget.parentId,
+      includeInternal: showInternal,
+      limit: 100,
+    );
   }
 
   void _onScroll() {
@@ -73,6 +98,29 @@ class _ChatScreenState extends State<ChatScreen> {
     final user = await _authService.getUserData();
     if (mounted) {
       setState(() => _currentUser = user);
+      
+      // Verificar si el usuario es cliente
+      if (user != null) {
+        _checkUserRole();
+      }
+    }
+  }
+
+  /// Verificar si el usuario actual es cliente
+  Future<void> _checkUserRole() async {
+    if (_currentUser == null) return;
+    
+    final isClient = await _roleHelper.isUserClient(
+      widget.organizationId,
+      _currentUser!.uid,
+    );
+    
+    if (mounted) {
+      setState(() {
+        _isUserClient = isClient;
+        _isCheckingRole = false;
+        _setupStream();
+      });
     }
   }
 
@@ -83,9 +131,9 @@ class _ChatScreenState extends State<ChatScreen> {
     if (user != null) {
       Provider.of<MessageService>(context, listen: false).markMessagesAsRead(
         organizationId: widget.organizationId,
-        entityType: widget.entityType, // 'batch_product'
-        entityId: widget.entityId, // productId
-        parentId: widget.parentId, // batchId (Importante)
+        entityType: widget.entityType,
+        entityId: widget.entityId,
+        parentId: widget.parentId,
         userId: user.uid,
       );
     }
@@ -98,7 +146,12 @@ class _ChatScreenState extends State<ChatScreen> {
   ) async {
     if (_currentUser == null || content.trim().isEmpty) return;
 
-    setState(() => _isLoading = true);
+    // Los clientes no pueden enviar mensajes internos
+    final finalIsInternal = _isUserClient ? false : isInternal;
+
+    // No usar setState aquí para evitar rebuild durante el envío
+    // Solo marcar como loading internamente
+    _isLoading = true;
 
     try {
       await _messageService.sendMessage(
@@ -109,19 +162,23 @@ class _ChatScreenState extends State<ChatScreen> {
         content: content,
         currentUser: _currentUser!,
         mentions: mentions,
-        isInternal: isInternal,
+        isInternal: finalIsInternal,
         parentMessageId: _replyingTo?.id,
       );
 
-      // Limpiar respuesta
-      setState(() => _replyingTo = null);
+      // Limpiar respuesta solo si está montado
+      if (mounted) {
+        setState(() => _replyingTo = null);
+      }
 
-      // Scroll to bottom
+      // Scroll to bottom suavemente
       _scrollToBottom();
     } catch (e) {
-      _showError('Error al enviar mensaje: $e');
+      if (mounted) {
+        _showError('Error al enviar mensaje: $e');
+      }
     } finally {
-      setState(() => _isLoading = false);
+      _isLoading = false;
     }
   }
 
@@ -148,41 +205,30 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageActions(MessageModel message) {
+    final l10n = AppLocalizations.of(context)!;
     final canEdit = message.canEdit(_currentUser!.uid);
-    final canDelete =
-        message.canDelete(_currentUser!.uid, _currentUser!.role == 'admin');
+    final canDelete = message.canDelete(_currentUser!.uid, false);
 
-    return SafeArea(
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
-          Container(
-            margin: const EdgeInsets.only(top: 8, bottom: 16),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
           // Responder
-          if (!message.isSystemGenerated)
-            ListTile(
-              leading: const Icon(Icons.reply),
-              title: const Text('Responder'),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() => _replyingTo = message);
-              },
-            ),
+          ListTile(
+            leading: const Icon(Icons.reply),
+            title: Text(l10n.answer),
+            onTap: () {
+              Navigator.pop(context);
+              setState(() => _replyingTo = message);
+            },
+          ),
 
           // Reaccionar
           if (!message.isSystemGenerated)
             ListTile(
               leading: const Icon(Icons.add_reaction),
-              title: const Text('Reaccionar'),
+              title: Text(l10n.react),
               onTap: () {
                 Navigator.pop(context);
                 EmojiReactionPicker.show(context, (emoji) {
@@ -190,13 +236,11 @@ class _ChatScreenState extends State<ChatScreen> {
                 });
               },
             ),
-
-          // Copiar
           // Copiar
           if (!message.isSystemGenerated)
             ListTile(
               leading: const Icon(Icons.copy),
-              title: const Text('Copiar'),
+              title: Text(l10n.copy),
               onTap: () async {
                 // 1. Marca como async
                 Navigator.pop(context);
@@ -205,89 +249,65 @@ class _ChatScreenState extends State<ChatScreen> {
                 await Clipboard.setData(ClipboardData(text: message.content));
 
                 // 3. Feedback (asumiendo que tienes esta función)
-                _showSuccess('Texto copiado');
+                _showSuccess(l10n.textCopied);
               },
             ),
 
-          // Fijar/Desfijar
-          if (!message.isSystemGenerated)
-            ListTile(
-              leading: Icon(
-                  message.isPinned ? Icons.push_pin : Icons.push_pin_outlined),
-              title: Text(message.isPinned ? 'Desfijar' : 'Fijar'),
-              onTap: () {
-                Navigator.pop(context);
-                _togglePin(message);
-              },
-            ),
-
-          // Editar
+          // Editar (solo si puede)
           if (canEdit)
             ListTile(
               leading: const Icon(Icons.edit),
-              title: const Text('Editar'),
+              title: Text(l10n.edit),
               onTap: () {
                 Navigator.pop(context);
                 _showEditDialog(message);
               },
             ),
 
-          // Eliminar
+          // Fijar/Desfijar
+          ListTile(
+            leading: Icon(message.isPinned ? Icons.push_pin_outlined : Icons.push_pin),
+            title: Text(message.isPinned ? l10n.unpin : l10n.pin),
+            onTap: () {
+              Navigator.pop(context);
+              _togglePin(message);
+            },
+          ),
+
+          // Eliminar (solo si puede)
           if (canDelete)
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title:
-                  const Text('Eliminar', style: TextStyle(color: Colors.red)),
+              title: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
                 _confirmDelete(message);
               },
             ),
-
-          const SizedBox(height: 8),
         ],
       ),
     );
   }
 
   Future<void> _addReaction(MessageModel message, String emoji) async {
-    if (_currentUser == null) return;
-
     try {
-      // Verificar si el usuario ya reaccionó con este emoji
-      final hasReacted = message.reactions.any(
-        (r) => r.userId == _currentUser!.uid && r.emoji == emoji,
+      await _messageService.addReaction(
+        organizationId: widget.organizationId,
+        entityType: widget.entityType,
+        entityId: widget.entityId,
+        parentId: widget.parentId,
+        messageId: message.id,
+        emoji: emoji,
+        user: _currentUser!,
       );
-
-      if (hasReacted) {
-        // Quitar reacción
-        await _messageService.removeReaction(
-          organizationId: widget.organizationId,
-          entityType: widget.entityType,
-          entityId: widget.entityId,
-          parentId: widget.parentId,
-          messageId: message.id,
-          emoji: emoji,
-          userId: _currentUser!.uid,
-        );
-      } else {
-        // Añadir reacción
-        await _messageService.addReaction(
-          organizationId: widget.organizationId,
-          entityType: widget.entityType,
-          entityId: widget.entityId,
-          parentId: widget.parentId,
-          messageId: message.id,
-          emoji: emoji,
-          user: _currentUser!,
-        );
-      }
     } catch (e) {
-      _showError('Error al reaccionar: $e');
+      _showError('Error al añadir reacción: $e');
     }
   }
 
   Future<void> _togglePin(MessageModel message) async {
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       await _messageService.togglePin(
         organizationId: widget.organizationId,
@@ -297,31 +317,33 @@ class _ChatScreenState extends State<ChatScreen> {
         messageId: message.id,
         isPinned: !message.isPinned,
       );
-      _showSuccess(message.isPinned ? 'Mensaje desfijado' : 'Mensaje fijado');
+      _showSuccess(message.isPinned ? l10n.messageUnpinned : l10n.messagePinned);
     } catch (e) {
       _showError('Error: $e');
     }
   }
 
   void _showEditDialog(MessageModel message) {
+    final l10n = AppLocalizations.of(context)!;
+
     final controller = TextEditingController(text: message.content);
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Editar mensaje'),
+        title: Text(l10n.editMessage),
         content: TextField(
           controller: controller,
           maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Nuevo contenido...',
+          decoration: InputDecoration(
+            hintText: l10n.newContentHint,
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -341,12 +363,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   newContent: newContent,
                 );
                 Navigator.pop(context);
-                _showSuccess('Mensaje editado');
+                _showSuccess(l10n.messageEdited);
               } catch (e) {
-                _showError('Error al editar: $e');
+                _showError('${l10n.deleteError} $e');
               }
             },
-            child: const Text('Guardar'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -354,16 +376,18 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _confirmDelete(MessageModel message) {
+    final l10n = AppLocalizations.of(context)!;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar mensaje'),
+        title: Text(l10n.deleteMessage),
         content:
-            const Text('¿Estás seguro de que quieres eliminar este mensaje?'),
+           Text(l10n.deleteMessageConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -376,13 +400,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   messageId: message.id,
                 );
                 Navigator.pop(context);
-                _showSuccess('Mensaje eliminado');
+                _showSuccess(l10n.messageDeleted);
               } catch (e) {
-                _showError('Error al eliminar: $e');
+                _showError('${l10n.deleteError} $e');
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Eliminar'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -403,32 +427,45 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_currentUser == null) {
+    if (_currentUser == null || _isCheckingRole) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.entityName)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
+    // Determinar si mostrar mensajes internos
+    // Los clientes NO ven mensajes internos
+    final effectiveShowInternal = !_isUserClient && widget.showInternalMessages;
+
     return Scaffold(
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          // Mensajes fijados
-          _buildPinnedMessages(),
+      body: Center(
+        child: Container(
+          // Limitar ancho máximo en web a 1000px
+          constraints: kIsWeb
+              ? const BoxConstraints(maxWidth: 1000)
+              : const BoxConstraints(),
+          child: Column(
+            children: [
+              // Mensajes fijados
+              _buildPinnedMessages(),
 
-          // Lista de mensajes
-          Expanded(child: _buildMessagesList()),
+              // Lista de mensajes
+              Expanded(child: _buildMessagesList(effectiveShowInternal)),
 
-          // Input de mensaje
-          MessageInput(
-            onSend: _sendMessage,
-            replyingTo: _replyingTo,
-            onCancelReply: () => setState(() => _replyingTo = null),
-            showInternalToggle: widget.showInternalMessages,
-            isLoading: _isLoading,
+              // Input de mensaje
+              MessageInput(
+                onSend: _sendMessage,
+                replyingTo: _replyingTo,
+                onCancelReply: () => setState(() => _replyingTo = null),
+                // Los clientes NO ven el toggle de mensajes internos
+                showInternalToggle: !_isUserClient && widget.showInternalMessages,
+                isLoading: _isLoading,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       floatingActionButton: _showScrollToBottom
           ? FloatingActionButton.small(
@@ -448,7 +485,7 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Text(widget.entityName),
           Text(
-            _getEntityTypeLabel(),
+            _getEntityTypeLabel(l10n),
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey[300],
@@ -475,7 +512,6 @@ class _ChatScreenState extends State<ChatScreen> {
             // Si se seleccionó un mensaje, scroll hacia él
             if (result != null) {
               // TODO: Implementar scroll to message
-              // _showSuccess('Mensaje encontrado');
             }
           },
           tooltip: l10n.search,
@@ -483,14 +519,15 @@ class _ChatScreenState extends State<ChatScreen> {
         // Más opciones
         PopupMenuButton(
           itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'info',
-              child: Text(l10n.chatInfo),
-            ),
-            const PopupMenuItem(
-              value: 'mute',
-              child: Text('Silenciar'), // TODO: Add to l10n
-            ),
+            // TODO: descomentar cuando este implementado o haya algo que mostrar
+            // PopupMenuItem(
+            //   value: 'info',
+            //   child: Text(l10n.chatInfo),
+            // ),
+            // PopupMenuItem(
+            //   value: 'mute',
+            //   child: Text(l10n.mute)
+            // ),
             PopupMenuItem(
               value: 'pinned',
               child: Text(l10n.pinnedMessages),
@@ -507,16 +544,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   /// Obtener label del tipo de entidad
-  String _getEntityTypeLabel() {
+  String _getEntityTypeLabel(AppLocalizations l10n) {
     switch (widget.entityType) {
       case 'batch':
-        return 'Chat del lote';
+        return l10n.batchChat;
       case 'project':
-        return 'Chat del proyecto';
+        return l10n.projectChat;
       case 'product':
-        return 'Chat del producto';
+        return l10n.productChat;
       default:
-        return 'Chat';
+        return l10n.chat;
     }
   }
 
@@ -530,110 +567,113 @@ class _ChatScreenState extends State<ChatScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (context, scrollController) {
-          return StreamBuilder<List<MessageModel>>(
-            stream: _messageService.getPinnedMessages(
-              organizationId: widget.organizationId,
-              entityType: widget.entityType,
-              entityId: widget.entityId,
-              parentId: widget.parentId,
-            ),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.push_pin, size: 48, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No hay mensajes fijados',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                );
-              }
+      builder: (context) {
+        return StreamBuilder<List<MessageModel>>(
+          stream: _messageService.getPinnedMessages(
+            organizationId: widget.organizationId,
+            entityType: widget.entityType,
+            entityId: widget.entityId,
+            parentId: widget.parentId,
+          ),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-              final pinnedMessages = snapshot.data!;
+            final pinnedMessages = snapshot.data!;
 
-              return Column(
-                children: [
-                  // Handle
-                  Container(
-                    margin: const EdgeInsets.only(top: 8, bottom: 16),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
+            if (pinnedMessages.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.push_pin_outlined, size: 48, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.noPinnedMessages,
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
                     ),
-                  ),
-
-                  // Título
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.push_pin),
-                        const SizedBox(width: 8),
-                        Text(
-                          l10n.pinnedMessages,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          '${pinnedMessages.length}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const Divider(),
-
-                  // Lista de mensajes fijados
-                  Expanded(
-                    child: ListView.builder(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: pinnedMessages.length,
-                      itemBuilder: (context, index) {
-                        final message = pinnedMessages[index];
-                        return MessageBubble(
-                          message: message,
-                          currentUser: _currentUser!,
-                          onLongPress: () {
-                            Navigator.pop(context);
-                            _handleMessageLongPress(message);
-                          },
-                          onReactionTap: (emoji) =>
-                              _addReaction(message, emoji),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               );
-            },
-          );
-        },
-      ),
+            }
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.7,
+              minChildSize: 0.5,
+              maxChildSize: 0.95,
+              expand: false,
+              builder: (context, scrollController) {
+                return Column(
+                  children: [
+                    // Header
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: Colors.grey[300]!),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.push_pin, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          Text(
+                            l10n.pinnedMessages,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '${pinnedMessages.length}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const Divider(),
+
+                    // Lista de mensajes fijados
+                    Expanded(
+                      child: ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: pinnedMessages.length,
+                        itemBuilder: (context, index) {
+                          final message = pinnedMessages[index];
+                          return MessageBubble(
+                            message: message,
+                            currentUser: _currentUser!,
+                            onLongPress: () {
+                              Navigator.pop(context);
+                              _handleMessageLongPress(message);
+                            },
+                            onReactionTap: (emoji) =>
+                                _addReaction(message, emoji),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
   Widget _buildPinnedMessages() {
+    final l10n = AppLocalizations.of(context)!;
+
     return StreamBuilder<List<MessageModel>>(
       stream: _messageService.getPinnedMessages(
         organizationId: widget.organizationId,
@@ -659,7 +699,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   Icon(Icons.push_pin, size: 16, color: Colors.blue[900]),
                   const SizedBox(width: 8),
                   Text(
-                    'Mensajes fijados (${pinnedMessages.length})',
+                    '${l10n.pinnedMessages}: (${pinnedMessages.length})',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -696,18 +736,17 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildMessagesList() {
+  Widget _buildMessagesList(bool showInternalMessages) {
     return StreamBuilder<List<MessageModel>>(
-      stream: _messageService.getMessages(
-        organizationId: widget.organizationId,
-        entityType: widget.entityType,
-        entityId: widget.entityId,
-        parentId: widget.parentId,
-        includeInternal: widget.showInternalMessages,
-        limit: 100,
-      ),
+      stream: _messagesStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        // ✅ MEJORA: Solo mostramos carga si NO hay datos previos.
+        // Esto evita que parpadee si la conexión se refresca pero ya teníamos mensajes.
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -728,14 +767,22 @@ class _ChatScreenState extends State<ChatScreen> {
           itemCount: messages.length,
           itemBuilder: (context, index) {
             final message = messages[index];
+            
+            // Determinar si debe mostrar avatar y nombre
+            final shouldShowAvatar = _shouldShowAvatar(messages, index);
+            final shouldShowAuthorName = shouldShowAvatar;
 
             return MessageBubble(
               message: message,
               currentUser: _currentUser!,
+              showAvatar: shouldShowAvatar,
+              showAuthorName: shouldShowAuthorName,
               onLongPress: () => _handleMessageLongPress(message),
               onReactionTap: (emoji) => _addReaction(message, emoji),
               onReply: message.threadCount > 0
-                  ? () => setState(() => _replyingTo = message)
+                  ? () {
+                      // TODO: Abrir vista de thread
+                    }
                   : null,
             );
           },
@@ -744,32 +791,52 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  /// Determinar si debe mostrar avatar basado en mensajes consecutivos
+  /// Un mensaje debe mostrar avatar si:
+  /// 1. Es el primer mensaje de la lista
+  /// 2. El mensaje anterior es de otro usuario
+  /// 3. Han pasado más de 5 minutos desde el mensaje anterior del mismo usuario
+  bool _shouldShowAvatar(List<MessageModel> messages, int index) {
+    // Siempre mostrar avatar para mensajes del sistema
+    if (messages[index].isSystemGenerated) return true;
+    
+    // Siempre mostrar avatar para el último mensaje (primero en la lista reversa)
+    if (index == 0) return true;
+    
+    final currentMessage = messages[index];
+    final previousMessage = messages[index - 1];
+    
+    // Mostrar si el autor es diferente
+    if (currentMessage.authorId != previousMessage.authorId) return true;
+    
+    // Mostrar si el mensaje anterior es del sistema
+    if (previousMessage.isSystemGenerated) return true;
+    
+    // Mostrar si han pasado más de 5 minutos
+    final timeDifference = previousMessage.createdAt.difference(currentMessage.createdAt);
+    if (timeDifference.abs() > _consecutiveMessageThreshold) return true;
+    
+    // No mostrar avatar (mensajes consecutivos del mismo usuario)
+    return false;
+  }
+
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context)!;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.chat_bubble_outline,
-            size: 80,
-            color: Colors.grey[300],
-          ),
+          Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
-            'No hay mensajes aún',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
-            ),
+            l10n.noMessagesYet,
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
           Text(
-            'Sé el primero en enviar un mensaje',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+            l10n.beFirstToMessage,
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
       ),

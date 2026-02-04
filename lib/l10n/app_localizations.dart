@@ -2090,7 +2090,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteError.
   ///
   /// In en, this message translates to:
-  /// **'Error al eliminar:'**
+  /// **'Error when deleting:'**
   String get deleteError;
 
   /// No description provided for @productIsInactiveMessage.
@@ -2486,43 +2486,43 @@ abstract class AppLocalizations {
   /// No description provided for @chatInfo.
   ///
   /// In en, this message translates to:
-  /// **'Info del chat'**
+  /// **'Chat info'**
   String get chatInfo;
 
   /// No description provided for @muteNotifications.
   ///
   /// In en, this message translates to:
-  /// **'Silenciar notificaciones'**
+  /// **'Mute notifications'**
   String get muteNotifications;
 
   /// No description provided for @pinnedMessages.
   ///
   /// In en, this message translates to:
-  /// **'Mensajes fijados'**
+  /// **'Pinned messages'**
   String get pinnedMessages;
 
   /// No description provided for @noMessagesYet.
   ///
   /// In en, this message translates to:
-  /// **'No hay mensajes aún'**
+  /// **'No messages yet'**
   String get noMessagesYet;
 
   /// No description provided for @beFirstToMessage.
   ///
   /// In en, this message translates to:
-  /// **'Sé el primero en enviar un mensaje'**
+  /// **'Be the first to send something'**
   String get beFirstToMessage;
 
   /// No description provided for @reply.
   ///
   /// In en, this message translates to:
-  /// **'Responder'**
+  /// **'Answer'**
   String get reply;
 
   /// No description provided for @react.
   ///
   /// In en, this message translates to:
-  /// **'Reaccionar'**
+  /// **'React'**
   String get react;
 
   /// No description provided for @copy.
@@ -2534,85 +2534,85 @@ abstract class AppLocalizations {
   /// No description provided for @textCopied.
   ///
   /// In en, this message translates to:
-  /// **'Texto copiado'**
+  /// **'Text copied'**
   String get textCopied;
 
   /// No description provided for @unpin.
   ///
   /// In en, this message translates to:
-  /// **'Desfijar'**
+  /// **'Unpin'**
   String get unpin;
 
   /// No description provided for @pin.
   ///
   /// In en, this message translates to:
-  /// **'Fijar'**
+  /// **'Pin'**
   String get pin;
 
   /// No description provided for @messageUnpinned.
   ///
   /// In en, this message translates to:
-  /// **'Mensaje desfijado'**
+  /// **'Message unpinned'**
   String get messageUnpinned;
 
   /// No description provided for @messagePinned.
   ///
   /// In en, this message translates to:
-  /// **'Mensaje fijado'**
+  /// **'Message pinned'**
   String get messagePinned;
 
   /// No description provided for @editMessage.
   ///
   /// In en, this message translates to:
-  /// **'Editar mensaje'**
+  /// **'Edit message'**
   String get editMessage;
 
   /// No description provided for @newContentHint.
   ///
   /// In en, this message translates to:
-  /// **'Nuevo contenido...'**
+  /// **'New content...'**
   String get newContentHint;
 
   /// No description provided for @messageEdited.
   ///
   /// In en, this message translates to:
-  /// **'Mensaje editado'**
+  /// **'Message edited'**
   String get messageEdited;
 
   /// No description provided for @editError.
   ///
   /// In en, this message translates to:
-  /// **'Error al editar:'**
+  /// **'Error when editing:'**
   String get editError;
 
   /// No description provided for @deleteMessage.
   ///
   /// In en, this message translates to:
-  /// **'Eliminar mensaje'**
+  /// **'Delete message'**
   String get deleteMessage;
 
   /// No description provided for @deleteMessageConfirm.
   ///
   /// In en, this message translates to:
-  /// **'¿Estás seguro de que quieres eliminar este mensaje?'**
+  /// **'Are you sure you want to delete this message?'**
   String get deleteMessageConfirm;
 
   /// No description provided for @messageDeleted.
   ///
   /// In en, this message translates to:
-  /// **'Mensaje eliminado'**
+  /// **'Message deleted'**
   String get messageDeleted;
 
   /// No description provided for @sendMessageError.
   ///
   /// In en, this message translates to:
-  /// **'Error al enviar mensaje:'**
+  /// **'Error when sending message:'**
   String get sendMessageError;
 
   /// No description provided for @reactionError.
   ///
   /// In en, this message translates to:
-  /// **'Error al reaccionar:'**
+  /// **'Error when reacting:'**
   String get reactionError;
 
   /// No description provided for @assignPhasesTitle.
@@ -8146,6 +8146,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Gmail accounts must use Google authentication'**
   String get useGoogleSignIn;
+
+  /// No description provided for @messageAnsweringTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Respondiendo a'**
+  String get messageAnsweringTo;
+
+  /// No description provided for @searchMessagesPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Write to search message content, usernames or mentions'**
+  String get searchMessagesPlaceholder;
+
+  /// No description provided for @mondayShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Mon'**
+  String get mondayShort;
+
+  /// No description provided for @tuesdayShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Tue'**
+  String get tuesdayShort;
+
+  /// No description provided for @wednesdayShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Wed'**
+  String get wednesdayShort;
+
+  /// No description provided for @thursdayShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Thu'**
+  String get thursdayShort;
+
+  /// No description provided for @fridayShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Fri'**
+  String get fridayShort;
+
+  /// No description provided for @saturdayShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sat'**
+  String get saturdayShort;
+
+  /// No description provided for @sundayShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sun'**
+  String get sundayShort;
+
+  /// No description provided for @system.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get system;
+
+  /// No description provided for @answer.
+  ///
+  /// In en, this message translates to:
+  /// **'Anwer'**
+  String get answer;
+
+  /// No description provided for @writeAMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a message...'**
+  String get writeAMessage;
+
+  /// No description provided for @internalMessageDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal message (only team)'**
+  String get internalMessageDescription;
+
+  /// No description provided for @messageReactWith.
+  ///
+  /// In en, this message translates to:
+  /// **'React with'**
+  String get messageReactWith;
+
+  /// No description provided for @originalMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Original message'**
+  String get originalMessage;
+
+  /// No description provided for @edited.
+  ///
+  /// In en, this message translates to:
+  /// **'edited'**
+  String get edited;
+
+  /// No description provided for @internal.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal'**
+  String get internal;
+
+  /// No description provided for @pinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get pinned;
+
+  /// No description provided for @answerPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers'**
+  String get answerPlural;
+
+  /// No description provided for @mute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get mute;
+
+  /// No description provided for @batchChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch chat'**
+  String get batchChat;
+
+  /// No description provided for @projectChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Project chat'**
+  String get projectChat;
+
+  /// No description provided for @productChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Product chat'**
+  String get productChat;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
