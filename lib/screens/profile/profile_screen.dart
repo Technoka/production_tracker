@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/screens/profile/user_preferences_screen.dart';
+import 'package:gestion_produccion/services/organization_member_service.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart'; // ✅ Asegúrate de tener intl
 import '../../services/auth_service.dart';
@@ -18,6 +19,7 @@ class ProfileScreen extends StatelessWidget {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserData;
     final l10n = AppLocalizations.of(context)!; // ✅ Referencia a l10n
+    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
 
     if (user == null) {
       return const Scaffold(
@@ -119,7 +121,7 @@ class ProfileScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
-                      child: RoleUtils.buildRoleBadge(user.role, compact: true),
+                      child: RoleUtils.buildRoleBadge(memberService.currentRole!.name, compact: true),
                     ),
                     const SizedBox(height: 32),
                   ],

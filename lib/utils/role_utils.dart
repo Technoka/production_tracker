@@ -270,7 +270,6 @@ class RoleUtils {
 
   // Widget para mostrar badge de rol
   static Widget buildRoleBadge(String roleValue, {bool compact = false}) {
-    final role = UserRole.fromString(roleValue);
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 8 : 12,
@@ -293,7 +292,7 @@ class RoleUtils {
           ),
           SizedBox(width: compact ? 4 : 6),
           Text(
-            role.displayName,
+            roleValue,
             style: TextStyle(
               color: getRoleColor(roleValue),
               fontSize: compact ? 11 : 12,
