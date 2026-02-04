@@ -114,33 +114,23 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return true;
     } on FirebaseAuthException catch (e) {
-      print("Error code: ${e.code}, message: ${e.message}");
-
-      // Mapear el código de error a un mensaje en español
-      String errorMessage;
-      if (e.code == 'user-not-found') {
-        errorMessage = 'El usuario no existe.';
+      // Errores específicos de Firebase Auth
+      if (e.code == 'email-already-in-use') {
+        _error = 'Este correo ya está registrado';
       } else if (e.code == 'wrong-password') {
-        errorMessage = 'Contraseña incorrecta.';
+        _error = 'Contraseña incorrecta';
+      } else if (e.code == 'user-not-found') {
+        _error = 'Usuario no encontrado';
       } else if (e.code == 'invalid-email') {
-        errorMessage = 'El formato del correo es inválido.';
-      } else if (e.code == 'invalid-credential') {
-        // Firebase Auth usa este código cuando las credenciales son incorrectas
-        errorMessage = 'Correo o contraseña incorrectos.';
-      } else if (e.code == 'too-many-requests') {
-        errorMessage = 'Demasiados intentos. Intenta más tarde.';
-      } else if (e.code == 'user-disabled') {
-        errorMessage = 'Esta cuenta ha sido deshabilitada.';
+        _error = 'Email inválido';
+      } else if (e.code == 'weak-password') {
+        _error = 'Contraseña muy débil';
       } else {
-        errorMessage = 'Ha ocurrido un error: ${e.message}';
+        _error = _getErrorMessage(e.code);
       }
-
-      _error = errorMessage;
       _isLoading = false;
       notifyListeners();
-
-      // Lanzamos la excepción con el mensaje correcto para que la UI la capture
-      throw errorMessage;
+      return false;
     } catch (e) {
       // Si no es FirebaseAuthException pero sí es un String (el throw anterior), relanzar
       if (e is String) {
@@ -521,9 +511,9 @@ class AuthService extends ChangeNotifier {
       case 'user-not-found':
         return 'Usuario no encontrado';
       case 'wrong-password':
-        return 'La contraseña actual es incorrecta';
+        return 'Email o contraseña incorrecta';
       case 'invalid-credential':
-        return 'La contraseña actual es incorrecta';
+        return 'Email o contraseña incorrecta';
       case 'too-many-requests':
         return 'Demasiados intentos. Intenta más tarde';
       case 'user-disabled':
@@ -573,177 +563,173 @@ class AuthService extends ChangeNotifier {
 
 // ==================== MÉTODOS CLOUD FUNCTIONS ====================
 
-/// Crear usuario con email/password y unirse a organización
-/// Usa Cloud Function para seguridad
-Future<Map<String, dynamic>?> createUserWithEmailAndJoin({
-  required String email,
-  required String password,
-  required String name,
-  String? phone,
-  required String invitationId,
-  required String organizationId,
-  required String roleId,
-  String? clientId,
-}) async {
-  try {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  /// Crear usuario con email/password y unirse a organización
+  /// Usa Cloud Function para seguridad
+  Future<Map<String, dynamic>?> createUserWithEmailAndJoin({
+    required String email,
+    required String password,
+    required String name,
+    String? phone,
+    required String invitationId,
+    required String organizationId,
+    required String roleId,
+    String? clientId,
+  }) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
 
-    // Llamar Cloud Function
-    final result = await _functions
-        .httpsCallable('createUserWithEmailAndJoin')
-        .call({
-      'email': email,
-      'password': password,
-      'name': name,
-      'phone': phone,
-      'invitationId': invitationId,
-      'organizationId': organizationId,
-      'roleId': roleId,
-      'clientId': clientId,
-    });
+      // Llamar Cloud Function
+      final result =
+          await _functions.httpsCallable('createUserWithEmailAndJoin').call({
+        'email': email,
+        'password': password,
+        'name': name,
+        'phone': phone,
+        'invitationId': invitationId,
+        'organizationId': organizationId,
+        'roleId': roleId,
+        'clientId': clientId,
+      });
 
-    // Iniciar sesión con el nuevo usuario
-    await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+      // Iniciar sesión con el nuevo usuario
+      await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    // Cargar datos del usuario
-    await loadUserData();
+      // Cargar datos del usuario
+      await loadUserData();
 
-    _isLoading = false;
-    notifyListeners();
+      _isLoading = false;
+      notifyListeners();
 
-    return {
-      'success': true,
-      'userId': result.data['userId'],
-      'organizationId': result.data['organizationId'],
-    };
-  } on FirebaseFunctionsException catch (e) {
-    // Mensajes de error más claros
-    if (e.code == 'already-exists' || e.message?.contains('already exists') == true) {
-      _error = 'Este correo ya está registrado';
-    } else {
-      _error = e.message ?? 'Error al crear cuenta';
-    }
-    _isLoading = false;
-    notifyListeners();
-    return null;
-  } on FirebaseAuthException catch (e) {
-    // Errores específicos de Firebase Auth
-    if (e.code == 'email-already-in-use') {
-      _error = 'Este correo ya está registrado';
-    } else {
-      _error = _getErrorMessage(e.code);
-    }
-    _isLoading = false;
-    notifyListeners();
-    return null;
-  } catch (e) {
-    _error = 'Error inesperado: $e';
-    _isLoading = false;
-    notifyListeners();
-    return null;
-  }
-}
-
-/// Unirse a organización con Google Sign-In
-/// Usuario ya está autenticado, solo se une
-Future<Map<String, dynamic>?> joinOrganizationWithGoogle({
-  required String invitationId,
-  required String organizationId,
-  required String roleId,
-  String? clientId,
-  String? name,
-  String? phone,
-}) async {
-  try {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    // Verificar que el usuario esté autenticado
-    if (_auth.currentUser == null) {
-      throw Exception('Usuario no autenticado');
-    }
-
-    // Llamar Cloud Function
-    final result = await _functions
-        .httpsCallable('joinOrganizationWithGoogle')
-        .call({
-      'invitationId': invitationId,
-      'organizationId': organizationId,
-      'roleId': roleId,
-      'clientId': clientId,
-      'name': name ?? _auth.currentUser!.displayName,
-      'phone': phone,
-    });
-
-    // Recargar datos del usuario
-    await loadUserData();
-
-    _isLoading = false;
-    notifyListeners();
-
-    return {
-      'success': true,
-      'userId': result.data['userId'],
-      'organizationId': result.data['organizationId'],
-    };
-  } on FirebaseFunctionsException catch (e) {
-    _error = e.message ?? 'Error al unirse';
-    _isLoading = false;
-    notifyListeners();
-    return null;
-  } catch (e) {
-    _error = 'Error inesperado: $e';
-    _isLoading = false;
-    notifyListeners();
-    return null;
-  }
-}
-
-/// Sign in with Google (solo autenticación, sin unirse)
-/// Para uso en RegisterScreen antes de unirse
-Future<UserCredential?> signInWithGoogleOnly() async {
-  try {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    // Trigger Google Sign In
-    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
-    if (googleUser == null) {
+      return {
+        'success': true,
+        'userId': result.data['userId'],
+        'organizationId': result.data['organizationId'],
+      };
+    } on FirebaseAuthException catch (e) {
+      // Errores específicos de Firebase Auth
+      if (e.code == 'email-already-in-use') {
+        _error = 'Este correo ya está registrado';
+      } else if (e.code == 'wrong-password') {
+        _error = 'Contraseña incorrecta';
+      } else if (e.code == 'user-not-found') {
+        _error = 'Usuario no encontrado';
+      } else if (e.code == 'invalid-email') {
+        _error = 'Email inválido';
+      } else if (e.code == 'weak-password') {
+        _error = 'Contraseña muy débil';
+      } else {
+        _error = _getErrorMessage(e.code);
+      }
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    } catch (e) {
+      _error = 'Error inesperado: $e';
       _isLoading = false;
       notifyListeners();
       return null;
     }
-
-    // Obtain auth details
-    final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
-
-    // Create credential
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-
-    // Sign in to Firebase
-    final userCredential = await _auth.signInWithCredential(credential);
-
-    _isLoading = false;
-    notifyListeners();
-
-    return userCredential;
-  } catch (e) {
-    _error = 'Error con Google Sign-In: $e';
-    _isLoading = false;
-    notifyListeners();
-    return null;
   }
-}
+
+  /// Unirse a organización con Google Sign-In
+  /// Usuario ya está autenticado, solo se une
+  Future<Map<String, dynamic>?> joinOrganizationWithGoogle({
+    required String invitationId,
+    required String organizationId,
+    required String roleId,
+    String? clientId,
+    String? name,
+    String? phone,
+  }) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      // Verificar que el usuario esté autenticado
+      if (_auth.currentUser == null) {
+        throw Exception('Usuario no autenticado');
+      }
+
+      // Llamar Cloud Function
+      final result =
+          await _functions.httpsCallable('joinOrganizationWithGoogle').call({
+        'invitationId': invitationId,
+        'organizationId': organizationId,
+        'roleId': roleId,
+        'clientId': clientId,
+        'name': name ?? _auth.currentUser!.displayName,
+        'phone': phone,
+      });
+
+      // Recargar datos del usuario
+      await loadUserData();
+
+      _isLoading = false;
+      notifyListeners();
+
+      return {
+        'success': true,
+        'userId': result.data['userId'],
+        'organizationId': result.data['organizationId'],
+      };
+    } on FirebaseFunctionsException catch (e) {
+      _error = e.message ?? 'Error al unirse';
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    } catch (e) {
+      _error = 'Error inesperado: $e';
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Sign in with Google (solo autenticación, sin unirse)
+  /// Para uso en RegisterScreen antes de unirse
+  Future<UserCredential?> signInWithGoogleOnly() async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      // Trigger Google Sign In
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        _isLoading = false;
+        notifyListeners();
+        return null;
+      }
+
+      // Obtain auth details
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Create credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      _isLoading = false;
+      notifyListeners();
+
+      return userCredential;
+    } catch (e) {
+      _error = 'Error con Google Sign-In: $e';
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
 }
