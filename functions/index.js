@@ -212,6 +212,7 @@ exports.createUserWithEmailAndJoin = onCall(async (request) => {
     }
 
     // 5. Crear miembro en organization/members/
+    // TODO: canManageAllPhases segun permiso del rol (obtener de firebase)
     await db
         .collection("organizations")
         .doc(organizationId)
@@ -226,7 +227,7 @@ exports.createUserWithEmailAndJoin = onCall(async (request) => {
           clientId: clientId || null,
           permissionOverrides: permissionOverrides,
           assignedPhases: [],
-          canManageAllPhases: true,
+          canManageAllPhases: clientId ? false : true,
           joinedAt: admin.firestore.FieldValue.serverTimestamp(),
           isActive: true,
         });
