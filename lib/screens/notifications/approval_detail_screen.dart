@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/services/phase_service.dart';
 import 'package:gestion_produccion/services/product_catalog_service.dart';
@@ -317,33 +318,6 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
     );
   }
 
-  // Widget _buildInfoRow(String label, String value, IconData icon) {
-  //   return Row(
-  //     children: [
-  //       Icon(icon, size: 16, color: Colors.grey.shade600),
-  //       const SizedBox(width: 8),
-  //       Text(
-  //         label,
-  //         style: TextStyle(
-  //           fontSize: 12,
-  //           color: Colors.grey.shade600,
-  //         ),
-  //       ),
-  //       const SizedBox(width: 8),
-  //       Expanded(
-  //         child: Text(
-  //           value,
-  //           style: const TextStyle(
-  //             fontSize: 14,
-  //             fontWeight: FontWeight.w500,
-  //           ),
-  //           textAlign: TextAlign.right,
-  //         ),
-  //       ),
-  //     ],
-  //   );
-  // }
-
 List<Widget> _buildModelDataWidgets(
   Map<String, dynamic> modelData,
   AppLocalizations l10n,
@@ -352,6 +326,16 @@ List<Widget> _buildModelDataWidgets(
   // Si es un lote, usar vista personalizada
   if (objectType == PendingObjectType.batch) {
     return _buildBatchDataWidgets(modelData, l10n);
+  }
+  
+  // Si es un producto de catálogo, usar vista personalizada
+  if (objectType == PendingObjectType.productCatalog) {
+    return _buildProductCatalogDataWidgets(modelData, l10n);
+  }
+  
+  // Si es un proyecto, usar vista personalizada
+  if (objectType == PendingObjectType.project) {
+    return _buildProjectDataWidgets(modelData, l10n);
   }
 
   // Para otros tipos de objetos, usar vista genérica
@@ -514,6 +498,276 @@ List<Widget> _buildBatchDataWidgets(
     for (final product in products) {
       widgets.add(_buildProductCard(product as Map<String, dynamic>));
     }
+  }
+
+  return widgets;
+}
+
+/// Vista personalizada para productos de catálogo
+List<Widget> _buildProductCatalogDataWidgets(
+  Map<String, dynamic> modelData,
+  AppLocalizations l10n,
+) {
+  final widgets = <Widget>[];
+
+  // 1. Cliente
+  if (modelData['clientName'] != null) {
+    widgets.add(_buildInfoRow(
+      l10n.client,
+      modelData['clientName'].toString(),
+      Icons.business,
+    ));
+  }
+
+  // 2. Proyecto
+  if (modelData['projectName'] != null) {
+    widgets.add(_buildInfoRow(
+      l10n.project,
+      modelData['projectName'].toString(),
+      Icons.folder_outlined,
+    ));
+  }
+
+  // 3. Familia (mostrar siempre, marcar como nueva si es la única con esa familia en el proyecto)
+  final family = modelData['family']?.toString().capitalize ?? 'Sin familia';
+  final isNewFamily = modelData['isNewFamily'] == true; // Este campo debe venir del backend
+  
+  if (isNewFamily) {
+    // Familia nueva - mostrar con badge
+    widgets.add(
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            Icon(Icons.category_outlined, size: 16, color: Colors.grey.shade600),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 2,
+              child: Text(
+                'Familia',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Row(
+                children: [
+                  Text(
+                    family,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Text(
+                      'Nueva',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  } else {
+    // Familia existente - mostrar normal
+    widgets.add(_buildInfoRow(
+      'Familia',
+      family,
+      Icons.category_outlined,
+    ));
+  }
+
+  // 4. Nombre
+  if (modelData['name'] != null) {
+    widgets.add(_buildInfoRow(
+      'Nombre',
+      modelData['name'].toString(),
+      Icons.label_outline,
+    ));
+  }
+
+  // 5. Referencia
+  if (modelData['reference'] != null) {
+    widgets.add(_buildInfoRow(
+      'Referencia',
+      modelData['reference'].toString(),
+      Icons.tag,
+    ));
+  }
+
+  // 6. Descripción
+  if (modelData['description'] != null && 
+      modelData['description'].toString().isNotEmpty) {
+    widgets.add(
+      Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.description_outlined, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 8),
+                Text(
+                  'Descripción',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Text(
+                modelData['description'].toString(),
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 7. Notas (si existen)
+  if (modelData['notes'] != null && 
+      modelData['notes'].toString().isNotEmpty) {
+    widgets.add(
+      Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.note_outlined, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 8),
+                Text(
+                  'Notas',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Text(
+                modelData['notes'].toString(),
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  return widgets;
+}
+
+/// Vista personalizada para proyectos
+List<Widget> _buildProjectDataWidgets(
+  Map<String, dynamic> modelData,
+  AppLocalizations l10n,
+) {
+  final widgets = <Widget>[];
+
+  // 1. Cliente
+  if (modelData['clientName'] != null) {
+    widgets.add(_buildInfoRow(
+      l10n.client,
+      modelData['clientName'].toString(),
+      Icons.business,
+    ));
+  }
+
+  // 2. Nombre del Proyecto
+  if (modelData['name'] != null) {
+    widgets.add(_buildInfoRow(
+      l10n.project,
+      modelData['name'].toString(),
+      Icons.folder_outlined,
+    ));
+  }
+
+  // 3. Descripción
+  if (modelData['description'] != null && 
+      modelData['description'].toString().isNotEmpty) {
+    widgets.add(
+      Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.description_outlined, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 8),
+                Text(
+                  'Descripción',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Text(
+                modelData['description'].toString(),
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   return widgets;

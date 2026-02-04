@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/helpers/approval_helper.dart';
 import 'package:gestion_produccion/models/pending_object_model.dart';
+import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/services/notification_service.dart';
 import 'package:gestion_produccion/services/organization_member_service.dart';
 import 'package:gestion_produccion/services/pending_object_service.dart';
@@ -113,6 +114,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
       return;
     }
     final projectService = Provider.of<ProjectService>(context, listen: false);
+    final productionProvider = Provider.of<ProductionDataProvider>(context, listen: false);
 
     setState(() => projectService.isLoading = true);
 
@@ -142,6 +144,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
           userIsClient; // Clientes siempre requieren aprobación
 
       String? resultId;
+      String clientName = productionProvider.getClientById(_selectedClientId!)!.name;
 
       if (requiresApproval) {
         // FLUJO CON APROBACIÓN
@@ -153,6 +156,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
             'name': _nameController.text.trim(),
             'description': _descriptionController.text.trim(),
             'clientId': _selectedClientId!,
+            'clientName': clientName,
             'organizationId': user.organizationId!,
             'startDate': Timestamp.fromDate(DateTime.now()),
             'estimatedEndDate': Timestamp.fromDate(

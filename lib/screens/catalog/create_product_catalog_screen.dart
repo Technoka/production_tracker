@@ -251,6 +251,7 @@ Future<void> _handleCreate() async {
           'reference': _referenceController.text.trim(),
           'description': _descriptionController.text.trim(),
           'family': _selectedFamily,
+          'isNewFamily': widget.createNewFamily,
           'clientId': _selectedClientId,
           'createdBy': user.uid,
           'isPublic': false,
