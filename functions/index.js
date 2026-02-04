@@ -196,7 +196,7 @@ exports.createUserWithEmailAndJoin = onCall(async (request) => {
 
     const role = roleDoc.data();
 
-    // 4. Obtener permisos del cliente si aplica
+    // 4. Obtener permisos del cliente si aplica y transformarlos
     let permissionOverrides = null;
     if (clientId) {
       const clientDoc = await db
@@ -207,7 +207,12 @@ exports.createUserWithEmailAndJoin = onCall(async (request) => {
           .get();
 
       if (clientDoc.exists && clientDoc.data().clientPermissions) {
-        permissionOverrides = clientDoc.data().clientPermissions;
+        // Transformar clientPermissions (formato simple)
+        //  a PermissionOverridesModel
+        permissionOverrides = transformClientPermissionsToOverrides(
+            clientDoc.data().clientPermissions,
+            userId,
+        );
       }
     }
 
@@ -322,7 +327,7 @@ exports.joinOrganizationWithGoogle = onCall(async (request) => {
 
     const role = roleDoc.data();
 
-    // 3. Obtener permisos del cliente si aplica
+    // 3. Obtener permisos del cliente si aplica y transformarlos
     let permissionOverrides = null;
     if (clientId) {
       const clientDoc = await db
@@ -333,7 +338,12 @@ exports.joinOrganizationWithGoogle = onCall(async (request) => {
           .get();
 
       if (clientDoc.exists && clientDoc.data().clientPermissions) {
-        permissionOverrides = clientDoc.data().clientPermissions;
+        // Transformar clientPermissions (formato simple)
+        //  a PermissionOverridesModel
+        permissionOverrides = transformClientPermissionsToOverrides(
+            clientDoc.data().clientPermissions,
+            userId,
+        );
       }
     }
 
@@ -387,6 +397,93 @@ exports.joinOrganizationWithGoogle = onCall(async (request) => {
     throw new HttpsError("internal", "Error uniéndose a organización");
   }
 });
+
+// ============================================================
+// HELPER: Transformar clientPermissions a PermissionOverridesModel
+// ============================================================
+
+/**
+ * Transforma clientPermissions (formato simple) a PermissionOverridesModel
+ *
+ * Formato entrada: { "batches.create": true, "projects.view": "assigned" }
+ * Formato salida: {
+ *   "batches.create": {
+ *     moduleKey: "batches",
+ *     actionKey: "create",
+ *     type: "enable",
+ *     value: true,
+ *     createdAt: Timestamp,
+ *     createdBy: "system"
+ *   },
+ *   "projects.view": {
+ *     moduleKey: "projects",
+ *     actionKey: "view",
+ *     type: "change_scope",
+ *     value: "assigned",
+ *     createdAt: Timestamp,
+ *     createdBy: "system"
+ *   }
+ * }
+ *
+ * @param {Object} clientPermissions - Permisos del cliente en formato simple
+ * @param {string} createdBy - ID del usuario que crea (o "system")
+ * @return {Object} PermissionOverridesModel en formato Firestore
+ */
+function transformClientPermissionsToOverrides(clientPermissions, createdBy) {
+  if (!clientPermissions || typeof clientPermissions !== "object") {
+    return {};
+  }
+
+  const overrides = {};
+  const now = admin.firestore.Timestamp.now();
+
+  Object.entries(clientPermissions).forEach(([key, value]) => {
+    // Separar moduleKey.actionKey
+    const parts = key.split(".");
+    if (parts.length !== 2) {
+      console.warn(`⚠️ Formato inválido de permiso: ${key}`);
+      return;
+    }
+
+    const [moduleKey, actionKey] = parts;
+
+    // Determinar el tipo de override según el valor
+    let type;
+    let normalizedValue;
+
+    if (typeof value === "boolean") {
+      // Boolean: enable si true, disable si false
+      type = value ? "enable" : "disable";
+      normalizedValue = value;
+    } else if (typeof value === "string") {
+      // String: debe ser un scope (all, assigned, none)
+      const validScopes = ["all", "assigned", "none"];
+      if (!validScopes.includes(value)) {
+        console.warn(`⚠️ Scope inválido para ${key}: ${value}`);
+        return;
+      }
+      type = "change_scope";
+      normalizedValue = value;
+    } else {
+      console.warn(`⚠️ Tipo de valor no soportado para ${key}:
+         ${typeof value}`);
+      return;
+    }
+
+    // Crear entry del override
+    overrides[key] = {
+      moduleKey: moduleKey,
+      actionKey: actionKey,
+      type: type,
+      value: normalizedValue,
+      reason: "Client permissions",
+      createdAt: now,
+      createdBy: createdBy || "system",
+    };
+  });
+
+  return overrides;
+}
 
 // ============================================================
 // HELPER: Notificar a miembros de nueva incorporación
@@ -471,3 +568,208 @@ async function notifyMembersNewJoin(
     // No lanzar error, solo loguear
   }
 }
+
+// ============================================================
+// FUNCIÓN 5: Migrar permisos de usuarios clientes existentes
+// ============================================================
+
+/**
+ * Función administrativa para migrar permissionOverrides de usuarios
+ * con rol de cliente desde el formato antiguo al nuevo formato
+ *
+ * Esta función debe ser llamada UNA VEZ para migrar datos existentes
+ * Requiere autenticación y permisos de admin
+ */
+exports.migrateClientPermissionOverrides = onCall(async (request) => {
+  // Verificar autenticación
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Debes estar autenticado");
+  }
+
+  const {organizationId, dryRun} = request.data;
+
+  // Validar inputs
+  if (!organizationId || typeof organizationId !== "string") {
+    throw new HttpsError("invalid-argument", "organizationId requerido");
+  }
+
+  // Verificar que el usuario sea admin de la organización
+  const callerMemberDoc = await db
+      .collection("organizations")
+      .doc(organizationId)
+      .collection("members")
+      .doc(request.auth.uid)
+      .get();
+
+  if (!callerMemberDoc.exists) {
+    throw new HttpsError(
+        "permission-denied",
+        "No eres miembro de esta organización",
+    );
+  }
+
+  const callerMember = callerMemberDoc.data();
+
+  // Verificar que tenga permisos de admin (roleId === 'admin' o legacy role)
+  const isAdmin =
+    callerMember.roleId === "owner" || callerMember.role === "admin";
+  if (!isAdmin) {
+    throw new HttpsError(
+        "permission-denied",
+        "Solo administradores pueden ejecutar esta migración",
+    );
+  }
+
+  try {
+    console.log(`🔄 Iniciando migración de permisos en org: ${organizationId}`);
+    console.log(`   Modo: ${dryRun ? "DRY RUN (simulación)" : "REAL"}`);
+
+    const results = {
+      processed: 0,
+      migrated: 0,
+      skipped: 0,
+      errors: 0,
+      details: [],
+    };
+
+    // 1. Obtener todos los miembros con clientId (usuarios cliente)
+    const membersSnapshot = await db
+        .collection("organizations")
+        .doc(organizationId)
+        .collection("members")
+        .where("clientId", "!=", null)
+        .get();
+
+    console.log(`   Encontrados ${membersSnapshot.size} miembros con clientId`);
+
+    // 2. Procesar cada miembro
+    for (const memberDoc of membersSnapshot.docs) {
+      results.processed++;
+      const memberId = memberDoc.id;
+      const member = memberDoc.data();
+
+      try {
+        // Obtener el cliente asociado
+        if (!member.clientId) {
+          results.skipped++;
+          results.details.push({
+            userId: memberId,
+            status: "skipped",
+            reason: "Sin clientId",
+          });
+          continue;
+        }
+
+        const clientDoc = await db
+            .collection("organizations")
+            .doc(organizationId)
+            .collection("clients")
+            .doc(member.clientId)
+            .get();
+
+        if (!clientDoc.exists) {
+          results.skipped++;
+          results.details.push({
+            userId: memberId,
+            status: "skipped",
+            reason: "Cliente no encontrado",
+          });
+          continue;
+        }
+
+        const client = clientDoc.data();
+
+        // Verificar si tiene clientPermissions en formato antiguo
+        if (!client.clientPermissions ||
+            typeof client.clientPermissions !== "object" ||
+            Object.keys(client.clientPermissions).length === 0) {
+          results.skipped++;
+          results.details.push({
+            userId: memberId,
+            status: "skipped",
+            reason: "Cliente sin clientPermissions",
+          });
+          continue;
+        }
+
+        // Verificar si ya tiene permissionOverrides en formato nuevo
+        const currentOverrides = member.permissionOverrides;
+        const hasNewFormat =
+          currentOverrides &&
+          typeof currentOverrides === "object" &&
+          Object.values(currentOverrides).some(
+              (override) => override && override.moduleKey &&
+               override.actionKey,
+          );
+
+        if (hasNewFormat) {
+          results.skipped++;
+          results.details.push({
+            userId: memberId,
+            status: "skipped",
+            reason: "Ya tiene formato nuevo",
+          });
+          continue;
+        }
+
+        // Transformar permisos
+        const newOverrides = transformClientPermissionsToOverrides(
+            client.clientPermissions,
+            "migration-script",
+        );
+
+        console.log(`   ✅ Migrando usuario ${memberId}:`);
+        console.log(`      - Overrides antiguos:`, member.permissionOverrides);
+        console.log(`      - Overrides nuevos:`, newOverrides);
+
+        // Actualizar en Firestore (solo si no es dry run)
+        if (!dryRun) {
+          await memberDoc.ref.update({
+            permissionOverrides: newOverrides,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+
+        results.migrated++;
+        results.details.push({
+          userId: memberId,
+          userName: member.userName || "Unknown",
+          clientId: member.clientId,
+          status: "migrated",
+          oldOverrides: member.permissionOverrides,
+          newOverrides: newOverrides,
+        });
+      } catch (error) {
+        console.error(`   ❌ Error procesando ${memberId}:`, error);
+        results.errors++;
+        results.details.push({
+          userId: memberId,
+          status: "error",
+          error: error.message,
+        });
+      }
+    }
+
+    console.log(`✅ Migración completada:`);
+    console.log(`   - Procesados: ${results.processed}`);
+    console.log(`   - Migrados: ${results.migrated}`);
+    console.log(`   - Omitidos: ${results.skipped}`);
+    console.log(`   - Errores: ${results.errors}`);
+
+    return {
+      success: true,
+      dryRun: dryRun || false,
+      summary: {
+        processed: results.processed,
+        migrated: results.migrated,
+        skipped: results.skipped,
+        errors: results.errors,
+      },
+      details: results.details,
+    };
+  } catch (error) {
+    console.error("❌ Error en migración:", error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("internal", "Error ejecutando migración");
+  }
+});
