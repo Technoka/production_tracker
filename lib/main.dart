@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:gestion_produccion/models/organization_settings_model.dart';
 import 'package:gestion_produccion/models/user_model.dart';
+import 'package:gestion_produccion/providers/initialization_provider.dart';
 import 'package:gestion_produccion/screens/auth/welcome_screen.dart';
 import 'package:gestion_produccion/services/notification_service.dart';
 import 'package:gestion_produccion/services/pending_object_service.dart';
@@ -74,6 +75,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PermissionService()),
         ChangeNotifierProvider(create: (_) => RoleService()),
 
+        // OrganizationSettings - Branding y configuración de la organización
+        ChangeNotifierProvider(create: (_) => OrganizationSettingsService()),
+
         // Servicios sin dependencias RBAC
         Provider<PhaseService>(create: (_) => PhaseService()),
         Provider<MessageService>(create: (_) => MessageService()),
@@ -87,6 +91,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => InvitationService()),
 
         // Providers de datos de producción
+        ChangeNotifierProvider(create: (_) => InitializationProvider()),
         ChangeNotifierProvider(create: (_) => ProductionDataProvider()),
 
         // ==================== SERVICIOS CON DEPENDENCIA DE OrganizationMemberService ====================

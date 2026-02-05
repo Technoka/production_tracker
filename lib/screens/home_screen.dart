@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/providers/initialization_provider.dart';
 import 'package:gestion_produccion/screens/management/management_screen.dart';
 import 'package:gestion_produccion/services/client_service.dart';
+import 'package:gestion_produccion/services/organization_settings_service.dart';
 import 'package:gestion_produccion/services/phase_service.dart';
 import 'package:gestion_produccion/services/product_catalog_service.dart';
 import 'package:gestion_produccion/services/product_status_service.dart';
 import 'package:gestion_produccion/services/production_batch_service.dart';
 import 'package:gestion_produccion/services/project_service.dart';
 import 'package:gestion_produccion/widgets/notification_badge.dart';
+import 'package:gestion_produccion/widgets/universal_loading_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/organization_service.dart';
@@ -34,8 +37,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _permissionsLoaded = false; // ✅ NUEVO
-  String? _memberRoleName; // ✅ NUEVO
+  bool _permissionsLoaded = false;
+  String? _memberRoleName;
+  String? _cachedOrgName;
+  String? _cachedOrgLogoUrl;
 
   @override
   void initState() {
@@ -43,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Ejecutar después del renderizado inicial para poder mostrar Dialog
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkUpdates();
-      _loadUserPermissions(); // ✅ NUEVO: Carga permisos primero
+      _loadUserPermissions();
     });
   }
 
@@ -53,11 +58,15 @@ class _HomeScreenState extends State<HomeScreen> {
         Provider.of<PermissionService>(context, listen: false);
     final memberService =
         Provider.of<OrganizationMemberService>(context, listen: false);
+    final organizationService =
+        Provider.of<OrganizationService>(context, listen: false);
+    final settingsService =
+        Provider.of<OrganizationSettingsService>(context, listen: false);
 
     final user = authService.currentUserData;
 
     if (user == null || user.organizationId == null) {
-      setState(() => _permissionsLoaded = true);
+      setState(() => _permissionsLoaded = false);
       return;
     }
 
@@ -74,6 +83,12 @@ class _HomeScreenState extends State<HomeScreen> {
         user.uid,
       );
 
+      // Cachear datos de la organización
+      final orgData =
+          await organizationService.getOrganization(user.organizationId!);
+      final orgSettings =
+          await settingsService.getOrganizationSettings(user.organizationId!);
+
       // 3. ✅ INICIALIZAR PRODUCTION DATA PROVIDER (DESPUÉS de permisos)
       final productionDataProvider =
           Provider.of<ProductionDataProvider>(context, listen: false);
@@ -88,12 +103,14 @@ class _HomeScreenState extends State<HomeScreen> {
         clientService: Provider.of<ClientService>(context, listen: false),
         catalogService:
             Provider.of<ProductCatalogService>(context, listen: false),
-            projectService: Provider.of<ProjectService>(context, listen: false),
+        projectService: Provider.of<ProjectService>(context, listen: false),
       );
 
       if (mounted) {
         setState(() {
           _memberRoleName = memberData?.member.roleName ?? 'Usuario?';
+          _cachedOrgName = orgData!.name;
+          _cachedOrgLogoUrl = orgSettings?.branding.logoUrl;
           _permissionsLoaded = true;
         });
       }
@@ -136,15 +153,35 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _handleRefresh() async {
+    final initProvider =
+        Provider.of<InitializationProvider>(context, listen: false);
+    await initProvider.refresh(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final initProvider = Provider.of<InitializationProvider>(context);
     final authService = Provider.of<AuthService>(context);
     final organizationService = Provider.of<OrganizationService>(context);
     final user = authService.currentUserData;
 
     final permissionService = Provider.of<PermissionService>(context);
     final memberService = Provider.of<OrganizationMemberService>(context);
+
+    // ✅ Inicializar solo una vez
+    if (!initProvider.isInitialized && !initProvider.isInitializing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        initProvider.initialize(context);
+      });
+      return const UniversalLoadingScreen();
+    }
+
+    // ✅ Mostrar loading mientras inicializa
+    if (initProvider.isInitializing) {
+      return const UniversalLoadingScreen();
+    }
 
     // Verificar permisos específicos
     final canViewKanban = permissionService.hasPermission('kanban', 'view');
@@ -161,125 +198,161 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: user.organizationId != null
-            ? StreamBuilder(
-                stream:
-                    organizationService.watchOrganization(user.organizationId!),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData && snapshot.data != null) {
-                    return Text(snapshot.data!.name);
-                  }
-                  return Text(l10n.appTitle);
-                },
+        title: user.organizationId != null && initProvider.cachedOrgName != null
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (initProvider.cachedOrgLogoUrl != null) ...[
+                    Container(
+                      height:
+                          kToolbarHeight - 16, // Altura del AppBar menos margen
+                      constraints: const BoxConstraints(
+                        maxWidth: 120, // Ancho máximo para logos horizontales
+                      ),
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          initProvider.cachedOrgLogoUrl!,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const SizedBox.shrink(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  Flexible(
+                    child: Text(
+                      initProvider.cachedOrgName!,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               )
             : Text(l10n.appTitle),
         actions: const [
           NotificationBadge(),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Saludo
-            Row(
-              children: [
-                IconButton(
-                  padding: const EdgeInsets.all(8),
-                  icon: CircleAvatar(
-                    radius: 30, // Tamaño ajustado para AppBar
-                    backgroundColor: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.1),
-                    backgroundImage:
-                        (user.photoURL != null && user.photoURL!.isNotEmpty)
-                            ? NetworkImage(user.photoURL!)
-                            : null,
-                    child: (user.photoURL == null || user.photoURL!.isEmpty)
-                        ? Text(
-                            user.name.isNotEmpty
-                                ? user.name[0].toUpperCase()
-                                : '?',
-                            style: TextStyle(
-                              fontSize: 25,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          )
-                        : null,
+      body: RefreshIndicator(
+        onRefresh: _handleRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Saludo
+              Row(
+                children: [
+                  IconButton(
+                    padding: const EdgeInsets.all(8),
+                    icon: CircleAvatar(
+                      radius: 30, // Tamaño ajustado para AppBar
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.1),
+                      backgroundImage:
+                          (user.photoURL != null && user.photoURL!.isNotEmpty)
+                              ? NetworkImage(user.photoURL!)
+                              : null,
+                      child: (user.photoURL == null || user.photoURL!.isEmpty)
+                          ? Text(
+                              user.name.isNotEmpty
+                                  ? user.name[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                fontSize: 25,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            )
+                          : null,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const ProfileScreen()),
+                      );
+                    },
+                    tooltip: l10n.profile,
                   ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const ProfileScreen()),
-                    );
-                  },
-                  tooltip: l10n.profile,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${l10n.welcome}, ${user.name}',
-                        style:
-                            Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                      ),
-                      const SizedBox(height: 4),
-                      // RoleUtils.buildRoleBadge(user.role, compact: true),
-                      // ✅ NUEVO: Badge con el rol del usuario
-                      if (_memberRoleName != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _memberRoleName!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${l10n.welcome}, ${user.name}',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
-                    ],
+                        const SizedBox(height: 4),
+                        // Usar el cache del provider en lugar de variable local
+                        if (initProvider.cachedRoleName != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              initProvider.cachedRoleName!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Dashboard de Producción (si aplica)
-            if (canViewBatches && user.organizationId != null) ...[
-              ProductionDashboardWidget(
-                organizationId: user.organizationId!,
-                clientId: memberService.getClientFilter(),
+                ],
               ),
+
               const SizedBox(height: 24),
-            ],
 
-            // Vista Kanban (si aplica)
-            if (canViewKanban && user.organizationId != null) ...[
-              _buildKanbanSection(user, l10n),
-            ],
+              // Dashboard de Producción (si aplica)
+              if (canViewBatches && user.organizationId != null) ...[
+                ProductionDashboardWidget(
+                  organizationId: user.organizationId!,
+                  clientId: memberService.getClientFilter(),
+                ),
+                const SizedBox(height: 24),
+              ],
 
-            // Nuevo: Mensaje cuando no tiene acceso
-            if (!canAccessProduction && user.organizationId != null)
-              _buildNoAccessCard(l10n),
-          ],
+              // Vista Kanban (si aplica)
+              if (canViewKanban && user.organizationId != null) ...[
+                _buildKanbanSection(user, l10n),
+              ],
+
+              // Nuevo: Mensaje cuando no tiene acceso
+              if (!canAccessProduction && user.organizationId != null)
+                _buildNoAccessCard(l10n),
+            ],
+          ),
         ),
       ),
       drawer:
@@ -476,34 +549,35 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
           if (canViewReports && user.organizationId != null)
+            // TODO: eliminado hasta que arregle la pantalla y todas las metricas
+            // ListTile(
+            //   leading: const Icon(Icons.align_vertical_bottom),
+            //   title: Text(l10n.slaAlerts),
+            //   onTap: () {
+            //     Navigator.pop(context);
+            //     if (user.organizationId == null) return;
+            //     Navigator.push(
+            //         context,
+            //         MaterialPageRoute(
+            //           builder: (context) => MetricsDashboardScreen(
+            //               organizationId: user.organizationId!,
+            //               currentUser: user),
+            //         ));
+            //   },
+            // ),
             ListTile(
-              leading: const Icon(Icons.align_vertical_bottom),
-              title: Text(l10n.slaAlerts),
+              leading: const Icon(Icons.business),
+              title: Text(l10n.organization),
+              trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                Navigator.pop(context);
-                if (user.organizationId == null) return;
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MetricsDashboardScreen(
-                          organizationId: user.organizationId!,
-                          currentUser: user),
-                    ));
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const OrganizationHomeScreen(),
+                  ),
+                );
               },
             ),
-          ListTile(
-            leading: const Icon(Icons.business),
-            title: Text(l10n.organization),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const OrganizationHomeScreen(),
-                ),
-              );
-            },
-          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.person),
@@ -534,7 +608,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: EdgeInsets.symmetric(vertical: 24.0),
             child: Center(
               child: Text(
-                'Versión 0.10.0 - 30/1/25 - Invitaciones y Activación',
+                'Versión 0.11.0 - 5/2/25 - Mejoras visuales y bugs',
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 12,
@@ -628,6 +702,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showLogoutDialog(AuthService authService, AppLocalizations l10n) {
+    final initProvider =
+        Provider.of<InitializationProvider>(context, listen: false);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -641,6 +718,7 @@ class _HomeScreenState extends State<HomeScreen> {
           FilledButton(
             onPressed: () async {
               Navigator.pop(context);
+              initProvider.reset();
               await authService.signOut();
 
               if (context.mounted) {

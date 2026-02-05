@@ -1,27 +1,29 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/organization_settings_model.dart';
 
-class OrganizationSettingsService {
+class OrganizationSettingsService extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
   /// Stream de configuración de organización en tiempo real
-  Stream<OrganizationSettings?> getOrganizationSettingsStream(String organizationId) {
+  Stream<OrganizationSettings?> getOrganizationSettingsStream(
+      String organizationId) {
     return _firestore
         .collection('organizations')
         .doc(organizationId)
         .snapshots()
         .map((snapshot) {
       if (!snapshot.exists) return null;
-      
+
       final data = snapshot.data();
       if (data == null || !data.containsKey('settings')) {
         return OrganizationSettings.defaultSettings();
       }
-      
+
       return OrganizationSettings.fromMap(
         data['settings'] as Map<String, dynamic>,
       );
@@ -29,10 +31,11 @@ class OrganizationSettingsService {
   }
 
   /// Obtener configuración actual (snapshot único)
-  Future<OrganizationSettings?> getOrganizationSettings(String organizationId) async {
+  Future<OrganizationSettings?> getOrganizationSettings(
+      String organizationId) async {
     try {
       // print('🔍 Obteniendo settings para org: $organizationId');
-      
+
       final doc = await _firestore
           .collection('organizations')
           .doc(organizationId)
@@ -53,7 +56,7 @@ class OrganizationSettingsService {
       }
 
       final settingsData = data['settings'];
-      
+
       // Validar que settings no sea null
       if (settingsData == null) {
         // print('⚠️ Campo "settings" es null, devolviendo defaults');
@@ -75,15 +78,14 @@ class OrganizationSettingsService {
         print('❌ Error al parsear OrganizationSettings: $parseError');
         print('Stack: $stackTrace');
         print('Data problemática: $settingsData');
-        
+
         // Devolver defaults si falla el parseo
         return OrganizationSettings.defaultSettings();
       }
-
     } catch (e, stackTrace) {
       print('❌ Error crítico al obtener configuración: $e');
       print('Stack trace: $stackTrace');
-      
+
       // En caso de error, devolver settings por defecto para no romper la app
       return OrganizationSettings.defaultSettings();
     }
@@ -95,10 +97,7 @@ class OrganizationSettingsService {
     required OrganizationSettings settings,
   }) async {
     try {
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .update({
+      await _firestore.collection('organizations').doc(organizationId).update({
         'settings': settings.toMap(),
       });
     } catch (e) {
@@ -113,10 +112,7 @@ class OrganizationSettingsService {
     required OrganizationBranding branding,
   }) async {
     try {
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .update({
+      await _firestore.collection('organizations').doc(organizationId).update({
         'settings.branding': branding.toMap(),
       });
     } catch (e) {
@@ -125,8 +121,9 @@ class OrganizationSettingsService {
     }
   }
 
-    /// Stream de configuración en tiempo real
-  Stream<OrganizationSettings?> watchOrganizationSettings(String organizationId) {
+  /// Stream de configuración en tiempo real
+  Stream<OrganizationSettings?> watchOrganizationSettings(
+      String organizationId) {
     return _firestore
         .collection('organizations')
         .doc(organizationId)
@@ -137,7 +134,7 @@ class OrganizationSettingsService {
       }
 
       final data = doc.data()!;
-      
+
       if (!data.containsKey('settings') || data['settings'] == null) {
         return OrganizationSettings.defaultSettings();
       }
@@ -154,15 +151,12 @@ class OrganizationSettingsService {
   }
 
   /// Actualizar solo configuración de idioma
-Future<void> updateLanguageSettings(
+  Future<void> updateLanguageSettings(
     String organizationId,
     LanguageSettings language,
   ) async {
     try {
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .update({
+      await _firestore.collection('organizations').doc(organizationId).update({
         'settings.language': language.toMap(),
       });
     } catch (e) {
@@ -179,11 +173,11 @@ Future<void> updateLanguageSettings(
     try {
       // Leer archivo
       final File file = File(imageFile.path);
-      
+
       // Referencia en Storage
       final storageRef = _storage.ref().child(
-        'organizations/$organizationId/branding/logo.${imageFile.path.split('.').last}',
-      );
+            'organizations/$organizationId/branding/logo.${imageFile.path.split('.').last}',
+          );
 
       // Subir archivo
       final uploadTask = await storageRef.putFile(
@@ -195,12 +189,9 @@ Future<void> updateLanguageSettings(
 
       // Obtener URL de descarga
       final downloadUrl = await uploadTask.ref.getDownloadURL();
-      
+
       // Actualizar en Firestore
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .update({
+      await _firestore.collection('organizations').doc(organizationId).update({
         'settings.branding.logoUrl': downloadUrl,
       });
 
@@ -230,10 +221,7 @@ Future<void> updateLanguageSettings(
       await storageRef.delete();
 
       // Actualizar en Firestore
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .update({
+      await _firestore.collection('organizations').doc(organizationId).update({
         'settings.branding.logoUrl': FieldValue.delete(),
       });
     } catch (e) {
@@ -251,7 +239,7 @@ Future<void> updateLanguageSettings(
   }) async {
     try {
       final Map<String, dynamic> updates = {};
-      
+
       if (primaryColor != null) {
         updates['settings.branding.primaryColor'] = primaryColor;
       }
@@ -280,10 +268,7 @@ Future<void> updateLanguageSettings(
     required String fontFamily,
   }) async {
     try {
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .update({
+      await _firestore.collection('organizations').doc(organizationId).update({
         'settings.branding.fontFamily': fontFamily,
       });
     } catch (e) {
@@ -298,10 +283,7 @@ Future<void> updateLanguageSettings(
     required String name,
   }) async {
     try {
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .update({
+      await _firestore.collection('organizations').doc(organizationId).update({
         'settings.branding.organizationName': name,
       });
     } catch (e) {
@@ -310,15 +292,12 @@ Future<void> updateLanguageSettings(
     }
   }
 
-    Future<void> saveOrganizationSettings(
+  Future<void> saveOrganizationSettings(
     String organizationId,
     OrganizationSettings settings,
   ) async {
     try {
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .update({
+      await _firestore.collection('organizations').doc(organizationId).update({
         'settings': settings.toMap(),
       });
     } catch (e) {
@@ -333,10 +312,7 @@ Future<void> updateLanguageSettings(
     required Map<String, String> welcomeMessage,
   }) async {
     try {
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .update({
+      await _firestore.collection('organizations').doc(organizationId).update({
         'settings.branding.welcomeMessage': welcomeMessage,
       });
     } catch (e) {

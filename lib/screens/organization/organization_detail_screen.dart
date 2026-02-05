@@ -760,7 +760,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
           if (canManageMembers && canManageSettings) const Divider(height: 1),
 
           // Organization Settings - solo si tiene permiso
-          if (canManageSettings)
+          if (canManageSettings || isOwner || org.isAdmin(user.uid))
             ListTile(
               leading: const Icon(Icons.settings),
               title: Text(l10n.organizationSettings),
