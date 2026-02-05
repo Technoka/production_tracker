@@ -1592,5 +1592,7 @@
 "mute": "Mute",
 "batchChat": "Batch chat",
 "projectChat": "Project chat",
-"productChat": "Product chat"
+"productChat": "Product chat",
+"loadingUser": "Loading user...",
+"unknownEmail": "Unknown email"
 }

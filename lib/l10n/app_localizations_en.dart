@@ -4181,4 +4181,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get productChat => 'Product chat';
+
+  @override
+  String get loadingUser => 'Loading user...';
+
+  @override
+  String get unknownEmail => 'Unknown email';
 }

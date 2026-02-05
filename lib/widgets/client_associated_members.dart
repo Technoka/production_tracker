@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gestion_produccion/services/auth_service.dart';
+import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
-import '../../models/organization_member_model.dart';
 import '../../models/user_model.dart';
 
 /// Widget que muestra los miembros asociados a un cliente
-/// 
+///
 /// Busca miembros con rol 'client' y que tengan el clientId correspondiente
 class ClientAssociatedMembers extends StatelessWidget {
   final String organizationId;
@@ -59,6 +60,7 @@ class ClientAssociatedMembers extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: 40),
         if (showTitle) ...[
           Row(
             children: [
@@ -99,12 +101,13 @@ class ClientAssociatedMembers extends StatelessWidget {
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.only(left: 10),
             itemCount: memberDocs.length,
-            separatorBuilder: (context, index) => const Divider(height: 16),
+            separatorBuilder: (context, index) => const Divider(height: 4),
             itemBuilder: (context, index) {
-              final memberData = memberDocs[index].data() as Map<String, dynamic>;
-              return _buildMemberTile(context, memberData);
+              final memberData =
+                  memberDocs[index].data() as Map<String, dynamic>;
+              return _buildMemberTile(context, memberData, l10n);
             },
           ),
         ),
@@ -112,61 +115,87 @@ class ClientAssociatedMembers extends StatelessWidget {
     );
   }
 
-  Widget _buildMemberTile(BuildContext context, Map<String, dynamic> memberData) {
-    // Obtener datos del usuario desde el member
-    final userName = memberData['userName'] as String? ?? 'Usuario';
-    final userEmail = memberData['userEmail'] as String? ?? '';
+  Widget _buildMemberTile(BuildContext context, Map<String, dynamic> memberData,
+      AppLocalizations l10n) {
+    // 1. Obtenemos el ID del miembro desde el mapa
     final userId = memberData['userId'] as String? ?? '';
 
-    // Obtener initials
-    String getInitials(String name) {
-      final parts = name.trim().split(' ');
-      if (parts.isEmpty) return '?';
-      if (parts.length == 1) {
-        return parts[0].substring(0, 1).toUpperCase();
-      }
-      return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1))
-          .toUpperCase();
-    }
+    // Si no hay ID, no podemos buscar, retornamos algo vacío o genérico
+    if (userId.isEmpty) return const SizedBox.shrink();
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      leading: CircleAvatar(
-        backgroundColor: Colors.blue.shade100,
-        child: Text(
-          getInitials(userName),
-          style: TextStyle(
-            color: Colors.blue.shade700,
-            fontWeight: FontWeight.bold,
+    // 2. Usamos FutureBuilder para esperar los datos del AuthService
+    return FutureBuilder<UserModel?>(
+      future:
+          Provider.of<AuthService>(context, listen: false).getUserById(userId),
+      builder: (context, snapshot) {
+        // --- A. Estado de Carga ---
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return ListTile(
+            leading: const CircleAvatar(
+                child: SizedBox(
+                    width: 15,
+                    height: 15,
+                    child: CircularProgressIndicator(strokeWidth: 2))),
+            title: Text(l10n.loadingUser, style: TextStyle(color: Colors.grey)),
+          );
+        }
+
+        // --- B. Obtener datos reales o usar fallbacks ---
+        final user = snapshot.data;
+        final userName = user?.name ?? l10n.unknownUser;
+        final userEmail = user?.email ?? l10n.unknownEmail;
+        final photoUrl =
+            user?.photoURL; // Asumiendo que tu UserModel tiene este campo
+
+        // Helper para iniciales (Mantenido de tu código original)
+        String getInitials(String name) {
+          final parts = name.trim().split(' ');
+          if (parts.isEmpty) return '?';
+          if (parts.length == 1) {
+            return parts[0].substring(0, 1).toUpperCase();
+          }
+          return (parts[0].substring(0, 1) +
+                  parts[parts.length - 1].substring(0, 1))
+              .toUpperCase();
+        }
+
+        // --- C. Construir el Tile con los datos frescos ---
+        return ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          leading: CircleAvatar(
+            backgroundColor: Colors.blue.shade100,
+            // 3. Lógica de imagen: Si hay URL usa NetworkImage, si no, usa texto
+            backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                ? NetworkImage(photoUrl)
+                : null,
+            child: (photoUrl == null || photoUrl.isEmpty)
+                ? Text(
+                    getInitials(userName),
+                    style: TextStyle(
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                : null, // Si hay imagen, no ponemos texto hijo
           ),
-        ),
-      ),
-      title: Text(
-        userName,
-        style: const TextStyle(
-          fontWeight: FontWeight.w500,
-          fontSize: 14,
-        ),
-      ),
-      subtitle: userEmail.isNotEmpty
-          ? Text(
-              userEmail,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-              ),
-            )
-          : null,
-      trailing: Icon(
-        Icons.chevron_right,
-        color: Colors.grey.shade400,
-        size: 20,
-      ),
-      onTap: () {
-        // TODO: Navegar a detalles del miembro
-        // Navigator.push(context, MaterialPageRoute(
-        //   builder: (context) => MemberDetailScreen(userId: userId),
-        // ));
+          title: Text(
+            userName,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
+          ),
+          subtitle: userEmail.isNotEmpty
+              ? Text(
+                  userEmail,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                )
+              : null,
+        );
       },
     );
   }

@@ -8284,6 +8284,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Product chat'**
   String get productChat;
+
+  /// No description provided for @loadingUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading user...'**
+  String get loadingUser;
+
+  /// No description provided for @unknownEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown email'**
+  String get unknownEmail;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

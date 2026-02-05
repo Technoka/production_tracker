@@ -1594,5 +1594,7 @@
 "mute": "Silenciar",
 "batchChat": "Chat de lote",
 "projectChat": "Chat del proyecto",
-"productChat": "Chat del producto"
+"productChat": "Chat del producto",
+"loadingUser": "Cargando usuario...",
+"unknownEmail": "Email desconocido"
 }
