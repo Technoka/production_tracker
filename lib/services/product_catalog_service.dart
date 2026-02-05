@@ -433,7 +433,8 @@ class ProductCatalogService extends ChangeNotifier {
         .where('isActive', isEqualTo: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => ProductCatalogModel.fromMap(doc.data() as Map<String, dynamic>))
+            .map((doc) =>
+                ProductCatalogModel.fromMap(doc.data() as Map<String, dynamic>))
             .toList());
   }
 
@@ -683,24 +684,22 @@ class ProductCatalogService extends ChangeNotifier {
     String productId,
   ) async {
     try {
-      // Verificar si está siendo usado en proyectos
-      final projectsSnapshot = await _firestore
+      // Verificar si está siendo usado en batch_products
+      final batchesSnapshot = await _firestore
           .collection('organizations')
           .doc(organizationId)
-          .collection('projects')
+          .collection('production_batches')
           .get();
 
-      for (final projectDoc in projectsSnapshot.docs) {
-        final productsSnapshot = await projectDoc.reference
-            .collection('organizations')
-            .doc(organizationId)
-            .collection('products')
-            .where('catalogProductId', isEqualTo: productId)
+      for (final batchDoc in batchesSnapshot.docs) {
+        final batchProductsSnapshot = await batchDoc.reference
+            .collection('batch_products')
+            .where('productCatalogId', isEqualTo: productId)
             .limit(1)
             .get();
 
-        if (productsSnapshot.docs.isNotEmpty) {
-          print('Cannot delete product in use');
+        if (batchProductsSnapshot.docs.isNotEmpty) {
+          print('Cannot delete product: in use in batch ${batchDoc.id}');
           return false;
         }
       }
