@@ -905,6 +905,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           customTitle: 'Control de Acceso al Proyecto',
           customDescription:
               'Gestiona quiénes pueden ver y trabajar con este proyecto',
+          clientId: project.clientId,
         ),
       ),
     );

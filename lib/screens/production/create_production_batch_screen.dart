@@ -560,6 +560,7 @@ class _CreateProductionBatchScreenState
                 child: AccessControlWidget(
                   organizationId: widget.organizationId,
                   currentUserId: authService.currentUser!.uid,
+                  clientId: _selectedProject!.clientId,
                   selectedMembers: _selectedMembers,
                   onMembersChanged: (members) {
                     setState(() {

@@ -618,6 +618,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
         child: AccessControlWidget(
           organizationId: widget.project.organizationId,
           currentUserId: user.uid,
+          clientId: widget.project.clientId,
           selectedMembers: _selectedMembers,
           onMembersChanged: (members) {
             setState(() {

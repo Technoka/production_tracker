@@ -1,4 +1,4 @@
-// lib/widgets/project_access_control_widget.dart
+// lib/widgets/access_control_widget.dart
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +21,7 @@ class AccessControlWidget extends StatefulWidget {
   final String? customTitle;
   final String? customDescription;
   final String resourceType;
+  final String? clientId; // Para filtrar miembros del cliente
 
   const AccessControlWidget({
     super.key,
@@ -33,6 +34,7 @@ class AccessControlWidget extends StatefulWidget {
     this.customTitle,
     this.customDescription,
     this.resourceType = 'project',
+    this.clientId,
   });
 
   @override
@@ -40,41 +42,117 @@ class AccessControlWidget extends StatefulWidget {
 }
 
 class _AccessControlWidgetState extends State<AccessControlWidget> {
-  late List<String> _internalSelectedMembers;
+  late ValueNotifier<List<String>> _selectedMembersNotifier;
+
+  // Cache para evitar parpadeo
+  List<OrganizationMemberWithUser>? _cachedAutoAccessMembers;
+  List<OrganizationMemberWithUser>? _cachedSelectableMembers;
+  bool _isLoadingCache = true;
+
+  // Control de expansión
+  bool _isAutoAccessExpanded = false;
+
+  // Búsqueda
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _internalSelectedMembers = List.from(widget.selectedMembers);
+    _selectedMembersNotifier = ValueNotifier(List.from(widget.selectedMembers));
+    _loadMembersCache();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _selectedMembersNotifier.dispose();
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(AccessControlWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selectedMembers != widget.selectedMembers) {
-      _internalSelectedMembers = List.from(widget.selectedMembers);
+      _selectedMembersNotifier.value = List.from(widget.selectedMembers);
+    }
+  }
+
+  Future<void> _loadMembersCache() async {
+    if (!mounted) return;
+
+    try {
+      final permissionService =
+          Provider.of<PermissionService>(context, listen: false);
+
+      // Cargar en paralelo
+      final results = await Future.wait([
+        _getMembersWithAutoAccess(permissionService),
+        _getSelectableMembers(permissionService),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _cachedAutoAccessMembers = results[0];
+          _cachedSelectableMembers = results[1];
+          _isLoadingCache = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading members cache: $e');
+      if (mounted) {
+        setState(() => _isLoadingCache = false);
+      }
     }
   }
 
   void _toggleMember(String memberId) {
     if (widget.readOnly) return;
 
-    setState(() {
-      if (_internalSelectedMembers.contains(memberId)) {
-        _internalSelectedMembers.remove(memberId);
-      } else {
-        _internalSelectedMembers.add(memberId);
-      }
-    });
+    // 1. Obtenemos la lista actual
+    final currentList = List<String>.from(_selectedMembersNotifier.value);
 
-    widget.onMembersChanged(_internalSelectedMembers);
+    // 2. Modificamos la copia
+    if (currentList.contains(memberId)) {
+      currentList.remove(memberId);
+    } else {
+      currentList.add(memberId);
+    }
+
+    // 3. Actualizamos el notificador (esto solo reconstruirá los widgets que escuchen)
+    _selectedMembersNotifier.value = currentList;
+
+    // 4. Notificamos al padre
+    widget.onMembersChanged(currentList);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final permissionService =
-        Provider.of<PermissionService>(context, listen: false);
+
+    if (_isLoadingCache) {
+      return _buildLoadingSkeleton();
+    }
+
+    final autoAccessMembers = _cachedAutoAccessMembers ?? [];
+    final selectableMembers = _cachedSelectableMembers ?? [];
+
+    // Filtrar por búsqueda
+    final filteredMembers = _searchQuery.isEmpty
+        ? selectableMembers
+        : selectableMembers.where((member) {
+            final query = _searchQuery.toLowerCase();
+            return member.userName.toLowerCase().contains(query) ||
+                member.userEmail.toLowerCase().contains(query) ||
+                member.roleName.toLowerCase().contains(query);
+          }).toList();
+
+    // Contar miembros por tipo
+    final generalAccessCount =
+        autoAccessMembers.where((m) => m.member.clientId == null).length;
+    final clientAccessCount = autoAccessMembers
+        .where((m) => m.member.clientId == widget.clientId)
+        .length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,564 +203,697 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
           const SizedBox(height: 20),
         ],
 
-        // Miembros con acceso automático - Cambiado a FutureBuilder
-        FutureBuilder<List<OrganizationMemberWithUser>>(
-          future: _getMembersWithAutoAccess(permissionService),
-          builder: (context, autoAccessSnapshot) {
-            if (autoAccessSnapshot.connectionState == ConnectionState.waiting) {
-              return _buildAutoAccessSkeleton();
-            }
+        // Sección de Acceso Automático (colapsable)
+        if (autoAccessMembers.isNotEmpty) ...[
+          _buildAutoAccessCard(
+            context,
+            l10n,
+            autoAccessMembers,
+            generalAccessCount,
+            clientAccessCount,
+          ),
+          const SizedBox(height: 16),
+        ],
 
-            final autoAccessMembers = autoAccessSnapshot.data ?? [];
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (autoAccessMembers.isNotEmpty) ...[
-                  _buildAutoAccessSection(context, l10n, autoAccessMembers),
-                  const SizedBox(height: 20),
-                  const Divider(),
-                  const SizedBox(height: 20),
-                ],
-
-                // Asignar miembros manualmente - Cambiado a FutureBuilder
-                _buildMemberSelectionSection(
-                  context,
-                  l10n,
-                  autoAccessMembers,
-                ),
-              ],
-            );
-          },
-        ),
+        // Sección de Asignar Miembros
+        if (!widget.readOnly)
+          _buildAssignMembersCard(
+            context,
+            l10n,
+            filteredMembers,
+          ),
       ],
     );
   }
 
-  Widget _buildAutoAccessSection(
+  Widget _buildAutoAccessCard(
     BuildContext context,
     AppLocalizations l10n,
     List<OrganizationMemberWithUser> autoAccessMembers,
+    int generalCount,
+    int clientCount,
   ) {
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              Icons.lock_open_outlined,
-              size: 18,
-              color: Colors.blue.shade700,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                l10n.automaticAccess,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.blue.shade700,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.blue.shade50,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue.shade200),
-          ),
-          child: Column(
-            children: autoAccessMembers.asMap().entries.map((entry) {
-              final index = entry.key;
-              final member = entry.value;
-              final isMe = member.userId == widget.currentUserId;
-              final isLast = index == autoAccessMembers.length - 1;
-
-              return Column(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isAutoAccessExpanded = !_isAutoAccessExpanded;
+              });
+            },
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
+                  if (!widget.readOnly)
+                    Icon(
+                      Icons.lock_open,
+                      size: 20,
+                      color: Colors.blue.shade700,
                     ),
-                    child: Row(
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 18,
-                          backgroundColor: isMe
-                              ? Colors.blue.shade100
-                              : _parseColor(member.roleColor).withOpacity(0.2),
-                          child: Text(
-                            member.userName.isNotEmpty
-                                ? member.userName[0].toUpperCase()
-                                : '?',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: isMe
-                                  ? Colors.blue.shade700
-                                  : _parseColor(member.roleColor),
+                        Row(
+                          children: [
+                            Text(
+                              'ACCESO AUTOMÁTICO: ${autoAccessMembers.length} miembros',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade900,
+                                letterSpacing: 0.5,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 14,
+                              color: Colors.blue.shade600,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Estos miembros tienen acceso por:',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 20),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (generalCount > 0)
+                                Text(
+                                  '• Permisos generales ($generalCount)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.blue.shade600,
+                                  ),
+                                ),
+                              if (clientCount > 0)
+                                Text(
+                                  '• Pertenencia al cliente ($clientCount)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.blue.shade600,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _isAutoAccessExpanded = !_isAutoAccessExpanded;
+                            });
+                          },
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      member.userName,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    ),
-                                  ),
-                                  if (isMe) ...[
-                                    const SizedBox(width: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(
-                                          color: Colors.blue.withOpacity(0.3),
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        'Tú',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.blue,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              const SizedBox(height: 4),
                               Text(
-                                member.userEmail,
+                                _isAutoAccessExpanded
+                                    ? 'Ocultar detalles'
+                                    : 'Ver detalles',
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade600,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue.shade800,
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 2,
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                _isAutoAccessExpanded
+                                    ? Icons.keyboard_arrow_up
+                                    : Icons.keyboard_arrow_down,
+                                size: 16,
+                                color: Colors.blue.shade800,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        _buildRoleBadge(
-                          member.roleName,
-                          _parseColor(member.roleColor),
-                          compact: true,
-                        ),
                       ],
                     ),
                   ),
-                  if (!isLast)
-                    Divider(
-                      height: 1,
-                      color: Colors.grey.shade200,
-                      indent: 54,
-                    ),
                 ],
-              );
-            }).toList(),
+              ),
+            ),
           ),
-        ),
-      ],
+
+          // Contenido expandible
+          if (_isAutoAccessExpanded) ...[
+            Divider(height: 1, color: Colors.blue.shade200),
+            _buildAutoAccessDetails(context, autoAccessMembers),
+          ],
+        ],
+      ),
     );
   }
 
-  Widget _buildAutoAccessSkeleton() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 18,
-              height: 18,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                shape: BoxShape.circle,
-              ),
+  Widget _buildAutoAccessDetails(
+    BuildContext context,
+    List<OrganizationMemberWithUser> members,
+  ) {
+    final generalMembers =
+        members.where((m) => m.member.clientId == null).toList();
+    final clientMembers =
+        members.where((m) => m.member.clientId == widget.clientId).toList();
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (generalMembers.isNotEmpty) ...[
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade600,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Por Permisos Generales',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue.shade900,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Container(
-              width: 120,
-              height: 14,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
+            const SizedBox(height: 8),
+            ...generalMembers.map((member) => _buildMemberTile(member, true)),
+            const SizedBox(height: 16),
           ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(8),
+          if (clientMembers.isNotEmpty) ...[
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade600,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Del Cliente',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue.shade900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...clientMembers.map((member) => _buildMemberTile(member, true)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssignMembersCard(
+    BuildContext context,
+    AppLocalizations l10n,
+    List<OrganizationMemberWithUser> selectableMembers,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(12)),
+              border: Border(
+                bottom: BorderSide(color: Colors.grey.shade200),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_add,
+                  size: 20,
+                  color: Theme.of(context).primaryColor,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'ASIGNAR MIEMBROS',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                ValueListenableBuilder<List<String>>(
+                  valueListenable: _selectedMembersNotifier,
+                  builder: (context, selectedList, _) {
+                    final selectedCount = selectedList.length;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selectedCount > 0
+                            ? Colors.green.shade100
+                            : Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            selectedCount > 0
+                                ? Icons.check_circle
+                                : Icons.circle_outlined,
+                            size: 12,
+                            color: selectedCount > 0
+                                ? Colors.green.shade700
+                                : Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$selectedCount / ${selectableMembers.length}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: selectedCount > 0
+                                  ? Colors.green.shade700
+                                  : Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
-          child: Column(
-            children: List.generate(2, (index) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+
+          // Buscador
+          if (selectableMembers.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Buscar miembro...',
+                  hintStyle: TextStyle(color: Colors.grey.shade400),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.clear, color: Colors.grey.shade400),
+                          onPressed: () {
+                            setState(() {
+                              _searchController.clear();
+                              _searchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide:
+                        BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              ),
+            ),
+
+          // Lista de miembros
+          if (selectableMembers.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.people_outline,
+                      size: 48,
+                      color: Colors.grey.shade300,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '⚠️ ${l10n.allMembersHaveAutoAccess}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (selectableMembers.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                '${selectableMembers.length} disponibles para asignar',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...selectableMembers
+                .map((member) => _buildMemberTile(member, false)),
+            const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMemberTile(
+      OrganizationMemberWithUser member, bool isAutoAccess) {
+    final isMe = member.userId == widget.currentUserId;
+    return ValueListenableBuilder<List<String>>(
+        valueListenable: _selectedMembersNotifier,
+        builder: (context, selectedList, child) {
+          // Calculamos isSelected dentro del builder
+          final isSelected = selectedList.contains(member.userId);
+
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: isAutoAccess || widget.readOnly
+                  ? null
+                  : () => _toggleMember(member.userId),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isSelected && !isAutoAccess
+                      ? Colors.green.shade50
+                      : Colors.transparent,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.grey.shade200,
+                      width: 0.5,
+                    ),
+                  ),
+                ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        shape: BoxShape.circle,
+                    // Checkbox o ícono de lock
+                    if (!isAutoAccess)
+                      Checkbox(
+                        value: isSelected,
+                        onChanged: widget.readOnly
+                            ? null
+                            : (value) => _toggleMember(member.userId),
+                        activeColor: Colors.green,
+                      )
+                    else if (!widget.readOnly)
+                      Container(
+                        width: 40,
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.lock,
+                          size: 16,
+                          color: Colors.blue.shade400,
+                        ),
                       ),
+
+                    // Avatar
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor:
+                          _parseColor(member.roleColor).withOpacity(0.2),
+                      backgroundImage: member.userPhotoUrl != null
+                          ? NetworkImage(member.userPhotoUrl!)
+                          : null,
+                      child: member.userPhotoUrl == null
+                          ? Text(
+                              member.userName.isNotEmpty
+                                  ? member.userName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: _parseColor(member.roleColor),
+                              ),
+                            )
+                          : null,
                     ),
                     const SizedBox(width: 12),
+
+                    // Info
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  member.userName,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (isMe) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    'Tú',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            member.userEmail,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Badge de rol con color
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _parseColor(member.roleColor).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _parseColor(member.roleColor).withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                           Container(
-                            width: 100,
-                            height: 12,
+                            width: 6,
+                            height: 6,
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
-                              borderRadius: BorderRadius.circular(4),
+                              color: _parseColor(member.roleColor),
+                              shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Container(
-                            width: 140,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(4),
+                          const SizedBox(width: 6),
+                          Text(
+                            member.roleName,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _parseColor(member.roleColor),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Container(
-                      width: 60,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
                   ],
                 ),
-              );
-            }),
+              ),
+            ),
+          );
+        });
+  }
+
+  Widget _buildLoadingSkeleton() {
+    return Column(
+      children: [
+        Container(
+          height: 120,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          height: 200,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildMemberSelectionSection(
-    BuildContext context,
-    AppLocalizations l10n,
-    List<OrganizationMemberWithUser> autoAccessMembers,
-  ) {
-    return FutureBuilder<List<OrganizationMemberWithUser>>(
-      future: _getOrganizationMembersWithRoles(context),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildMemberSelectionSkeleton();
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                l10n.noMembersFound,
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-            ),
-          );
-        }
+  // ==================== MÉTODOS DE OBTENCIÓN DE DATOS ====================
 
-        final allMembers = snapshot.data!;
-        final autoAccessMemberIds =
-            autoAccessMembers.map((m) => m.userId).toSet();
-        final manualMembers = allMembers
-            .where((m) => !autoAccessMemberIds.contains(m.userId))
-            .toList();
-
-// All members have automatic access
-        if (manualMembers.isEmpty) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Text(
-              l10n.allMembersHaveAutoAccess,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade600,
-              ),
-            ),
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.person_add_outlined,
-                  size: 18,
-                  color: Colors.grey.shade700,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    l10n.assignAdditionalMembers,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade700,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                children: manualMembers.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final member = entry.value;
-                  final isMe = member.userId == widget.currentUserId;
-                  final isSelected =
-                      _internalSelectedMembers.contains(member.userId);
-                  final isLast = index == manualMembers.length - 1;
-
-                  return Column(
-                    children: [
-                      CheckboxListTile(
-                        value: isSelected,
-                        onChanged: widget.readOnly
-                            ? null
-                            : (value) => _toggleMember(member.userId),
-                        title: Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                member.userName,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                            if (isMe) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(
-                                    color: Colors.blue.withOpacity(0.3),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Tú',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue,
-                                  ),
-                                ),
-                              ),
-                            ],
-                            const SizedBox(width: 8),
-                            _buildRoleBadge(
-                              member.roleName,
-                              _parseColor(member.roleColor),
-                              compact: true,
-                            ),
-                          ],
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 2),
-                            Text(
-                              member.userEmail,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ],
-                        ),
-                        secondary: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: isMe
-                              ? Colors.blue.shade100
-                              : _parseColor(member.roleColor).withOpacity(0.2),
-                          child: Icon(
-                            isMe ? Icons.account_circle : Icons.person,
-                            color: isMe
-                                ? Colors.blue.shade700
-                                : _parseColor(member.roleColor),
-                            size: 20,
-                          ),
-                        ),
-                        activeColor: Theme.of(context).primaryColor,
-                        controlAffinity: ListTileControlAffinity.trailing,
-                      ),
-                      if (!isLast)
-                        Divider(
-                          height: 1,
-                          color: Colors.grey.shade200,
-                          indent: 68,
-                        ),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildMemberSelectionSkeleton() {
-    return Column(
-      children: List.generate(3, (index) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 120,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      width: 180,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ],
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildRoleBadge(String roleName, Color color, {bool compact = false}) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 6 : 8,
-        vertical: compact ? 3 : 5,
-      ),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Text(
-        roleName,
-        style: TextStyle(
-          fontSize: compact ? 10 : 11,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
-      ),
-    );
-  }
-
-  Color _parseColor(String colorString) {
+  Future<List<OrganizationMemberWithUser>> _getMembersWithAutoAccess(
+    PermissionService permissionService,
+  ) async {
     try {
-      return Color(int.parse(colorString.replaceAll('#', '0xFF')));
+      final organizationService =
+          Provider.of<OrganizationService>(context, listen: false);
+
+      final org =
+          await organizationService.getOrganization(widget.organizationId);
+      if (org == null) return [];
+
+      final membersWithRoles = await _getOrganizationMembersWithRoles(context);
+      final autoAccessMembers = <OrganizationMemberWithUser>[];
+
+      for (final memberWithRole in membersWithRoles) {
+        // Owner siempre tiene acceso
+        if (memberWithRole.userId == org.ownerId) {
+          autoAccessMembers.add(memberWithRole);
+          continue;
+        }
+
+        // Miembros del mismo cliente
+        if (widget.clientId != null &&
+            memberWithRole.member.clientId == widget.clientId) {
+          autoAccessMembers.add(memberWithRole);
+          continue;
+        }
+
+        // Verificar permisos del rol
+        final roleDoc = await FirebaseFirestore.instance
+            .collection('organizations')
+            .doc(widget.organizationId)
+            .collection('roles')
+            .doc(memberWithRole.member.roleId)
+            .get();
+
+        if (!roleDoc.exists) continue;
+
+        final role = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
+        final permissions = memberWithRole.member.getEffectivePermissions(role);
+
+        // Admin o con scope all en projects
+        if (memberWithRole.member.roleId == 'admin' ||
+            permissions.viewProjectsScope == PermissionScope.all) {
+          autoAccessMembers.add(memberWithRole);
+        }
+      }
+
+      return autoAccessMembers;
     } catch (e) {
-      return Colors.blue;
+      debugPrint('Error getting auto-access members: $e');
+      return [];
     }
   }
 
-  /// Obtener miembros de la organización con sus roles
-  /// OPTIMIZADO: Obtiene de organization->members en lugar de users
+  Future<List<OrganizationMemberWithUser>> _getSelectableMembers(
+    PermissionService permissionService,
+  ) async {
+    try {
+      final allMembers = await _getOrganizationMembersWithRoles(context);
+      final autoAccessMembers =
+          await _getMembersWithAutoAccess(permissionService);
+
+      // Filtrar: solo los que NO tienen acceso automático
+      final selectableMembers = allMembers.where((member) {
+        return !autoAccessMembers.any((auto) => auto.userId == member.userId);
+      }).toList();
+
+      return selectableMembers;
+    } catch (e) {
+      debugPrint('Error getting selectable members: $e');
+      return [];
+    }
+  }
+
   Future<List<OrganizationMemberWithUser>> _getOrganizationMembersWithRoles(
     BuildContext context,
   ) async {
@@ -691,9 +902,10 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
           .collection('organizations')
           .doc(widget.organizationId)
           .collection('members')
+          .where('isActive', isEqualTo: true)
           .get();
 
-      final List<OrganizationMemberWithUser> membersWithRoles = [];
+      final membersWithRoles = <OrganizationMemberWithUser>[];
 
       for (final memberDoc in membersSnapshot.docs) {
         try {
@@ -702,7 +914,6 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
             docId: memberDoc.id,
           );
 
-          // Obtener datos del usuario
           final userDoc = await FirebaseFirestore.instance
               .collection('users')
               .doc(member.userId)
@@ -731,55 +942,38 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
     }
   }
 
-  /// Obtener miembros con acceso automático (owner, admin, scope all en projects)
-  Future<List<OrganizationMemberWithUser>> _getMembersWithAutoAccess(
-    PermissionService permissionService,
-  ) async {
+  Color _parseColor(String? colorString) {
+    if (colorString == null || colorString.isEmpty) {
+      return Colors.grey;
+    }
+
     try {
-      final organizationService =
-          Provider.of<OrganizationService>(context, listen: false);
-
-      // Obtener organización para saber quién es el owner
-      final org =
-          await organizationService.getOrganization(widget.organizationId);
-      if (org == null) return [];
-
-      // Obtener todos los miembros de organization->members
-      final membersWithRoles = await _getOrganizationMembersWithRoles(context);
-
-      final autoAccessMembers = <OrganizationMemberWithUser>[];
-
-      for (final memberWithRole in membersWithRoles) {
-        // Owner siempre tiene acceso
-        if (memberWithRole.userId == org.ownerId) {
-          autoAccessMembers.add(memberWithRole);
-          continue;
-        }
-
-        // Obtener el rol
-        final roleDoc = await FirebaseFirestore.instance
-            .collection('organizations')
-            .doc(widget.organizationId)
-            .collection('roles')
-            .doc(memberWithRole.member.roleId)
-            .get();
-
-        if (!roleDoc.exists) continue;
-
-        final role = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
-        final permissions = memberWithRole.member.getEffectivePermissions(role);
-
-        // Admin o Production Manager con scope all
-        if (memberWithRole.member.roleId == 'admin' ||
-            permissions.viewProjectsScope == PermissionScope.all) {
-          autoAccessMembers.add(memberWithRole);
-        }
+      String hexColor = colorString.replaceAll('#', '');
+      if (hexColor.length == 6) {
+        hexColor = 'FF$hexColor';
       }
-
-      return autoAccessMembers;
+      return Color(int.parse(hexColor, radix: 16));
     } catch (e) {
-      debugPrint('Error getting auto-access members: $e');
-      return [];
+      return Colors.grey;
     }
   }
+}
+
+/// Clase helper para combinar miembro con datos de usuario
+class OrganizationMemberWithUser {
+  final OrganizationMemberModel member;
+  final String userName;
+  final String userEmail;
+  final String? userPhotoUrl;
+
+  OrganizationMemberWithUser({
+    required this.member,
+    required this.userName,
+    required this.userEmail,
+    this.userPhotoUrl,
+  });
+
+  String get userId => member.userId;
+  String get roleName => member.roleName;
+  String get roleColor => member.roleColor;
 }
