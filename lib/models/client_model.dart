@@ -10,6 +10,7 @@ class ClientModel {
   final String name;
   final String company;
   final String email;
+  final String? phonePrefix;
   final String? phone;
   final String? address;
   final String? city;
@@ -37,6 +38,7 @@ class ClientModel {
     required this.name,
     required this.company,
     required this.email,
+    this.phonePrefix,
     this.phone,
     this.address,
     this.city,
@@ -59,6 +61,7 @@ class ClientModel {
       'name': name,
       'company': company,
       'email': email,
+      'phonePrefix': phonePrefix,
       'phone': phone,
       'address': address,
       'city': city,
@@ -89,6 +92,7 @@ class ClientModel {
       name: map['name'] as String,
       company: map['company'] as String,
       email: map['email'] as String,
+      phonePrefix: map['phonePrefix'] as String?,
       phone: map['phone'] as String?,
       address: map['address'] as String?,
       city: map['city'] as String?,
@@ -111,6 +115,7 @@ class ClientModel {
     String? name,
     String? company,
     String? email,
+    String? phonePrefix,
     String? phone,
     String? address,
     String? city,
@@ -131,6 +136,7 @@ class ClientModel {
       name: name ?? this.name,
       company: company ?? this.company,
       email: email ?? this.email,
+      phonePrefix: phonePrefix ?? this.phonePrefix,
       phone: phone ?? this.phone,
       address: address ?? this.address,
       city: city ?? this.city,

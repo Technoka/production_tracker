@@ -230,10 +230,10 @@ class _ClientScreenState extends State<ClientDetailScreen> {
                             context,
                             icon: Icons.phone_outlined,
                             label: l10n.phoneLabel,
-                            value: widget.client.phone!,
+                            value: '${widget.client.phonePrefix!} ${widget.client.phone!}',
                             onTap: () => _copyToClipboard(
                               context,
-                              widget.client.phone!,
+                              '${widget.client.phonePrefix!}${widget.client.phone!}',
                               l10n.phoneLabel,
                             ),
                           ),

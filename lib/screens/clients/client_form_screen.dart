@@ -33,6 +33,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _companyController;
   late final TextEditingController _emailController;
+  late final TextEditingController _phonePrefixController;
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
   late final TextEditingController _cityController;
@@ -41,7 +42,6 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
   late final TextEditingController _notesController;
 
   // Estado del formulario
-  String _selectedCountryCode = "+34";
   String? _selectedColor;
   Map<String, dynamic> _clientPermissions = {};
   bool _hasUnsavedChanges = false;
@@ -62,10 +62,8 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     _nameController = TextEditingController(text: client?.name ?? '');
     _companyController = TextEditingController(text: client?.company ?? '');
     _emailController = TextEditingController(text: client?.email ?? '');
-    // Quitar prefijo si existe para evitar duplicación
-    final clientPhone = widget.client?.phone ?? '';
-    _phoneController = TextEditingController(
-        text: clientPhone.replaceFirst('+$_selectedCountryCode ', ''));
+    _phonePrefixController = TextEditingController(text: client?.phonePrefix ?? '+34');
+    _phoneController = TextEditingController(text: client?.phone ?? '');
     _addressController = TextEditingController(text: client?.address ?? '');
     _cityController = TextEditingController(text: client?.city ?? '');
     _postalCodeController =
@@ -82,6 +80,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     _nameController.addListener(_onFieldChanged);
     _companyController.addListener(_onFieldChanged);
     _emailController.addListener(_onFieldChanged);
+    _phonePrefixController.addListener(_onFieldChanged);
     _phoneController.addListener(_onFieldChanged);
     _addressController.addListener(_onFieldChanged);
     _cityController.addListener(_onFieldChanged);
@@ -130,6 +129,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     _nameController.dispose();
     _companyController.dispose();
     _emailController.dispose();
+    _phonePrefixController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
     _cityController.dispose();
@@ -183,12 +183,16 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
       return;
     }
 
-    // Procesar teléfono
+    // Procesar teléfono - ahora separado en prefijo y número
+    final phonePrefix = _phonePrefixController.text.trim().isEmpty
+        ? null
+        : _phonePrefixController.text.trim();
+    
     final phone = _phoneController.text.trim().isEmpty
         ? null
-        : (_phoneController.text.trim().startsWith('+')
-            ? _phoneController.text.trim()
-            : '$_selectedCountryCode${_phoneController.text.trim()}');
+        : _phoneController.text.trim();
+
+        print("valor de phone prefix: ${phonePrefix}");
 
     bool success;
     if (widget.isEditMode) {
@@ -199,6 +203,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
         name: _nameController.text.trim(),
         company: _companyController.text.trim(),
         email: _emailController.text.trim(),
+        phonePrefix: phonePrefix,
         phone: phone,
         address: _addressController.text.trim().isEmpty
             ? null
@@ -225,6 +230,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
         name: _nameController.text.trim(),
         company: _companyController.text.trim(),
         email: _emailController.text.trim(),
+        phonePrefix: phonePrefix,
         phone: phone,
         address: _addressController.text.trim().isEmpty
             ? null
@@ -392,12 +398,11 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                               onTap: () {
                                 showCountryPicker(
                                   context: context,
-                                  favorite: <String>['ES'],
+                                  favorite: <String>['ES', 'US', 'GB', 'FR'],
                                   showPhoneCode: true,
                                   onSelect: (Country country) {
                                     setState(() {
-                                      _selectedCountryCode =
-                                          "+${country.phoneCode}";
+                                      _phonePrefixController.text = '+${country.phoneCode}';
                                     });
                                   },
                                 );
@@ -408,7 +413,7 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                                   const Icon(Icons.phone_outlined, size: 20),
                                   const SizedBox(width: 8),
                                   Text(
-                                    _selectedCountryCode,
+                                    _phonePrefixController.text,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,

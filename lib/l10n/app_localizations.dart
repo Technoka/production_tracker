@@ -8296,6 +8296,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown email'**
   String get unknownEmail;
+
+  /// No description provided for @prefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Prefix'**
+  String get prefix;
+
+  /// No description provided for @phoneNumberTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number is too short'**
+  String get phoneNumberTooShort;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

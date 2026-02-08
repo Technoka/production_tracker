@@ -4187,4 +4187,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get unknownEmail => 'Email desconocido';
+
+  @override
+  String get prefix => 'Prefijo';
+
+  @override
+  String get phoneNumberTooShort => 'Número de teléfono demasiado corto';
 }

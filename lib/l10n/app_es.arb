@@ -1596,5 +1596,8 @@
 "projectChat": "Chat del proyecto",
 "productChat": "Chat del producto",
 "loadingUser": "Cargando usuario...",
-"unknownEmail": "Email desconocido"
+"unknownEmail": "Email desconocido",
+
+"prefix": "Prefijo",
+"phoneNumberTooShort": "Número de teléfono demasiado corto"
 }
