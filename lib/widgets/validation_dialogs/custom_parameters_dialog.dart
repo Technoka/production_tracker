@@ -23,8 +23,9 @@ class _CustomParametersDialogState extends State<CustomParametersDialog> {
   final _formKey = GlobalKey<FormState>();
   final Map<String, TextEditingController> _textControllers = {};
   final Map<String, bool> _boolValues = {};
-  
-  @override
+  final ValueNotifier<bool> _canSubmitNotifier = ValueNotifier(false);
+
+@override
   void initState() {
     super.initState();
     
@@ -33,20 +34,32 @@ class _CustomParametersDialogState extends State<CustomParametersDialog> {
     for (var param in params) {
       if (param.type == CustomParameterType.text || 
           param.type == CustomParameterType.number) {
-        _textControllers[param.id] = TextEditingController(
+        final controller = TextEditingController(
           text: param.defaultValue?.toString() ?? '',
         );
+        // AGREGAR: Listener para actualizar validación
+        controller.addListener(_updateCanSubmit);
+        _textControllers[param.id] = controller;
       } else if (param.type == CustomParameterType.boolean) {
         _boolValues[param.id] = param.defaultValue as bool? ?? false;
       }
     }
+    
+    // AGREGAR: Evaluar estado inicial
+    _updateCanSubmit();
+  }
+
+  void _updateCanSubmit() {
+    _canSubmitNotifier.value = _canSubmit();
   }
 
   @override
   void dispose() {
     for (var controller in _textControllers.values) {
+      controller.removeListener(_updateCanSubmit);
       controller.dispose();
     }
+    _canSubmitNotifier.dispose();
     super.dispose();
   }
 
@@ -95,10 +108,15 @@ class _CustomParametersDialogState extends State<CustomParametersDialog> {
           onPressed: () => Navigator.pop(context, null),
           child: Text(l10n.cancel),
         ),
-        ElevatedButton.icon(
-          onPressed: _canSubmit() ? _handleSubmit : null,
-          icon: const Icon(Icons.check),
-          label: Text(l10n.confirm),
+        ValueListenableBuilder<bool>( // CAMBIAR
+          valueListenable: _canSubmitNotifier,
+          builder: (context, canSubmit, child) {
+            return ElevatedButton.icon(
+              onPressed: canSubmit ? _handleSubmit : null,
+              icon: const Icon(Icons.check),
+              label: Text(l10n.confirm),
+            );
+          },
         ),
       ],
     );
@@ -209,6 +227,7 @@ class _CustomParametersDialogState extends State<CustomParametersDialog> {
             setState(() {
               _boolValues[param.id] = value;
             });
+            _updateCanSubmit();
           },
           contentPadding: EdgeInsets.zero,
         );
@@ -217,10 +236,10 @@ class _CustomParametersDialogState extends State<CustomParametersDialog> {
 
   bool _canSubmit() {
     final params = widget.transition.validationConfig.customParameters ?? [];
-    
+
     for (var param in params) {
       if (!param.required) continue;
-      
+
       if (param.type == CustomParameterType.text ||
           param.type == CustomParameterType.number) {
         final controller = _textControllers[param.id];
@@ -229,7 +248,7 @@ class _CustomParametersDialogState extends State<CustomParametersDialog> {
         }
       }
     }
-    
+
     return true;
   }
 
@@ -237,20 +256,22 @@ class _CustomParametersDialogState extends State<CustomParametersDialog> {
     if (!_formKey.currentState!.validate()) return;
 
     final Map<String, dynamic> parametersData = {};
-    
+
     for (var entry in _textControllers.entries) {
       final param = widget.transition.validationConfig.customParameters!
           .firstWhere((p) => p.id == entry.key);
-      
+
       if (param.type == CustomParameterType.text) {
-        parametersData[entry.key] = entry.value.text.trim();
+        parametersData[param.label] = entry.value.text.trim();
       } else if (param.type == CustomParameterType.number) {
-        parametersData[entry.key] = int.tryParse(entry.value.text) ?? 0;
+        parametersData[param.label] = int.tryParse(entry.value.text) ?? 0;
       }
     }
-    
+
     for (var entry in _boolValues.entries) {
-      parametersData[entry.key] = entry.value;
+      final param = widget.transition.validationConfig.customParameters!
+          .firstWhere((p) => p.id == entry.key);
+      parametersData[param.label] = entry.value;
     }
 
     final validationData = ValidationDataModel(
