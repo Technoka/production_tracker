@@ -77,7 +77,7 @@ class UIConstants {
     'engineering': Icons.engineering,
     'handyman': Icons.handyman,
     'precision_manufacturing': Icons.precision_manufacturing,
-    
+
     // Gestión
     'folder': Icons.folder,
     'folder_open': Icons.folder_open,
@@ -87,7 +87,7 @@ class UIConstants {
     'group': Icons.group,
     'shopping_bag': Icons.shopping_bag,
     'store': Icons.store,
-    
+
     // Estados y transiciones
     'pending': Icons.pending,
     'pending_actions': Icons.pending_actions,
@@ -99,14 +99,16 @@ class UIConstants {
     'warning': Icons.warning,
     'info': Icons.info,
     'help': Icons.help,
-    
+    'pause_circle': Icons.pause_circle,
+    'circle': Icons.circle,
+
     // Comunicación
     'chat': Icons.chat,
     'message': Icons.message,
     'comment': Icons.comment,
     'notifications': Icons.notifications,
     'email': Icons.email,
-    
+
     // Análisis
     'assessment': Icons.assessment,
     'analytics': Icons.analytics,
@@ -114,7 +116,7 @@ class UIConstants {
     'pie_chart': Icons.pie_chart,
     'trending_up': Icons.trending_up,
     'trending_down': Icons.trending_down,
-    
+
     // Configuración
     'settings': Icons.settings,
     'tune': Icons.tune,
@@ -122,7 +124,7 @@ class UIConstants {
     'security': Icons.security,
     'shield': Icons.shield,
     'lock': Icons.lock,
-    
+
     // Acciones
     'edit': Icons.edit,
     'delete': Icons.delete,
@@ -131,7 +133,7 @@ class UIConstants {
     'save': Icons.save,
     'copy': Icons.copy,
     'share': Icons.share,
-    
+
     // Otros
     'star': Icons.star,
     'favorite': Icons.favorite,
@@ -144,35 +146,85 @@ class UIConstants {
   /// Categorías de iconos para organización en UI
   static const Map<String, List<String>> iconCategories = {
     'production': [
-      'work', 'assignment', 'content_cut', 'layers', 'construction',
-      'palette', 'design_services', 'checkroom', 'verified', 'inventory',
-      'inventory_2', 'local_shipping', 'build', 'brush', 'engineering',
-      'handyman', 'precision_manufacturing',
+      'work',
+      'assignment',
+      'content_cut',
+      'layers',
+      'construction',
+      'palette',
+      'design_services',
+      'checkroom',
+      'verified',
+      'inventory',
+      'inventory_2',
+      'local_shipping',
+      'build',
+      'brush',
+      'engineering',
+      'handyman',
+      'precision_manufacturing',
     ],
     'management': [
-      'folder', 'folder_open', 'business', 'people', 'person',
-      'group', 'shopping_bag', 'store',
+      'folder',
+      'folder_open',
+      'business',
+      'people',
+      'person',
+      'group',
+      'shopping_bag',
+      'store',
     ],
     'status': [
-      'pending', 'pending_actions', 'schedule', 'check_circle',
-      'check_circle_outline', 'cancel', 'error', 'warning', 'info', 'help',
+      'pending',
+      'pending_actions',
+      'schedule',
+      'check_circle',
+      'check_circle_outline',
+      'cancel',
+      'error',
+      'warning',
+      'info',
+      'help',
     ],
     'communication': [
-      'chat', 'message', 'comment', 'notifications', 'email',
+      'chat',
+      'message',
+      'comment',
+      'notifications',
+      'email',
     ],
     'analytics': [
-      'assessment', 'analytics', 'bar_chart', 'pie_chart',
-      'trending_up', 'trending_down',
+      'assessment',
+      'analytics',
+      'bar_chart',
+      'pie_chart',
+      'trending_up',
+      'trending_down',
     ],
     'settings': [
-      'settings', 'tune', 'admin_panel_settings', 'security',
-      'shield', 'lock',
+      'settings',
+      'tune',
+      'admin_panel_settings',
+      'security',
+      'shield',
+      'lock',
     ],
     'actions': [
-      'edit', 'delete', 'add', 'remove', 'save', 'copy', 'share',
+      'edit',
+      'delete',
+      'add',
+      'remove',
+      'save',
+      'copy',
+      'share',
     ],
     'other': [
-      'star', 'favorite', 'bookmark', 'flag', 'label', 'category',
+      'star',
+      'favorite',
+      'bookmark',
+      'flag',
+      'label',
+      'category',
     ],
   };
 
@@ -206,8 +258,15 @@ class UIConstants {
     }
   }
 
-  /// Obtiene el IconData de un nombre de icono
+  /// Obtiene el IconData de un nombre de icono o código unicode
   static IconData getIcon(String iconName) {
+    // Intentar parsearlo como número unicode (ej: "57691", "57846")
+    final codePoint = int.tryParse(iconName);
+    if (codePoint != null) {
+      return IconData(codePoint, fontFamily: 'MaterialIcons');
+    }
+
+    // Si no es un número, buscar por nombre en el mapa
     return availableIcons[iconName.toLowerCase()] ?? Icons.help_outline;
   }
 

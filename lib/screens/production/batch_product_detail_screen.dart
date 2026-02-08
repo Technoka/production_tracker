@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:provider/provider.dart';
 import '../../models/batch_product_model.dart';
 import '../../models/phase_model.dart';
@@ -504,7 +505,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             Row(
               children: [
                 Icon(
-                  _getIconData(statusIconValue),
+                  UIConstants.getIcon(statusIconValue),
                   color: product.effectiveStatusColor,
                 ),
                 const SizedBox(width: 8),
@@ -554,7 +555,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               child: Row(
                 children: [
                   Icon(
-                    _getIconData(statusIconValue),
+                    UIConstants.getIcon(statusIconValue),
                     color: product.effectiveStatusColor,
                     size: 25,
                   ),
@@ -1419,7 +1420,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
     Color backgroundColor;
     Color borderColor;
-    IconData icon = _getIconData(phase.icon);
+    IconData icon = UIConstants.getIcon(phase.icon);
 
     if (isCompleted) {
       backgroundColor = Colors.green[50]!;
@@ -2100,38 +2101,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }
 
 // AÑADIR helpers:
-
-  // Helper para obtener IconData desde string
-  IconData _getIconData(String iconName) {
-    try {
-      // Intentar parsear como código numérico
-      final codePoint = int.tryParse(iconName);
-      if (codePoint != null) {
-        return IconData(codePoint, fontFamily: 'MaterialIcons');
-      }
-
-      // Si no es numérico, mapear nombres comunes
-      final iconMap = {
-        'assignment': Icons.assignment,
-        'content_cut': Icons.content_cut,
-        'layers': Icons.layers,
-        'construction': Icons.construction,
-        'palette': Icons.palette,
-        'schedule': Icons.schedule,
-        'pause_circle': Icons.pause_circle,
-        'error': Icons.error,
-        'fact_check': Icons.fact_check,
-        'check_circle': Icons.check_circle,
-        'work': Icons.work,
-        'category': Icons.category,
-        'label': Icons.label,
-      };
-
-      return iconMap[iconName] ?? Icons.label;
-    } catch (e) {
-      return Icons.label;
-    }
-  }
 
   String _getStatusDescription(String status) {
     switch (status) {
