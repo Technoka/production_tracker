@@ -34,6 +34,7 @@ class ClientService extends ChangeNotifier {
     required String email,
     required String createdBy,
     required String company,
+    String? phonePrefix,
     String? phone,
     String? address,
     String? city,
@@ -66,6 +67,7 @@ class ClientService extends ChangeNotifier {
         name: name,
         email: email,
         company: company,
+        phonePrefix: phonePrefix,
         phone: phone,
         address: address,
         city: city,
@@ -398,6 +400,7 @@ Future<List<ProjectModel>> getClientProjectsWithScope(
     String? name,
     String? company,
     String? email,
+    String? phonePrefix,
     String? phone,
     String? address,
     String? city,
@@ -428,6 +431,7 @@ Future<List<ProjectModel>> getClientProjectsWithScope(
       if (name != null) updates['name'] = name;
       if (email != null) updates['email'] = email;
       if (company != null) updates['company'] = company;
+      if (phonePrefix != null) updates['phonePrefix'] = phonePrefix;
       if (phone != null) updates['phone'] = phone;
       if (address != null) updates['address'] = address;
       if (city != null) updates['city'] = city;
@@ -530,6 +534,7 @@ Future<List<ProjectModel>> getClientProjectsWithScope(
       if (membersSnapshot.docs.isNotEmpty) {
         final batch = _firestore.batch();
 
+// TODO: actualizar para guardar permisos bien en miembros asociados
         for (final memberDoc in membersSnapshot.docs) {
           batch.update(memberDoc.reference, {
             'clientPermissions': clientPermissions,
@@ -771,69 +776,6 @@ Future<List<ProjectModel>> getClientProjectsWithScope(
         'completedProjects': 0,
         'delayedProjects': 0,
       };
-    }
-  }
-
-  // ==================== VINCULAR USUARIO (PORTAL CLIENTE) ====================
-
-  Future<bool> linkUserToClient(
-    String organizationId,
-    String clientId,
-    String userId,
-  ) async {
-    try {
-      // ✅ VALIDAR PERMISOS
-      final canEdit = await _memberService.can('clients', 'edit');
-      if (!canEdit) {
-        _error = 'No tienes permisos para vincular usuarios';
-        notifyListeners();
-        return false;
-      }
-
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('clients')
-          .doc(clientId)
-          .update({
-        'userId': userId,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      return true;
-    } catch (e) {
-      debugPrint('Error linking user to client: $e');
-      return false;
-    }
-  }
-
-  Future<bool> unlinkUserFromClient(
-    String organizationId,
-    String clientId,
-  ) async {
-    try {
-      // ✅ VALIDAR PERMISOS
-      final canEdit = await _memberService.can('clients', 'edit');
-      if (!canEdit) {
-        _error = 'No tienes permisos para desvincular usuarios';
-        notifyListeners();
-        return false;
-      }
-
-      await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('clients')
-          .doc(clientId)
-          .update({
-        'userId': FieldValue.delete(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      return true;
-    } catch (e) {
-      debugPrint('Error unlinking user from client: $e');
-      return false;
     }
   }
 
