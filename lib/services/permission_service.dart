@@ -149,8 +149,6 @@ class PermissionService extends ChangeNotifier {
       'reports_generate': _effectivePermissions!.can('reports', 'generate'),
       'reports_export': _effectivePermissions!.can('reports', 'export'),
     };
-
-    debugPrint('✅ Permisos comunes cacheados: ${_cachedPermissions.length}');
   }
 
   // ==================== INICIALIZACIÓN ====================
