@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/organization_member_model.dart';
 import '../models/role_model.dart';
-import '../models/permission_model.dart';
 import '../models/permission_override_model.dart';
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
