@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/organization_service.dart';
@@ -159,34 +160,6 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
   /// Verificar si hay filtros activos
   bool get _hasActiveFilters =>
       _selectedRoleId != null || _searchText.isNotEmpty;
-
-  /// Obtener IconData desde el nombre del icono (String)
-  IconData _getIconData(String iconName) {
-    // Mapeo de nombres de iconos comunes
-    final iconMap = {
-      'star': Icons.star,
-      'admin_panel_settings': Icons.admin_panel_settings,
-      'settings': Icons.settings,
-      'construction': Icons.construction,
-      'build': Icons.build,
-      'factory': Icons.factory,
-      'precision_manufacturing': Icons.precision_manufacturing,
-      'engineering': Icons.engineering,
-      'verified': Icons.verified,
-      'person': Icons.person,
-      'people': Icons.people,
-      'business_center': Icons.business_center,
-      'work': Icons.work,
-      'badge': Icons.badge,
-      'shield': Icons.shield,
-      'security': Icons.security,
-      'manage_accounts': Icons.manage_accounts,
-      'supervisor_account': Icons.supervisor_account,
-      'groups': Icons.groups,
-    };
-
-    return iconMap[iconName] ?? Icons.person;
-  }
 
   Future<void> _showClientPermissionsDialog(
     BuildContext context,
@@ -476,7 +449,7 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
                       child: Row(
                         children: [
                           Icon(
-                            _getIconData(role.icon),
+                            UIConstants.getIcon(role.icon),
                             color: role.colorValue,
                             size: 18,
                           ),

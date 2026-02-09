@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/screens/organization/manage_invitations_screen.dart';
+import 'package:gestion_produccion/utils/ui_constants.dart';
 import '../../screens/organization/manage_status_transitions_screen.dart';
 import '../../screens/organization/organization_settings_screen.dart';
 import 'package:provider/provider.dart';
@@ -326,34 +327,6 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     );
   }
 
-  /// Obtener IconData desde el nombre del icono (String)
-  IconData _getIconData(String iconName) {
-    // Mapeo de nombres de iconos comunes
-    final iconMap = {
-      'star': Icons.star,
-      'admin_panel_settings': Icons.admin_panel_settings,
-      'settings': Icons.settings,
-      'construction': Icons.construction,
-      'build': Icons.build,
-      'factory': Icons.factory,
-      'precision_manufacturing': Icons.precision_manufacturing,
-      'engineering': Icons.engineering,
-      'verified': Icons.verified,
-      'person': Icons.person,
-      'people': Icons.people,
-      'business_center': Icons.business_center,
-      'work': Icons.work,
-      'badge': Icons.badge,
-      'shield': Icons.shield,
-      'security': Icons.security,
-      'manage_accounts': Icons.manage_accounts,
-      'supervisor_account': Icons.supervisor_account,
-      'groups': Icons.groups,
-    };
-
-    return iconMap[iconName] ?? Icons.person;
-  }
-
   /// Tarjeta de Miembros mejorada
   Widget _buildMembersCard(
     BuildContext context,
@@ -476,7 +449,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
                               const SizedBox(width: 8),
                               // Icono del rol
                               Icon(
-                                _getIconData(role.icon),
+                                UIConstants.getIcon(role.icon),
                                 color: role.colorValue,
                                 size: 18,
                               ),
