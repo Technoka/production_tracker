@@ -40,7 +40,9 @@ class _ChatScreenState extends State<ChatScreen> {
   final AuthService _authService = AuthService();
   final ChatRoleHelper _roleHelper = ChatRoleHelper();
   final ScrollController _scrollController = ScrollController();
-  
+  final GlobalKey _inputKey = GlobalKey(); // AGREGAR
+  double _inputHeight = 150; // AGREGAR: altura por defecto
+
   Stream<List<MessageModel>>? _messagesStream;
 
   UserModel? _currentUser;
@@ -98,7 +100,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final user = await _authService.getUserData();
     if (mounted) {
       setState(() => _currentUser = user);
-      
+
       // Verificar si el usuario es cliente
       if (user != null) {
         _checkUserRole();
@@ -109,12 +111,12 @@ class _ChatScreenState extends State<ChatScreen> {
   /// Verificar si el usuario actual es cliente
   Future<void> _checkUserRole() async {
     if (_currentUser == null) return;
-    
+
     final isClient = await _roleHelper.isUserClient(
       widget.organizationId,
       _currentUser!.uid,
     );
-    
+
     if (mounted) {
       setState(() {
         _isUserClient = isClient;
@@ -266,7 +268,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
           // Fijar/Desfijar
           ListTile(
-            leading: Icon(message.isPinned ? Icons.push_pin_outlined : Icons.push_pin),
+            leading: Icon(
+                message.isPinned ? Icons.push_pin_outlined : Icons.push_pin),
             title: Text(message.isPinned ? l10n.unpin : l10n.pin),
             onTap: () {
               Navigator.pop(context);
@@ -278,7 +281,8 @@ class _ChatScreenState extends State<ChatScreen> {
           if (canDelete)
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+              title:
+                  Text(l10n.delete, style: const TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
                 _confirmDelete(message);
@@ -317,7 +321,8 @@ class _ChatScreenState extends State<ChatScreen> {
         messageId: message.id,
         isPinned: !message.isPinned,
       );
-      _showSuccess(message.isPinned ? l10n.messageUnpinned : l10n.messagePinned);
+      _showSuccess(
+          message.isPinned ? l10n.messageUnpinned : l10n.messagePinned);
     } catch (e) {
       _showError('Error: $e');
     }
@@ -382,8 +387,7 @@ class _ChatScreenState extends State<ChatScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.deleteMessage),
-        content:
-           Text(l10n.deleteMessageConfirm),
+        content: Text(l10n.deleteMessageConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -446,33 +450,37 @@ class _ChatScreenState extends State<ChatScreen> {
           constraints: kIsWeb
               ? const BoxConstraints(maxWidth: 1000)
               : const BoxConstraints(),
-          child: Column(
+          child: Stack(
+            // CAMBIAR: Column a Stack
             children: [
-              // Mensajes fijados
-              _buildPinnedMessages(),
+              Column(
+                children: [
+                  // Mensajes fijados
+                  _buildPinnedMessages(),
 
-              // Lista de mensajes
-              Expanded(child: _buildMessagesList(effectiveShowInternal)),
+                  // Lista de mensajes
+                  Expanded(child: _buildMessagesList(effectiveShowInternal)),
 
-              // Input de mensaje
-              MessageInput(
-                onSend: _sendMessage,
-                replyingTo: _replyingTo,
-                onCancelReply: () => setState(() => _replyingTo = null),
-                // Los clientes NO ven el toggle de mensajes internos
-                showInternalToggle: !_isUserClient && widget.showInternalMessages,
-                isLoading: _isLoading,
+                  _buildMessageInputWithKey(),
+                ],
               ),
+
+              // AGREGAR: Botón flotante encima del MessageInput
+              if (_showScrollToBottom)
+                Positioned(
+                  bottom: _inputHeight + 20, // Encima del input
+                  right: 16,
+                  child: FloatingActionButton.small(
+                    onPressed: _scrollToBottom,
+                    backgroundColor: Colors.green,
+                    child:
+                        const Icon(Icons.arrow_downward, color: Colors.white),
+                  ),
+                ),
             ],
           ),
         ),
       ),
-      floatingActionButton: _showScrollToBottom
-          ? FloatingActionButton.small(
-              onPressed: _scrollToBottom,
-              child: const Icon(Icons.arrow_downward),
-            )
-          : null,
     );
   }
 
@@ -588,7 +596,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.push_pin_outlined, size: 48, color: Colors.grey),
+                    const Icon(Icons.push_pin_outlined,
+                        size: 48, color: Colors.grey),
                     const SizedBox(height: 16),
                     Text(
                       l10n.noPinnedMessages,
@@ -746,7 +755,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
         // ✅ MEJORA: Solo mostramos carga si NO hay datos previos.
         // Esto evita que parpadee si la conexión se refresca pero ya teníamos mensajes.
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -767,7 +777,7 @@ class _ChatScreenState extends State<ChatScreen> {
           itemCount: messages.length,
           itemBuilder: (context, index) {
             final message = messages[index];
-            
+
             // Determinar si debe mostrar avatar y nombre
             final shouldShowAvatar = _shouldShowAvatar(messages, index);
             final shouldShowAuthorName = shouldShowAvatar;
@@ -799,23 +809,24 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _shouldShowAvatar(List<MessageModel> messages, int index) {
     // Siempre mostrar avatar para mensajes del sistema
     if (messages[index].isSystemGenerated) return true;
-    
+
     // Siempre mostrar avatar para el último mensaje (primero en la lista reversa)
     if (index == 0) return true;
-    
+
     final currentMessage = messages[index];
     final previousMessage = messages[index - 1];
-    
+
     // Mostrar si el autor es diferente
     if (currentMessage.authorId != previousMessage.authorId) return true;
-    
+
     // Mostrar si el mensaje anterior es del sistema
     if (previousMessage.isSystemGenerated) return true;
-    
+
     // Mostrar si han pasado más de 5 minutos
-    final timeDifference = previousMessage.createdAt.difference(currentMessage.createdAt);
+    final timeDifference =
+        previousMessage.createdAt.difference(currentMessage.createdAt);
     if (timeDifference.abs() > _consecutiveMessageThreshold) return true;
-    
+
     // No mostrar avatar (mensajes consecutivos del mismo usuario)
     return false;
   }
@@ -839,6 +850,33 @@ class _ChatScreenState extends State<ChatScreen> {
             style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMessageInputWithKey() {
+    // Medir la altura del input después de construir
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final RenderBox? renderBox =
+          _inputKey.currentContext?.findRenderObject() as RenderBox?;
+      if (renderBox != null && mounted) {
+        final newHeight = renderBox.size.height;
+        if (newHeight != _inputHeight) {
+          setState(() {
+            _inputHeight = newHeight;
+          });
+        }
+      }
+    });
+
+    return Container(
+      key: _inputKey,
+      child: MessageInput(
+        onSend: _sendMessage,
+        replyingTo: _replyingTo,
+        onCancelReply: () => setState(() => _replyingTo = null),
+        showInternalToggle: !_isUserClient && widget.showInternalMessages,
+        isLoading: _isLoading,
       ),
     );
   }

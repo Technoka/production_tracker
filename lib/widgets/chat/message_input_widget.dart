@@ -63,6 +63,10 @@ class _MessageInputState extends State<MessageInput> {
 
     widget.onSend(text, mentions, _isInternal);
     _controller.clear();
+
+    // AGREGAR: Mantener el teclado en móvil
+    // _focusNode.unfocus();
+
     setState(() {
       _isComposing = false;
     });

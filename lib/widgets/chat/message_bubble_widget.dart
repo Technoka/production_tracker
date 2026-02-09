@@ -47,7 +47,10 @@ class MessageBubble extends StatelessWidget {
   /// Mensaje de usuario normal
   Widget _buildUserMessage(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: showAvatar ? 8 : 2,
+      ),
       child: Row(
         crossAxisAlignment:
             CrossAxisAlignment.start, // Alinear al fondo visualmente
@@ -124,7 +127,7 @@ class MessageBubble extends StatelessWidget {
                           _buildReplyPreview(context),
 
                         // Contenido del texto
-                        Text(
+                        SelectableText(
                           message.content,
                           style: TextStyle(
                             fontSize: 15,
@@ -211,7 +214,7 @@ class MessageBubble extends StatelessWidget {
               const SizedBox(height: 4),
 
               // Contenido
-              Text(
+              SelectableText(
                 message.content,
                 style: TextStyle(
                   fontSize: 13,
