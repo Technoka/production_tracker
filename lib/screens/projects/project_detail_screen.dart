@@ -30,7 +30,6 @@ class ProjectDetailScreen extends StatefulWidget {
 
 class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     with SingleTickerProviderStateMixin {
-
   late TabController _tabController;
   int _selectedTab = 0;
 
@@ -63,7 +62,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     }
 
     return StreamBuilder<ProjectModel?>(
-      stream: projectService.watchProjectsWithScope(user.organizationId!, user.uid).map(
+      stream: projectService
+          .watchProjectsWithScope(user.organizationId!, user.uid)
+          .map(
             (projects) => projects.firstWhere(
               (p) => p.id == widget.projectId,
               orElse: () => projects.isNotEmpty
@@ -176,7 +177,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
       _currentRole = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
 
-      if (_currentMember?.roleId == 'client' && project.clientId == _currentMember?.clientId) {
+      if (_currentMember?.roleId == 'client' &&
+          project.clientId == _currentMember?.clientId) {
         return {'canView': true};
       }
 
@@ -437,7 +439,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   Widget _buildProductsTab(BuildContext context, UserModel user,
       ProjectModel project, Map<String, dynamic> permissions) {
     final canViewPrices = permissions['canViewPrices'] ?? false;
-    final ProductCatalogService productService = Provider.of<ProductCatalogService>(context, listen: false);
+    final ProductCatalogService productService =
+        Provider.of<ProductCatalogService>(context, listen: false);
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -663,6 +666,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     ProjectModel project,
     String organizationId,
   ) async {
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -686,12 +692,18 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
     if (confirm != true) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Función de activar/desactivar no implementada aún'),
-        backgroundColor: Colors.orange,
-      ),
-    );
+    await projectService.toggleProjectActive(organizationId, project.id,
+        userId: memberService.currentMember!.userId);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Proyecto ${project.isActive ? 'desactivado' : 'activado'}.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   Future<void> _showDeleteDialog(
