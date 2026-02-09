@@ -23,6 +23,7 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
   final _formKey = GlobalKey<FormState>();
   final _quantityController = TextEditingController();
   final _textController = TextEditingController();
+  final _sameDescriptionTextController = TextEditingController();
 
   String? _quantityError;
   String? _textError;
@@ -34,6 +35,7 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
   void dispose() {
     _quantityController.dispose();
     _textController.dispose();
+    _sameDescriptionTextController.dispose();
     super.dispose();
   }
 
@@ -131,10 +133,10 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
               ),
               const SizedBox(height: 16),
 
-// Campo de texto según modo
+              // Campo de texto según modo
               if (_textMode == TextDetailsMode.single)
                 TextField(
-                  controller: _textController,
+                  controller: _sameDescriptionTextController,
                   decoration: InputDecoration(
                     labelText: config.textLabel ?? l10n.description,
                     hintText: config.textPlaceholder ?? l10n.describeIssue,
@@ -143,7 +145,7 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
                     helperText:
                         'Esta descripción se aplicará a todas las unidades',
                   ),
-                  // ...
+                  // Descripcion individual por cada producto
                 )
               else ...[
                 Text(
@@ -443,7 +445,8 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
     return _quantityError == null &&
         _textError == null &&
         _quantityController.text.isNotEmpty &&
-        _textController.text.isNotEmpty;
+        _textController.text.isNotEmpty &&
+        _sameDescriptionTextController.text.isNotEmpty;
   }
 
   void _handleSubmit() {
@@ -455,7 +458,7 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
       Map<int, String>? individualTexts;
 
       if (_textMode == TextDetailsMode.single) {
-        singleText = _textController.text.trim();
+        singleText = _sameDescriptionTextController.text.trim();
       } else {
         individualTexts = {};
         for (int i = 0; i < quantity; i++) {
