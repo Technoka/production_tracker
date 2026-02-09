@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:provider/provider.dart';
 import '../../models/batch_product_model.dart';
@@ -109,7 +110,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
     try {
       // Obtener todas las transiciones desde el estado actual
-      final transitions = await transitionService.getAvailableTransitionsFromStatus(
+      final transitions =
+          await transitionService.getAvailableTransitionsFromStatus(
         organizationId: widget.organizationId,
         fromStatusId: currentStatusId,
         userRoleId: _currentRole!.id,
@@ -180,8 +182,14 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         }
 
         // Si el producto no se encuentra (porque se acaba de eliminar),
-        // mostramos un loader mientras el Navigator.pop de la función _showDeleteConfirmation hace efecto.
+        // cerrar la pantalla automáticamente
         if (product == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              Navigator.pop(context);
+            }
+          });
+
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
@@ -282,7 +290,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(child: _buildProductInfoCard(product!, user)),
+                          Expanded(
+                              child: _buildProductInfoCard(product!, user)),
                           const SizedBox(width: 24),
                           Expanded(
                               child: _buildProductStatusCard(product, user)),
@@ -493,8 +502,10 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 // ================= NUEVO CÃ“DIGO PARA ESTADOS DEL PRODUCTO =================
   Widget _buildProductStatusCard(BatchProductModel product, UserModel? user) {
     // Obtener el icono desde statusIcon si existe, sino usar el statusId
-    final statusIconValue =
-        product.statusIcon ?? product.statusId ?? 'help_outline';
+
+    final dataProvider =
+        Provider.of<ProductionDataProvider>(context, listen: false);
+    final statusIconValue = dataProvider.getStatusById(product.statusId!)!.icon;
 
     return Card(
       child: Padding(
@@ -721,7 +732,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                _getIconForStatus(entry.statusId),
+                UIConstants.getIcon(entry.statusIcon),
                 size: 20,
                 color: statusColor,
               ),
@@ -986,23 +997,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     }
   }
 
-  IconData _getIconForStatus(String statusId) {
-    switch (statusId) {
-      case 'ok':
-        return Icons.check_circle;
-      case 'cao':
-        return Icons.cancel;
-      case 'control':
-        return Icons.verified;
-      case 'hold':
-        return Icons.pause_circle;
-      case 'pending':
-        return Icons.pending;
-      default:
-        return Icons.circle;
-    }
-  }
-
   Widget _buildProductStatusActions(
     BatchProductModel product,
     UserModel? user,
@@ -1172,7 +1166,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }) {
     // Determinar color e icono según el estado destino
     Color buttonColor = _getColorForStatus(transition.toStatusId);
-    IconData buttonIcon = _getIconForStatus(transition.toStatusId);
+    IconData buttonIcon = UIConstants.getIcon(transition.toStatusId);
 
     return SizedBox(
       width: double.infinity,
@@ -1460,7 +1454,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                       ),
                     ),
                     Text(
-                      phase.description!,
+                      phase.description,
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],
