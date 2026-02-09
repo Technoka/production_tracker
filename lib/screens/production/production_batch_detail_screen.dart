@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/providers/production_data_provider.dart';
+import 'package:gestion_produccion/services/permission_service.dart';
+import 'package:gestion_produccion/widgets/access_control_widget.dart';
 import 'package:provider/provider.dart';
 import '../../models/production_batch_model.dart';
-import '../../models/batch_product_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/production_batch_service.dart';
@@ -11,7 +13,6 @@ import '../../services/organization_member_service.dart';
 import '../../models/organization_member_model.dart';
 
 // TODO: comprobar que se usa scope y assignedMembers correctamente
-
 
 class ProductionBatchDetailScreen extends StatefulWidget {
   final String organizationId;
@@ -32,11 +33,26 @@ class _ProductionBatchDetailScreenState
     extends State<ProductionBatchDetailScreen> {
   OrganizationMemberWithUser? _currentMember;
   bool _isLoadingPermissions = true;
+  List<String> _selectedMembers = [];
 
   @override
   void initState() {
     super.initState();
     _loadPermissions();
+    _loadBatchMembers();
+  }
+
+  // AGREGAR: método para cargar miembros iniciales
+  Future<void> _loadBatchMembers() async {
+    final dataProvider =
+        Provider.of<ProductionDataProvider>(context, listen: false);
+    final batch = dataProvider.getBatchById(widget.batchId);
+
+    if (batch != null && mounted) {
+      setState(() {
+        _selectedMembers = List<String>.from(batch.assignedMembers ?? []);
+      });
+    }
   }
 
   Future<void> _loadPermissions() async {
@@ -60,9 +76,11 @@ class _ProductionBatchDetailScreenState
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-    final batchService = Provider.of<ProductionBatchService>(context);
     final user = authService.currentUserData;
     final memberService = Provider.of<OrganizationMemberService>(context);
+    final permissionService = Provider.of<PermissionService>(context);
+    final canEditBatches = permissionService.canEditBatches;
+    final canDeleteBatches = permissionService.canDeleteBatches;
 
     // ✅ Mostrar loading mientras se cargan permisos
     if (_isLoadingPermissions) {
@@ -72,17 +90,11 @@ class _ProductionBatchDetailScreenState
       );
     }
 
-    return StreamBuilder<ProductionBatchModel?>(
-      stream: batchService.watchBatch(widget.organizationId, widget.batchId),
-      builder: (context, batchSnapshot) {
-        if (batchSnapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Cargando...')),
-            body: const Center(child: CircularProgressIndicator()),
-          );
-        }
+    return Consumer<ProductionDataProvider>(
+      builder: (context, dataProvider, _) {
+        final batch = dataProvider.getBatchById(widget.batchId);
 
-        if (batchSnapshot.hasError || batchSnapshot.data == null) {
+        if (batch == null) {
           return Scaffold(
             appBar: AppBar(title: const Text('Error')),
             body: Center(
@@ -91,7 +103,7 @@ class _ProductionBatchDetailScreenState
                 children: [
                   const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 16),
-                  Text('Error al cargar el lote: ${batchSnapshot.error}'),
+                  const Text('Lote no encontrado'),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
@@ -103,66 +115,57 @@ class _ProductionBatchDetailScreenState
           );
         }
 
-        final batch = batchSnapshot.data!;
-
         return Scaffold(
           appBar: AppBar(
             title: Text(batch.batchNumber),
             actions: [
-              FutureBuilder<bool>(
-                future: memberService.can('batches', 'edit'),
-                builder: (context, canEditSnapshot) {
-                  final canEdit = canEditSnapshot.data ?? false;
+              // 1. Solo mostramos el botón de menú si tiene permiso de Editar O Eliminar.
+              // Si no tiene ninguno, no se muestra nada.
+              if (canEditBatches || canDeleteBatches)
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (value) =>
+                      _handleAction(value, batch, user!, memberService),
+                  itemBuilder: (context) => [
+                    // 2. Opción Editar: Solo si canEditBatches es true
+                    if (canEditBatches)
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 20),
+                            SizedBox(width: 8),
+                            Text('Editar Notas'),
+                          ],
+                        ),
+                      ),
 
-                  if (!canEdit) return const SizedBox.shrink();
-
-                  return FutureBuilder<bool>(
-                    future: memberService.can('batches', 'delete'),
-                    builder: (context, canDeleteSnapshot) {
-                      final canDelete = canDeleteSnapshot.data ?? false;
-
-                      return PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert),
-                        onSelected: (value) =>
-                            _handleAction(value, batch, user!, memberService),
-                        itemBuilder: (context) => [
-                          // Editar notas
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit, size: 20),
-                                SizedBox(width: 8),
-                                Text('Editar Notas'),
-                              ],
+                    // 3. Opción Eliminar: Solo si canDeleteBatches es true
+                    if (canDeleteBatches)
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 20, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text(
+                              'Eliminar Lote',
+                              style: TextStyle(color: Colors.red),
                             ),
-                          ),
-                          // Eliminar (solo si tiene permiso)
-                          if (canDelete)
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete,
-                                      size: 20, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Eliminar Lote',
-                                      style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
             ],
           ),
 
           body: RefreshIndicator(
             onRefresh: () async {
-              setState(() {});
+              final dataProvider =
+                  Provider.of<ProductionDataProvider>(context, listen: false);
+              await dataProvider.refreshBatch(
+                  widget.organizationId, widget.batchId);
             },
             child: ListView(
               padding: const EdgeInsets.all(16),
@@ -177,12 +180,43 @@ class _ProductionBatchDetailScreenState
 
                 // Lista de productos
                 _buildProductsSection(batch, user, memberService),
-                
-                  const SizedBox(height: 100),
+
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: StatefulBuilder(
+                      // CAMBIAR: Usar StatefulBuilder
+                      builder:
+                          (BuildContext context, StateSetter setStateLocal) {
+                        return AccessControlWidget(
+                          organizationId: widget.organizationId,
+                          currentUserId: authService.currentUser!.uid,
+                          clientId: batch.clientId,
+                          selectedMembers: _selectedMembers,
+                          onMembersChanged: (members) {
+                            setStateLocal(() {
+                              // CAMBIAR: usar setStateLocal en lugar de setState
+                              _selectedMembers = members;
+                            });
+                          },
+                          readOnly: true,
+                          showTitle: true,
+                          resourceType: 'batch',
+                          customTitle: 'Control de Acceso al Lote',
+                          customDescription:
+                              'Gestiona quiénes pueden ver y trabajar con este lote',
+                        );
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 100),
               ],
-              
             ),
-            
           ),
           // Botones flotantes con Chat y Añadir Producto
           floatingActionButton:
@@ -195,42 +229,35 @@ class _ProductionBatchDetailScreenState
   /// Construir botones flotantes (Chat + Añadir Producto)
   Widget _buildFloatingButtons(UserModel? user, ProductionBatchModel batch,
       OrganizationMemberService memberService) {
+    final permissionService = Provider.of<PermissionService>(context);
+    final canEditBatches = permissionService.canEditBatches;
+
+// Si no tiene permisos, cortamos aquí devolviendo un widget vacío
+    if (!canEditBatches) return const SizedBox.shrink();
+
+// Si tiene permisos, continuamos y devolvemos la columna con el botón
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // Botón Añadir Producto con validación RBAC
-        FutureBuilder<bool>(
-          future: memberService.can('batches', 'edit'),
-          builder: (context, snapshot) {
-            final canEdit = snapshot.data ?? false;
-
-            if (!canEdit) return const SizedBox.shrink();
-
-            return Column(
-              children: [
-                const SizedBox(height: 16),
-                FloatingActionButton.extended(
-                  heroTag: 'add_product_btn',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddProductToBatchScreen(
-                          organizationId: widget.organizationId,
-                          batchId: widget.batchId,
-                          clientName: batch.clientName,
-                          projectName: batch.projectName,
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Añadir Productos'),
+        const SizedBox(height: 16),
+        FloatingActionButton.extended(
+          heroTag: 'add_product_btn',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AddProductToBatchScreen(
+                  organizationId: widget.organizationId,
+                  batchId: widget.batchId,
+                  clientName: batch.clientName,
+                  projectName: batch.projectName,
                 ),
-              ],
+              ),
             );
           },
+          icon: const Icon(Icons.add),
+          label: const Text('Añadir Productos'),
         ),
       ],
     );
@@ -330,18 +357,9 @@ class _ProductionBatchDetailScreenState
   }
 
   Widget _buildProgressCard(ProductionBatchModel batch) {
-    return FutureBuilder<Map<String, double>>(
-      future: _calculateProgressStats(batch),
-      builder: (context, statsSnapshot) {
-        final stats = statsSnapshot.data ??
-            {
-              'phaseProgress': 0.0,
-              'statusProgress': 0.0,
-              'phaseCompleted': 0,
-              'phaseTotal': 0,
-              'statusCompleted': 0,
-              'statusTotal': 0,
-            };
+    return Consumer<ProductionDataProvider>(
+      builder: (context, dataProvider, _) {
+        final stats = dataProvider.getBatchProgress(widget.batchId);
 
         return Card(
           child: Padding(
@@ -364,120 +382,29 @@ class _ProductionBatchDetailScreenState
                 ),
                 const SizedBox(height: 16),
 
-                // PROGRESO 1: FASES DE PRODUCCIÓN
+                // Fases
                 Row(
                   children: [
                     Icon(Icons.precision_manufacturing,
                         size: 18, color: Colors.blue[700]),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Fases de Producción',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Text(
+                      'Fases: ${stats['completedPhases'] ?? 0}/${stats['totalProducts'] ?? 0} en ${stats['lastPhaseName'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 14),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${stats['phaseCompleted']?.toInt() ?? 0} de ${stats['phaseTotal']?.toInt() ?? 0} en Studio',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                '${((stats['phaseProgress'] ?? 0) * 100).toInt()}%',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          LinearProgressIndicator(
-                            value: stats['phaseProgress'] ?? 0,
-                            minHeight: 10,
-                            backgroundColor: Colors.grey[200],
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              stats['phaseProgress'] == 1.0
-                                  ? Colors.green
-                                  : Colors.blue,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                const SizedBox(height: 12),
 
-                const SizedBox(height: 20),
-
-                // PROGRESO 2: ESTADOS (OK)
+                // Estados
                 Row(
                   children: [
                     Icon(Icons.check_circle,
                         size: 18, color: Colors.green[700]),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Estado Final (OK)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${stats['statusCompleted']?.toInt() ?? 0} de ${stats['statusTotal']?.toInt() ?? 0} aprobados',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                '${((stats['statusProgress'] ?? 0) * 100).toInt()}%',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          LinearProgressIndicator(
-                            value: stats['statusProgress'] ?? 0,
-                            minHeight: 10,
-                            backgroundColor: Colors.grey[200],
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              stats['statusProgress'] == 1.0
-                                  ? Colors.green
-                                  : Colors.orange,
-                            ),
-                          ),
-                        ],
-                      ),
+                    Text(
+                      'Estados: ${stats['completedStatuses'] ?? 0}/${stats['totalProducts'] ?? 0} en ${stats['lastStatusName'] ?? 'N/A'}',
+                      style: const TextStyle(fontSize: 14),
                     ),
                   ],
                 ),
@@ -489,488 +416,238 @@ class _ProductionBatchDetailScreenState
     );
   }
 
-  Future<Map<String, double>> _calculateProgressStats(
-      ProductionBatchModel batch) async {
-    final batchService = Provider.of<ProductionBatchService>(context, listen: false);
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = authService.currentUserData!;
-
-    try {
-      final products = await batchService
-          .watchBatchProducts(widget.organizationId, widget.batchId, user.uid)
-          .first;
-
-      if (products.isEmpty) {
-        return {
-          'phaseProgress': 0.0,
-          'statusProgress': 0.0,
-          'phaseCompleted': 0.0,
-          'phaseTotal': 0.0,
-          'statusCompleted': 0.0,
-          'statusTotal': 0.0,
-        };
-      }
-
-      final inStudio = products.where((p) => p.isInStudio).length;
-      final phaseProgress = inStudio / products.length;
-      final okStatus = products.where((p) => p.isOK).length;
-      final statusProgress = okStatus / products.length;
-
-      return {
-        'phaseProgress': phaseProgress,
-        'statusProgress': statusProgress,
-        'phaseCompleted': inStudio.toDouble(),
-        'phaseTotal': products.length.toDouble(),
-        'statusCompleted': okStatus.toDouble(),
-        'statusTotal': products.length.toDouble(),
-      };
-    } catch (e) {
-      return {
-        'phaseProgress': 0.0,
-        'statusProgress': 0.0,
-        'phaseCompleted': 0.0,
-        'phaseTotal': 0.0,
-        'statusCompleted': 0.0,
-        'statusTotal': 0.0,
-      };
-    }
-  }
-
-  Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user, OrganizationMemberService memberService) {
+  Widget _buildProductsSection(ProductionBatchModel batch, UserModel? user,
+      OrganizationMemberService memberService) {
     // Solo mostrar productos si tiene permiso
-    return FutureBuilder<bool>(
-      future: memberService.can('batch_products', 'view'),
-      builder: (context, canViewSnapshot) {
-        final canView = canViewSnapshot.data ?? false;
+    final permissionService = Provider.of<PermissionService>(context);
+    final canViewBatches = permissionService.canViewBatches;
 
-        if (!canView) return const SizedBox.shrink();
-        return StreamBuilder<List<BatchProductModel>>(
-          stream: Provider.of<ProductionBatchService>(context, listen: false)
-              .watchBatchProducts(widget.organizationId, widget.batchId, user!.uid),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-              );
-            }
+    if (!canViewBatches) return const SizedBox.shrink();
 
-            if (snapshot.hasError) {
-              return Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text('Error: ${snapshot.error}'),
-                ),
-              );
-            }
+    return Consumer<ProductionDataProvider>(
+      builder: (context, dataProvider, _) {
+        final products = dataProvider.getProductsForBatch(widget.batchId);
 
-            final products = snapshot.data ?? [];
-
-            if (products.isEmpty) {
-              return Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.inventory_2_outlined,
-                        size: 48,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No hay productos en este lote',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Añade productos usando el botón +',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Card(
-              elevation: 1,
+        if (products.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Productos en el lote (${batch.totalProducts})',
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold)),
-                      ],
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 48,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No hay productos en este lote',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
                     ),
                   ),
-                  const Divider(height: 1),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Añade productos usando el botón +',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
 
-                  // CORRECCIÓN 2: Eliminado el StreamBuilder interno incorrecto.
-                  // Usamos directamente la lista 'products' que ya obtuvimos arriba.
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    itemCount: products.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final product = products[index];
-                      final urgencyLevel =
-                          UrgencyLevel.fromString(product.urgencyLevel);
+        return Card(
+          elevation: 1,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Productos en el lote (${batch.totalProducts})',
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
 
-                      return InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => BatchProductDetailScreen(
-                                organizationId: widget.organizationId,
-                                batchId: widget.batchId,
-                                productId: product.id,
-                              ),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            // border: Border(bottom: BorderSide(color: Colors.grey.shade200)), // Ya lo hace el separator
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // 1. LEADING: Avatar con número
-                              CircleAvatar(
-                                radius: 18,
-                                backgroundColor:
-                                    urgencyLevel.color.withOpacity(0.2),
-                                child: Text(
-                                  '#${product.productNumber}',
-                                  style: TextStyle(
-                                    color: urgencyLevel.color,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
+              // Usamos directamente la lista 'products' que ya obtuvimos arriba.
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
+                itemCount: products.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final product = products[index];
+                  final urgencyLevel =
+                      UrgencyLevel.fromString(product.urgencyLevel);
 
-                              // 2. CENTRO: Información del producto
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      product.productName,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'SKU: ${product.productReference ?? "-"}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[700],
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    // CORRECCIÓN 3: Verificar nulo antes de formatear
-                                    if (product.expectedDeliveryDate !=
-                                        null) ...[
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'Entrega: ${_formatDate(product.expectedDeliveryDate!)}',
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600]),
-                                      ),
-                                    ],
-                                    // Notas (si tu modelo BatchProductModel las tiene)
-                                    if (product.productNotes != null &&
-                                        product.productNotes!.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.shade50,
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          'Notas: ${product.productNotes}',
-                                          style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.blue[800],
-                                              fontStyle: FontStyle.italic),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-
-                              // 3. DERECHA: Chip arriba, Cantidad abajo
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  // Chip de urgencia
-                                  if (urgencyLevel == UrgencyLevel.urgent)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            urgencyLevel.color.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                            color: urgencyLevel.color
-                                                .withOpacity(0.3)),
-                                      ),
-                                      child: Text(
-                                        urgencyLevel.displayName,
-                                        style: TextStyle(
-                                          color: urgencyLevel.color,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-
-                                  const SizedBox(height: 12),
-
-                                  // Cantidad
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[100],
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(
-                                          color: Colors.grey.shade300),
-                                    ),
-                                    child: Text(
-                                      'x${product.quantity}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                  return InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BatchProductDetailScreen(
+                            organizationId: widget.organizationId,
+                            batchId: widget.batchId,
+                            productId: product.id,
                           ),
                         ),
                       );
                     },
-                  ),
-                  
-                const SizedBox(height: 16),
-                ],
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        // border: Border(bottom: BorderSide(color: Colors.grey.shade200)), // Ya lo hace el separator
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // 1. LEADING: Avatar con número
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor:
+                                urgencyLevel.color.withOpacity(0.2),
+                            child: Text(
+                              '#${product.productNumber}',
+                              style: TextStyle(
+                                color: urgencyLevel.color,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // 2. CENTRO: Información del producto
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product.productName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'SKU: ${product.productReference ?? "-"}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                // CORRECCIÓN 3: Verificar nulo antes de formatear
+                                if (product.expectedDeliveryDate != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Entrega: ${_formatDate(product.expectedDeliveryDate!)}',
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey[600]),
+                                  ),
+                                ],
+                                // Notas (si tu modelo BatchProductModel las tiene)
+                                if (product.productNotes != null &&
+                                    product.productNotes!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      'Notas: ${product.productNotes}',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.blue[800],
+                                          fontStyle: FontStyle.italic),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          // 3. DERECHA: Chip arriba, Cantidad abajo
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              // Chip de urgencia
+                              if (urgencyLevel == UrgencyLevel.urgent)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: urgencyLevel.color.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: urgencyLevel.color
+                                            .withOpacity(0.3)),
+                                  ),
+                                  child: Text(
+                                    urgencyLevel.displayName,
+                                    style: TextStyle(
+                                      color: urgencyLevel.color,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+
+                              const SizedBox(height: 12),
+
+                              // Cantidad
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(4),
+                                  border:
+                                      Border.all(color: Colors.grey.shade300),
+                                ),
+                                child: Text(
+                                  'x${product.quantity}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
+
+              const SizedBox(height: 16),
+            ],
+          ),
         );
       },
     );
   }
 
 // AÑADIR métodos helper:
-
-  Map<String, int> _calculatePhaseStats(List<BatchProductModel> products) {
-    final stats = <String, int>{
-      'planned': 0,
-      'cutting': 0,
-      'skiving': 0,
-      'assembly': 0,
-      'studio': 0,
-    };
-
-    for (final product in products) {
-      final phase = product.currentPhase;
-      if (stats.containsKey(phase)) {
-        stats[phase] = (stats[phase] ?? 0) + 1;
-      }
-    }
-
-    return stats;
-  }
-
-  Map<String, int> _calculateStatusStats(List<BatchProductModel> products) {
-    final stats = <String, int>{
-      'pending': 0,
-      'cao': 0,
-      'hold': 0,
-      'control': 0,
-      'ok': 0,
-    };
-
-    for (final product in products) {
-      final status = product.productStatus;
-      if (stats.containsKey(status)) {
-        stats[status] = (stats[status] ?? 0) + 1;
-      }
-    }
-
-    return stats;
-  }
-
-  Widget _buildPhaseStatItem(String label, int count, Color color, int total) {
-    final percentage = total > 0 ? (count / total * 100).round() : 0;
-
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
-              ),
-            ),
-          ),
-          Text(
-            '$count',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '($percentage%)',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusStatItem(String label, int count, Color color, int total) {
-    final percentage = total > 0 ? (count / total * 100).round() : 0;
-
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
-              ),
-            ),
-          ),
-          Text(
-            '$count',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '($percentage%)',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductTile(BatchProductModel product, UserModel? user) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        backgroundColor:
-            product.isCompleted ? Colors.green[100] : Colors.blue[100],
-        child: Icon(
-          product.isCompleted ? Icons.check : Icons.work_outline,
-          color: product.isCompleted ? Colors.green[700] : Colors.blue[700],
-        ),
-      ),
-      title: Text(
-        product.productName,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Cantidad: ${product.quantity}'),
-          Text('Fase: ${product.currentPhaseName}'),
-          const SizedBox(height: 4),
-          LinearProgressIndicator(
-            value: product.totalProgress,
-            backgroundColor: Colors.grey[200],
-            valueColor: AlwaysStoppedAnimation<Color>(
-              product.isCompleted ? Colors.green : Colors.blue,
-            ),
-          ),
-        ],
-      ),
-      trailing: Text(
-        '${product.progressPercentage}%',
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-        ),
-      ),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => BatchProductDetailScreen(
-              organizationId: widget.organizationId,
-              batchId: widget.batchId,
-              productId: product.id,
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Row(
@@ -1039,57 +716,22 @@ class _ProductionBatchDetailScreenState
     );
   }
 
-  String _getUrgencyLabel(String urgency) {
-    switch (urgency) {
-      case 'low':
-        return 'Baja';
-      case 'medium':
-        return 'Media';
-      case 'high':
-        return 'Alta';
-      case 'critical':
-        return 'Urgente';
-      default:
-        return urgency;
-    }
-  }
-
-  Color _getUrgencyColor(String urgency) {
-    switch (urgency) {
-      case 'low':
-        return Colors.grey[200]!;
-      case 'medium':
-        return Colors.blue[100]!;
-      case 'high':
-        return Colors.orange[100]!;
-      case 'critical':
-        return Colors.red[100]!;
-      default:
-        return Colors.grey[200]!;
-    }
-  }
-
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
 
-  Future<void> _handleAction(
-    String action,
-    ProductionBatchModel batch,
-    UserModel user,
-    OrganizationMemberService memberService
-  ) async {
+  Future<void> _handleAction(String action, ProductionBatchModel batch,
+      UserModel user, OrganizationMemberService memberService) async {
     final batchService =
         Provider.of<ProductionBatchService>(context, listen: false);
 
     switch (action) {
       case 'start':
         final success = await batchService.changeBatchStatus(
-          organizationId: widget.organizationId,
-          batchId: widget.batchId,
-          newStatus: BatchStatus.inProgress,
-          userId: user.uid
-        );
+            organizationId: widget.organizationId,
+            batchId: widget.batchId,
+            newStatus: BatchStatus.inProgress,
+            userId: user.uid);
 
         if (success && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1100,11 +742,10 @@ class _ProductionBatchDetailScreenState
 
       case 'complete':
         final success = await batchService.changeBatchStatus(
-          organizationId: widget.organizationId,
-          batchId: widget.batchId,
-          newStatus: BatchStatus.completed,
-          userId: user.uid
-        );
+            organizationId: widget.organizationId,
+            batchId: widget.batchId,
+            newStatus: BatchStatus.completed,
+            userId: user.uid);
 
         if (success && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1124,7 +765,7 @@ class _ProductionBatchDetailScreenState
 
       case 'delete':
         final canDelete = await memberService.can('batches', 'delete');
-        
+
         if (canDelete) _showDeleteConfirmation(batch, user.uid);
         break;
     }
@@ -1203,10 +844,9 @@ class _ProductionBatchDetailScreenState
               Navigator.pop(context);
 
               final success = await batchService.deleteBatch(
-                organizationId: widget.organizationId,
-                batchId: widget.batchId,
-                userId: userId
-              );
+                  organizationId: widget.organizationId,
+                  batchId: widget.batchId,
+                  userId: userId);
 
               if (success && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
