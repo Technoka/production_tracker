@@ -608,7 +608,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: EdgeInsets.symmetric(vertical: 24.0),
             child: Center(
               child: Text(
-                'Versión 0.11.0 - 5/2/25 - Mejoras visuales y bugs',
+                'Versión 0.11.1 - 10/2/25 - Mejoras visuales y bugs',
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 12,
