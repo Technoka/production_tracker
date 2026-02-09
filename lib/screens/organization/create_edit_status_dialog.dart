@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:provider/provider.dart';
 import '../../models/product_status_model.dart';
-import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/product_status_service.dart';
 import '../../l10n/app_localizations.dart';
@@ -19,31 +19,30 @@ class CreateEditStatusDialog extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<CreateEditStatusDialog> createState() =>
-      _CreateEditStatusDialogState();
+  State<CreateEditStatusDialog> createState() => _CreateEditStatusDialogState();
 }
 
 class _CreateEditStatusDialogState extends State<CreateEditStatusDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+
   late Color _selectedColor;
   late IconData _selectedIcon;
-  
+
   bool _isLoading = false;
   String? _nameError;
 
   @override
   void initState() {
     super.initState();
-    
+
     if (widget.status != null) {
       // Modo edición - cargar datos existentes
       _nameController.text = widget.status!.name;
       _descriptionController.text = widget.status!.description;
       _selectedColor = widget.status!.colorValue;
-      _selectedIcon = _getIconData(widget.status!.icon);
+      _selectedIcon = UIConstants.getIcon(widget.status!.icon);
     } else {
       // Modo creación - valores por defecto
       _selectedColor = Colors.blue;
@@ -201,7 +200,7 @@ class _CreateEditStatusDialogState extends State<CreateEditStatusDialog> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    _colorToHex(_selectedColor),
+                                    UIConstants.colorToHex(_selectedColor),
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey.shade600,
@@ -288,9 +287,8 @@ class _CreateEditStatusDialogState extends State<CreateEditStatusDialog> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () => Navigator.pop(context),
+                        onPressed:
+                            _isLoading ? null : () => Navigator.pop(context),
                         child: Text(l10n.cancel),
                       ),
                       const SizedBox(width: 12),
@@ -331,7 +329,8 @@ class _CreateEditStatusDialogState extends State<CreateEditStatusDialog> {
       return;
     }
 
-    final statusService = Provider.of<ProductStatusService>(context, listen: false);
+    final statusService =
+        Provider.of<ProductStatusService>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
 
@@ -353,7 +352,7 @@ class _CreateEditStatusDialogState extends State<CreateEditStatusDialog> {
       _isLoading = true;
     });
 
-    final colorHex = _colorToHex(_selectedColor);
+    final colorHex = UIConstants.colorToHex(_selectedColor);
     final iconCode = _selectedIcon.codePoint.toString();
 
     bool success;
@@ -370,7 +369,8 @@ class _CreateEditStatusDialogState extends State<CreateEditStatusDialog> {
     } else {
       // Modo creación
       // Obtener el siguiente orden
-      final statuses = await statusService.getAllStatuses(widget.organizationId);
+      final statuses =
+          await statusService.getAllStatuses(widget.organizationId);
       final maxOrder = statuses.isEmpty
           ? 0
           : statuses.map((s) => s.order).reduce((a, b) => a > b ? a : b);
@@ -398,9 +398,7 @@ class _CreateEditStatusDialogState extends State<CreateEditStatusDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            widget.status != null
-                ? l10n.statusUpdated
-                : l10n.statusCreated,
+            widget.status != null ? l10n.statusUpdated : l10n.statusCreated,
           ),
           backgroundColor: Colors.green,
         ),
@@ -520,22 +518,6 @@ class _CreateEditStatusDialogState extends State<CreateEditStatusDialog> {
         ],
       ),
     );
-  }
-
-  String _colorToHex(Color color) {
-    return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
-  }
-
-  IconData _getIconData(String iconName) {
-    try {
-      final codePoint = int.tryParse(iconName);
-      if (codePoint != null) {
-        return IconData(codePoint, fontFamily: 'MaterialIcons');
-      }
-      return Icons.label;
-    } catch (e) {
-      return Icons.label;
-    }
   }
 
   List<Color> _getColorPalette() {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:provider/provider.dart';
 import '../../models/status_transition_model.dart';
 import '../../models/product_status_model.dart';
@@ -378,14 +379,14 @@ class _CreateEditTransitionDialogState
                     selected: isSelected,
                     label: Text(role.name),
                     avatar: Icon(
-                      _getIconData(role.icon),
+                      UIConstants.getIcon(role.icon),
                       size: 18,
                       color: isSelected
                           ? Colors.white
-                          : _getColorFromHex(role.color),
+                          : UIConstants.hexToColor(role.color),
                     ),
-                    selectedColor: _getColorFromHex(role.color),
-                    backgroundColor: _getColorFromHex(role.color).withOpacity(0.1),
+                    selectedColor: UIConstants.hexToColor(role.color),
+                    backgroundColor: UIConstants.hexToColor(role.color).withOpacity(0.1),
                     checkmarkColor: Colors.white,
                     onSelected: (selected) {
                       setState(() {
@@ -620,11 +621,11 @@ setState(() {
                       return Chip(
                         label: Text(role.name),
                         avatar: Icon(
-                          _getIconData(role.icon),
+                          UIConstants.getIcon(role.icon),
                           size: 16,
                         ),
                         backgroundColor:
-                            _getColorFromHex(role.color).withOpacity(0.1),
+                            UIConstants.hexToColor(role.color).withOpacity(0.1),
                       );
                     }).toList(),
                   ),
@@ -975,26 +976,6 @@ setState(() {
 
       default:
         return l10n.noConfigurationRequired;
-    }
-  }
-
-  IconData _getIconData(String iconName) {
-    try {
-      final codePoint = int.tryParse(iconName);
-      if (codePoint != null) {
-        return IconData(codePoint, fontFamily: 'MaterialIcons');
-      }
-      return Icons.person;
-    } catch (e) {
-      return Icons.person;
-    }
-  }
-
-  Color _getColorFromHex(String hexColor) {
-    try {
-      return Color(int.parse(hexColor.replaceAll('#', '0xFF')));
-    } catch (e) {
-      return Colors.blue;
     }
   }
 

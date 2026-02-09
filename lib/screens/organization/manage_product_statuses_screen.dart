@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:provider/provider.dart';
 import '../../models/product_status_model.dart';
 import '../../services/auth_service.dart';
@@ -220,7 +221,7 @@ class _ManageProductStatusesScreenState
           children: [
             // Icon
             Icon(
-              _getIconData(status.icon),
+              UIConstants.getIcon(status.icon),
               color: status.isActive ? status.colorValue : Colors.grey.shade600,
             ),
             const SizedBox(width: 8),
@@ -417,7 +418,7 @@ class _ManageProductStatusesScreenState
                 ),
                 const SizedBox(width: 12),
                 Icon(
-                  _getIconData(status.icon), 
+                  UIConstants.getIcon(status.icon), 
                   color: status.isActive ? status.colorValue : Colors.grey.shade600,
                 ),
                 const SizedBox(width: 12),
@@ -613,7 +614,7 @@ class _ManageProductStatusesScreenState
               name: status.name,
               description: status.description,
               color: status.colorValue,
-              icon: _getIconData(status.icon),
+              icon: UIConstants.getIcon(status.icon),
             ),
             const SizedBox(height: 16),
             Text(
@@ -665,20 +666,6 @@ class _ManageProductStatusesScreenState
           backgroundColor: Colors.red,
         ),
       );
-    }
-  }
-
-  IconData _getIconData(String iconName) {
-    try {
-      // Intentar parsear como código numérico
-      final codePoint = int.tryParse(iconName);
-      if (codePoint != null) {
-        return IconData(codePoint, fontFamily: 'MaterialIcons');
-      }
-      // Si no es numérico, usar icono por defecto
-      return Icons.label;
-    } catch (e) {
-      return Icons.label;
     }
   }
 }

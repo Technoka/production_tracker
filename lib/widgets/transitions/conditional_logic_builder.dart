@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:provider/provider.dart';
 import '../../models/status_transition_model.dart';
 import '../../models/validation_config_model.dart';
@@ -237,7 +238,7 @@ class _ConditionalLogicBuilderState extends State<ConditionalLogicBuilder> {
                   selected: isSelected,
                   label: Text(role.name),
                   avatar: Icon(
-                    _getIconData(role.icon),
+                    UIConstants.getIcon(role.icon),
                     size: 18,
                     color: isSelected ? Colors.white : _getColorFromHex(role.color),
                   ),
@@ -369,18 +370,6 @@ class _ConditionalLogicBuilderState extends State<ConditionalLogicBuilder> {
     );
 
     widget.onLogicChanged(logic);
-  }
-
-  IconData _getIconData(String iconName) {
-    try {
-      final codePoint = int.tryParse(iconName);
-      if (codePoint != null) {
-        return IconData(codePoint, fontFamily: 'MaterialIcons');
-      }
-      return Icons.person;
-    } catch (e) {
-      return Icons.person;
-    }
   }
 
   Color _getColorFromHex(String hexColor) {
