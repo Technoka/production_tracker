@@ -254,13 +254,6 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  if (!widget.readOnly)
-                    Icon(
-                      Icons.lock_open,
-                      size: 20,
-                      color: Colors.blue.shade700,
-                    ),
-                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,14 +482,19 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
                 ValueListenableBuilder<List<String>>(
                   valueListenable: _selectedMembersNotifier,
                   builder: (context, selectedList, _) {
-                    final selectedCount = selectedList.length;
+                    // CAMBIAR: Contar solo los seleccionados que están en selectableMembers
+                    final selectableMemberIds =
+                        selectableMembers.map((m) => m.userId).toSet();
+                    final validSelectedCount = selectedList
+                        .where((id) => selectableMemberIds.contains(id))
+                        .length;
                     return Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: selectedCount > 0
+                        color: validSelectedCount > 0
                             ? Colors.green.shade100
                             : Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(12),
@@ -505,21 +503,21 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            selectedCount > 0
+                            validSelectedCount > 0
                                 ? Icons.check_circle
                                 : Icons.circle_outlined,
                             size: 12,
-                            color: selectedCount > 0
+                            color: validSelectedCount > 0
                                 ? Colors.green.shade700
                                 : Colors.grey.shade600,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '$selectedCount / ${selectableMembers.length}',
+                            '$validSelectedCount / ${selectableMembers.length}',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: selectedCount > 0
+                              color: validSelectedCount > 0
                                   ? Colors.green.shade700
                                   : Colors.grey.shade600,
                             ),
@@ -594,7 +592,7 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      '⚠️ ${l10n.allMembersHaveAutoAccess}',
+                      '${l10n.allMembersHaveAutoAccess}',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade600,
@@ -656,7 +654,6 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
                 ),
                 child: Row(
                   children: [
-                    // Checkbox o ícono de lock
                     if (!isAutoAccess)
                       Checkbox(
                         value: isSelected,
@@ -664,16 +661,6 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
                             ? null
                             : (value) => _toggleMember(member.userId),
                         activeColor: Colors.green,
-                      )
-                    else if (!widget.readOnly)
-                      Container(
-                        width: 40,
-                        alignment: Alignment.center,
-                        child: Icon(
-                          Icons.lock,
-                          size: 16,
-                          color: Colors.blue.shade400,
-                        ),
                       ),
 
                     // Avatar
@@ -882,9 +869,21 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
       final autoAccessMembers =
           await _getMembersWithAutoAccess(permissionService);
 
-      // Filtrar: solo los que NO tienen acceso automático
+      // Filtrar: solo los que NO tienen acceso automático Y NO son clientes de otros clientes
       final selectableMembers = allMembers.where((member) {
-        return !autoAccessMembers.any((auto) => auto.userId == member.userId);
+        // Excluir si tiene acceso automático
+        if (autoAccessMembers.any((auto) => auto.userId == member.userId)) {
+          return false;
+        }
+
+        // AGREGAR: Excluir si es un cliente de otro cliente
+        // (solo incluir si no tiene clientId o si es del mismo cliente)
+        if (member.member.clientId != null &&
+            member.member.clientId != widget.clientId) {
+          return false;
+        }
+
+        return true;
       }).toList();
 
       return selectableMembers;
@@ -957,23 +956,4 @@ class _AccessControlWidgetState extends State<AccessControlWidget> {
       return Colors.grey;
     }
   }
-}
-
-/// Clase helper para combinar miembro con datos de usuario
-class OrganizationMemberWithUser {
-  final OrganizationMemberModel member;
-  final String userName;
-  final String userEmail;
-  final String? userPhotoUrl;
-
-  OrganizationMemberWithUser({
-    required this.member,
-    required this.userName,
-    required this.userEmail,
-    this.userPhotoUrl,
-  });
-
-  String get userId => member.userId;
-  String get roleName => member.roleName;
-  String get roleColor => member.roleColor;
 }
