@@ -71,7 +71,6 @@ class ProductionDataProvider extends ChangeNotifier {
   String? _currentOrganizationId;
   String? _currentUserId;
 
-  // ✅ Constructor vacío - servicios se pasan en initialize()
   ProductionDataProvider();
 
   // ==================== INICIALIZACIÓN ====================
@@ -495,8 +494,8 @@ class ProductionDataProvider extends ChangeNotifier {
       final query = searchQuery.toLowerCase();
       filtered = filtered.where((product) {
         return product.name.toLowerCase().contains(query) ||
-            (product.reference?.toLowerCase().contains(query) ?? false) ||
-            (product.description?.toLowerCase().contains(query) ?? false);
+            (product.reference.toLowerCase().contains(query)) ||
+            (product.description.toLowerCase().contains(query));
       }).toList();
     }
 
@@ -607,6 +606,102 @@ class ProductionDataProvider extends ChangeNotifier {
     }
 
     return counts;
+  }
+
+  /// Obtener progreso detallado de un batch específico
+  ///
+  /// Retorna:
+  /// - completedPhases: Productos que están en la última fase
+  /// - totalProducts: Total de productos en el batch
+  /// - lastPhaseName: Nombre de la última fase (fase final)
+  /// - completedStatuses: Productos con estado "OK" o equivalente
+  /// - lastStatusName: Nombre del estado final/OK
+  Map<String, dynamic> getBatchProgress(String batchId) {
+    final products = _batchProducts[batchId] ?? [];
+
+    if (products.isEmpty || _phases.isEmpty || _statuses.isEmpty) {
+      return {
+        'completedPhases': 0,
+        'totalProducts': 0,
+        'lastPhaseName': 'N/A',
+        'completedStatuses': 0,
+        'lastStatusName': 'N/A',
+      };
+    }
+
+    // Obtener la última fase (fase final)
+    final lastPhase = _phases.isNotEmpty ? _phases.last : null;
+    final lastPhaseName = lastPhase?.name ?? 'N/A';
+
+    // Contar productos en la última fase
+    final completedPhases = products.where((product) {
+      return product.currentPhase == lastPhase?.id;
+    }).length;
+
+    // Buscar el estado "OK" o el último estado de la lista
+    final okStatus = _statuses.isNotEmpty
+        ? _statuses.last
+        : ProductStatusModel(
+            id: '',
+            name: 'N/A',
+            organizationId: '',
+            description: '',
+            color: '#000000',
+            icon: 'help',
+            order: 0,
+            isActive: true,
+            createdAt: DateTime.now(),
+            createdBy: 'system',
+            updatedAt: DateTime.now(),
+          );
+
+    final lastStatusName = okStatus.name;
+
+    // Contar productos con estado OK/completado
+    final completedStatuses = products.where((product) {
+      return product.statusId == okStatus.id;
+    }).length;
+
+    return {
+      'completedPhases': completedPhases,
+      'totalProducts': products.length,
+      'lastPhaseName': lastPhaseName,
+      'completedStatuses': completedStatuses,
+      'lastStatusName': lastStatusName,
+    };
+  }
+
+  /// Refrescar datos de un batch específico
+  ///
+  /// Recarga los productos del batch desde Firebase.
+  /// Útil cuando se hacen cambios y se necesita actualizar la vista.
+  Future<void> refreshBatch(String organizationId, String batchId) async {
+    if (_batchService == null) {
+      debugPrint('❌ BatchService is null - cannot refresh batch');
+      return;
+    }
+
+    if (_currentUserId == null) {
+      debugPrint('❌ Current user ID is null - cannot refresh batch');
+      return;
+    }
+
+    try {
+      // Escuchar temporalmente los productos del batch para refrescar
+      _batchService!
+          .watchBatchProducts(organizationId, batchId, _currentUserId!)
+          .listen(
+        (products) {
+          _batchProducts[batchId] = products;
+          notifyListeners();
+        },
+        onError: (error) {
+          debugPrint('❌ Error refreshing batch $batchId: $error');
+        },
+      );
+    } catch (e) {
+      debugPrint('❌ Error in refreshBatch: $e');
+    }
   }
 
   // ==================== ESTADÍSTICAS POR CLIENTE ====================
