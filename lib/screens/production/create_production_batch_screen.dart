@@ -6,6 +6,7 @@ import 'package:gestion_produccion/models/pending_object_model.dart';
 import 'package:gestion_produccion/services/notification_service.dart';
 import 'package:gestion_produccion/services/pending_object_service.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
+import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:provider/provider.dart';
 import '../../models/project_model.dart';
 import '../../services/auth_service.dart';
@@ -550,32 +551,37 @@ class _CreateProductionBatchScreenState
 
             const SizedBox(height: 24),
 
-            // Card de Control de Acceso
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: AccessControlWidget(
-                  organizationId: widget.organizationId,
-                  currentUserId: authService.currentUser!.uid,
-                  clientId: _selectedProject!.clientId,
-                  selectedMembers: _selectedMembers,
-                  onMembersChanged: (members) {
-                    setState(() {
-                      _selectedMembers = members;
-                    });
-                  },
-                  readOnly: false,
-                  showTitle: true,
-                  resourceType: 'batch',
-                  customTitle: 'Control de Acceso al Lote',
-                  customDescription:
-                      'Gestiona quiénes pueden ver y trabajar con este lote',
+            // Card de Control de Acceso (solo si hay proyecto seleccionado)
+            if (_selectedProject != null)
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: StatefulBuilder( // CAMBIAR: Usar StatefulBuilder
+                    builder: (BuildContext context, StateSetter setStateLocal) {
+                      return AccessControlWidget(
+                        organizationId: widget.organizationId,
+                        currentUserId: authService.currentUser!.uid,
+                        clientId: _selectedProject!.clientId,
+                        selectedMembers: _selectedMembers,
+                        onMembersChanged: (members) {
+                          setStateLocal(() {
+                            _selectedMembers = members;
+                          });
+                        },
+                        readOnly: false,
+                        showTitle: true,
+                        resourceType: 'batch',
+                        customTitle: 'Control de Acceso al Lote',
+                        customDescription:
+                            'Gestiona quiénes pueden ver y trabajar con este lote',
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
 
             const SizedBox(height: 32),
 
@@ -747,6 +753,8 @@ class _CreateProductionBatchScreenState
     final productionProvider = Provider.of<ProductionDataProvider>(context);
     final permissionService =
         Provider.of<PermissionService>(context, listen: false);
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
 
     // 2. Obtener productos cacheados
     final allProducts = productionProvider.catalogProducts;
@@ -773,9 +781,10 @@ class _CreateProductionBatchScreenState
                   ],
                 ),
                 Text(
-                  '${_productsToAdd.length}/10',
+                  '${_productsToAdd.length}/${UIConstants.BATCH_MAX_PRODUCTS}',
                   style: TextStyle(
-                      color: _productsToAdd.length >= 10
+                      color: _productsToAdd.length >=
+                              UIConstants.BATCH_MAX_PRODUCTS
                           ? Colors.red
                           : Colors.grey,
                       fontWeight: FontWeight.bold),
@@ -894,7 +903,8 @@ class _CreateProductionBatchScreenState
                       final List<DropdownMenuItem<String>> dropdownItems = [];
 
                       // OPCIÓN 1: Crear nuevo producto
-                      if (permissionService.canCreateBatchProducts) {
+                      if (permissionService.canCreateBatchProducts &&
+                          !memberService.isClient) {
                         dropdownItems.add(
                           const DropdownMenuItem(
                             value: '__CREATE_NEW__',
