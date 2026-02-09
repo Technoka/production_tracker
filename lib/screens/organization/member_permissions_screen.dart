@@ -1,5 +1,6 @@
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/organization_member_model.dart';
@@ -614,7 +615,7 @@ void _changeScopePermission(String moduleKey, String actionKey, PermissionScope 
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ExpansionTile(
         leading: Icon(
-          _getIconData(module.icon),
+          UIConstants.getIcon(module.icon),
           color: theme.primaryColor,
         ),
         title: Text(
@@ -653,34 +654,6 @@ Widget _buildPermissionTile(String moduleKey, PermissionAction action) {
     isAdminOrOwner: _isAdminOrOwner,
   );
 }
-
-  /// Helper para convertir string de icono a IconData
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'view_kanban':
-        return Icons.view_kanban;
-      case 'linear_scale':
-        return Icons.linear_scale;
-      case 'inventory_2':
-        return Icons.inventory_2;
-      case 'category':
-        return Icons.category;
-      case 'folder':
-        return Icons.folder;
-      case 'people':
-        return Icons.people;
-      case 'shopping_bag':
-        return Icons.shopping_bag;
-      case 'chat':
-        return Icons.chat;
-      case 'business':
-        return Icons.business;
-      case 'assessment':
-        return Icons.assessment;
-      default:
-        return Icons.settings;
-    }
-  }
 }
 
 /// Widget individual para un permiso (con estado propio)
