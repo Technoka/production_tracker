@@ -1,6 +1,7 @@
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/product_catalog_model.dart';
 import '../../models/batch_product_model.dart';
@@ -35,7 +36,6 @@ class AddProductToBatchScreen extends StatefulWidget {
 }
 
 class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
-
   // Controladores
   final _quantityController = TextEditingController(text: '1');
   final _unitPriceController = TextEditingController();
@@ -69,7 +69,7 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
     super.initState();
     _loadCurrentMember();
     _loadBatchInfo();
-    
+
     final authService = Provider.of<AuthService>(context, listen: false);
     final user = authService.currentUserData!;
 
@@ -77,9 +77,9 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
     _productExpectedDelivery = DateTime.now().add(const Duration(days: 21));
 
     // Inicializar Stream aquí para evitar recargas al hacer setState
-    _existingProductsStream =
-        Provider.of<ProductionBatchService>(context, listen: false)
-            .watchBatchProducts(widget.organizationId, widget.batchId, user.uid);
+    _existingProductsStream = Provider.of<ProductionBatchService>(context,
+            listen: false)
+        .watchBatchProducts(widget.organizationId, widget.batchId, user.uid);
 
     _productSearchController.addListener(() {
       setState(() {
@@ -206,7 +206,8 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
     setState(() => _isLoading = true);
 
     final authService = Provider.of<AuthService>(context, listen: false);
-    final batchService = Provider.of<ProductionBatchService>(context, listen: false);
+    final batchService =
+        Provider.of<ProductionBatchService>(context, listen: false);
     final phaseService = Provider.of<PhaseService>(context, listen: false);
 
     try {
@@ -222,51 +223,51 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
       final List<BatchProductModel> batchProducts = [];
 
       // 1. Cambiamos a un bucle con índice 'i'
-    for (int i = 0; i < _pendingProducts.length; i++) {
-      final item = _pendingProducts[i];
-      final product = item['product'] as ProductCatalogModel;
+      for (int i = 0; i < _pendingProducts.length; i++) {
+        final item = _pendingProducts[i];
+        final product = item['product'] as ProductCatalogModel;
 
-      // 2. Calculamos la variable productCount
-      // (Contador actual del lote + índice actual + 1 para que sea secuencial)
-      final int productNumber = _batchData!.totalProducts + i + 1;
+        // 2. Calculamos la variable productCount
+        // (Contador actual del lote + índice actual + 1 para que sea secuencial)
+        final int productNumber = _batchData!.totalProducts + i + 1;
 
-      // Crear progreso de fases inicial
-      final Map<String, PhaseProgressData> phaseProgress = {};
-      for (var phase in phases) {
-        phaseProgress[phase.id] = PhaseProgressData(
-          status: phase.id == phases.first.id ? 'in_progress' : 'pending',
-          startedAt: phase.id == phases.first.id ? DateTime.now() : null,
+        // Crear progreso de fases inicial
+        final Map<String, PhaseProgressData> phaseProgress = {};
+        for (var phase in phases) {
+          phaseProgress[phase.id] = PhaseProgressData(
+            status: phase.id == phases.first.id ? 'in_progress' : 'pending',
+            startedAt: phase.id == phases.first.id ? DateTime.now() : null,
+          );
+        }
+
+        // Construir BatchProductModel
+        final batchProduct = BatchProductModel(
+          id: '',
+          batchId: widget.batchId,
+          productCatalogId: product.id,
+          productName: product.name,
+          productReference: product.reference,
+          family: item['family'],
+          description: product.description,
+          quantity: item['quantity'],
+          currentPhase: phases.first.id,
+          currentPhaseName: phases.first.name,
+          phaseProgress: phaseProgress,
+          productNumber: productNumber,
+          productCode: '',
+          unitPrice: item['unitPrice'],
+          totalPrice: item['unitPrice'] != null
+              ? item['unitPrice'] * item['quantity']
+              : null,
+          expectedDeliveryDate: item['expectedDeliveryDate'],
+          urgencyLevel: item['urgencyLevel'],
+          productNotes: item['notes'].isNotEmpty ? item['notes'] : null,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
         );
+
+        batchProducts.add(batchProduct);
       }
-
-      // Construir BatchProductModel
-      final batchProduct = BatchProductModel(
-        id: '', 
-        batchId: widget.batchId,
-        productCatalogId: product.id,
-        productName: product.name,
-        productReference: product.reference,
-        family: item['family'],
-        description: product.description,
-        quantity: item['quantity'],
-        currentPhase: phases.first.id,
-        currentPhaseName: phases.first.name,
-        phaseProgress: phaseProgress,
-        productNumber: productNumber, 
-        productCode: '', 
-        unitPrice: item['unitPrice'],
-        totalPrice: item['unitPrice'] != null
-            ? item['unitPrice'] * item['quantity']
-            : null,
-        expectedDeliveryDate: item['expectedDeliveryDate'],
-        urgencyLevel: item['urgencyLevel'],
-        productNotes: item['notes'].isNotEmpty ? item['notes'] : null,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      batchProducts.add(batchProduct);
-    }
 
       // ✅ LLAMAR A addProductsToBatch CON LA LISTA
       final success = await batchService.addProductsToBatch(
@@ -617,6 +618,11 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
   }
 
   Widget _buildAddProductsSection() {
+    final permissionService = Provider.of<PermissionService>(context);
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+    final canCreateBatchProducts = permissionService.canCreateBatchProducts;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -770,32 +776,34 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
 
                       // Preparamos los items del dropdown
                       final List<DropdownMenuItem<String>> dropdownItems = [];
-// TODO: si el usuario tiene permiso para crear productos
-                      // OPCIÓN 1: Crear nuevo producto
-                      dropdownItems.add(
-                        const DropdownMenuItem(
-                          value: '__CREATE_NEW__',
-                          child: Row(
-                            children: [
-                              Icon(Icons.add_circle_outline,
-                                  color: Colors.blue, size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'Crear nuevo producto',
-                                style: TextStyle(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              SizedBox(height: 4),
-                              Divider(
-                                height: 1,
-                              ),
-                              SizedBox(height: 4),
-                            ],
-                          ),
-                        ),
-                      );
 
+                      // OPCIÓN 1: Crear nuevo producto
+                      // TODO: hardcodeado que clientes no puedan crear productos aqui por ahora, porque no pasan por aprobacion, se crean directamente
+                      if (canCreateBatchProducts && !memberService.isClient) {
+                        dropdownItems.add(
+                          const DropdownMenuItem(
+                            value: '__CREATE_NEW__',
+                            child: Row(
+                              children: [
+                                Icon(Icons.add_circle_outline,
+                                    color: Colors.blue, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Crear nuevo producto',
+                                  style: TextStyle(
+                                      color: Colors.blue,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(height: 4),
+                                Divider(
+                                  height: 1,
+                                ),
+                                SizedBox(height: 4),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
                       // OPCIONES: Productos existentes
                       dropdownItems
                           .addAll(familyProducts.map((p) => DropdownMenuItem(
@@ -989,179 +997,159 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
                   final notes = item['notes'] as String?;
                   final sequence = index + 1;
 
-                  final urgencyLevel = UrgencyLevel.fromString(urgency);
-
                   return Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border(
-                                  bottom:
-                                      BorderSide(color: Colors.grey.shade200)),
-                              borderRadius: BorderRadius.circular(8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                          bottom: BorderSide(color: Colors.grey.shade200)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // 1. LEADING: Avatar con número
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: UrgencyLevel.fromString(urgency)
+                              .color
+                              .withOpacity(0.2),
+                          child: Text(
+                            '#$sequence',
+                            style: TextStyle(
+                              color: UrgencyLevel.fromString(urgency).color,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
                             ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                // 1. LEADING: Avatar con número
-                                CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor:
-                                      UrgencyLevel.fromString(urgency)
-                                          .color
-                                          .withOpacity(0.2),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+
+                        // 2. CENTRO: Información del producto
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'SKU: ${product.reference}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[700],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (deliveryDate != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Entrega: ${_formatDate(deliveryDate)}',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey[600]),
+                                ),
+                              ],
+                              if (notes != null && notes.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
                                   child: Text(
-                                    '#$sequence',
+                                    'Notas: $notes',
                                     style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.blue[800],
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // 3. DERECHA: Chip arriba, Acciones abajo
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // ARRIBA: Chip de urgencia
+                            if (UrgencyLevel.fromString(urgency).value ==
+                                UrgencyLevel.urgent.value)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: UrgencyLevel.fromString(urgency)
+                                      .color
+                                      .withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
                                       color: UrgencyLevel.fromString(urgency)
-                                          .color,
+                                          .color
+                                          .withOpacity(0.3)),
+                                ),
+                                child: Text(
+                                  UrgencyLevel.fromString(urgency).displayName,
+                                  style: TextStyle(
+                                    color:
+                                        UrgencyLevel.fromString(urgency).color,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+
+                            const SizedBox(height: 12), // Espacio en medio
+
+                            // ABAJO: Cantidad y Borrar
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(4),
+                                    border:
+                                        Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  child: Text(
+                                    'x$quantity',
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 12,
+                                      fontSize: 13,
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 12),
-
-                                // 2. CENTRO: Información del producto
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        product.name,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'SKU: ${product.reference}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[700],
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      if (deliveryDate != null) ...[
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Entrega: ${_formatDate(deliveryDate)}',
-                                          style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600]),
-                                        ),
-                                      ],
-                                      if (notes != null &&
-                                          notes.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: Colors.blue.shade50,
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            'Notas: $notes',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.blue[800],
-                                              fontStyle: FontStyle.italic,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
+                                const SizedBox(width: 4),
+                                InkWell(
+                                  onTap: () => _removeProductFromList(index),
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(6.0),
+                                    child: Icon(Icons.delete_outline,
+                                        color: Colors.red, size: 20),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-
-                                // 3. DERECHA: Chip arriba, Acciones abajo
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    // ARRIBA: Chip de urgencia
-                                    if (UrgencyLevel.fromString(urgency)
-                                            .value ==
-                                        UrgencyLevel.urgent.value)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              UrgencyLevel.fromString(urgency)
-                                                  .color
-                                                  .withOpacity(0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          border: Border.all(
-                                              color: UrgencyLevel.fromString(
-                                                      urgency)
-                                                  .color
-                                                  .withOpacity(0.3)),
-                                        ),
-                                        child: Text(
-                                          UrgencyLevel.fromString(urgency)
-                                              .displayName,
-                                          style: TextStyle(
-                                            color:
-                                                UrgencyLevel.fromString(urgency)
-                                                    .color,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-
-                                    const SizedBox(
-                                        height: 12), // Espacio en medio
-
-                                    // ABAJO: Cantidad y Borrar
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey[100],
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                            border: Border.all(
-                                                color: Colors.grey.shade300),
-                                          ),
-                                          child: Text(
-                                            'x$quantity',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        InkWell(
-                                          onTap: () =>
-                                              _removeProductFromList(index),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          child: const Padding(
-                                            padding: EdgeInsets.all(6.0),
-                                            child: Icon(Icons.delete_outline,
-                                                color: Colors.red, size: 20),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
                                 ),
                               ],
                             ),
-                          );
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
                 },
               ),
           ],
