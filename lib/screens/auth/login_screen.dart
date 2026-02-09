@@ -45,8 +45,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final success = await authService.signIn(
       email: _emailController.text.trim(),
       password: _passwordController.text,
-    );    
-    
+    );
+
     // Si es exitoso, navegar al Home
     if (success) {
       if (mounted) {
@@ -71,88 +71,24 @@ class _LoginScreenState extends State<LoginScreen> {
     final authService = Provider.of<AuthService>(context, listen: false);
 
     // Primero, intentar iniciar sesión con Google
-    final tempSuccess = await authService.signInWithGoogle(role: null);
+    final success = await authService.signInWithGoogle();
 
     // Si es exitoso, navegar al Home
-    if (tempSuccess) {
+    if (success) {
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/home');
       }
       return;
     }
 
-    // Si no fue exitoso, verificar el error
-    if (authService.error == 'Selecciona un tipo de cuenta') {
-      // Es un usuario nuevo, necesita elegir rol
-      if (!mounted) return;
-      
-      final role = await showDialog<String>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: Text(l10n.accountTypeTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(l10n.selectAccountTypeMessage),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.person),
-                title: Text(l10n.roleClient),
-                subtitle: Text(l10n.roleClientSubtitle),
-                onTap: () => Navigator.pop(context, 'client'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.factory),
-                title: Text(l10n.roleManufacturer),
-                subtitle: Text(l10n.roleManufacturerSubtitle),
-                onTap: () => Navigator.pop(context, 'manufacturer'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.precision_manufacturing),
-                title: Text(l10n.roleOperator),
-                subtitle: Text(l10n.roleOperatorSubtitle),
-                onTap: () => Navigator.pop(context, 'operator'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.account_balance),
-                title: Text(l10n.roleAccountant),
-                subtitle: Text(l10n.roleAccountantSubtitle),
-                onTap: () => Navigator.pop(context, 'accountant'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l10n.cancel),
-            ),
-          ],
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authService.error ?? l10n.googleLoginError),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
         ),
       );
-
-      if (role == null) return;
-
-      // Intentar de nuevo con el rol seleccionado
-      final success = await authService.signInWithGoogle(role: role);
-
-      if (success) {
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/home');
-        }
-        return;
-      }
-
-      if (!success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text(authService.error ?? l10n.googleLoginError),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
     } else if (mounted && authService.error != null) {
       // Otro tipo de error
       ScaffoldMessenger.of(context).showSnackBar(
@@ -177,7 +113,8 @@ class _LoginScreenState extends State<LoginScreen> {
             // 1. Contenido original (Formulario centrado)
             Center(
               child: Container(
-                constraints: const BoxConstraints(maxWidth: UIConstants.SCREEN_MAX_WIDTH),
+                constraints: const BoxConstraints(
+                    maxWidth: UIConstants.SCREEN_MAX_WIDTH),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24.0),
                   child: Form(
@@ -338,15 +275,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-            
+
             // 2. ✅ Botón de volver atrás (arriba a la izquierda)
             Positioned(
               top: 8,
               left: 8,
               child: IconButton(
                 icon: const Icon(Icons.arrow_back),
-                tooltip: l10n.back, // Asegúrate de tener esta key o usa string fijo
-                onPressed: () => Navigator.pushReplacementNamed(context, '/welcome'),
+                tooltip:
+                    l10n.back, // Asegúrate de tener esta key o usa string fijo
+                onPressed: () =>
+                    Navigator.pushReplacementNamed(context, '/welcome'),
               ),
             ),
           ],

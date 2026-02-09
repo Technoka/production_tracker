@@ -173,7 +173,7 @@ class AuthService extends ChangeNotifier {
   }
 
 // Iniciar sesión con Google (VERSIÓN SEGURA)
-  Future<bool> signInWithGoogle({String? role}) async {
+  Future<bool> signInWithGoogle() async {
     try {
       _isLoading = true;
       _error = null;
@@ -216,38 +216,11 @@ class AuthService extends ChangeNotifier {
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
 
       if (!userDoc.exists) {
-        // --- USUARIO NUEVO ---
-        if (role == null) {
-          await signOut();
-          _error =
-              'Selecciona un tipo de cuenta'; // Este string exacto es el que espera tu LoginScreen
-          _isLoading = false;
-          notifyListeners();
-          return false;
-        }
-
-        // Validación defensiva del email
-        final email = user.email;
-        if (email == null) {
-          throw Exception(
-              "Tu cuenta de Google no comparte el email. No podemos registrarte.");
-        }
-
-        final userModel = UserModel(
-          uid: user.uid,
-          email: email,
-          name: user.displayName ?? 'Usuario',
-          role: role,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-          // Asegúrate de pasar todos los campos que tu modelo requiera
-        );
-
-        await _firestore
-            .collection('users')
-            .doc(user.uid)
-            .set(userModel.toMap());
-        _currentUserData = userModel;
+        await signOut();
+        _error = 'Este usuario no existe.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
       } else {
         // --- USUARIO EXISTENTE ---
         // Aquí suele estar el error: los datos en Firestore están corruptos o incompletos
