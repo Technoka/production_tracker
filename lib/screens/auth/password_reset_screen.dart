@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
+import '../../utils/ui_constants.dart';
 
 class PasswordResetScreen extends StatefulWidget {
   const PasswordResetScreen({super.key});
@@ -58,9 +59,15 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
       ),
       body: SafeArea(
         child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: _emailSent ? _buildSuccessView(l10n) : _buildFormView(authService, l10n),
+          child: Container(
+            constraints:
+                const BoxConstraints(maxWidth: UIConstants.SCREEN_MAX_WIDTH),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: _emailSent
+                  ? _buildSuccessView(l10n)
+                  : _buildFormView(authService, l10n),
+            ),
           ),
         ),
       ),
@@ -117,7 +124,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
           ),
           const SizedBox(height: 24),
           FilledButton(
-            onPressed: authService.isLoading ? null : () => _handleResetPassword(l10n),
+            onPressed:
+                authService.isLoading ? null : () => _handleResetPassword(l10n),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 16.0),
               child: authService.isLoading
