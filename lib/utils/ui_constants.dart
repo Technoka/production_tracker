@@ -5,6 +5,13 @@ import 'package:flutter/material.dart';
 class UIConstants {
   UIConstants._(); // Private constructor to prevent instantiation
 
+  // ==============================================================
+  // Constantes en la app centralizadas aqui
+
+  // Anchura maxima de pantallas
+  static const double SCREEN_MAX_WIDTH = 800;
+  static const int BATCH_MAX_PRODUCTS = 10;
+
   // ==================== COLORES PREDEFINIDOS ====================
 
   /// Lista de colores predefinidos para selección
@@ -141,6 +148,82 @@ class UIConstants {
     'flag': Icons.flag,
     'label': Icons.label,
     'category': Icons.category,
+
+    //Extras
+    'label_important': Icons.label_important,
+    'square': Icons.square,
+    'pentagon': Icons.pentagon,
+    'hexagon': Icons.hexagon,
+    'lightbulb': Icons.lightbulb,
+    'hourglass_empty': Icons.hourglass_empty,
+    'timer': Icons.timer,
+    'alarm': Icons.alarm,
+    'event': Icons.event,
+    'today': Icons.today,
+    'date_range': Icons.date_range,
+    'update': Icons.update,
+    'sync': Icons.sync,
+    'cached': Icons.cached,
+    'autorenew': Icons.autorenew,
+    'refresh': Icons.refresh,
+    'loop': Icons.loop,
+    'done': Icons.done,
+    'done_all': Icons.done_all,
+    'close': Icons.close,
+    'block': Icons.block,
+    'not_interested': Icons.not_interested,
+    'play_circle': Icons.play_circle,
+    'stop_circle': Icons.stop_circle,
+    'replay_circle_filled': Icons.replay_circle_filled,
+    'arrow_forward': Icons.arrow_forward,
+    'arrow_back': Icons.arrow_back,
+    'arrow_upward': Icons.arrow_upward,
+    'arrow_downward': Icons.arrow_downward,
+    'trending_flat': Icons.trending_flat,
+    'insights': Icons.insights,
+    'show_chart': Icons.show_chart,
+    'notification_important': Icons.notification_important,
+    'notifications_active': Icons.notifications_active,
+    'notifications_off': Icons.notifications_off,
+    'priority_high': Icons.priority_high,
+    'new_releases': Icons.new_releases,
+    'fiber_new': Icons.fiber_new,
+    'verified_user': Icons.verified_user,
+    'lock_open': Icons.lock_open,
+    'vpn_key': Icons.vpn_key,
+    'fingerprint': Icons.fingerprint,
+    'visibility': Icons.visibility,
+    'visibility_off': Icons.visibility_off,
+    'remove_red_eye': Icons.remove_red_eye,
+    'preview': Icons.preview,
+    'search': Icons.search,
+    'zoom_in': Icons.zoom_in,
+    'zoom_out': Icons.zoom_out,
+    'filter_alt': Icons.filter_alt,
+    'sort': Icons.sort,
+    'view_list': Icons.view_list,
+    'view_module': Icons.view_module,
+    'view_column': Icons.view_column,
+    'view_agenda': Icons.view_agenda,
+    'view_array': Icons.view_array,
+    'dashboard': Icons.dashboard,
+    'space_dashboard': Icons.space_dashboard,
+    'class': Icons.class_,
+    'description': Icons.description,
+    'article': Icons.article,
+    'note': Icons.note,
+    'sticky_note_2': Icons.sticky_note_2,
+    'task': Icons.task,
+    'fact_check': Icons.fact_check,
+    'checklist': Icons.checklist,
+    'rule': Icons.rule,
+    'gavel': Icons.gavel,
+    'factory': Icons.factory,
+    'business_center': Icons.business_center,
+    'badge': Icons.badge,
+    'manage_accounts': Icons.manage_accounts,
+    'supervisor_account': Icons.supervisor_account,
+    'groups': Icons.groups,
   };
 
   /// Categorías de iconos para organización en UI
@@ -246,6 +329,15 @@ class UIConstants {
   /// Convierte un Color a formato hex (#RRGGBB)
   static String colorToHex(Color color) {
     return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+  }
+
+  /// Convierte un código hex a Color
+  static Color hexToColor(String hexColor) {
+    try {
+      return Color(int.parse(hexColor.replaceAll('#', '0xFF')));
+    } catch (e) {
+      return Colors.blue;
+    }
   }
 
   /// Valida si un color hex es válido
