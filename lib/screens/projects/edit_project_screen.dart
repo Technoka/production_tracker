@@ -90,7 +90,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final authService = Provider.of<AuthService>(context, listen: false);
-    final permissionService = Provider.of<PermissionService>(context, listen: false);
     final user = authService.currentUserData;
 
     if (user?.organizationId == null) {
@@ -615,22 +614,27 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: AccessControlWidget(
-          organizationId: widget.project.organizationId,
-          currentUserId: user.uid,
-          clientId: widget.project.clientId,
-          selectedMembers: _selectedMembers,
-          onMembersChanged: (members) {
-            setState(() {
-              _selectedMembers = members;
-            });
+        child: StatefulBuilder(
+          // CAMBIAR: Usar StatefulBuilder
+          builder: (BuildContext context, StateSetter setStateLocal) {
+            return AccessControlWidget(
+              organizationId: widget.project.organizationId,
+              currentUserId: user.uid,
+              clientId: widget.project.clientId,
+              selectedMembers: _selectedMembers,
+              onMembersChanged: (members) {
+                setStateLocal(() {
+                  _selectedMembers = members;
+                });
+              },
+              readOnly: false,
+              showTitle: true,
+              resourceType: 'project',
+              customTitle: 'Control de Acceso al Proyecto',
+              customDescription:
+                  'Gestiona quiénes pueden ver y trabajar con este proyecto',
+            );
           },
-          readOnly: false,
-          showTitle: true,
-                  resourceType: 'project',
-                  customTitle: 'Control de Acceso al Proyecto',
-                  customDescription:
-                      'Gestiona quiénes pueden ver y trabajar con este proyecto',
         ),
       ),
     );
