@@ -704,6 +704,79 @@ Stream<List<ProjectModel>> watchProjectsWithScope(
     }
   }
 
+  /// Toggle isActive de un proyecto (activar/desactivar)
+  Future<bool> toggleProjectActive(
+    String organizationId,
+    String projectId, {
+    String? userId, // Para validar permisos
+  }) async {
+    try {
+      // ✅ VALIDAR PERMISOS CON SCOPE
+      if (userId != null) {
+        final project = await getProject(organizationId, projectId);
+        if (project == null) {
+          _error = 'Proyecto no encontrado';
+          notifyListeners();
+          return false;
+        }
+
+        final isAssigned = project.assignedMembers.contains(userId);
+        final canEdit = await _memberService.canWithScope(
+          'projects',
+          'edit',
+          isAssignedToUser: isAssigned,
+        );
+
+        if (!canEdit) {
+          _error = 'No tienes permisos para modificar este proyecto';
+          notifyListeners();
+          return false;
+        }
+      }
+
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      // Obtener el estado actual
+      final projectDoc = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('projects')
+          .doc(projectId)
+          .get();
+
+      if (!projectDoc.exists) {
+        _error = 'Proyecto no encontrado';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final currentIsActive = projectDoc.data()?['isActive'] as bool? ?? true;
+
+      // Toggle el estado
+      await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('projects')
+          .doc(projectId)
+          .update({
+        'isActive': !currentIsActive,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Error al cambiar estado del proyecto: $e';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // ==================== ELIMINAR PROYECTO ====================
 
   Future<bool> deleteProject(
