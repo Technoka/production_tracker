@@ -1164,22 +1164,22 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     required StatusTransitionModel transition,
     required BatchProductModel product,
   }) {
-    // Determinar color e icono según el estado destino
-    Color buttonColor = _getColorForStatus(transition.toStatusId);
-    IconData buttonIcon = UIConstants.getIcon(transition.toStatusId);
+    final dataProvider =
+        Provider.of<ProductionDataProvider>(context, listen: false);
+    final status = dataProvider.getStatusById(transition.toStatusId)!;
 
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
         onPressed: () => _handleTransitionAction(transition, product),
-        icon: Icon(buttonIcon, color: buttonColor),
+        icon: Icon(UIConstants.getIcon(status.icon), color: status.colorValue),
         label: Row(
           children: [
             Expanded(
               child: Text(
                 'Cambiar a: ${transition.toStatusName}',
                 style: TextStyle(
-                  color: buttonColor,
+                  color: status.colorValue,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1189,9 +1189,9 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: buttonColor.withOpacity(0.1),
+                  color: status.colorValue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: buttonColor.withOpacity(0.3)),
+                  border: Border.all(color: status.colorValue.withOpacity(0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1199,14 +1199,14 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                     Icon(
                       transition.validationType.icon,
                       size: 12,
-                      color: buttonColor,
+                      color: status.colorValue,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       _getValidationLabel(transition.validationType),
                       style: TextStyle(
                         fontSize: 10,
-                        color: buttonColor,
+                        color: status.colorValue,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1216,7 +1216,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
           ],
         ),
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: buttonColor, width: 2),
+          side: BorderSide(color: status.colorValue, width: 2),
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         ),
       ),
