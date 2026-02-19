@@ -26,17 +26,40 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
   final _sameDescriptionTextController = TextEditingController();
 
   String? _quantityError;
-  String? _textError;
+  String? _singleTextError;
+  final Map<int, String?> _individualTextErrors = {};
   ConditionalActionResult? _conditionalResult;
   TextDetailsMode _textMode = TextDetailsMode.single;
   final Map<int, TextEditingController> _individualTextControllers = {};
+  final ValueNotifier<bool> _canSubmitNotifier = ValueNotifier(false);
+
+  @override
+  void initState() {
+    super.initState();
+    _quantityController.addListener(_updateCanSubmit);
+    _textController.addListener(_updateCanSubmit);
+    _sameDescriptionTextController.addListener(_updateCanSubmit);
+  }
 
   @override
   void dispose() {
+    _quantityController.removeListener(_updateCanSubmit);
+    _textController.removeListener(_updateCanSubmit);
+    _sameDescriptionTextController.removeListener(_updateCanSubmit);
+
+    for (var ctrl in _individualTextControllers.values) {
+      ctrl.removeListener(_updateCanSubmit);
+      ctrl.dispose();
+    }
     _quantityController.dispose();
     _textController.dispose();
     _sameDescriptionTextController.dispose();
+    _canSubmitNotifier.dispose();
     super.dispose();
+  }
+
+  void _updateCanSubmit() {
+    _canSubmitNotifier.value = _canSubmit();
   }
 
   @override
@@ -86,6 +109,7 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
                     _quantityError = _validateQuantity(value, config);
                     _evaluateConditionalLogic();
                   });
+                  _updateCanSubmit();
                 },
               ),
               const SizedBox(height: 16),
@@ -104,12 +128,14 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
                 segments: [
                   ButtonSegment(
                     value: TextDetailsMode.single,
-                    label: Text(TextDetailsMode.single.displayName),
+                    label: Text(TextDetailsMode.single.displayName,
+                        style: const TextStyle(fontSize: 12)),
                     icon: const Icon(Icons.description, size: 18),
                   ),
                   ButtonSegment(
                     value: TextDetailsMode.individual,
-                    label: Text(TextDetailsMode.individual.displayName),
+                    label: Text(TextDetailsMode.individual.displayName,
+                        style: const TextStyle(fontSize: 12)),
                     icon: const Icon(Icons.list, size: 18),
                   ),
                 ],
@@ -144,7 +170,14 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
                     prefixIcon: const Icon(Icons.description),
                     helperText:
                         'Esta descripción se aplicará a todas las unidades',
+                    errorText: _singleTextError,
                   ),
+                  onChanged: (value) {
+                    setState(() {
+                      _singleTextError = _validateText(value, config);
+                    });
+                    _updateCanSubmit();
+                  },
                   // Descripcion individual por cada producto
                 )
               else ...[
@@ -163,8 +196,9 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
                   int.tryParse(_quantityController.text) ?? 0,
                   (index) {
                     if (!_individualTextControllers.containsKey(index)) {
-                      _individualTextControllers[index] =
-                          TextEditingController();
+                      final ctrl = TextEditingController();
+                      ctrl.addListener(_updateCanSubmit);
+                      _individualTextControllers[index] = ctrl;
                     }
 
                     return Padding(
@@ -172,11 +206,20 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
                       child: TextField(
                         controller: _individualTextControllers[index],
                         decoration: InputDecoration(
-                          labelText: 'Defecto #${index + 1}',
+                          labelText:
+                              'Defecto #${index + 1}', // usar l10n, basado en
                           border: const OutlineInputBorder(),
                           prefixIcon: const Icon(Icons.error_outline, size: 20),
+                          errorText: _individualTextErrors[index],
                         ),
                         maxLines: 2,
+                        onChanged: (value) {
+                          setState(() {
+                            _individualTextErrors[index] =
+                                _validateText(value, config);
+                          });
+                          _updateCanSubmit();
+                        },
                       ),
                     );
                   },
@@ -188,20 +231,14 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
               TextField(
                 controller: _textController,
                 decoration: InputDecoration(
-                  labelText: config.textLabel ?? l10n.description,
-                  hintText: config.textPlaceholder ?? l10n.describeIssue,
+                  labelText: l10n.notes,
+                  hintText: l10n.notesHint,
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(Icons.description),
-                  errorText: _textError,
                   helperText: _buildTextHelperText(config, l10n),
                 ),
                 maxLines: 4,
                 maxLength: config.textMaxLength ?? 500,
-                onChanged: (value) {
-                  setState(() {
-                    _textError = _validateText(value, config);
-                  });
-                },
               ),
 
               // Mostrar resultado de lógica condicional
@@ -218,10 +255,15 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
           onPressed: () => Navigator.pop(context, null),
           child: Text(l10n.cancel),
         ),
-        ElevatedButton.icon(
-          onPressed: _canSubmit() ? _handleSubmit : null,
-          icon: const Icon(Icons.check),
-          label: Text(l10n.confirm),
+        ValueListenableBuilder<bool>(
+          valueListenable: _canSubmitNotifier,
+          builder: (context, canSubmit, child) {
+            return ElevatedButton.icon(
+              onPressed: canSubmit ? _handleSubmit : null,
+              icon: const Icon(Icons.check),
+              label: Text(l10n.confirm),
+            );
+          },
         ),
       ],
     );
@@ -437,16 +479,38 @@ class _QuantityTextDialogState extends State<QuantityTextDialog> {
   }
 
   bool _canSubmit() {
-    // Si la lógica condicional bloquea, no se puede enviar
     if (_conditionalResult?.type == ConditionalActionType.blockTransition) {
       return false;
     }
 
-    return _quantityError == null &&
-        _textError == null &&
-        _quantityController.text.isNotEmpty &&
-        _textController.text.isNotEmpty &&
-        _sameDescriptionTextController.text.isNotEmpty;
+    if (_quantityError != null) return false;
+    if (_textMode == TextDetailsMode.single && _singleTextError != null) {
+      return false;
+    }
+    if (_textMode == TextDetailsMode.individual &&
+        _individualTextErrors.values.any((e) => e != null)) {
+      return false;
+    }
+
+    if (_quantityController.text.isEmpty) return false;
+
+    // Solo exigir sameDescription si el modo es single
+    if (_textMode == TextDetailsMode.single &&
+        _sameDescriptionTextController.text.isEmpty) {
+      return false;
+    }
+
+    // Si el modo es individual, todos los defectos deben rellenarse
+    if (_textMode == TextDetailsMode.individual) {
+      final quantity = int.tryParse(_quantityController.text) ?? 0;
+      if (quantity == 0) return false;
+      for (int i = 0; i < quantity; i++) {
+        final controller = _individualTextControllers[i];
+        if (controller == null || controller.text.trim().isEmpty) return false;
+      }
+    }
+
+    return true;
   }
 
   void _handleSubmit() {
