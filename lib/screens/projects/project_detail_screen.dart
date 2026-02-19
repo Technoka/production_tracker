@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/models/product_catalog_model.dart';
+import 'package:gestion_produccion/providers/production_data_provider.dart';
+import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../services/project_service.dart';
-import '../../services/client_service.dart';
-import '../../services/product_catalog_service.dart';
 import '../../models/project_model.dart';
-import '../../models/client_model.dart';
 import '../../models/user_model.dart';
-import '../../models/organization_member_model.dart';
-import '../../models/role_model.dart';
-import '../../utils/permission_utils.dart';
 import 'edit_project_screen.dart';
 import '../catalog/product_catalog_detail_screen.dart';
 import '../../services/organization_member_service.dart';
@@ -31,10 +26,6 @@ class ProjectDetailScreen extends StatefulWidget {
 class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  // int _selectedTab = 0;
-
-  OrganizationMemberModel? _currentMember;
-  RoleModel? _currentRole;
 
   @override
   void initState() {
@@ -52,36 +43,18 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserData;
-    final memberService =
-        Provider.of<OrganizationMemberService>(context, listen: false);
-    final ProjectService projectService =
-        ProjectService(memberService: memberService);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
 
     if (user == null) {
       return const UniversalLoadingScreen();
     }
 
-    return StreamBuilder<ProjectModel?>(
-      stream: projectService
-          .watchProjectsWithScope(user.organizationId!, user.uid)
-          .map(
-            (projects) => projects.firstWhere(
-              (p) => p.id == widget.projectId,
-              orElse: () => projects.isNotEmpty
-                  ? projects.first
-                  : throw Exception('Project not found'),
-            ),
-          ),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Detalle del Proyecto')),
-            body: const Center(child: CircularProgressIndicator()),
-          );
-        }
-        print("snapshot data: ${snapshot.data!.name}");
+    return Consumer<ProductionDataProvider>(
+      builder: (context, dataProvider, _) {
+        final project = dataProvider.getProjectById(widget.projectId);
 
-        if (!snapshot.hasData || snapshot.hasError) {
+        if (project == null) {
           return Scaffold(
             appBar: AppBar(title: const Text('Detalle del Proyecto')),
             body: Center(
@@ -102,159 +75,49 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           );
         }
 
-        final project = snapshot.data!;
+        final canViewProjects = permissionService.canViewProjects;
 
-        return FutureBuilder<Map<String, dynamic>>(
-          future: _loadPermissions(user, project),
-          builder: (context, permSnapshot) {
-            if (permSnapshot.connectionState == ConnectionState.waiting) {
-              return Scaffold(
-                appBar: AppBar(title: const Text('Detalle del Proyecto')),
-                body: const Center(child: CircularProgressIndicator()),
-              );
-            }
-
-            final permissions = permSnapshot.data ?? {};
-            final canView = permissions['canView'] ?? false;
-
-            if (!canView) {
-              return Scaffold(
-                appBar: AppBar(title: const Text('Acceso Denegado')),
-                body: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.lock, size: 64, color: Colors.orange),
-                      const SizedBox(height: 16),
-                      const Text('No tienes permisos para ver este proyecto'),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Volver'),
-                      ),
-                    ],
+        if (!canViewProjects) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Acceso Denegado')),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.lock, size: 64, color: Colors.orange),
+                  const SizedBox(height: 16),
+                  const Text('No tienes permisos para ver este proyecto'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Volver'),
                   ),
-                ),
-              );
-            }
+                ],
+              ),
+            ),
+          );
+        }
 
-            return _buildScaffold(context, project, user, permissions);
-          },
-        );
+        return _buildScaffold(context, project, user);
       },
     );
-  }
-
-  Future<Map<String, dynamic>> _loadPermissions(
-      UserModel user, ProjectModel project) async {
-    try {
-      final memberDoc = await FirebaseFirestore.instance
-          .collection('organizations')
-          .doc(user.organizationId)
-          .collection('members')
-          .doc(user.uid)
-          .get();
-
-      if (!memberDoc.exists) {
-        return {'canView': false};
-      }
-
-      _currentMember = OrganizationMemberModel.fromMap(
-        memberDoc.data()!,
-        docId: memberDoc.id,
-      );
-
-      final roleDoc = await FirebaseFirestore.instance
-          .collection('organizations')
-          .doc(user.organizationId)
-          .collection('roles')
-          .doc(_currentMember!.roleId)
-          .get();
-
-      if (!roleDoc.exists) {
-        return {'canView': false};
-      }
-
-      _currentRole = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
-
-      if (_currentMember?.roleId == 'client' &&
-          project.clientId == _currentMember?.clientId) {
-        return {'canView': true};
-      }
-
-      final isAssigned = project.assignedMembers.contains(user.uid);
-
-      final canView = PermissionUtils.canViewWithScope(
-        member: _currentMember!,
-        role: _currentRole!,
-        module: 'projects',
-        isAssignedToUser: isAssigned,
-      );
-
-      if (!canView) {
-        return {'canView': false};
-      }
-
-      final canEdit = PermissionUtils.canEditWithScope(
-        member: _currentMember!,
-        role: _currentRole!,
-        module: 'projects',
-        isAssignedToUser: isAssigned,
-      );
-
-      final canDelete = PermissionUtils.canDeleteWithScope(
-        member: _currentMember!,
-        role: _currentRole!,
-        module: 'projects',
-        isAssignedToUser: isAssigned,
-      );
-
-      final canDuplicate = PermissionUtils.can(
-        member: _currentMember!,
-        role: _currentRole!,
-        module: 'projects',
-        action: 'create',
-      );
-
-      final canManageProducts = PermissionUtils.can(
-        member: _currentMember!,
-        role: _currentRole!,
-        module: 'catalog',
-        action: 'edit',
-      );
-
-      final canViewPrices = PermissionUtils.can(
-        member: _currentMember!,
-        role: _currentRole!,
-        module: 'financials',
-        action: 'view',
-      );
-
-      return {
-        'canView': true,
-        'canEdit': canEdit,
-        'canDelete': canDelete,
-        'canDuplicate': canDuplicate,
-        'canManageProducts': canManageProducts,
-        'canViewPrices': canViewPrices,
-      };
-    } catch (e) {
-      return {'canView': false};
-    }
   }
 
   Widget _buildScaffold(
     BuildContext context,
     ProjectModel project,
     UserModel user,
-    Map<String, dynamic> permissions,
   ) {
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
     final projectService = Provider.of<ProjectService>(context);
-    final canEdit = permissions['canEdit'] ?? false;
-    final canDelete = permissions['canDelete'] ?? false;
-    final canDuplicate = permissions['canDuplicate'] ?? false;
 
-    final hasAnyAction = canEdit || canDelete || canDuplicate;
+    final canEditProjects = permissionService.canEditProjects;
+    final canDeleteProjects = permissionService.canDeleteProjects;
+    final canDuplicateProjects = permissionService.canCreateProjects;
+
+    final hasAnyAction =
+        canEditProjects || canDeleteProjects || canDuplicateProjects;
 
     return Scaffold(
       appBar: AppBar(
@@ -265,7 +128,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               itemBuilder: (context) {
                 final List<PopupMenuEntry> items = [];
 
-                if (canEdit) {
+                if (canEditProjects) {
                   items.add(
                     const PopupMenuItem(
                       value: 'edit',
@@ -280,7 +143,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   );
                 }
 
-                if (canDuplicate) {
+                if (canDuplicateProjects) {
                   items.add(
                     const PopupMenuItem(
                       value: 'duplicate',
@@ -295,7 +158,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   );
                 }
 
-                if (canEdit) {
+                if (canEditProjects) {
                   items.add(
                     PopupMenuItem(
                       value: 'deactivate',
@@ -315,7 +178,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   );
                 }
 
-                if (canDelete && !project.isActive) {
+                if (canDeleteProjects && !project.isActive) {
                   items.add(
                     const PopupMenuItem(
                       value: 'delete',
@@ -369,7 +232,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         controller: _tabController,
         children: [
           _buildDetailsTab(context, user, project),
-          _buildProductsTab(context, user, project, permissions),
+          _buildProductsTab(context, user, project),
         ],
       ),
     );
@@ -435,38 +298,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     );
   }
 
-  Widget _buildProductsTab(BuildContext context, UserModel user,
-      ProjectModel project, Map<String, dynamic> permissions) {
-    final canViewPrices = permissions['canViewPrices'] ?? false;
-    final ProductCatalogService productService =
-        Provider.of<ProductCatalogService>(context, listen: false);
-
+  Widget _buildProductsTab(
+      BuildContext context, UserModel user, ProjectModel project) {
     return RefreshIndicator(
       onRefresh: () async {
         setState(() {});
       },
-      child: StreamBuilder<List<ProductCatalogModel>>(
-        stream: productService.getProjectProductsStream(
-            project.organizationId, project.id, user.clientId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('Error: ${snapshot.error}'),
-                ],
-              ),
-            );
-          }
-
-          final products = snapshot.data ?? [];
+      child: Consumer<ProductionDataProvider>(
+        builder: (context, dataProvider, _) {
+          final products =
+              dataProvider.filterCatalogProducts(projectId: project.id);
 
           if (products.isEmpty) {
             return Center(
@@ -502,7 +343,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     final product = products[index];
                     return _ProductCard(
                       product: product,
-                      showPrice: canViewPrices,
                       project: project,
                       user: user,
                       onTap: () async {
@@ -757,27 +597,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   Widget _buildClientCard(BuildContext context, ProjectModel project) {
     if (project.clientId.isEmpty) return const SizedBox.shrink();
 
-    return FutureBuilder<ClientModel?>(
-      future: Provider.of<ClientService>(context, listen: false)
-          .getClient(project.organizationId, project.clientId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildInfoCard(
-            context,
-            icon: Icons.person_outline,
-            iconColor: Colors.green,
-            children: [
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-            ],
-          );
-        }
+    return Consumer<ProductionDataProvider>(
+      builder: (context, dataProvider, _) {
+        final client = dataProvider.getClientById(project.clientId);
 
-        if (!snapshot.hasData) {
+        if (client == null) {
           return _buildInfoCard(
             context,
             icon: Icons.person_outline,
@@ -794,8 +618,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           );
         }
 
-        final client = snapshot.data!;
-
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           elevation: 2,
@@ -805,17 +627,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             borderRadius: BorderRadius.circular(12),
             onTap: () async {
               // Verificar permiso antes de navegar
-              final memberService = Provider.of<OrganizationMemberService>(
+              final permissionService = Provider.of<PermissionService>(
                   context,
                   listen: false);
-              // Aseguramos cargar permisos del usuario
-              await memberService.getCurrentMember(
-                  project.organizationId,
-                  Provider.of<AuthService>(context, listen: false)
-                      .currentUserData!
-                      .uid);
 
-              if (await memberService.can('clients', 'view')) {
+              final canViewClients = permissionService.canViewClients;
+
+              if (canViewClients) {
                 if (context.mounted) {
                   Navigator.push(
                     context,
@@ -927,14 +745,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 // Widget para tarjeta de producto
 class _ProductCard extends StatelessWidget {
   final ProductCatalogModel product;
-  final bool showPrice;
   final VoidCallback onTap;
   final ProjectModel project;
   final UserModel user;
 
   const _ProductCard({
     required this.product,
-    required this.showPrice,
     required this.onTap,
     required this.project,
     required this.user,
