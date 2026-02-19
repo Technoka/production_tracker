@@ -236,7 +236,7 @@ class _ClientFolderCardState extends State<ClientFolderCard> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      const CreateProjectScreen(),
+                                      CreateProjectScreen(clientId: widget.client.id),
                                 ),
                               );
                             },
