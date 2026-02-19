@@ -31,7 +31,7 @@ class ProjectDetailScreen extends StatefulWidget {
 class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int _selectedTab = 0;
+  // int _selectedTab = 0;
 
   OrganizationMemberModel? _currentMember;
   RoleModel? _currentRole;
@@ -253,7 +253,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     final canEdit = permissions['canEdit'] ?? false;
     final canDelete = permissions['canDelete'] ?? false;
     final canDuplicate = permissions['canDuplicate'] ?? false;
-    final canManageProducts = permissions['canManageProducts'] ?? false;
 
     final hasAnyAction = canEdit || canDelete || canDuplicate;
 
@@ -357,7 +356,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           controller: _tabController,
           onTap: (index) {
             setState(() {
-              _selectedTab = index;
+              // _selectedTab = index;
             });
           },
           tabs: const [
@@ -695,7 +694,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     await projectService.toggleProjectActive(organizationId, project.id,
         userId: memberService.currentMember!.userId);
 
-    if (mounted) {
+    if (context.mounted) {
+      Navigator.pop(context, true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -957,7 +957,7 @@ class _ProductCard extends StatelessWidget {
           children: [
             const SizedBox(height: 4),
             Text(
-              '${product.family ?? "Sin familia"} • SKU: ${product.reference ?? "N/A"}',
+              '${product.family ?? "Sin familia"} • SKU: ${product.reference}',
               style: TextStyle(color: Colors.grey[700], fontSize: 13),
             ),
           ],
