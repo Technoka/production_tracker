@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
+import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:provider/provider.dart';
 import '../../models/batch_product_model.dart';
@@ -130,6 +131,9 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     final authService = Provider.of<AuthService>(context);
     final memberService = Provider.of<OrganizationMemberService>(context);
     final user = authService.currentUserData;
+    final permissionService = Provider.of<PermissionService>(context);
+
+    final canViewChat = permissionService.canViewChat;
 
     // ✅ Mostrar loading mientras cargan permisos
     if (_isLoadingPermissions) {
@@ -200,7 +204,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             title: Text(product.productName),
             actions: [
               // Botón de chat en el AppBar con badge
-              if (user != null)
+              if (canViewChat)
                 ChatButton(
                     organizationId: widget.organizationId,
                     entityType: 'batch_product',
@@ -269,7 +273,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                       const SizedBox(height: 16),
                       _buildPhasesCard(product, user),
                       const SizedBox(height: 16),
-                      _buildChatSection(product, user), // Ver helper abajo
+                      if (canViewChat)
+                        _buildChatSection(product, user), // Ver helper abajo
                       if (product.color != null ||
                           product.material != null ||
                           product.specialDetails != null) ...[
@@ -978,23 +983,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         ],
       ),
     );
-  }
-
-  Color _getColorForStatus(String statusId) {
-    switch (statusId) {
-      case 'ok':
-        return Colors.green;
-      case 'cao':
-        return Colors.red;
-      case 'control':
-        return Colors.orange;
-      case 'hold':
-        return Colors.blue;
-      case 'pending':
-        return Colors.grey;
-      default:
-        return Colors.grey;
-    }
   }
 
   Widget _buildProductStatusActions(
