@@ -367,6 +367,7 @@ class _CreateProductionBatchScreenState
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context, listen: false);
+    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
 
     return Scaffold(
       appBar: AppBar(
@@ -571,7 +572,7 @@ class _CreateProductionBatchScreenState
                             _selectedMembers = members;
                           });
                         },
-                        readOnly: false,
+                        readOnly: memberService.currentMember?.clientId != null,
                         showTitle: true,
                         resourceType: 'batch',
                         customTitle: 'Control de Acceso al Lote',
