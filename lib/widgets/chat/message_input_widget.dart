@@ -14,6 +14,7 @@ class MessageInput extends StatefulWidget {
   final VoidCallback? onCancelReply;
   final bool showInternalToggle;
   final bool isLoading;
+  final bool canSend;
 
   const MessageInput({
     Key? key,
@@ -23,6 +24,7 @@ class MessageInput extends StatefulWidget {
     this.onCancelReply,
     this.showInternalToggle = true,
     this.isLoading = false,
+    this.canSend = true,
   }) : super(key: key);
 
   @override
@@ -100,8 +102,8 @@ class _MessageInputState extends State<MessageInput> {
     }
 
     // Enter sin Shift: enviar mensaje (solo en desktop)
-    if (_isDesktop && 
-        event.logicalKey == LogicalKeyboardKey.enter && 
+    if (_isDesktop &&
+        event.logicalKey == LogicalKeyboardKey.enter &&
         !HardwareKeyboard.instance.isShiftPressed) {
       _handleSend();
       return KeyEventResult.handled;
@@ -116,6 +118,38 @@ class _MessageInputState extends State<MessageInput> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    // AÑADIR: modo solo lectura
+    if (!widget.canSend) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.visibility, size: 14, color: Colors.grey[400]),
+                const SizedBox(width: 6),
+                Text(
+                  l10n.readOnlyMode,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -175,7 +209,8 @@ class _MessageInputState extends State<MessageInput> {
                             ),
                           ),
                           // En móvil, mantener el comportamiento por defecto de onSubmitted
-                          onSubmitted: !_isDesktop ? (_) => _handleSend() : null,
+                          onSubmitted:
+                              !_isDesktop ? (_) => _handleSend() : null,
                           enabled: !widget.isLoading,
                         ),
                       ),
@@ -191,7 +226,9 @@ class _MessageInputState extends State<MessageInput> {
                         : Colors.grey[300],
                     borderRadius: BorderRadius.circular(24),
                     child: InkWell(
-                      onTap: _isComposing && !widget.isLoading ? _handleSend : null,
+                      onTap: _isComposing && !widget.isLoading
+                          ? _handleSend
+                          : null,
                       borderRadius: BorderRadius.circular(24),
                       child: Container(
                         width: 48,
@@ -210,7 +247,9 @@ class _MessageInputState extends State<MessageInput> {
                               )
                             : Icon(
                                 Icons.send,
-                                color: _isComposing ? Colors.white : Colors.grey[600],
+                                color: _isComposing
+                                    ? Colors.white
+                                    : Colors.grey[600],
                               ),
                       ),
                     ),
@@ -327,8 +366,18 @@ class EmojiReactionPicker extends StatelessWidget {
   }) : super(key: key);
 
   static const List<String> _commonEmojis = [
-    '👍', '❤️', '😂', '😮', '😢', '🙏',
-    '🎉', '🔥', '👏', '✅', '❌', '👀',
+    '👍',
+    '❤️',
+    '😂',
+    '😮',
+    '😢',
+    '🙏',
+    '🎉',
+    '🔥',
+    '👏',
+    '✅',
+    '❌',
+    '👀',
   ];
 
   @override
@@ -395,7 +444,8 @@ class EmojiReactionPicker extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => EmojiReactionPicker(onEmojiSelected: onEmojiSelected),
+      builder: (context) =>
+          EmojiReactionPicker(onEmojiSelected: onEmojiSelected),
     );
   }
 }

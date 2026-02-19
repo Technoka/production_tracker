@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
+import 'package:gestion_produccion/services/organization_member_service.dart';
+import 'package:gestion_produccion/services/permission_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/message_model.dart';
 import '../../models/user_model.dart';
@@ -20,6 +22,7 @@ class ChatScreen extends StatefulWidget {
   final String entityName;
   final String? parentId;
   final bool showInternalMessages;
+  final bool canSendMessages;
 
   const ChatScreen({
     Key? key,
@@ -29,6 +32,7 @@ class ChatScreen extends StatefulWidget {
     required this.entityName,
     this.parentId,
     this.showInternalMessages = true,
+    this.canSendMessages = true,
   }) : super(key: key);
 
   @override
@@ -98,6 +102,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _loadCurrentUser() async {
     final user = await _authService.getUserData();
+
     if (mounted) {
       setState(() => _currentUser = user);
 
@@ -855,6 +860,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageInputWithKey() {
+    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
+    final permissionService = Provider.of<PermissionService>(context, listen: false);
+    final canSendMessages = permissionService.canSendMessages;
+
     // Medir la altura del input después de construir
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final RenderBox? renderBox =
@@ -877,6 +886,7 @@ class _ChatScreenState extends State<ChatScreen> {
         onCancelReply: () => setState(() => _replyingTo = null),
         showInternalToggle: !_isUserClient && widget.showInternalMessages,
         isLoading: _isLoading,
+        canSend: canSendMessages,
       ),
     );
   }
