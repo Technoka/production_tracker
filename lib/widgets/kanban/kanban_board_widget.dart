@@ -1,10 +1,13 @@
 // lib/widgets/kanban/kanban_board_widget.dart
 
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/models/pending_object_model.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
+import 'package:gestion_produccion/screens/notifications/approval_detail_screen.dart';
 import 'package:gestion_produccion/services/organization_member_service.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
+import 'package:gestion_produccion/widgets/kanban/pending_approval_column.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/batch_product_model.dart';
@@ -60,6 +63,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
 
   Map<String, List<String>> _availableTransitions = {};
   bool _isLoadingTransitions = true;
+  bool _canApprove = false;
 
   @override
   void initState() {
@@ -70,6 +74,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     _onlyUrgentFilter = widget.initialUrgentFilter ?? false;
     _startAutoScroll();
     _loadAvailableTransitions();
+    _loadApprovePermission();
   }
 
   @override
@@ -102,6 +107,33 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
         _onlyUrgentFilter = widget.initialUrgentFilter ?? false;
       });
     }
+  }
+
+  Future<void> _loadApprovePermission() async {
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+    // TODO: añadir permiso para aprobar objetos, y cambiar "canApprove" por ese permiso
+    final can =
+        await memberService.can('organization', 'approveClientRequests');
+
+    final canTest = memberService.currentMember!.isAdmin ||
+        memberService.currentMember!
+            .isOwner(memberService.currentMember!.userId);
+    if (mounted) setState(() => _canApprove = canTest);
+  }
+
+  Future<void> _showPendingApprovalDialog(
+      BuildContext context, PendingObjectModel pendingObject) async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+
+    await BatchApprovalConfirmationDialog.show(
+      context,
+      pendingObject: pendingObject,
+      organizationId: widget.organizationId,
+      currentUser: authService.currentUserData!,
+    );
+    // El stream de pending_objects se actualiza automáticamente.
+    // No es necesario recargar nada manualmente.
   }
 
   Future<void> _loadAvailableTransitions() async {
@@ -503,9 +535,54 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
         controller: _scrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.all(16),
-        itemCount: columns.length,
+        // En vista de fases añadimos 1 slot al inicio para PendingApprovalColumn
+        itemCount: isPhaseView ? columns.length + 1 : columns.length,
         itemBuilder: (context, index) {
-          final column = columns[index];
+          // ── Slot 0 en vista de fases: columna de pendientes ──
+          if (isPhaseView && index == 0) {
+            return PendingApprovalColumn(
+              organizationId: widget.organizationId,
+              canApprove: _canApprove,
+              // onDropToApprove: (pendingObj) =>
+              //     _showPendingApprovalDialog(context, pendingObj),
+              onDropToApprove: (pendingObj) {
+                // Obtenemos el usuario actual (asumiendo que tienes acceso a user.uid o authService)
+                final authService =
+                    Provider.of<AuthService>(context, listen: false);
+                final currentUserId = authService.currentUserData?.uid;
+
+                // Comparamos si el usuario actual fue el que creó la solicitud
+                final isRequester = pendingObj.createdBy == currentUserId;
+                
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ApprovalDetailScreen(
+                      // Como venimos del Kanban, no hay un ID de notificación específico
+                      notificationId: "",
+                      pendingObjectId: pendingObj.id,
+                      readOnly: isRequester,
+                    ),
+                  ),
+                );
+              },
+              onDragStarted: _canApprove
+                  ? () {
+                      _isDragging = true;
+                    }
+                  : null,
+              onDragEnd: _canApprove
+                  ? () {
+                      _isDragging = false;
+                      _scrollSpeed = 0;
+                    }
+                  : null,
+            );
+          }
+
+          // En vista de fases, los índices reales empiezan en 1
+          final realIndex = isPhaseView ? index - 1 : index;
+          final column = columns[realIndex];
           final String columnId = isPhaseView
               ? (column as ProductionPhase).id
               : (column as ProductStatusModel).id;
@@ -520,7 +597,9 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
               (column as ProductionPhase).wipLimit > 0 &&
               productsData.length >= column.wipLimit;
 
-          return DragTarget<Map<String, dynamic>>(
+          final isFirstPhaseColumn = isPhaseView && realIndex == 0;
+
+          final dragTargetColumn = DragTarget<Map<String, dynamic>>(
             onWillAccept: (data) {
               if (data == null) return false;
 
@@ -629,6 +708,37 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
               );
             },
           );
+
+          // La primera columna de fases también acepta drops de PendingObjectModel
+          if (isFirstPhaseColumn && _canApprove) {
+            return PendingApprovalDragTarget(
+              enabled: true,
+              onPendingDropped: (pendingObj) {
+                // Obtenemos el usuario actual (asumiendo que tienes acceso a user.uid o authService)
+                final authService =
+                    Provider.of<AuthService>(context, listen: false);
+                final currentUserId = authService.currentUserData?.uid;
+
+                // Comparamos si el usuario actual fue el que creó la solicitud
+                final isRequester = pendingObj.createdBy == currentUserId;
+                
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ApprovalDetailScreen(
+                      // Como venimos del Kanban, no hay un ID de notificación específico
+                      notificationId: "",
+                      pendingObjectId: pendingObj.id,
+                      readOnly: isRequester,
+                    ),
+                  ),
+                );
+              },
+              child: dragTargetColumn,
+            );
+          }
+
+          return dragTargetColumn;
         },
       ),
     );
@@ -639,9 +749,6 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
 
     return content;
   }
-
-  // Continúa en PARTE 3...
-// CONTINUACIÓN PARTE 3/3
 
   Widget _buildKanbanColumn(
     dynamic column,

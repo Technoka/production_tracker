@@ -5888,7 +5888,7 @@ abstract class AppLocalizations {
   /// No description provided for @readOnlyMode.
   ///
   /// In en, this message translates to:
-  /// **'Read-only mode'**
+  /// **'Read-only mode. You cannot send messages.'**
   String get readOnlyMode;
 
   /// No description provided for @pullToRefresh.
@@ -8308,6 +8308,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Phone number is too short'**
   String get phoneNumberTooShort;
+
+  /// No description provided for @yourRequestIsPendingReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Request pending review'**
+  String get yourRequestIsPendingReview;
+
+  /// No description provided for @yourRequestAwaitingApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for approval'**
+  String get yourRequestAwaitingApproval;
+
+  /// No description provided for @pendingApprovalColumnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending approval'**
+  String get pendingApprovalColumnTitle;
+
+  /// No description provided for @confirmBatchApprovalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm batch approval'**
+  String get confirmBatchApprovalTitle;
+
+  /// No description provided for @batchWillMoveToFirstPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'The batch and all its products will move to the first production phase'**
+  String get batchWillMoveToFirstPhase;
+
+  /// No description provided for @productsInBatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch products'**
+  String get productsInBatch;
+
+  /// No description provided for @approveAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve all'**
+  String get approveAll;
+
+  /// No description provided for @dragToApproveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag here to approve'**
+  String get dragToApproveHint;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

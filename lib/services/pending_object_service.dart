@@ -183,7 +183,7 @@ class PendingObjectService extends ChangeNotifier {
         .collection('organizations')
         .doc(organizationId)
         .collection('pending_objects')
-        .orderBy('createdAt', descending: true);
+        .orderBy('createdAt', descending: false);
 
     if (status != null) {
       query = query.where('status', isEqualTo: status.value);
@@ -193,6 +193,29 @@ class PendingObjectService extends ChangeNotifier {
       return snapshot.docs
           .map((doc) => PendingObjectModel.fromMap(doc.id, doc.data()))
           .toList();
+    });
+  }
+
+  /// Stream en tiempo real de un pending object individual
+  /// Permite que el solicitante vea cambios de estado sin recargar la pantalla
+  Stream<PendingObjectModel?> watchPendingObject(
+    String organizationId,
+    String pendingObjectId,
+  ) {
+    return _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('pending_objects')
+        .doc(pendingObjectId)
+        .snapshots()
+        .map((doc) {
+      if (!doc.exists || doc.data() == null) return null;
+      try {
+        return PendingObjectModel.fromMap(doc.id, doc.data()!);
+      } catch (e) {
+        debugPrint('Error parsing pending object stream: $e');
+        return null;
+      }
     });
   }
 

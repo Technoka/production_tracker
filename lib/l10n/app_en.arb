@@ -1597,5 +1597,14 @@
 "unknownEmail": "Unknown email",
 
 "prefix": "Prefix",
-"phoneNumberTooShort": "Phone number is too short"
+"phoneNumberTooShort": "Phone number is too short",
+"readOnlyMode": "Read-only mode. You cannot send messages.",
+"yourRequestIsPendingReview": "Request pending review",
+"yourRequestAwaitingApproval": "Waiting for approval",
+"pendingApprovalColumnTitle": "Pending approval",
+"confirmBatchApprovalTitle": "Confirm batch approval",
+"batchWillMoveToFirstPhase": "The batch and all its products will move to the first production phase",
+"productsInBatch": "Batch products",
+"approveAll": "Approve all",
+"dragToApproveHint": "Drag here to approve"
 }

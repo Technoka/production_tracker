@@ -80,6 +80,18 @@ class NotificationsScreen extends StatelessWidget {
               final notification = notifications[index];
               final isRead = notification.isReadBy(user.uid);
 
+              // Determinar si el usuario es el solicitante de esta notificación
+              final bool isRequesterNotif =
+                  notification.type == NotificationType.approvalRequest &&
+                      notification.isRequesterFor(user.uid);
+
+              // Usar icono y color diferenciado para el solicitante
+              final IconData displayIcon = isRequesterNotif
+                  ? Icons.hourglass_empty
+                  : notification.type.icon;
+              final Color displayColor =
+                  isRequesterNotif ? Colors.amber : notification.type.color;
+
               return Card(
                 elevation: isRead ? 0 : 2,
                 margin: const EdgeInsets.only(bottom: 12),
@@ -98,6 +110,8 @@ class NotificationsScreen extends StatelessWidget {
                     // Navegar según tipo
                     if (notification.type == NotificationType.approvalRequest) {
                       if (context.mounted) {
+                        final isRequester =
+                            notification.isRequesterFor(user.uid);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -105,6 +119,7 @@ class NotificationsScreen extends StatelessWidget {
                               notificationId: notification.id,
                               pendingObjectId: notification
                                   .metadata['pendingObjectId'] as String,
+                              readOnly: isRequester,
                             ),
                           ),
                         );
@@ -124,8 +139,8 @@ class NotificationsScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Icon(
-                            notification.type.icon,
-                            color: notification.type.color,
+                            displayIcon,
+                            color: displayColor,
                             size: 20,
                           ),
                         ),

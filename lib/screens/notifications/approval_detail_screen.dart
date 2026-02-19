@@ -16,11 +16,13 @@ import '../../helpers/approval_helper.dart';
 class ApprovalDetailScreen extends StatefulWidget {
   final String notificationId;
   final String pendingObjectId;
+  final bool readOnly;
 
   const ApprovalDetailScreen({
     super.key,
     required this.notificationId,
     required this.pendingObjectId,
+    this.readOnly = false,
   });
 
   @override
@@ -43,7 +45,7 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
     final pendingService = Provider.of<PendingObjectService>(context);
     final notificationService = Provider.of<NotificationService>(context);
     final l10n = AppLocalizations.of(context)!;
-    
+
     final user = authService.currentUserData;
     final organizationId = user?.organizationId;
 
@@ -58,8 +60,11 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
       appBar: AppBar(
         title: Text(l10n.pendingApproval),
       ),
-      body: FutureBuilder<PendingObjectModel?>(
-        future: pendingService.getPendingObject(organizationId, widget.pendingObjectId),
+      body: StreamBuilder<PendingObjectModel?>(
+        stream: pendingService.watchPendingObject(
+          organizationId,
+          widget.pendingObjectId,
+        ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -95,11 +100,18 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
             return _buildReviewedState(context, l10n, pendingObject);
           }
 
+          // Objeto aun pendiente
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Banner informativo cuando el usuario es el solicitante
+                if (widget.readOnly) ...[
+                  _buildRequesterPendingBanner(l10n),
+                  const SizedBox(height: 16),
+                ],
+
                 // Tipo de objeto
                 Card(
                   elevation: 2,
@@ -116,7 +128,8 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
                                 color: Colors.blue.shade100,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Icon(pendingObject.objectType.icon,
+                              child: Icon(
+                                pendingObject.objectType.icon,
                                 color: pendingObject.objectType.color,
                               ),
                             ),
@@ -180,7 +193,8 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        ..._buildModelDataWidgets(pendingObject.modelData, l10n, pendingObject.objectType),
+                        ..._buildModelDataWidgets(pendingObject.modelData, l10n,
+                            pendingObject.objectType),
                       ],
                     ),
                   ),
@@ -188,59 +202,101 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
 
                 const SizedBox(height: 24),
 
-                // Botones de acción
-                if (_isLoading)
-                  const Center(child: CircularProgressIndicator())
-                else
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _showRejectDialog(
-                            context,
-                            l10n,
-                            pendingObject,
-                            organizationId,
-                            user.uid,
-                            user.name,
-                            pendingService,
-                            notificationService,
-                          ),
-                          icon: const Icon(Icons.close),
-                          label: Text(l10n.rejectRequest),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () => _handleApprove(
-                            context,
-                            l10n,
-                            organizationId,
-                            user.uid,
-                            user.name,
-                            pendingService,
-                            notificationService,
-                          ),
-                          icon: const Icon(Icons.check),
-                          label: Text(l10n.approveRequest),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                // Botones de acción: solo visibles para aprobadores (readOnly == false)
+                if (!widget.readOnly)
+                  if (_isLoading)
+                    const Center(child: CircularProgressIndicator())
+                  else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _showRejectDialog(
+                              context,
+                              l10n,
+                              pendingObject,
+                              organizationId,
+                              user.uid,
+                              user.name,
+                              pendingService,
+                              notificationService,
+                            ),
+                            icon: const Icon(Icons.close),
+                            label: Text(l10n.rejectRequest),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () => _handleApprove(
+                              context,
+                              l10n,
+                              organizationId,
+                              user.uid,
+                              user.name,
+                              pendingService,
+                              notificationService,
+                            ),
+                            icon: const Icon(Icons.check),
+                            label: Text(l10n.approveRequest),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// Banner ámbar que ve el solicitante mientras su solicitud está pendiente.
+  Widget _buildRequesterPendingBanner(AppLocalizations l10n) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.hourglass_empty, color: Colors.amber.shade700, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.yourRequestIsPendingReview,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.amber.shade900,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  l10n.yourRequestAwaitingApproval,
+                  style: TextStyle(
+                    color: Colors.amber.shade800,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -251,7 +307,7 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
     PendingObjectModel pendingObject,
   ) {
     final isApproved = pendingObject.isApproved;
-    
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -318,61 +374,143 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
     );
   }
 
-List<Widget> _buildModelDataWidgets(
-  Map<String, dynamic> modelData,
-  AppLocalizations l10n,
-  PendingObjectType objectType,
-) {
-  // Si es un lote, usar vista personalizada
-  if (objectType == PendingObjectType.batch) {
-    return _buildBatchDataWidgets(modelData, l10n);
-  }
-  
-  // Si es un producto de catálogo, usar vista personalizada
-  if (objectType == PendingObjectType.productCatalog) {
-    return _buildProductCatalogDataWidgets(modelData, l10n);
-  }
-  
-  // Si es un proyecto, usar vista personalizada
-  if (objectType == PendingObjectType.project) {
-    return _buildProjectDataWidgets(modelData, l10n);
-  }
+  List<Widget> _buildModelDataWidgets(
+    Map<String, dynamic> modelData,
+    AppLocalizations l10n,
+    PendingObjectType objectType,
+  ) {
+    // Si es un lote, usar vista personalizada
+    if (objectType == PendingObjectType.batch) {
+      return _buildBatchDataWidgets(modelData, l10n);
+    }
 
-  // Para otros tipos de objetos, usar vista genérica
-  final widgets = <Widget>[];
+    // Si es un producto de catálogo, usar vista personalizada
+    if (objectType == PendingObjectType.productCatalog) {
+      return _buildProductCatalogDataWidgets(modelData, l10n);
+    }
 
-  modelData.forEach((key, value) {
-    // Omitir campos internos y arrays complejos
-    if (value != null && 
-        value.toString().isNotEmpty && 
-        key != 'products' && 
-        key != 'createdAt' && 
-        key != 'updatedAt') {
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  _formatFieldName(key),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
+    // Si es un proyecto, usar vista personalizada
+    if (objectType == PendingObjectType.project) {
+      return _buildProjectDataWidgets(modelData, l10n);
+    }
+
+    // Para otros tipos de objetos, usar vista genérica
+    final widgets = <Widget>[];
+
+    modelData.forEach((key, value) {
+      // Omitir campos internos y arrays complejos
+      if (value != null &&
+          value.toString().isNotEmpty &&
+          key != 'products' &&
+          key != 'createdAt' &&
+          key != 'updatedAt') {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    _formatFieldName(key),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  value.toString(),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    value.toString(),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    });
+
+    return widgets;
+  }
+
+  /// Vista personalizada para datos de batch
+  List<Widget> _buildBatchDataWidgets(
+    Map<String, dynamic> modelData,
+    AppLocalizations l10n,
+  ) {
+    final widgets = <Widget>[];
+
+    // 1. Batch Number
+    if (modelData['batchNumber'] != null) {
+      widgets.add(_buildInfoRow(
+        'Número de Lote',
+        modelData['batchNumber'].toString(),
+        Icons.numbers,
+      ));
+    }
+
+    // 2. Client Name
+    if (modelData['clientName'] != null) {
+      widgets.add(_buildInfoRow(
+        l10n.client,
+        modelData['clientName'].toString(),
+        Icons.business,
+      ));
+    }
+
+    // 3. Project Name
+    if (modelData['projectName'] != null) {
+      widgets.add(_buildInfoRow(
+        l10n.project,
+        modelData['projectName'].toString(),
+        Icons.folder_outlined,
+      ));
+    }
+
+    // 4. Notes (si existe)
+    if (modelData['notes'] != null &&
+        modelData['notes'].toString().isNotEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.note_outlined,
+                      size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Notas',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Text(
+                  modelData['notes'].toString(),
+                  style: const TextStyle(fontSize: 14),
                 ),
               ),
             ],
@@ -380,589 +518,517 @@ List<Widget> _buildModelDataWidgets(
         ),
       );
     }
-  });
 
-  return widgets;
-}
+    // 5. Product Count
+    final products = modelData['products'] as List?;
+    final productCount = products?.length ?? 0;
 
-/// Vista personalizada para datos de batch
-List<Widget> _buildBatchDataWidgets(
-  Map<String, dynamic> modelData,
-  AppLocalizations l10n,
-) {
-  final widgets = <Widget>[];
-
-  // 1. Batch Number
-  if (modelData['batchNumber'] != null) {
     widgets.add(_buildInfoRow(
-      'Número de Lote',
-      modelData['batchNumber'].toString(),
-      Icons.numbers,
+      'Cantidad de Productos',
+      productCount.toString(),
+      Icons.inventory_2_outlined,
     ));
+
+    // 6. Products List
+    if (products != null && products.isNotEmpty) {
+      widgets.add(const SizedBox(height: 8));
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              Icon(Icons.list_alt, size: 16, color: Colors.grey.shade600),
+              const SizedBox(width: 8),
+              Text(
+                'Productos del Lote',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      for (final product in products) {
+        widgets.add(_buildProductCard(product as Map<String, dynamic>));
+      }
+    }
+
+    return widgets;
   }
 
-  // 2. Client Name
-  if (modelData['clientName'] != null) {
-    widgets.add(_buildInfoRow(
-      l10n.client,
-      modelData['clientName'].toString(),
-      Icons.business,
-    ));
-  }
+  /// Vista personalizada para productos de catálogo
+  List<Widget> _buildProductCatalogDataWidgets(
+    Map<String, dynamic> modelData,
+    AppLocalizations l10n,
+  ) {
+    final widgets = <Widget>[];
 
-  // 3. Project Name
-  if (modelData['projectName'] != null) {
-    widgets.add(_buildInfoRow(
-      l10n.project,
-      modelData['projectName'].toString(),
-      Icons.folder_outlined,
-    ));
-  }
+    // 1. Cliente
+    if (modelData['clientName'] != null) {
+      widgets.add(_buildInfoRow(
+        l10n.client,
+        modelData['clientName'].toString(),
+        Icons.business,
+      ));
+    }
 
-  // 4. Notes (si existe)
-  if (modelData['notes'] != null && 
-      modelData['notes'].toString().isNotEmpty) {
-    widgets.add(
-      Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.note_outlined, size: 16, color: Colors.grey.shade600),
-                const SizedBox(width: 8),
-                Text(
-                  'Notas',
+    // 2. Proyecto
+    if (modelData['projectName'] != null) {
+      widgets.add(_buildInfoRow(
+        l10n.project,
+        modelData['projectName'].toString(),
+        Icons.folder_outlined,
+      ));
+    }
+
+    // 3. Familia (mostrar siempre, marcar como nueva si es la única con esa familia en el proyecto)
+    final family = modelData['family']?.toString().capitalize ?? 'Sin familia';
+    final isNewFamily =
+        modelData['isNewFamily'] == true; // Este campo debe venir del backend
+
+    if (isNewFamily) {
+      // Familia nueva - mostrar con badge
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Icon(Icons.category_outlined,
+                  size: 16, color: Colors.grey.shade600),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Familia',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade200),
               ),
-              child: Text(
-                modelData['notes'].toString(),
-                style: const TextStyle(fontSize: 14),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 5. Product Count
-  final products = modelData['products'] as List?;
-  final productCount = products?.length ?? 0;
-  
-  widgets.add(_buildInfoRow(
-    'Cantidad de Productos',
-    productCount.toString(),
-    Icons.inventory_2_outlined,
-  ));
-
-  // 6. Products List
-  if (products != null && products.isNotEmpty) {
-    widgets.add(const SizedBox(height: 8));
-    widgets.add(
-      Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          children: [
-            Icon(Icons.list_alt, size: 16, color: Colors.grey.shade600),
-            const SizedBox(width: 8),
-            Text(
-              'Productos del Lote',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade700,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    for (final product in products) {
-      widgets.add(_buildProductCard(product as Map<String, dynamic>));
-    }
-  }
-
-  return widgets;
-}
-
-/// Vista personalizada para productos de catálogo
-List<Widget> _buildProductCatalogDataWidgets(
-  Map<String, dynamic> modelData,
-  AppLocalizations l10n,
-) {
-  final widgets = <Widget>[];
-
-  // 1. Cliente
-  if (modelData['clientName'] != null) {
-    widgets.add(_buildInfoRow(
-      l10n.client,
-      modelData['clientName'].toString(),
-      Icons.business,
-    ));
-  }
-
-  // 2. Proyecto
-  if (modelData['projectName'] != null) {
-    widgets.add(_buildInfoRow(
-      l10n.project,
-      modelData['projectName'].toString(),
-      Icons.folder_outlined,
-    ));
-  }
-
-  // 3. Familia (mostrar siempre, marcar como nueva si es la única con esa familia en el proyecto)
-  final family = modelData['family']?.toString().capitalize ?? 'Sin familia';
-  final isNewFamily = modelData['isNewFamily'] == true; // Este campo debe venir del backend
-  
-  if (isNewFamily) {
-    // Familia nueva - mostrar con badge
-    widgets.add(
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Row(
-          children: [
-            Icon(Icons.category_outlined, size: 16, color: Colors.grey.shade600),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 2,
-              child: Text(
-                'Familia',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Row(
-                children: [
-                  Text(
-                    family,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: Colors.green.shade200),
-                    ),
-                    child: Text(
-                      'Nueva',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green.shade700,
+              Expanded(
+                flex: 3,
+                child: Row(
+                  children: [
+                    Text(
+                      family,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  } else {
-    // Familia existente - mostrar normal
-    widgets.add(_buildInfoRow(
-      'Familia',
-      family,
-      Icons.category_outlined,
-    ));
-  }
-
-  // 4. Nombre
-  if (modelData['name'] != null) {
-    widgets.add(_buildInfoRow(
-      'Nombre',
-      modelData['name'].toString(),
-      Icons.label_outline,
-    ));
-  }
-
-  // 5. Referencia
-  if (modelData['reference'] != null) {
-    widgets.add(_buildInfoRow(
-      'Referencia',
-      modelData['reference'].toString(),
-      Icons.tag,
-    ));
-  }
-
-  // 6. Descripción
-  if (modelData['description'] != null && 
-      modelData['description'].toString().isNotEmpty) {
-    widgets.add(
-      Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.description_outlined, size: 16, color: Colors.grey.shade600),
-                const SizedBox(width: 8),
-                Text(
-                  'Descripción',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Text(
-                modelData['description'].toString(),
-                style: const TextStyle(fontSize: 14),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 7. Notas (si existen)
-  if (modelData['notes'] != null && 
-      modelData['notes'].toString().isNotEmpty) {
-    widgets.add(
-      Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.note_outlined, size: 16, color: Colors.grey.shade600),
-                const SizedBox(width: 8),
-                Text(
-                  'Notas',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Text(
-                modelData['notes'].toString(),
-                style: const TextStyle(fontSize: 14),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  return widgets;
-}
-
-/// Vista personalizada para proyectos
-List<Widget> _buildProjectDataWidgets(
-  Map<String, dynamic> modelData,
-  AppLocalizations l10n,
-) {
-  final widgets = <Widget>[];
-
-  // 1. Cliente
-  if (modelData['clientName'] != null) {
-    widgets.add(_buildInfoRow(
-      l10n.client,
-      modelData['clientName'].toString(),
-      Icons.business,
-    ));
-  }
-
-  // 2. Nombre del Proyecto
-  if (modelData['name'] != null) {
-    widgets.add(_buildInfoRow(
-      l10n.project,
-      modelData['name'].toString(),
-      Icons.folder_outlined,
-    ));
-  }
-
-  // 3. Descripción
-  if (modelData['description'] != null && 
-      modelData['description'].toString().isNotEmpty) {
-    widgets.add(
-      Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.description_outlined, size: 16, color: Colors.grey.shade600),
-                const SizedBox(width: 8),
-                Text(
-                  'Descripción',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Text(
-                modelData['description'].toString(),
-                style: const TextStyle(fontSize: 14),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  return widgets;
-}
-
-/// Widget de fila de información con icono
-Widget _buildInfoRow(String label, String value, IconData icon) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.grey.shade600),
-        const SizedBox(width: 8),
-        Expanded(
-          flex: 2,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 3,
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-/// Card individual de producto
-Widget _buildProductCard(Map<String, dynamic> productData) {
-  final productNumber = productData['productNumber']?.toString() ?? '?';
-  final productReference = productData['productReference']?.toString() ?? 'Sin ref.';
-  final family = productData['family']?.toString();
-  final urgencyLevel = productData['urgencyLevel']?.toString() ?? 'medium';
-  final isUrgent = urgencyLevel == 'urgent' || urgencyLevel == 'high';
-  
-  // Parsear fecha
-  String? deliveryDateStr;
-  final deliveryDate = productData['expectedDeliveryDate'];
-  if (deliveryDate != null) {
-    try {
-      if (deliveryDate is Timestamp) {
-        final date = deliveryDate.toDate();
-        deliveryDateStr = '${date.day}/${date.month}/${date.year}';
-      } else if (deliveryDate is String) {
-        deliveryDateStr = deliveryDate;
-      }
-    } catch (e) {
-      deliveryDateStr = null;
-    }
-  }
-
-  return Container(
-    margin: const EdgeInsets.only(bottom: 12),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(
-        color: isUrgent ? Colors.orange.shade200 : Colors.grey.shade200,
-        width: isUrgent ? 2 : 1,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.03),
-          blurRadius: 4,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header con número y urgencia
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                '#$productNumber',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade700,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (isUrgent)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.priority_high,
-                      size: 14,
-                      color: Colors.orange.shade700,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'URGENTE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange.shade700,
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Text(
+                        'Nueva',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green.shade700,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        
-        // Referencia
-        _buildProductInfoRow(
-          Icons.tag,
-          'Referencia',
-          productReference,
-        ),
-        
-        // Familia (si existe)
-        if (family != null && family.isNotEmpty)
-          _buildProductInfoRow(
-            Icons.category_outlined,
-            'Familia',
-            family,
+            ],
           ),
-        
-        // Fecha de entrega (si existe)
-        if (deliveryDateStr != null)
-          _buildProductInfoRow(
-            Icons.calendar_today,
-            'Entrega Estimada',
-            deliveryDateStr,
-          ),
-      ],
-    ),
-  );
-}
+        ),
+      );
+    } else {
+      // Familia existente - mostrar normal
+      widgets.add(_buildInfoRow(
+        'Familia',
+        family,
+        Icons.category_outlined,
+      ));
+    }
 
-/// Fila de información dentro del card de producto
-Widget _buildProductInfoRow(IconData icon, String label, String value) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 6),
-    child: Row(
-      children: [
-        Icon(icon, size: 14, color: Colors.grey.shade500),
-        const SizedBox(width: 6),
-        Text(
-          '$label: ',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
+    // 4. Nombre
+    if (modelData['name'] != null) {
+      widgets.add(_buildInfoRow(
+        'Nombre',
+        modelData['name'].toString(),
+        Icons.label_outline,
+      ));
+    }
+
+    // 5. Referencia
+    if (modelData['reference'] != null) {
+      widgets.add(_buildInfoRow(
+        'Referencia',
+        modelData['reference'].toString(),
+        Icons.tag,
+      ));
+    }
+
+    // 6. Descripción
+    if (modelData['description'] != null &&
+        modelData['description'].toString().isNotEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.description_outlined,
+                      size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Descripción',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Text(
+                  modelData['description'].toString(),
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
           ),
         ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+      );
+    }
+
+    // 7. Notas (si existen)
+    if (modelData['notes'] != null &&
+        modelData['notes'].toString().isNotEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.note_outlined,
+                      size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Notas',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Text(
+                  modelData['notes'].toString(),
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return widgets;
+  }
+
+  /// Vista personalizada para proyectos
+  List<Widget> _buildProjectDataWidgets(
+    Map<String, dynamic> modelData,
+    AppLocalizations l10n,
+  ) {
+    final widgets = <Widget>[];
+
+    // 1. Cliente
+    if (modelData['clientName'] != null) {
+      widgets.add(_buildInfoRow(
+        l10n.client,
+        modelData['clientName'].toString(),
+        Icons.business,
+      ));
+    }
+
+    // 2. Nombre del Proyecto
+    if (modelData['name'] != null) {
+      widgets.add(_buildInfoRow(
+        l10n.project,
+        modelData['name'].toString(),
+        Icons.folder_outlined,
+      ));
+    }
+
+    // 3. Descripción
+    if (modelData['description'] != null &&
+        modelData['description'].toString().isNotEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.description_outlined,
+                      size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Descripción',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Text(
+                  modelData['description'].toString(),
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return widgets;
+  }
+
+  /// Widget de fila de información con icono
+  Widget _buildInfoRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.grey.shade600),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+              ),
             ),
           ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Card individual de producto
+  Widget _buildProductCard(Map<String, dynamic> productData) {
+    final productNumber = productData['productNumber']?.toString() ?? '?';
+    final productReference =
+        productData['productReference']?.toString() ?? 'Sin ref.';
+    final family = productData['family']?.toString();
+    final urgencyLevel = productData['urgencyLevel']?.toString() ?? 'medium';
+    final isUrgent = urgencyLevel == 'urgent' || urgencyLevel == 'high';
+
+    // Parsear fecha
+    String? deliveryDateStr;
+    final deliveryDate = productData['expectedDeliveryDate'];
+    if (deliveryDate != null) {
+      try {
+        if (deliveryDate is Timestamp) {
+          final date = deliveryDate.toDate();
+          deliveryDateStr = '${date.day}/${date.month}/${date.year}';
+        } else if (deliveryDate is String) {
+          deliveryDateStr = deliveryDate;
+        }
+      } catch (e) {
+        deliveryDateStr = null;
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isUrgent ? Colors.orange.shade200 : Colors.grey.shade200,
+          width: isUrgent ? 2 : 1,
         ),
-      ],
-    ),
-  );
-}
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header con número y urgencia
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '#$productNumber',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (isUrgent)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.priority_high,
+                        size: 14,
+                        color: Colors.orange.shade700,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'URGENTE',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Referencia
+          _buildProductInfoRow(
+            Icons.tag,
+            'Referencia',
+            productReference,
+          ),
+
+          // Familia (si existe)
+          if (family != null && family.isNotEmpty)
+            _buildProductInfoRow(
+              Icons.category_outlined,
+              'Familia',
+              family,
+            ),
+
+          // Fecha de entrega (si existe)
+          if (deliveryDateStr != null)
+            _buildProductInfoRow(
+              Icons.calendar_today,
+              'Entrega Estimada',
+              deliveryDateStr,
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Fila de información dentro del card de producto
+  Widget _buildProductInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: Colors.grey.shade500),
+          const SizedBox(width: 6),
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   String _formatFieldName(String key) {
     // Convertir camelCase a Title Case
     return key
         .replaceAllMapped(RegExp(r'([A-Z])'), (m) => ' ${m.group(1)}')
         .split(' ')
-        .map((word) => word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1))
+        .map((word) =>
+            word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1))
         .join(' ')
         .trim();
   }
@@ -971,37 +1037,39 @@ Widget _buildProductInfoRow(IconData icon, String label, String value) {
     return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
   }
 
-Future<void> _handleApprove(
-  BuildContext context,
-  AppLocalizations l10n,
-  String organizationId,
-  String userId,
-  String userName,
-  PendingObjectService pendingService,
-  NotificationService notificationService,
-) async {
-  setState(() => _isLoading = true);
+  Future<void> _handleApprove(
+    BuildContext context,
+    AppLocalizations l10n,
+    String organizationId,
+    String userId,
+    String userName,
+    PendingObjectService pendingService,
+    NotificationService notificationService,
+  ) async {
+    setState(() => _isLoading = true);
 
-  // Obtener servicios necesarios para crear objetos
-  final batchService = Provider.of<ProductionBatchService>(context, listen: false);
-  final projectService = Provider.of<ProjectService>(context, listen: false);
-  final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
-  final phaseService = Provider.of<PhaseService>(context, listen: false);
+    // Obtener servicios necesarios para crear objetos
+    final batchService =
+        Provider.of<ProductionBatchService>(context, listen: false);
+    final projectService = Provider.of<ProjectService>(context, listen: false);
+    final catalogService =
+        Provider.of<ProductCatalogService>(context, listen: false);
+    final phaseService = Provider.of<PhaseService>(context, listen: false);
 
-  final success = await ApprovalHelper.approveRequest(
-    organizationId: organizationId,
-    pendingObjectId: widget.pendingObjectId,
-    approvedBy: userId,
-    approvedByName: userName,
-    notificationId: widget.notificationId,
-    pendingService: pendingService,
-    notificationService: notificationService,
-    // Pasar servicios para crear objetos
-    batchService: batchService,
-    projectService: projectService,
-    catalogService: catalogService,
-    phaseService: phaseService,
-  );
+    final success = await ApprovalHelper.approveRequest(
+      organizationId: organizationId,
+      pendingObjectId: widget.pendingObjectId,
+      approvedBy: userId,
+      approvedByName: userName,
+      notificationId: widget.notificationId,
+      pendingService: pendingService,
+      notificationService: notificationService,
+      // Pasar servicios para crear objetos
+      batchService: batchService,
+      projectService: projectService,
+      catalogService: catalogService,
+      phaseService: phaseService,
+    );
 
     if (context.mounted) {
       setState(() => _isLoading = false);
@@ -1035,6 +1103,9 @@ Future<void> _handleApprove(
     PendingObjectService pendingService,
     NotificationService notificationService,
   ) async {
+    // Limpiar el campo antes de abrir el diálogo
+    _rejectionReasonController.clear();
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1072,7 +1143,7 @@ Future<void> _handleApprove(
 
     if (confirmed == true && mounted) {
       final reason = _rejectionReasonController.text.trim();
-      
+
       if (reason.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

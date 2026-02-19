@@ -313,8 +313,7 @@ class NotificationModel {
       type: NotificationType.fromString(map['type'] ?? 'info'),
       destinationUserIds: List<String>.from(map['destinationUserIds'] ?? []),
       readBy: List<String>.from(map['readBy'] ?? []),
-      status:
-          NotificationStatus.fromString(map['status'] ?? 'pending'),
+      status: NotificationStatus.fromString(map['status'] ?? 'pending'),
       priority: NotificationPriority.fromString(
         map['priority'] ?? 'medium',
       ),
@@ -339,5 +338,10 @@ class NotificationModel {
   @override
   String toString() {
     return 'NotificationModel(id: $id, type: ${type.value}, title: $title, status: ${status.value})';
+  }
+
+  /// Verificar si el usuario es el solicitante (no aprobador) de esta notificación
+  bool isRequesterFor(String userId) {
+    return metadata['requesterUserId'] == userId;
   }
 }

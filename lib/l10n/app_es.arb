@@ -1599,5 +1599,14 @@
 "unknownEmail": "Email desconocido",
 
 "prefix": "Prefijo",
-"phoneNumberTooShort": "Número de teléfono demasiado corto"
+"phoneNumberTooShort": "Número de teléfono demasiado corto",
+"readOnlyMode": "Modo lectura. No puedes enviar mensajes.",
+"yourRequestIsPendingReview": "Solicitud pendiente de revisión",
+"yourRequestAwaitingApproval": "Esperando aprobación",
+"pendingApprovalColumnTitle": "Pendiente de aprobación",
+"confirmBatchApprovalTitle": "Confirmar aprobación del lote",
+"batchWillMoveToFirstPhase": "El lote y todos sus productos pasarán a la primera fase de producción",
+"productsInBatch": "Productos del lote",
+"approveAll": "Aprobar todo",
+"dragToApproveHint": "Arrastra aquí para aprobar"
 }

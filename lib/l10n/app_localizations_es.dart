@@ -2972,7 +2972,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get cannotModifyOrgPermissions => 'No puedes modificar tus propios permisos de organización';
 
   @override
-  String get readOnlyMode => 'Modo solo lectura';
+  String get readOnlyMode => 'Modo lectura. No puedes enviar mensajes.';
 
   @override
   String get pullToRefresh => 'Desliza para actualizar';
@@ -4193,4 +4193,28 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get phoneNumberTooShort => 'Número de teléfono demasiado corto';
+
+  @override
+  String get yourRequestIsPendingReview => 'Solicitud pendiente de revisión';
+
+  @override
+  String get yourRequestAwaitingApproval => 'Esperando aprobación';
+
+  @override
+  String get pendingApprovalColumnTitle => 'Pendiente de aprobación';
+
+  @override
+  String get confirmBatchApprovalTitle => 'Confirmar aprobación del lote';
+
+  @override
+  String get batchWillMoveToFirstPhase => 'El lote y todos sus productos pasarán a la primera fase de producción';
+
+  @override
+  String get productsInBatch => 'Productos del lote';
+
+  @override
+  String get approveAll => 'Aprobar todo';
+
+  @override
+  String get dragToApproveHint => 'Arrastra aquí para aprobar';
 }

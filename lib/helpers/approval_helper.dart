@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import '../models/pending_object_model.dart';
 import '../models/notification_model.dart';
 import '../models/batch_product_model.dart';
-import '../models/phase_model.dart';
 import '../services/pending_object_service.dart';
 import '../services/notification_service.dart';
 import '../services/organization_member_service.dart';
@@ -80,15 +79,16 @@ class ApprovalHelper {
     }
 
     // 3. Crear notificación para aprobadores
-    final objectName = modelData['name'] as String? ?? 'Sin nombre';
+    final objectName = getObjectName(modelData);
     final notifId = await notificationService.createNotification(
       organizationId: organizationId,
       type: NotificationType.approvalRequest,
-      destinationUserIds: approvers.map((u) => u.uid).toList(),
+      destinationUserIds: {...approvers.map((u) => u.uid), createdBy}.toList(),
       title: 'Solicitud de aprobación',
       message: '$createdByName quiere crear un ${objectType.label}: "$objectName"',
       metadata: {
         'requestType': '${objectType.value}_create',
+        'requesterUserId': createdBy,
         'pendingObjectId': pendingId,
         'requestedBy': createdBy,
         'requestedByName': createdByName,
@@ -459,5 +459,13 @@ class ApprovalHelper {
       default:
         throw Exception('Unsupported object type: ${pendingObject.objectType}');
     }
+  }
+
+    /// Nombre del objeto (extraído de modelData)
+  static String getObjectName (Map<String, dynamic>modelData) {
+    return modelData['name'] as String? ?? 
+           modelData['title'] as String? ?? 
+           modelData['batchNumber'] as String? ?? 
+           'Sin nombre';
   }
 }

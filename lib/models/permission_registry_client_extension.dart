@@ -18,7 +18,6 @@ extension PermissionRegistryClientExtension on PermissionRegistry {
         requiresApproval: true,
         usesScope: false, // Scope siempre 'assigned', no configurable
         defaultScope: PermissionScope.assigned,
-        note: 'Incluye automáticamente el permiso para crear productos de lote',
       ),
       
       // PROJECTS - Crear proyectos

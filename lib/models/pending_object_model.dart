@@ -154,6 +154,7 @@ class PendingObjectModel {
   String get objectName {
     return modelData['name'] as String? ?? 
            modelData['title'] as String? ?? 
+           modelData['batchNumber'] as String? ?? 
            'Sin nombre';
   }
 
