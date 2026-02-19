@@ -486,6 +486,63 @@ function transformClientPermissionsToOverrides(clientPermissions, createdBy) {
 }
 
 // ============================================================
+// HELPER: Transformar clientPermissions a PermissionOverridesModel
+//  - Callable desde Flutter
+// ============================================================
+
+exports.applyClientPermissions = onCall(async (request) => {
+  const {organizationId, clientId, clientPermissions} = request.data;
+
+  // Verificar autenticación
+  if (!request.auth) {
+    throw new HttpsError(
+        "unauthenticated",
+        "Debes estar autenticado con Google",
+    );
+  }
+
+  if (!organizationId || !clientId || !clientPermissions) {
+    throw new HttpsError(
+        "invalid-argument",
+        "Faltan parámetros: organizationId, clientId, clientPermissions.");
+  }
+
+  const createdBy = request.auth.uid;
+
+  const permissionOverrides =
+  transformClientPermissionsToOverrides(clientPermissions, createdBy);
+
+  const membersSnapshot = await admin.firestore()
+      .collection("organizations")
+      .doc(organizationId)
+      .collection("members")
+      .where("roleId", "==", "client")
+      .where("clientId", "==", clientId)
+      .get();
+
+  if (membersSnapshot.empty) {
+    return {success: true, updatedCount: 0};
+  }
+
+  const batch = admin.firestore().batch();
+  const now = admin.firestore.FieldValue.serverTimestamp();
+
+  membersSnapshot.docs.forEach((memberDoc) => {
+    batch.update(memberDoc.ref, {
+      "permissionOverrides": permissionOverrides,
+      "updatedAt": now,
+    });
+  });
+
+  await batch.commit();
+
+  console.log(`✅ applyClientPermissions: ${membersSnapshot.size}
+     miembros actualizados para cliente ${clientId}`);
+
+  return {success: true, updatedCount: membersSnapshot.size};
+});
+
+// ============================================================
 // HELPER: Notificar a miembros de nueva incorporación
 // ============================================================
 
