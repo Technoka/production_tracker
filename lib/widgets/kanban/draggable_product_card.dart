@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/services/permission_service.dart';
+import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:gestion_produccion/widgets/chat/chat_button.dart';
 import 'package:provider/provider.dart';
 import '../../models/batch_product_model.dart';
@@ -56,7 +58,7 @@ class DraggableProductCard extends StatelessWidget {
         elevation: 8,
         borderRadius: BorderRadius.circular(8),
         child: SizedBox(
-          width: 280,
+          width: UIConstants.KANBAN_CARD_WIDTH,
           child: _buildCard(context, isFeedback: true),
         ),
       ),
@@ -71,6 +73,9 @@ class DraggableProductCard extends StatelessWidget {
   Widget _buildCard(BuildContext context, {bool isFeedback = false}) {
     final user =
         Provider.of<AuthService>(context, listen: false).currentUserData;
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
+    final canSendMessages = permissionService.canSendMessages;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -285,7 +290,7 @@ class DraggableProductCard extends StatelessWidget {
 
                     // --- Columna Derecha: Botón de Chat ---
                     // Se centrará automáticamente por el Row padre.
-                    if (user != null && !isFeedback)
+                    if (user != null && !isFeedback && canSendMessages)
                       Padding(
                         padding: const EdgeInsets.only(
                             left:
