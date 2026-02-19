@@ -47,68 +47,75 @@ class ProductionDashboardWidget extends StatelessWidget {
     // ✅ OPTIMIZACIÓN: Calcular estadísticas en memoria
     final stats = _calculateProductStatistics(productionProvider, batches);
 
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            // TÍTULO
-            Row(
+    return Center(
+      child: Container(
+        constraints:
+            const BoxConstraints(maxWidth: UIConstants.SCREEN_MAX_WIDTH),
+        child: Card(
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
               children: [
-                Icon(
-                  Icons.dashboard,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 24,
+                // TÍTULO
+                Row(
+                  children: [
+                    Icon(
+                      Icons.dashboard,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      l10n.productionDashboardTitleLabel,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  l10n.productionDashboardTitleLabel,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+
+                const Divider(height: 24),
+
+                // COLUMNAS DE CONTENIDO
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                          child: _buildPhasesSection(context, stats, phases)),
+                      const SizedBox(width: 12),
+                      // Divisor vertical dinámico
+                      VerticalDivider(
+                          width: 1, thickness: 1, color: Colors.grey[300]),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: _buildStatusSection(context, stats, statuses)),
+                    ],
                   ),
                 ),
+
+                const SizedBox(height: 12),
+
+                // BOTÓN INFERIOR
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ProductionScreen(),
+                        ),
+                      );
+                    },
+                    child: Text(l10n.viewAllBatches),
+                  ),
+                )
               ],
             ),
-
-            const Divider(height: 24),
-
-            // COLUMNAS DE CONTENIDO
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _buildPhasesSection(context, stats, phases)),
-                  const SizedBox(width: 12),
-                  // Divisor vertical dinámico
-                  VerticalDivider(
-                      width: 1, thickness: 1, color: Colors.grey[300]),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: _buildStatusSection(context, stats, statuses)),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // BOTÓN INFERIOR
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ProductionScreen(),
-                    ),
-                  );
-                },
-                child: Text(l10n.viewAllBatches),
-              ),
-            )
-          ],
+          ),
         ),
       ),
     );
