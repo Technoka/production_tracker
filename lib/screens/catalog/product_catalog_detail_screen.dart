@@ -1,5 +1,6 @@
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/screens/catalog/product_catalog_form_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -140,10 +141,8 @@ class _ProductCatalogDetailScreenState
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => EditProductCatalogScreen(
+                      builder: (context) => ProductCatalogFormScreen(
                         product: product,
-                        currentUser: widget.currentUser,
-                        organizationId: widget.organizationId,
                       ),
                     ),
                   );

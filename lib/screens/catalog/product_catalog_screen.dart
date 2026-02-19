@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/screens/catalog/product_catalog_form_screen.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/product_catalog_model.dart';
@@ -270,10 +271,8 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                                 final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => EditProductCatalogScreen(
+                                    builder: (context) => ProductCatalogFormScreen(
                                       product: product,
-                                      currentUser: widget.currentUser,
-                                      organizationId: widget.organizationId,
                                     ),
                                   ),
                                 );
