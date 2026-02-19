@@ -210,31 +210,31 @@ class _UserPreferencesScreenState extends State<UserPreferencesScreen> {
               onTap: _isSaving ? null : _showLanguageSelector,
             ),
 
-          const Divider(),
+          // const Divider(),
 
-          _buildSectionHeader(l10n.notificationPreferences),
+          // _buildSectionHeader(l10n.notificationPreferences),
 
           // Email notifications
-          SwitchListTile(
-            title: Text(l10n.emailNotifications),
-            subtitle: const Text('Recibir notificaciones por correo electrónico'),
-            value: _preferences!.notifications['email'] ?? true,
-            onChanged: _isSaving 
-                ? null 
-                : (value) => _updateNotificationPreferences('email', value),
-          ),
+          // SwitchListTile(
+          //   title: Text(l10n.emailNotifications),
+          //   subtitle: const Text('Recibir notificaciones por correo electrónico'),
+          //   value: _preferences!.notifications['email'] ?? true,
+          //   onChanged: _isSaving 
+          //       ? null 
+          //       : (value) => _updateNotificationPreferences('email', value),
+          // ),
 
-          // Push notifications
-          SwitchListTile(
-            title: Text(l10n.pushNotifications),
-            subtitle: const Text('Recibir notificaciones en tiempo real'),
-            value: _preferences!.notifications['push'] ?? true,
-            onChanged: _isSaving 
-                ? null 
-                : (value) => _updateNotificationPreferences('push', value),
-          ),
+          // // Push notifications
+          // SwitchListTile(
+          //   title: Text(l10n.pushNotifications),
+          //   subtitle: const Text('Recibir notificaciones en tiempo real'),
+          //   value: _preferences!.notifications['push'] ?? true,
+          //   onChanged: _isSaving 
+          //       ? null 
+          //       : (value) => _updateNotificationPreferences('push', value),
+          // ),
 
-          const SizedBox(height: 16),
+          // const SizedBox(height: 16),
         ],
       ),
     );
