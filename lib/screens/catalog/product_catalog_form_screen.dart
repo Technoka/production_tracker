@@ -2,23 +2,20 @@ import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/helpers/approval_helper.dart';
 import 'package:gestion_produccion/models/pending_object_model.dart';
+import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/services/notification_service.dart';
 import 'package:gestion_produccion/services/organization_member_service.dart';
 import 'package:gestion_produccion/services/pending_object_service.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/product_catalog_service.dart';
-import '../../services/client_service.dart';
-import '../../services/project_service.dart';
-import '../../models/client_model.dart';
-import '../../models/project_model.dart';
 import '../../models/product_catalog_model.dart';
 import '../../utils/filter_utils.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Pantalla unificada para crear y editar productos del catálogo
-/// 
+///
 /// Modo CREAR: product == null
 /// Modo EDITAR: product != null
 class ProductCatalogFormScreen extends StatefulWidget {
@@ -76,7 +73,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
       _notesController.text = product.notes ?? '';
       _selectedClientId = product.clientId;
       _selectedFamily = product.family;
-      
+
       // Cargar projectId desde la lista de proyectos del producto
       if (product.projects.isNotEmpty) {
         _selectedProjectId = product.projects.first;
@@ -125,7 +122,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
 
   Future<void> _showCreateFamilyDialog() async {
     final familyController = TextEditingController();
-    
+
     final result = await showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -267,10 +264,14 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
 
   Future<void> _handleCreate() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
-    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
-    final notificationService = Provider.of<NotificationService>(context, listen: false);
-    final pendingService = Provider.of<PendingObjectService>(context, listen: false);
+    final catalogService =
+        Provider.of<ProductCatalogService>(context, listen: false);
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+    final notificationService =
+        Provider.of<NotificationService>(context, listen: false);
+    final pendingService =
+        Provider.of<PendingObjectService>(context, listen: false);
     final user = authService.currentUserData;
     final l10n = AppLocalizations.of(context)!;
 
@@ -357,7 +358,8 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Error al crear producto',
+              content: Text(
+                'Error al crear producto',
               ),
               backgroundColor: Colors.red,
             ),
@@ -369,7 +371,8 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
 
   Future<void> _handleUpdate() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
+    final catalogService =
+        Provider.of<ProductCatalogService>(context, listen: false);
     final user = authService.currentUserData;
     final l10n = AppLocalizations.of(context)!;
 
@@ -404,7 +407,8 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Error al actualizar producto',
+            content: Text(
+              'Error al actualizar producto',
             ),
             backgroundColor: Colors.red,
           ),
@@ -443,9 +447,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            isCreateMode 
-                ? 'Nuevo Producto' 
-                : 'Editar: ${widget.product!.name}',
+            isCreateMode ? 'Nuevo Producto' : 'Editar: ${widget.product!.name}',
           ),
           elevation: 0,
         ),
@@ -528,7 +530,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Nombre
             TextFormField(
               controller: _nameController,
@@ -550,7 +552,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
               },
             ),
             const SizedBox(height: 16),
-            
+
             // SKU/Referencia
             TextFormField(
               controller: _referenceController,
@@ -572,7 +574,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
               },
             ),
             const SizedBox(height: 16),
-            
+
             // Descripción
             TextFormField(
               controller: _descriptionController,
@@ -602,7 +604,6 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
   }
 
   Widget _buildClientCard(BuildContext context, user, AppLocalizations l10n) {
-    final clientService = Provider.of<ClientService>(context, listen: false);
 
     return Card(
       elevation: 2,
@@ -636,14 +637,9 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            StreamBuilder<List<ClientModel>>(
-              stream: clientService.watchClients(user.organizationId!),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _buildDropdownSkeleton('Cliente');
-                }
-
-                final clients = snapshot.data ?? [];
+            Consumer<ProductionDataProvider>(
+              builder: (context, dataProvider, _) {
+                final clients = dataProvider.clients;
 
                 if (clients.isEmpty) {
                   return _buildNoClientsMessage(context);
@@ -766,8 +762,6 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
       );
     }
 
-    final projectService = Provider.of<ProjectService>(context, listen: false);
-
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -800,17 +794,10 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            FutureBuilder<List<ProjectModel>?>(
-              future: projectService.getClientProjects(
-                user.organizationId!,
-                _selectedClientId!,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _buildDropdownSkeleton(l10n.project);
-                }
-
-                final projects = snapshot.data ?? [];
+            Consumer<ProductionDataProvider>(
+              builder: (context, dataProvider, _) {
+                final projects =
+                    dataProvider.filterProjects(clientId: _selectedClientId!);
 
                 if (projects.isEmpty) {
                   return _buildNoProjectsMessage(context);
@@ -873,9 +860,8 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
     );
   }
 
-  Widget _buildReadOnlyClientProjectCard(BuildContext context, AppLocalizations l10n) {
-    final clientService = Provider.of<ClientService>(context, listen: false);
-    final projectService = Provider.of<ProjectService>(context, listen: false);
+  Widget _buildReadOnlyClientProjectCard(
+      BuildContext context, AppLocalizations l10n) {
     final product = widget.product!;
 
     return Card(
@@ -912,10 +898,10 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
             const SizedBox(height: 16),
 
             // Cliente (readonly)
-            FutureBuilder<ClientModel?>(
-              future: clientService.getClient(product.organizationId, product.clientId!),
-              builder: (context, snapshot) {
-                final client = snapshot.data;
+            Consumer<ProductionDataProvider>(
+              builder: (context, dataProvider, _) {
+                final client = dataProvider.getClientById(product.clientId!);
+
                 return Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -968,13 +954,11 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
 
             // Proyecto (readonly)
             if (product.projects.isNotEmpty)
-              FutureBuilder<ProjectModel?>(
-                future: projectService.getProject(
-                  product.organizationId,
-                  product.projects.first,
-                ),
-                builder: (context, snapshot) {
-                  final project = snapshot.data;
+              Consumer<ProductionDataProvider>(
+                builder: (context, dataProvider, _) {
+                  final project =
+                      dataProvider.getProjectById(product.projects.first);
+
                   return Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -1005,7 +989,8 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
                                   fontSize: 14,
                                 ),
                               ),
-                              if (project != null && project.description.isNotEmpty) ...[
+                              if (project != null &&
+                                  project.description.isNotEmpty) ...[
                                 const SizedBox(height: 2),
                                 Text(
                                   project.description,
@@ -1094,8 +1079,6 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
       );
     }
 
-    final catalogService = Provider.of<ProductCatalogService>(context);
-
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1128,19 +1111,13 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            StreamBuilder<List<ProductCatalogModel>>(
-              stream: catalogService.getProjectProductsStream(
-                user.organizationId!,
-                isEditMode ? widget.product!.projects.first : _selectedProjectId!,
-                user.clientId,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _buildDropdownSkeleton(l10n.family.capitalize);
-                }
+            Consumer<ProductionDataProvider>(
+              builder: (context, dataProvider, _) {
+                final allProducts = dataProvider.filterCatalogProducts(
+                    projectId: isEditMode
+                        ? widget.product!.projects.first
+                        : _selectedProjectId!);
 
-                final allProducts = snapshot.data ?? [];
-                
                 // Extraer familias únicas
                 final families = allProducts
                     .map((p) => p.family)
@@ -1159,7 +1136,8 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
                       value: '__CREATE_NEW__',
                       child: Row(
                         children: [
-                          Icon(Icons.add_circle_outline, color: Colors.blue, size: 20),
+                          Icon(Icons.add_circle_outline,
+                              color: Colors.blue, size: 20),
                           SizedBox(width: 8),
                           Text(
                             'Crear nueva familia',
@@ -1175,7 +1153,8 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
                 }
 
                 // Si hay una familia pendiente de crear que no está en la lista, agregarla
-                if (_pendingNewFamily != null && !families.contains(_pendingNewFamily)) {
+                if (_pendingNewFamily != null &&
+                    !families.contains(_pendingNewFamily)) {
                   dropdownItems.add(
                     DropdownMenuItem(
                       value: _pendingNewFamily,
@@ -1202,20 +1181,20 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
                 // Opciones: Familias existentes
                 dropdownItems.addAll(
                   families.map((family) => DropdownMenuItem(
-                    value: family,
-                    child: Text(
-                      family!,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  )),
+                        value: family,
+                        child: Text(
+                          family!,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      )),
                 );
 
                 // Validar que el valor seleccionado esté en los items
                 final validValue = _selectedFamily != null &&
-                    (families.contains(_selectedFamily) || 
-                     _selectedFamily == _pendingNewFamily ||
-                     _selectedFamily == '__CREATE_NEW__')
+                        (families.contains(_selectedFamily) ||
+                            _selectedFamily == _pendingNewFamily ||
+                            _selectedFamily == '__CREATE_NEW__')
                     ? _selectedFamily
                     : null;
 
@@ -1303,38 +1282,6 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildDropdownSkeleton(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            height: 16,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1436,9 +1383,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
                     ),
                   )
                 : Text(
-                    isCreateMode 
-                        ? l10n.createProduct 
-                        : l10n.saveChangesButton,
+                    isCreateMode ? l10n.createProduct : l10n.saveChangesButton,
                   ),
           ),
         ),
