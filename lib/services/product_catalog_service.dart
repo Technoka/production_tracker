@@ -331,6 +331,7 @@ class ProductCatalogService extends ChangeNotifier {
     String? name,
     String? reference,
     String? description,
+    String? family,
     String? category,
     List<String>? imageUrls,
     Map<String, dynamic>? specifications,
@@ -374,6 +375,7 @@ class ProductCatalogService extends ChangeNotifier {
         updateData['reference'] = reference;
       }
       if (description != null) updateData['description'] = description;
+      if (family != null) updateData['family'] = family;
       if (category != null) updateData['category'] = category;
       if (imageUrls != null) updateData['imageUrls'] = imageUrls;
       if (specifications != null) updateData['specifications'] = specifications;
