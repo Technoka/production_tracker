@@ -1,3 +1,4 @@
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/helpers/approval_helper.dart';
 import 'package:gestion_produccion/models/pending_object_model.dart';
@@ -1056,7 +1057,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    l10n.family,
+                    l10n.family.capitalize,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -1119,7 +1120,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  l10n.family,
+                  l10n.family.capitalize,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -1135,7 +1136,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
               ),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _buildDropdownSkeleton(l10n.family);
+                  return _buildDropdownSkeleton(l10n.family.capitalize);
                 }
 
                 final allProducts = snapshot.data ?? [];
@@ -1220,7 +1221,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
 
                 return FilterUtils.buildFullWidthDropdown<String>(
                   context: context,
-                  label: l10n.family,
+                  label: l10n.family.capitalize,
                   value: validValue,
                   icon: Icons.category,
                   isRequired: true,
