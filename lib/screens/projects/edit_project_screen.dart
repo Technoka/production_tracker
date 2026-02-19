@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/providers/production_data_provider.dart';
+import 'package:gestion_produccion/services/organization_member_service.dart';
 import 'package:provider/provider.dart';
 import '../../services/project_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/project_model.dart';
 import '../../models/user_model.dart';
 import '../../services/permission_service.dart';
-import '../../services/client_service.dart';
 import '../../models/client_model.dart';
 import '../../widgets/access_control_widget.dart';
 import '../../l10n/app_localizations.dart';
-import '../../models/permission_model.dart';
 
 class EditProjectScreen extends StatefulWidget {
   final ProjectModel project;
@@ -90,6 +90,8 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final authService = Provider.of<AuthService>(context, listen: false);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
     final user = authService.currentUserData;
 
     if (user?.organizationId == null) {
@@ -101,64 +103,23 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       );
     }
 
-    // Verificar permisos para editar
-    return FutureBuilder<bool>(
-      future: _checkEditPermission(user!.uid, user.organizationId!),
-      builder: (context, permissionSnapshot) {
-        if (permissionSnapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            appBar: AppBar(title: Text(l10n.editProjectTitle)),
-            body: const Center(child: CircularProgressIndicator()),
-          );
-        }
+    final canEditProjects = permissionService.canEditProjects;
 
-        final canEdit = permissionSnapshot.data ?? false;
+    // Verificar si el proyecto está completado o cancelado
+    final isCompleted = widget.project.status == 'completed';
+    final isCancelled = widget.project.status == 'cancelled';
 
-        // Verificar si el proyecto está completado o cancelado
-        final isCompleted = widget.project.status == 'completed';
-        final isCancelled = widget.project.status == 'cancelled';
-
-        if (!canEdit || isCompleted || isCancelled) {
-          return _buildAccessDeniedScreen(
-            context,
-            l10n,
-            canEdit: canEdit,
-            isCompleted: isCompleted,
-            isCancelled: isCancelled,
-          );
-        }
-
-        return _buildForm(context, l10n, user);
-      },
-    );
-  }
-
-  Future<bool> _checkEditPermission(
-      String userId, String organizationId) async {
-    final permissionService =
-        Provider.of<PermissionService>(context, listen: false);
-
-    // Cargar permisos del usuario actual
-    await permissionService.loadCurrentUserPermissions(
-      userId: userId,
-      organizationId: organizationId,
-    );
-
-    // Verificar si puede editar proyectos
-    final permissions = permissionService.effectivePermissions;
-    if (permissions == null) return false;
-
-    // Si tiene scope "all", puede editar cualquier proyecto
-    if (permissions.editProjectsScope == PermissionScope.all) {
-      return true;
+    if (!canEditProjects || isCompleted || isCancelled) {
+      return _buildAccessDeniedScreen(
+        context,
+        l10n,
+        canEdit: canEditProjects,
+        isCompleted: isCompleted,
+        isCancelled: isCancelled,
+      );
     }
 
-    // Si tiene scope "assigned", verificar si está asignado
-    if (permissions.editProjectsScope == PermissionScope.assigned) {
-      return widget.project.assignedMembers.contains(userId);
-    }
-
-    return false;
+    return _buildForm(context, l10n, user!);
   }
 
   Widget _buildAccessDeniedScreen(
@@ -169,25 +130,17 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     required bool isCancelled,
   }) {
     String title;
-    String message;
     IconData icon;
-    Color color;
 
     if (isCompleted) {
       title = l10n.projectIsCompleted;
-      message = l10n.projectIsCompletedDesc;
       icon = Icons.check_circle_outline;
-      color = Colors.green;
     } else if (isCancelled) {
       title = l10n.projectIsCancelled;
-      message = l10n.projectIsCancelledDesc;
       icon = Icons.cancel_outlined;
-      color = Colors.orange;
     } else {
       title = l10n.cannotEditProject;
-      message = l10n.cannotEditProjectDesc;
       icon = Icons.lock_outline;
-      color = Colors.red;
     }
 
     return Scaffold(
@@ -291,8 +244,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
   }
 
   Widget _buildClientInfoCard(BuildContext context, AppLocalizations l10n) {
-    final clientService = Provider.of<ClientService>(context, listen: false);
-
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -341,17 +292,11 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            FutureBuilder<ClientModel?>(
-              future: clientService.getClient(
-                widget.project.organizationId,
-                widget.project.clientId,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _buildClientInfoSkeleton();
-                }
+            Consumer<ProductionDataProvider>(
+              builder: (context, dataProvider, _) {
+                final client =
+                    dataProvider.getClientById(widget.project.clientId);
 
-                final client = snapshot.data;
                 if (client == null) {
                   return _buildClientNotFound(l10n);
                 }
@@ -361,54 +306,6 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildClientInfoSkeleton() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 120,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  width: 180,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -488,29 +385,27 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                     color: Colors.grey.shade700,
                   ),
                 ),
-                if (client.email != null) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.email_outlined,
-                        size: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          client.email!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.email_outlined,
+                      size: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        client.email,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -609,6 +504,8 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     AppLocalizations l10n,
     UserModel user,
   ) {
+    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -627,7 +524,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
                   _selectedMembers = members;
                 });
               },
-              readOnly: false,
+              readOnly: memberService.currentMember?.clientId != null,
               showTitle: true,
               resourceType: 'project',
               customTitle: 'Control de Acceso al Proyecto',
