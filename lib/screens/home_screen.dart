@@ -184,10 +184,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     // Verificar permisos específicos
-    final canViewKanban = permissionService.hasPermission('kanban', 'view');
-    final canViewBatches = permissionService.hasPermission('batches', 'view');
-    final canCreateBatches =
-        permissionService.hasPermission('batches', 'create');
+    final canViewKanban = permissionService.canViewKanban;
+    final canViewBatches = permissionService.canViewBatches;
+    final canCreateBatches = permissionService.canCreateBatches;
     final canAccessProduction = canViewKanban || canViewBatches;
 
     if (user == null) {
@@ -464,13 +463,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final permissionService = Provider.of<PermissionService>(context);
     final canAccessProduction =
-        permissionService.hasPermission('kanban', 'view') ||
-            permissionService.hasPermission('batches', 'view');
+        permissionService.canViewKanban ||
+            permissionService.canViewBatches;
     final canAccessManagement =
-        permissionService.hasPermission('projects', 'view') ||
-            permissionService.hasPermission('clients', 'view') ||
-            permissionService.hasPermission('catalog', 'view');
-    final canViewReports = permissionService.hasPermission('reports', 'view');
+        permissionService.canViewProjects ||
+            permissionService.canViewClients ||
+            permissionService.canViewCatalog;
+    final canViewReports = permissionService.canViewReports;
 
     return Drawer(
       child: ListView(
@@ -608,7 +607,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: EdgeInsets.symmetric(vertical: 24.0),
             child: Center(
               child: Text(
-                'Versión 0.11.1 - 10/2/25 - Mejoras visuales y bugs',
+                'Version 0.10.0 - 10/2/25 - Alpha Test',
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 12,
