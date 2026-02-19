@@ -51,7 +51,6 @@ class _ClientPermissionsSelectorState extends State<ClientPermissionsSelector> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final applicablePermissions = PermissionRegistryClientExtension.getClientApplicablePermissions();
 
     if (applicablePermissions.isEmpty) {
@@ -180,7 +179,6 @@ class _ClientPermissionsSelectorState extends State<ClientPermissionsSelector> {
     ClientApplicablePermission permission,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final key = permission.fullKey;
 
     // Determinar si está habilitado
