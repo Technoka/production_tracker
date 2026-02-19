@@ -1,6 +1,8 @@
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/screens/catalog/product_catalog_form_screen.dart';
+import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -8,15 +10,8 @@ import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/product_catalog_model.dart';
 import '../../models/user_model.dart';
-import '../../models/client_model.dart';
-import '../../models/project_model.dart';
 
 import '../../services/product_catalog_service.dart';
-import '../../services/client_service.dart';
-import '../../services/project_service.dart';
-import '../../services/organization_member_service.dart';
-
-import 'edit_product_catalog_screen.dart';
 
 class ProductCatalogDetailScreen extends StatefulWidget {
   final String productId;
@@ -39,7 +34,7 @@ class _ProductCatalogDetailScreenState
     extends State<ProductCatalogDetailScreen> {
   ProductCatalogModel? _product;
   bool _isLoading = true;
-  
+
   // Variables de estado para permisos pre-calculados
   bool _canEdit = false;
   bool _canDelete = false;
@@ -52,34 +47,30 @@ class _ProductCatalogDetailScreenState
   }
 
   Future<void> _loadData() async {
-    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
+    final permissionService = Provider.of<PermissionService>(context);
+    final dataProvider =
+        Provider.of<ProductionDataProvider>(context, listen: false);
+
     setState(() {
       _isLoading = true;
     });
 
     try {
       // 1. Cargar producto
-      final product = await catalogService.getProductById(
-          widget.organizationId, widget.productId);
+      final product = dataProvider.getCatalogProductById(widget.productId);
 
-      // 2. Calcular permisos
-      final memberService =
-          Provider.of<OrganizationMemberService>(context, listen: false);
-      
-      // Asegurar que el miembro actual está cargado en el servicio
-      await memberService.getCurrentMember(
-          widget.organizationId, widget.currentUser.uid);
-
-      final canEdit = await memberService.can('product_catalog', 'edit');
-      final canDelete = await memberService.can('product_catalog', 'delete');
-      final canCreate = await memberService.can('product_catalog', 'create');
+      final canEditCatalogProducts = permissionService.canEditCatalogProducts;
+      final canDeleteCatalogProducts =
+          permissionService.canDeleteCatalogProducts;
+      final canCreateCatalogProducts =
+          permissionService.canCreateCatalogProducts;
 
       if (mounted) {
         setState(() {
           _product = product;
-          _canEdit = canEdit;
-          _canDelete = canDelete;
-          _canDuplicate = canCreate;
+          _canEdit = canEditCatalogProducts;
+          _canDelete = canDeleteCatalogProducts;
+          _canDuplicate = canCreateCatalogProducts;
           _isLoading = false;
         });
       }
@@ -95,7 +86,7 @@ class _ProductCatalogDetailScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(title: Text(l10n.productDetailTitle)),
@@ -126,7 +117,7 @@ class _ProductCatalogDetailScreenState
 
     final product = _product!;
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-    
+
     // Verificar si tiene algún permiso para mostrar el menú
     final hasAnyAction = _canEdit || _canDelete || _canDuplicate;
 
@@ -308,10 +299,12 @@ class _ProductCatalogDetailScreenState
                     label: l10n.descriptionLabel.replaceAll(' *', ''),
                     value: product.description,
                   ),
-                  _buildCardRow(
-                    label: l10n.timesUsed,
-                    value: product.usageCount != 1 ? '${product.usageCount} ${l10n.timeUsageMultiple}' : '${product.usageCount} ${l10n.timeUsageSingle}',
-                  ),
+                _buildCardRow(
+                  label: l10n.timesUsed,
+                  value: product.usageCount != 1
+                      ? '${product.usageCount} ${l10n.timeUsageMultiple}'
+                      : '${product.usageCount} ${l10n.timeUsageSingle}',
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -320,19 +313,14 @@ class _ProductCatalogDetailScreenState
             if (!product.isPublic && product.clientId != null) ...[
               _buildSectionTitle(context, l10n.client),
               const SizedBox(height: 8),
-              FutureBuilder<ClientModel?>(
-                future: Provider.of<ClientService>(context, listen: false)
-                    .getClient(widget.organizationId, product.clientId!),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return _buildLoadingCard(context, Colors.green);
-                  }
+              Consumer<ProductionDataProvider>(
+                builder: (context, dataProvider, _) {
+                  final client = dataProvider.getClientById(product.clientId!);
 
-                  if (!snapshot.hasData) {
+                  if (client == null) {
                     return _buildErrorCard(context, l10n.clientNotFound);
                   }
 
-                  final client = snapshot.data!;
                   return _buildInfoCard(
                     context,
                     icon: Icons.person_outline,
@@ -358,7 +346,8 @@ class _ProductCatalogDetailScreenState
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         client.name,
@@ -395,19 +384,15 @@ class _ProductCatalogDetailScreenState
             if (!product.isPublic && product.projects.isNotEmpty) ...[
               _buildSectionTitle(context, l10n.project),
               const SizedBox(height: 8),
-              FutureBuilder<ProjectModel?>(
-                future: Provider.of<ProjectService>(context, listen: false)
-                    .getProject(widget.organizationId, product.projects.first),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return _buildLoadingCard(context, Colors.indigo);
-                  }
+              Consumer<ProductionDataProvider>(
+                builder: (context, dataProvider, _) {
+                  final project =
+                      dataProvider.getProjectById(product.projects.first);
 
-                  if (!snapshot.hasData) {
+                  if (project == null) {
                     return _buildErrorCard(context, l10n.projectNotFound);
                   }
 
-                  final project = snapshot.data!;
                   return _buildInfoCard(
                     context,
                     icon: Icons.folder_outlined,
@@ -440,15 +425,15 @@ class _ProductCatalogDetailScreenState
                                       fontSize: 16,
                                     ),
                                   ),
-                                    Text(
-                                      project.description,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey[600],
-                                      ),
+                                  Text(
+                                    project.description,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[600],
                                     ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -550,22 +535,6 @@ class _ProductCatalogDetailScreenState
   }
 
   // --- Widgets Auxiliares ---
-
-  Widget _buildLoadingCard(BuildContext context, Color color) {
-    return _buildInfoCard(
-      context,
-      icon: Icons.refresh,
-      iconColor: color,
-      children: [
-        const Center(
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: CircularProgressIndicator(),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildErrorCard(BuildContext context, String message) {
     return _buildInfoCard(
@@ -675,7 +644,8 @@ class _ProductCatalogDetailScreenState
   // --- Acciones ---
 
   Future<void> _duplicateProduct(AppLocalizations l10n) async {
-    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
+    final catalogService =
+        Provider.of<ProductCatalogService>(context, listen: false);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -732,7 +702,8 @@ class _ProductCatalogDetailScreenState
   }
 
   Future<void> _toggleActive(AppLocalizations l10n) async {
-    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
+    final catalogService =
+        Provider.of<ProductCatalogService>(context, listen: false);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -787,7 +758,8 @@ class _ProductCatalogDetailScreenState
   }
 
   Future<void> _deleteProduct(AppLocalizations l10n) async {
-    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
+    final catalogService =
+        Provider.of<ProductCatalogService>(context, listen: false);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -809,8 +781,8 @@ class _ProductCatalogDetailScreenState
 
     if (confirm != true) return;
 
-    final success = await catalogService.deleteProduct(
-        widget.organizationId, _product!.id);
+    final success =
+        await catalogService.deleteProduct(widget.organizationId, _product!.id);
 
     if (mounted) {
       if (success) {
