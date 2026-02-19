@@ -6,9 +6,10 @@ import '../../models/product_catalog_model.dart';
 import '../../models/user_model.dart';
 import '../../services/product_catalog_service.dart';
 import '../../utils/role_utils.dart';
-import 'create_product_catalog_screen.dart';
-import 'edit_product_catalog_screen.dart';
 import 'product_catalog_detail_screen.dart';
+
+// Por ahora no se usa, es una lista de todos los productos de catalogo.
+// Puede ser util en el futuro.
 
 class ProductCatalogScreen extends StatefulWidget {
   final String organizationId;
@@ -302,7 +303,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const CreateProductCatalogScreen(
+                    builder: (context) => const ProductCatalogFormScreen(
 
                     ),
                   ),
