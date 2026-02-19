@@ -1,24 +1,20 @@
 {
-  "version": "0.9.1",
+  "version": "0.10.0",
   "isActive": true,
   "features": {
     "es": [
-      "Nuevos sistemas de permisos, cambios de estado y transiciones"
+      "Alpha Test"
     ],
     "en": [
-      "New system for permissions, status changes and transitions"
+      "Alpha Test"
     ]
   },
   "fixes": {
     "es": [
-      "El acceso de todas las acciones se controla",
-      "Hay accesos personalizables para cada miembro",
-      "Las fases, estados y transiciones entre estados son personalizables"
+      "El día ha llegado, a probar las funcionalidades y disfrutar"
     ],
     "en": [
-      "Access to all actions is controlled",
-      "Custom permissions for each member",
-      "Phases, status and transitions between states are customizabled"
+      "The day has arrived, time to try all functionalities and enjoy"
     ]
   }
 }
