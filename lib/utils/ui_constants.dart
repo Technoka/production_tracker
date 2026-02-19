@@ -9,8 +9,11 @@ class UIConstants {
   // Constantes en la app centralizadas aqui
 
   // Anchura maxima de pantallas
-  static const double SCREEN_MAX_WIDTH = 800;
-  static const int BATCH_MAX_PRODUCTS = 10;
+  static const double SCREEN_MAX_WIDTH = 1000;
+  static const int BATCH_MAX_PRODUCTS = 20;
+
+  // Anchura de tarjetas de kanban
+  static const double KANBAN_CARD_WIDTH = 280;
 
   // ==================== COLORES PREDEFINIDOS ====================
 
@@ -224,6 +227,7 @@ class UIConstants {
     'manage_accounts': Icons.manage_accounts,
     'supervisor_account': Icons.supervisor_account,
     'groups': Icons.groups,
+    'crown': Icons.photo_camera_front_rounded,
   };
 
   /// Categorías de iconos para organización en UI
