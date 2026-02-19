@@ -25,6 +25,18 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
   Future<void> _handleResetPassword(AppLocalizations l10n) async {
     if (!_formKey.currentState!.validate()) return;
 
+    final email = _emailController.text.trim().toLowerCase();
+    if (email.endsWith('@gmail.com')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.useGoogleSignIn),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
     final authService = Provider.of<AuthService>(context, listen: false);
     final success = await authService.sendPasswordResetEmail(
       _emailController.text.trim(),
