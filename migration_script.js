@@ -19,32 +19,32 @@ async function migrateToNewPermissionSystem() {
       console.log(`\n📦 Procesando organización: ${orgData.name} (${orgId})`);
       
       // 1.1 Inicializar roles predeterminados
-      await initializeRoles(orgId, orgData.ownerId);
+      // await initializeRoles(orgId, orgData.ownerId);
       
       // 1.2 Migrar miembros existentes
-      await migrateMembersForOrganization(orgId, orgData);
+      // await migrateMembersForOrganization(orgId, orgData);
       
       // 1.3 Inicializar estados de producto
-      await initializeStatuses(orgId, orgData.ownerId);
+      // await initializeStatuses(orgId, orgData.ownerId);
       
       // 1.4 Inicializar transiciones de estado
-      await initializeTransitions(orgId, orgData.ownerId);
+      // await initializeTransitions(orgId, orgData.ownerId);
       
       // 1.5 Actualizar lotes con assignedMembers
-      await addAssignedMembersToBatches(orgId);
+      // await addAssignedMembersToBatches(orgId);
       
       // 1.6 Añadir campos de estado a productos
       await addStatusFieldsToProducts(orgId);
       
       // 1.7 Verificar proyectos
-      await verifyProjectsAssignedMembers(orgId);
+      // await verifyProjectsAssignedMembers(orgId);
       
       // 1.8 Marcar organización como migrada
-      await orgDoc.ref.update({
-        statusesInitialized: true,
-        migratedToNewPermissions: true,
-        migrationDate: admin.firestore.FieldValue.serverTimestamp()
-      });
+      // await orgDoc.ref.update({
+      //   statusesInitialized: true,
+      //   migratedToNewPermissions: true,
+      //   migrationDate: admin.firestore.FieldValue.serverTimestamp()
+      // });
       
       console.log(`✅ Organización ${orgData.name} migrada exitosamente`);
     }
@@ -633,7 +633,7 @@ async function addStatusFieldsToProducts(orgId) {
   
   for (const batchDoc of batchesSnapshot.docs) {
     const productsSnapshot = await batchDoc.ref
-      .collection('products')
+      .collection('batch_products')
       .get();
     
     if (productsSnapshot.empty) continue;
