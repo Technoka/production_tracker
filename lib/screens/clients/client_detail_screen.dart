@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:gestion_produccion/models/project_model.dart';
+import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/screens/projects/project_detail_screen.dart';
-import 'package:gestion_produccion/services/project_service.dart';
+import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
 import '../../services/client_service.dart';
-import '../../services/organization_member_service.dart';
 import '../../models/client_model.dart';
 import '../../utils/ui_constants.dart';
 import '../../widgets/client_color_picker.dart';
@@ -26,8 +25,8 @@ class ClientDetailScreen extends StatefulWidget {
 
 class _ClientScreenState extends State<ClientDetailScreen> {
   // 1. Definimos variables de estado para los permisos
-  bool _canEdit = false;
-  bool _canDelete = false;
+  bool _canEditClients = false;
+  bool _canDeleteClients = false;
   bool _isLoadingPermissions = true; // Para mostrar carga mientras verificamos
 
   @override
@@ -38,23 +37,21 @@ class _ClientScreenState extends State<ClientDetailScreen> {
   }
 
   Future<void> _loadPermissions() async {
-    // Nota: En initState usamos listen: false porque solo leemos una vez
-    final memberService =
-        Provider.of<OrganizationMemberService>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
+    final permissionService = Provider.of<PermissionService>(context, listen: false);
 
     final user = authService.currentUserData;
     if (user?.organizationId == null) return;
 
     // Verificamos permisos
-    final canEdit = await memberService.can('clients', 'edit');
-    final canDelete = await memberService.can('clients', 'delete');
+    final canEditClients = permissionService.canEditClients;
+    final canDeleteClients = permissionService.canDeleteClients;
 
     // Actualizamos el estado si el widget sigue vivo (mounted)
     if (mounted) {
       setState(() {
-        _canEdit = canEdit;
-        _canDelete = canDelete;
+        _canEditClients = canEditClients;
+        _canDeleteClients = canDeleteClients;
         _isLoadingPermissions = false;
       });
     }
@@ -91,13 +88,13 @@ class _ClientScreenState extends State<ClientDetailScreen> {
       appBar: AppBar(
         title: Text(l10n.clientDetailTitle),
         actions: [
-          if (_canEdit || _canDelete)
+          if (_canEditClients || _canDeleteClients)
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert),
               onSelected: (value) async {
                 switch (value) {
                   case 'edit':
-                    if (_canEdit) {
+                    if (_canEditClients) {
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -108,13 +105,13 @@ class _ClientScreenState extends State<ClientDetailScreen> {
                     }
                     break;
                   case 'duplicate':
-                    if (_canEdit) {
+                    if (_canEditClients) {
                       await _handleDuplicate(
                           context, clientService, user, l10n);
                     }
                     break;
                   case 'delete':
-                    if (_canDelete) {
+                    if (_canDeleteClients) {
                       await _showDeleteDialog(
                         context,
                         clientService,
@@ -126,7 +123,7 @@ class _ClientScreenState extends State<ClientDetailScreen> {
                 }
               },
               itemBuilder: (context) => [
-                if (_canEdit)
+                if (_canEditClients)
                   PopupMenuItem(
                     value: 'edit',
                     child: Row(
@@ -137,7 +134,7 @@ class _ClientScreenState extends State<ClientDetailScreen> {
                       ],
                     ),
                   ),
-                if (_canEdit)
+                if (_canEditClients)
                   PopupMenuItem(
                     value: 'duplicate',
                     child: Row(
@@ -148,7 +145,7 @@ class _ClientScreenState extends State<ClientDetailScreen> {
                       ],
                     ),
                   ),
-                if (_canDelete)
+                if (_canDeleteClients)
                   PopupMenuItem(
                     value: 'delete',
                     child: Row(
@@ -230,7 +227,8 @@ class _ClientScreenState extends State<ClientDetailScreen> {
                             context,
                             icon: Icons.phone_outlined,
                             label: l10n.phoneLabel,
-                            value: '${widget.client.phonePrefix!} ${widget.client.phone!}',
+                            value:
+                                '${widget.client.phonePrefix!} ${widget.client.phone!}',
                             onTap: () => _copyToClipboard(
                               context,
                               '${widget.client.phonePrefix!}${widget.client.phone!}',
@@ -381,7 +379,7 @@ class _ClientScreenState extends State<ClientDetailScreen> {
 
   Widget _buildHeader(BuildContext context, ClientModel client) {
     final colorValue =
-        client.colorValue ?? Theme.of(context).colorScheme.primary;
+        client.colorValue;
 
     return Container(
       width: double.infinity,
@@ -536,23 +534,22 @@ class _ClientScreenState extends State<ClientDetailScreen> {
     );
   }
 
-// TODO: mostrar solo si tiene permiso projects.view
   Widget _buildClientProjects(
     BuildContext context,
     String organizationId,
     String clientId,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final projectService = Provider.of<ProjectService>(context, listen: false);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
 
-    return FutureBuilder<List<ProjectModel>?>(
-      future: projectService.getClientProjects(organizationId, clientId),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const SizedBox.shrink();
-        }
+    final canViewProjects = permissionService.canViewProjects;
 
-        final projects = snapshot.data!;
+    if (!canViewProjects) return const SizedBox.shrink();
+
+    return Consumer<ProductionDataProvider>(
+      builder: (context, dataProvider, _) {
+        final projects = dataProvider.filterProjects(clientId: clientId);
 
         if (projects.isEmpty) {
           return const SizedBox.shrink();
@@ -578,10 +575,9 @@ class _ClientScreenState extends State<ClientDetailScreen> {
                   leading: const Icon(Icons.folder_outlined),
                   // CORRECCIÓN 2: Acceder con punto (.) en vez de corchetes ['']
                   title: Text(project.name),
-                  subtitle: project.description != null &&
-                          project.description!.isNotEmpty
+                  subtitle: project.description.isNotEmpty
                       ? Text(
-                          project.description!,
+                          project.description,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         )
