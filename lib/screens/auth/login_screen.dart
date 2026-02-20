@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
 import '../../utils/ui_constants.dart';
 import 'password_reset_screen.dart';
+import '../../widgets/error_display_widget.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -56,14 +57,10 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authService.error ?? l10n.loginError),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+    if (mounted) {
+      if (authService.appError != null) {
+        AppErrorSnackBar.show(context, authService.appError!);
+      }
     }
   }
 

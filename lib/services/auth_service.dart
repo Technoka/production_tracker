@@ -6,6 +6,8 @@ import 'package:firebase_storage/firebase_storage.dart'; // Importar storage
 import '../models/user_model.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart'; // Importar compresor
 import 'package:cloud_functions/cloud_functions.dart';
+import '../utils/app_error.dart';
+import '../utils/error_handler.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -27,6 +29,10 @@ class AuthService extends ChangeNotifier {
 
   String? _error;
   String? get error => _error;
+
+    // Error estandarizado — úsalo en la UI con AppErrorSnackBar.show(context, authService.appError!)
+  AppError? _appError;
+  AppError? get appError => _appError;
 
   // Registrar nuevo usuario
   Future<bool> register({
@@ -92,6 +98,7 @@ class AuthService extends ChangeNotifier {
     try {
       _isLoading = true;
       _error = null;
+      _appError = null;
       notifyListeners();
 
       await _auth.signInWithEmailAndPassword(
@@ -104,7 +111,11 @@ class AuthService extends ChangeNotifier {
       // Verificar si el usuario está activo
       if (_currentUserData != null && !_currentUserData!.isActive) {
         await signOut();
-        _error = 'Tu cuenta ha sido desactivada. Contacta al administrador.';
+        _appError = const AppError(
+          type: AppErrorType.auth,
+          debugDetail: 'Account disabled by admin (isActive=false)',
+        );
+        _error = _appError!.debugDetail;
         _isLoading = false;
         notifyListeners();
         return false;
@@ -113,31 +124,9 @@ class AuthService extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return true;
-    } on FirebaseAuthException catch (e) {
-      // Errores específicos de Firebase Auth
-      if (e.code == 'email-already-in-use') {
-        _error = 'Este correo ya está registrado';
-      } else if (e.code == 'wrong-password') {
-        _error = 'Contraseña incorrecta';
-      } else if (e.code == 'user-not-found') {
-        _error = 'Usuario no encontrado';
-      } else if (e.code == 'invalid-email') {
-        _error = 'Email inválido';
-      } else if (e.code == 'weak-password') {
-        _error = 'Contraseña muy débil';
-      } else {
-        _error = _getErrorMessage(e.code);
-      }
-      _isLoading = false;
-      notifyListeners();
-      return false;
     } catch (e) {
-      // Si no es FirebaseAuthException pero sí es un String (el throw anterior), relanzar
-      if (e is String) {
-        rethrow;
-      }
-
-      _error = 'Error inesperado: $e';
+      _appError = ErrorHandler.from(e);
+      _error = _appError!.debugDetail; // compatibilidad con código legacy
       _isLoading = false;
       notifyListeners();
       return false;
@@ -146,37 +135,29 @@ class AuthService extends ChangeNotifier {
 
   Future<void> signOut() async {
     try {
-      // 1. Limpiar datos locales primero
+      // Limpiar datos locales
       _currentUserData = null;
       _error = null;
+      _appError = null;
       _isLoading = false;
 
-      // 2. Terminar Firestore para cancelar TODOS los listeners activos.
-      // Esto evita el "FIRESTORE INTERNAL ASSERTION FAILED: Unexpected state"
-      // que ocurre al cambiar de usuario con streams abiertos.
-      // Firestore se reinicia automáticamente en la próxima operación.
-      try {
-        await FirebaseFirestore.instance.terminate();
-        await FirebaseFirestore.instance.clearPersistence();
-      } catch (firestoreError) {
-        // No es crítico si falla (ej: ya estaba terminado)
-        debugPrint('Aviso al terminar Firestore: $firestoreError');
-      }
-
-      // 3. Cerrar sesión de Google
-      await _googleSignIn.signOut().catchError((e) {
+      // Cerrar sesión de Google (no bloqueante)
+      _googleSignIn.signOut().catchError((e) {
         debugPrint('Error al cerrar sesión de Google: $e');
       });
 
-      // 4. Cerrar sesión de Firebase Auth
+      // Cerrar sesión de Firebase Auth
+      // NOTA: No llamamos a FirebaseFirestore.terminate() porque en Android
+      // bloquea indefinidamente si hay StreamBuilders activos.
+      // El error "INTERNAL ASSERTION FAILED" es exclusivo de Flutter Web.
       await _auth.signOut();
 
       notifyListeners();
     } catch (e) {
       debugPrint('Error al cerrar sesión: $e');
-      // Forzar limpieza aunque haya error
       _currentUserData = null;
       _error = null;
+      _appError = null;
       _isLoading = false;
       notifyListeners();
     }
