@@ -8,7 +8,6 @@ import '../../models/phase_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/production_batch_service.dart';
-import '../../services/phase_service.dart';
 import '../../models/production_batch_model.dart';
 import 'production_batch_detail_screen.dart';
 import '../../widgets/chat/chat_button.dart';
@@ -129,7 +128,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-    final memberService = Provider.of<OrganizationMemberService>(context);
     final user = authService.currentUserData;
     final permissionService = Provider.of<PermissionService>(context);
 
@@ -142,19 +140,13 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
+    final canEditBatchProducts = permissionService.canEditBatchProducts;
 
-    return StreamBuilder<List<BatchProductModel>>(
-      stream: Provider.of<ProductionBatchService>(context, listen: false)
-          .watchBatchProducts(widget.organizationId, widget.batchId, user!.uid),
-      builder: (context, productSnapshot) {
-        if (productSnapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Cargando...')),
-            body: const Center(child: CircularProgressIndicator()),
-          );
-        }
+    return Consumer<ProductionDataProvider>(
+      builder: (context, dataProvider, _) {
+        final products = dataProvider.getProductsForBatch(widget.batchId);
 
-        if (productSnapshot.hasError || !productSnapshot.hasData) {
+        if (products.isEmpty) {
           return Scaffold(
             appBar: AppBar(title: const Text('Error')),
             body: Center(
@@ -163,7 +155,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 children: [
                   const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 16),
-                  Text('Error al cargar el producto: ${productSnapshot.error}'),
+                  const Text('Producto no encontrado'),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
@@ -174,9 +166,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             ),
           );
         }
-
-        // Buscar el producto específico en la lista
-        final products = productSnapshot.data!;
 
         BatchProductModel? product;
         try {
@@ -212,45 +201,36 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                     parentId: product.batchId,
                     entityName:
                         '${product.productName} - ${product.productReference}',
-                    user: user,
+                    user: user!,
                     showInAppBar: true),
 
-              FutureBuilder<bool>(
-                future: memberService.can('batch_products', 'edit'),
-                builder: (context, snapshot) {
-                  final canEdit = snapshot.data ?? false;
-
-                  if (!canEdit) return const SizedBox.shrink();
-
-                  return PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert),
-                    onSelected: (value) => _handleAction(value, product!),
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Editar Producto'),
-                          ],
-                        ),
+              if (canEditBatchProducts)
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (value) => _handleAction(value, product!),
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 20),
+                          SizedBox(width: 8),
+                          Text('Editar Producto'),
+                        ],
                       ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 20, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Eliminar',
-                                style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 20, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Eliminar', style: TextStyle(color: Colors.red)),
+                        ],
                       ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                  ],
+                ),
             ],
           ),
           body: RefreshIndicator(
@@ -385,19 +365,11 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
 // Lote (Obtenido asíncronamente)
             if (user?.organizationId != null)
-              FutureBuilder<ProductionBatchModel?>(
-                future:
-                    Provider.of<ProductionBatchService>(context, listen: false)
-                        .getBatchById(user!.organizationId!, product.batchId),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Text(
-                      'Cargando lote...',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[400]),
-                    );
-                  }
+              Consumer<ProductionDataProvider>(
+                builder: (context, dataProvider, _) {
+                  final batch = dataProvider.getBatchById(product.batchId);
 
-                  if (snapshot.hasError || !snapshot.hasData) {
+                  if (batch == null) {
                     // Si falla o no encuentra el lote, mostramos el ID o un texto genérico
                     return Text(
                       'Lote no disponible',
@@ -405,7 +377,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                     );
                   }
 
-                  final batch = snapshot.data!;
                   return Row(
                     children: [
                       Expanded(
@@ -427,7 +398,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                               MaterialPageRoute(
                                 builder: (context) =>
                                     ProductionBatchDetailScreen(
-                                  organizationId: user.organizationId!,
+                                  organizationId: user!.organizationId!,
                                   batchId: batch.id,
                                 ),
                               ),
@@ -990,24 +961,75 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     UserModel? user,
   ) {
     // Si no tiene permisos, no mostramos nada
-    final memberService = Provider.of<OrganizationMemberService>(
-      context,
-      listen: false,
-    );
-    final phaseService = Provider.of<PhaseService>(context, listen: false);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
 
-    return FutureBuilder<bool>(
-      future: memberService.can('batch_products', 'changeStatus'),
-      builder: (context, permSnapshot) {
-        final canChangeStatus = permSnapshot.data ?? false;
+    final canChangeStatus = permissionService.canChangeProductStatus;
 
-        if (!canChangeStatus) return const SizedBox.shrink();
+    if (!canChangeStatus) return const SizedBox.shrink();
 
-        // Verificar si está en la última fase
-        return FutureBuilder<List<ProductionPhase>>(
-          future: phaseService.getActivePhases(widget.organizationId),
-          builder: (context, phasesSnapshot) {
-            if (phasesSnapshot.connectionState == ConnectionState.waiting) {
+    // Verificar si está en la última fase
+    return Consumer<ProductionDataProvider>(
+      builder: (context, dataProvider, _) {
+        final phases = dataProvider.phases;
+
+        // Encontrar la última fase (mayor order)
+        ProductionPhase? lastPhase;
+        if (phases.isNotEmpty) {
+          lastPhase = phases.reduce((a, b) => a.order > b.order ? a : b);
+        }
+
+        // Verificar si el producto está en la última fase
+        final isInLastPhase =
+            lastPhase != null && product.currentPhase == lastPhase.id;
+
+        if (!isInLastPhase) {
+          // No está en la última fase, no mostrar acciones
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Acciones Disponibles',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade700),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Las acciones de estado están disponibles solo cuando el producto llegue a la última fase de producción (${lastPhase?.name ?? "desconocida"})',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.blue.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+
+        // Está en la última fase, cargar transiciones disponibles
+        final currentStatusId = product.statusId ?? 'pending';
+
+        return FutureBuilder<List<StatusTransitionModel>>(
+          future: _loadAvailableTransitions(currentStatusId),
+          builder: (context, transSnapshot) {
+            if (transSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.all(16.0),
@@ -1016,130 +1038,51 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               );
             }
 
-            if (phasesSnapshot.hasError) {
+            if (transSnapshot.hasError) {
               return Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  'Error al cargar fases: ${phasesSnapshot.error}',
+                  'Error al cargar transiciones: ${transSnapshot.error}',
                   style: const TextStyle(color: Colors.red),
                 ),
               );
             }
 
-            final phases = phasesSnapshot.data ?? [];
+            final transitions = transSnapshot.data ?? [];
 
-            // Encontrar la última fase (mayor order)
-            ProductionPhase? lastPhase;
-            if (phases.isNotEmpty) {
-              lastPhase = phases.reduce((a, b) => a.order > b.order ? a : b);
-            }
-
-            // Verificar si el producto está en la última fase
-            final isInLastPhase =
-                lastPhase != null && product.currentPhase == lastPhase.id;
-
-            if (!isInLastPhase) {
-              // No está en la última fase, no mostrar acciones
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Acciones Disponibles',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Acciones Disponibles',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.shade300),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info_outline, color: Colors.blue.shade700),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Las acciones de estado están disponibles solo cuando el producto llegue a la última fase de producción (${lastPhase?.name ?? "desconocida"})',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.blue.shade900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            // Está en la última fase, cargar transiciones disponibles
-            final currentStatusId = product.statusId ?? 'pending';
-
-            return FutureBuilder<List<StatusTransitionModel>>(
-              future: _loadAvailableTransitions(currentStatusId),
-              builder: (context, transSnapshot) {
-                if (transSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
-
-                if (transSnapshot.hasError) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16.0),
+                ),
+                const SizedBox(height: 12),
+                if (transitions.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.0),
                     child: Text(
-                      'Error al cargar transiciones: ${transSnapshot.error}',
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  );
-                }
-
-                final transitions = transSnapshot.data ?? [];
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Acciones Disponibles',
+                      'No hay transiciones disponibles desde este estado',
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    if (transitions.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8.0),
-                        child: Text(
-                          'No hay transiciones disponibles desde este estado',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      )
-                    else
-                      ...transitions.map((transition) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: _buildTransitionButton(
-                            transition: transition,
-                            product: product,
-                          ),
-                        );
-                      }).toList(),
-                  ],
-                );
-              },
+                  )
+                else
+                  ...transitions.map((transition) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: _buildTransitionButton(
+                        transition: transition,
+                        product: product,
+                      ),
+                    );
+                  }).toList(),
+              ],
             );
           },
         );
@@ -1318,21 +1261,10 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   ),
                 ),
                 const Divider(height: 24),
-                FutureBuilder<List<ProductionPhase>>(
-                  future: Provider.of<PhaseService>(context, listen: false)
-                      .getOrganizationPhases(widget.organizationId),
-                  builder: (context, phasesSnapshot) {
-                    if (phasesSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
 
-                    if (phasesSnapshot.hasError) {
-                      return Text('Error: ${phasesSnapshot.error}');
-                    }
-
-                    final allPhases = phasesSnapshot.data ?? [];
-                    allPhases.sort((a, b) => a.order.compareTo(b.order));
+                Consumer<ProductionDataProvider>(
+                  builder: (context, dataProvider, _) {
+                    final allPhases = dataProvider.phases;
 
                     // Si está comprimido, mostrar solo la fase actual
                     if (!_isPhasesExpanded) {
@@ -2163,16 +2095,12 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
 // Helper para mostrar el chat condicionalmente
   Widget _buildChatSection(BatchProductModel product, UserModel? user) {
-    return FutureBuilder<bool>(
-      future: Provider.of<OrganizationMemberService>(context, listen: false)
-          .can('chat', 'view'),
-      builder: (context, snapshot) {
-        final canViewChat = snapshot.data ?? false;
-        if (!canViewChat) return const SizedBox.shrink();
+    final permissionService = Provider.of<PermissionService>(context);
+    final canViewChat = permissionService.canViewChat;
 
-        return _buildChatPreviewCard(product, user);
-      },
-    );
+    if (!canViewChat) return const SizedBox.shrink();
+
+    return _buildChatPreviewCard(product, user);
   }
 
   /// Vista previa de chat (solo lectura, últimos 10 mensajes)

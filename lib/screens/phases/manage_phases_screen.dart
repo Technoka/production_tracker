@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/providers/production_data_provider.dart';
+import 'package:provider/provider.dart';
 import '../../models/phase_model.dart';
 import '../../models/user_model.dart';
 import '../../services/phase_service.dart';
@@ -215,7 +217,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
     try {
       final orderedIds = phases.map((p) => p.id).toList();
       await _phaseService.reorderPhases(widget.organizationId, orderedIds);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.orderSaved)),
@@ -250,27 +252,9 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
             ),
         ],
       ),
-      body: StreamBuilder<List<ProductionPhase>>(
-        stream: _phaseService.getOrganizationPhasesStream(widget.organizationId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('${l10n.error}: ${snapshot.error}'),
-                ],
-              ),
-            );
-          }
-
-          final phases = snapshot.data ?? [];
+      body: Consumer<ProductionDataProvider>(
+        builder: (context, dataProvider, _) {
+          final phases = dataProvider.phases;
 
           if (phases.isEmpty) {
             return Center(
@@ -296,7 +280,8 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                   const SizedBox(height: 24),
                   if (_canEdit)
                     ElevatedButton.icon(
-                      onPressed: _isInitializing ? null : _initializeDefaultPhases,
+                      onPressed:
+                          _isInitializing ? null : _initializeDefaultPhases,
                       icon: _isInitializing
                           ? const SizedBox(
                               width: 16,
@@ -319,9 +304,9 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
             children: [
               // Header with info
               _buildHeaderCard(l10n, activePhases.length, phases.length),
-              
+
               const SizedBox(height: 16),
-              
+
               // Active phases
               if (activePhases.isNotEmpty) ...[
                 Row(
@@ -336,8 +321,8 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                     ),
                     if (_canEdit && activePhases.length > 1)
                       TextButton.icon(
-                        onPressed: _isReordering 
-                            ? null 
+                        onPressed: _isReordering
+                            ? null
                             : () => _showReorderDialog(activePhases),
                         icon: const Icon(Icons.reorder, size: 18),
                         label: Text(l10n.reorderPhases),
@@ -347,7 +332,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                 const SizedBox(height: 8),
                 ...activePhases.map((phase) => _buildPhaseCard(phase)),
               ],
-              
+
               // Inactive phases
               if (inactivePhases.isNotEmpty) ...[
                 const SizedBox(height: 24),
@@ -368,7 +353,8 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
     );
   }
 
-  Widget _buildHeaderCard(AppLocalizations l10n, int activeCount, int totalCount) {
+  Widget _buildHeaderCard(
+      AppLocalizations l10n, int activeCount, int totalCount) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -405,7 +391,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
   Widget _buildPhaseCard(ProductionPhase phase) {
     final l10n = AppLocalizations.of(context)!;
     final color = _parseColor(phase.color);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: phase.isActive ? 2 : 1,
@@ -432,9 +418,9 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                       size: 20,
                     ),
                   ),
-                  
+
                   const SizedBox(width: 12),
-                  
+
                   // Phase info
                   Expanded(
                     child: Column(
@@ -468,7 +454,9 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                             phase.description,
                             style: TextStyle(
                               fontSize: 13,
-                              color: phase.isActive ? Colors.grey[600] : Colors.grey[400],
+                              color: phase.isActive
+                                  ? Colors.grey[600]
+                                  : Colors.grey[400],
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -477,7 +465,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                       ],
                     ),
                   ),
-                  
+
                   // Actions menu
                   if (_canEdit)
                     PopupMenuButton<String>(
@@ -528,7 +516,8 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                           value: 'delete',
                           child: Row(
                             children: [
-                              const Icon(Icons.delete, size: 20, color: Colors.red),
+                              const Icon(Icons.delete,
+                                  size: 20, color: Colors.red),
                               const SizedBox(width: 8),
                               Text(
                                 l10n.delete,
@@ -541,7 +530,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                     ),
                 ],
               ),
-              
+
               // Badges row
               const SizedBox(height: 8),
               Wrap(
@@ -554,7 +543,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
                     label: 'WIP: ${phase.wipLimit}',
                     color: Colors.blue,
                   ),
-                  
+
                   // SLA badge
                   if (phase.hasSLA)
                     _buildBadge(
@@ -603,7 +592,7 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
 
   Future<void> _showReorderDialog(List<ProductionPhase> phases) async {
     final l10n = AppLocalizations.of(context)!;
-    
+
     final reorderedPhases = await showDialog<List<ProductionPhase>>(
       context: context,
       builder: (context) => ReorderPhasesDialog(

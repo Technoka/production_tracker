@@ -1,6 +1,7 @@
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/product_catalog_model.dart';
@@ -39,13 +40,11 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
   // Controladores
   final _quantityController = TextEditingController(text: '1');
   final _unitPriceController = TextEditingController();
-  final _productSearchController = TextEditingController();
   final _productNotesController = TextEditingController();
 
   // Estado del formulario
   ProductCatalogModel? _selectedProduct;
   bool _isLoading = false;
-  String _productSearchQuery = '';
   String _productUrgencyLevel = 'medium';
   DateTime? _productExpectedDelivery;
 
@@ -56,7 +55,6 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
   String? _batchClientId;
   String? _batchProjectId;
   ProductionBatchModel? _batchData;
-  late Stream<List<BatchProductModel>> _existingProductsStream;
 
   // NUEVO: Lista de productos pendientes de guardar
   final List<Map<String, dynamic>> _pendingProducts = [];
@@ -70,22 +68,8 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
     _loadCurrentMember();
     _loadBatchInfo();
 
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = authService.currentUserData!;
-
     // Inicializar fecha por defecto
     _productExpectedDelivery = DateTime.now().add(const Duration(days: 21));
-
-    // Inicializar Stream aquí para evitar recargas al hacer setState
-    _existingProductsStream = Provider.of<ProductionBatchService>(context,
-            listen: false)
-        .watchBatchProducts(widget.organizationId, widget.batchId, user.uid);
-
-    _productSearchController.addListener(() {
-      setState(() {
-        _productSearchQuery = _productSearchController.text;
-      });
-    });
   }
 
   Future<void> _loadCurrentMember() async {
@@ -130,7 +114,6 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
   void dispose() {
     _quantityController.dispose();
     _unitPriceController.dispose();
-    _productSearchController.dispose();
     _productNotesController.dispose();
     super.dispose();
   }
@@ -404,15 +387,10 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
           ),
           const Divider(height: 1),
 
-          StreamBuilder<List<BatchProductModel>>(
-            stream: _existingProductsStream,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()));
-              }
-              final products = snapshot.data ?? [];
+          Consumer<ProductionDataProvider>(
+            builder: (context, dataProvider, _) {
+              final products = dataProvider.getProductsForBatch(widget.batchId);
+
               if (products.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(16),
@@ -663,27 +641,11 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
 
             // Usamos un StreamBuilder común para obtener todos los productos
             // y luego filtrar familias y productos en memoria para los dropdowns
-            StreamBuilder<List<ProductCatalogModel>>(
-              stream: Provider.of<ProductCatalogService>(context, listen: false)
-                  .getOrganizationProductsStream(widget.organizationId),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+            
+            Consumer<ProductionDataProvider>(
+              builder: (context, dataProvider, _) {
 
-                // Obtenemos todos los productos
-                final allProducts = snapshot.data ?? [];
-
-                // Filtramos productos relevantes para este cliente/proyecto si es necesario
-                // (Por ahora mostramos todos los de la organización que coincidan en familia,
-                // pero podríamos filtrar por clientId si _selectedProject está definido)
-                var relevantProducts = allProducts;
-                if (_batchProjectId != null) {
-                  // Opcional: filtrar solo productos de este cliente o públicos
-                  relevantProducts = allProducts
-                      .where((p) => p.clientId == _batchClientId || p.isPublic)
-                      .toList();
-                }
+                final relevantProducts = dataProvider.filterCatalogProducts(clientId: _batchClientId);
 
                 // 1. Extraer Familias Únicas
                 final families = relevantProducts
@@ -1262,8 +1224,6 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
 
       if (createdId != null) {
         // Recargar para que aparezca en el dropdown y seleccionarlo
-        // Al usar StreamBuilder en el build, la UI se actualizará sola,
-        // pero necesitamos seleccionar el ID nuevo.
 
         // Pequeño delay para asegurar que Firestore propague el cambio localmente
         await Future.delayed(const Duration(milliseconds: 300));
@@ -1292,73 +1252,6 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
         );
       }
     }
-  }
-
-  Widget _buildProductSelector() {
-    if (_batchClientId == null) return const LinearProgressIndicator();
-
-    return StreamBuilder<List<ProductCatalogModel>>(
-      stream: Provider.of<ProductCatalogService>(context, listen: false)
-          .getOrganizationProductsStream(widget.organizationId),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData)
-          return const SizedBox(
-              height: 50, child: Center(child: LinearProgressIndicator()));
-
-        var allProducts = snapshot.data ?? [];
-
-        // 1. Filtrar por cliente
-        var products = allProducts
-            .where((p) => p.isPublic || p.clientId == _batchClientId)
-            .toList();
-
-        // 2. Filtrar por búsqueda
-        if (_productSearchQuery.isNotEmpty) {
-          final query = _productSearchQuery.toLowerCase();
-          products = products
-              .where((p) =>
-                  p.name.toLowerCase().contains(query) ||
-                  (p.reference?.toLowerCase().contains(query) ?? false))
-              .toList();
-        }
-
-        // --- SOLUCIÓN ERROR "BAD STATE" ---
-        // Verificamos si la selección actual sigue siendo válida en la lista filtrada
-        final isSelectionValid = _selectedProduct != null &&
-            products.any((p) => p.id == _selectedProduct!.id);
-
-        // Si no es válida, pasamos null al dropdown (visual), pero mantenemos el estado si queremos
-        // O según tu petición: "se elimine el producto seleccionado"
-        final dropdownValue = isSelectionValid ? _selectedProduct!.id : null;
-
-        return FilterUtils.buildFullWidthDropdown<String>(
-          context: context,
-          label: 'Producto',
-          value: dropdownValue,
-          icon: Icons.inventory,
-          hintText: products.isEmpty ? 'Sin coincidencias' : 'Seleccionar...',
-          items: products.map((product) {
-            return DropdownMenuItem(
-              value: product.id,
-              child: Text(
-                '${product.name} (SKU: ${product.reference ?? "-"})',
-                overflow: TextOverflow.ellipsis,
-              ),
-            );
-          }).toList(),
-          onChanged: (productId) {
-            if (productId == null) return;
-            setState(() {
-              _selectedProduct = products.firstWhere((p) => p.id == productId);
-              if (_selectedProduct!.basePrice != null) {
-                _unitPriceController.text =
-                    _selectedProduct!.basePrice!.toStringAsFixed(2);
-              }
-            });
-          },
-        );
-      },
-    );
   }
 
   String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
