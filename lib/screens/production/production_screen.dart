@@ -181,6 +181,8 @@ class _ProductionScreenState extends State<ProductionScreen> {
                     icon: const Icon(Icons.add, size: 20),
                     label: Text(l10n.createBatchBtn,
                         style: const TextStyle(fontSize: 13)),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
                   ),
                 )
               : null,
@@ -332,7 +334,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
     return Consumer<ProductionDataProvider>(
       builder: (context, provider, child) {
         final clients = provider.clients;
-        
+
         return FilterUtils.buildFilterOption<String>(
           context: context,
           label: l10n.client,
@@ -355,7 +357,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
     return Consumer<ProductionDataProvider>(
       builder: (context, provider, child) {
         final batches = provider.batches;
-        
+
         return FilterUtils.buildFilterOption<String>(
           context: context,
           label: l10n.batchLabel,
@@ -378,7 +380,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
     return Consumer<ProductionDataProvider>(
       builder: (context, provider, child) {
         final phases = provider.phases;
-        
+
         return FilterUtils.buildFilterOption<String>(
           context: context,
           label: l10n.phase,
@@ -401,7 +403,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
     return Consumer<ProductionDataProvider>(
       builder: (context, provider, child) {
         final statuses = provider.statuses;
-        
+
         return FilterUtils.buildFilterOption<String>(
           context: context,
           label: l10n.status,
@@ -417,7 +419,9 @@ class _ProductionScreenState extends State<ProductionScreen> {
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: Color(int.parse(status.color.substring(1), radix: 16) + 0xFF000000),
+                            color: Color(int.parse(status.color.substring(1),
+                                    radix: 16) +
+                                0xFF000000),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -437,7 +441,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
     return Consumer<ProductionDataProvider>(
       builder: (context, provider, child) {
         final batches = provider.batches;
-        
+
         // Extraer proyectos únicos
         final Map<String, String> projects = {};
         for (var batch in batches) {
@@ -489,9 +493,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
                     size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 16),
                 Text(
-                  _hasActiveFilters
-                      ? l10n.noResultsFound
-                      : l10n.noBatchesFound,
+                  _hasActiveFilters ? l10n.noResultsFound : l10n.noBatchesFound,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ],
@@ -506,7 +508,8 @@ class _ProductionScreenState extends State<ProductionScreen> {
             final batch = batches[index];
             final client = provider.getClientById(batch.clientId);
             final clientColor = client != null && client.color != null
-                ? Color(int.parse(client.color!.substring(1), radix: 16) + 0xFF000000)
+                ? Color(int.parse(client.color!.substring(1), radix: 16) +
+                    0xFF000000)
                 : Colors.grey;
 
             return _buildBatchCard(batch, user, l10n, clientColor);
@@ -539,8 +542,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.widgets_outlined,
-                    size: 64, color: Colors.grey[400]),
+                Icon(Icons.widgets_outlined, size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 16),
                 Text(
                   _hasActiveFilters
@@ -562,7 +564,8 @@ class _ProductionScreenState extends State<ProductionScreen> {
             final batch = item['batch'] as ProductionBatchModel;
             final client = provider.getClientById(batch.clientId);
             final clientColor = client != null && client.color != null
-                ? Color(int.parse(client.color!.substring(1), radix: 16) + 0xFF000000)
+                ? Color(int.parse(client.color!.substring(1), radix: 16) +
+                    0xFF000000)
                 : Colors.grey;
 
             return _buildProductCard(product, batch, user, l10n, clientColor);
@@ -745,10 +748,13 @@ class _ProductionScreenState extends State<ProductionScreen> {
                       decoration: BoxDecoration(
                         color: Colors.red.shade50,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: UrgencyLevel.urgent.color.withOpacity(0.3)),
+                        border: Border.all(
+                            color: UrgencyLevel.urgent.color.withOpacity(0.3)),
                       ),
                       child: Text(
-                        UrgencyLevel.fromString(product.urgencyLevel).displayName.toUpperCase(),
+                        UrgencyLevel.fromString(product.urgencyLevel)
+                            .displayName
+                            .toUpperCase(),
                         style: TextStyle(
                           fontSize: 10,
                           color: UrgencyLevel.urgent.color,
@@ -762,28 +768,25 @@ class _ProductionScreenState extends State<ProductionScreen> {
               Row(
                 children: [
                   Icon(Icons.tag, size: 14, color: Colors.grey[500]),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                  '${l10n.batchLabel} ${batch.batchNumber} (# ${product.productNumber}/${batch.totalProducts})',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      color: Colors.grey[700], fontSize: 13)),
-                            ),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                        '${l10n.batchLabel} ${batch.batchNumber} (# ${product.productNumber}/${batch.totalProducts})',
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            TextStyle(color: Colors.grey[700], fontSize: 13)),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
               Row(
-                            children: [
-                              Icon(Icons.qr_code,
-                                  size: 14, color: Colors.grey[500]),
-                              const SizedBox(width: 4),
-                              Text('${l10n.skuLabel} ${product.productReference!}',
-                                  style: TextStyle(
-                                      color: Colors.grey[700], fontSize: 13)),
-                            ],
-                          ),
-              
+                children: [
+                  Icon(Icons.qr_code, size: 14, color: Colors.grey[500]),
+                  const SizedBox(width: 4),
+                  Text('${l10n.skuLabel} ${product.productReference!}',
+                      style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+                ],
+              ),
               const SizedBox(height: 4),
               Row(
                 children: [
