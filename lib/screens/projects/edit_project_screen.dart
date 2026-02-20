@@ -504,7 +504,12 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     AppLocalizations l10n,
     UserModel user,
   ) {
-    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+
+    if (memberService.currentMember?.clientId != null) {
+      return const SizedBox.shrink();
+    }
 
     return Card(
       elevation: 2,

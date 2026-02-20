@@ -627,7 +627,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
   Widget _buildAccessControlCard(BuildContext context, UserModel user) {
     final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
     // Si no hay cliente seleccionado, no mostrar nada
-    if (_selectedClientId == null) {
+    if (_selectedClientId == null || memberService.currentMember?.clientId != null) {
       return const SizedBox.shrink();
     }
 

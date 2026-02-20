@@ -627,9 +627,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             borderRadius: BorderRadius.circular(12),
             onTap: () async {
               // Verificar permiso antes de navegar
-              final permissionService = Provider.of<PermissionService>(
-                  context,
-                  listen: false);
+              final permissionService =
+                  Provider.of<PermissionService>(context, listen: false);
 
               final canViewClients = permissionService.canViewClients;
 
@@ -718,6 +717,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   }
 
   Widget _buildAccessControlCard(ProjectModel project, UserModel user) {
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+
+    if (memberService.currentMember?.clientId != null) {
+      return const SizedBox.shrink();
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,

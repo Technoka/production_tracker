@@ -552,8 +552,8 @@ class _CreateProductionBatchScreenState
 
             const SizedBox(height: 24),
 
-            // Card de Control de Acceso (solo si hay proyecto seleccionado)
-            if (_selectedProject != null)
+            // Card de Control de Acceso (solo si hay proyecto seleccionado y no es cliente)
+            if (_selectedProject != null && memberService.currentMember?.clientId != null)
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(

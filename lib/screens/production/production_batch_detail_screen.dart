@@ -151,38 +151,39 @@ class _ProductionBatchDetailScreenState
                 // Lista de productos
                 _buildProductsSection(batch, user, memberService),
 
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: StatefulBuilder(
-                      // CAMBIAR: Usar StatefulBuilder
-                      builder:
-                          (BuildContext context, StateSetter setStateLocal) {
-                        return AccessControlWidget(
-                          organizationId: widget.organizationId,
-                          currentUserId: authService.currentUser!.uid,
-                          clientId: batch.clientId,
-                          selectedMembers: _selectedMembers,
-                          onMembersChanged: (members) {
-                            setStateLocal(() {
-                              // CAMBIAR: usar setStateLocal en lugar de setState
-                              _selectedMembers = members;
-                            });
-                          },
-                          readOnly: true,
-                          showTitle: true,
-                          resourceType: 'batch',
-                          customTitle: 'Control de Acceso al Lote',
-                          customDescription:
-                              'Gestiona quiénes pueden ver y trabajar con este lote',
-                        );
-                      },
+                if (memberService.currentMember?.clientId != null)
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: StatefulBuilder(
+                        // CAMBIAR: Usar StatefulBuilder
+                        builder:
+                            (BuildContext context, StateSetter setStateLocal) {
+                          return AccessControlWidget(
+                            organizationId: widget.organizationId,
+                            currentUserId: authService.currentUser!.uid,
+                            clientId: batch.clientId,
+                            selectedMembers: _selectedMembers,
+                            onMembersChanged: (members) {
+                              setStateLocal(() {
+                                // CAMBIAR: usar setStateLocal en lugar de setState
+                                _selectedMembers = members;
+                              });
+                            },
+                            readOnly: true,
+                            showTitle: true,
+                            resourceType: 'batch',
+                            customTitle: 'Control de Acceso al Lote',
+                            customDescription:
+                                'Gestiona quiénes pueden ver y trabajar con este lote',
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
 
                 const SizedBox(height: 100),
               ],
