@@ -1,0 +1,58 @@
+*lista de cambios god:*
+
+chat:
+- añadir todos los eventos al chat, creación del lote, del producto, etc
+
+fases:
+- separar permisos de fases para cada rol/usuario. ya implementado parcialmente (organization->members-> [assignedPhases]), ver como se hace y establecer un sistema mejor para cambiarlo.
+
+GENERAL:
+
+- añadir filtro de fecha en production screen
+- edit project screen: añadir señal de unsaved changes y pop up al salir sin guardar. copiar de productcatalogformscreen, meterlo en utils en funcion general.
+- añadir descripcion para las transiciones
+- para eliminar cosas importantes, que haya que escribir el nombre del objeto para asegurar. lotes, clientes, etc.Implementarlo en ui_utils (nuevo archivo)
+✅ log out desde home screen drawer no funciona. se queda cargando infinitamente
+- añadir boton de reportar error a desarrolladores en perfil
+- unificar permisos de phases en permission registry
+- añadir foto de producto, y mostrarla en todas las pantallas
+- añadir userName y userEmail a organization member model
+- crear provider para miembros de la organizacion y usarlo en todas las pantallas y widgets que toque
+- unificar add products to batch screen y crear/editar lote
+- login: boton has olvidado la contraseña no hace nada. implementar cloud function con link real.
+- unificar bien crear y editar catalog products
+- crear cuenta cliente: si sale error cuenta gmail, usa google
+- arreglar eliminar cliente. ahora no deja porque siempre tiene proyectos (estan desactivados, no eliminados)
+- approval detail screen: mostrar en productos de lote el # de productos, si es urgente color rojo, no naranja
+- usar permiso (ya implementado) de approveClientRequests en lugar de admin/owner.
+- asegurar que clientes puedan ver sus proyectos en project detail (aunque no tengan permiso general)
+- batch product detail screen: la ultima fase no se completa realmente, se queda azul
+- unificar pop up en cambiar de fase. usar el de kanban tambien en batch product detail
+- usar apperror y en todos los servicios y errores.
+- en home screen, no sale el badge de rol a veces.
+- al abrir la app, sale la pantalla en blanco completamente durante unos segundos. que salga el universal loading screen ese tiempo tambien.
+- usar permissionService cache para permisos en todas las pantallas.
+
+
+cliente:
+- al añadir usuario a org con funcion: añadir a organization->memberIds el uid del usuario
+- cliente que no pueda asignar miembros en access control widget, siempre readOnly: true
+- cliente no puede crear lotes, sale error: no se pudo obtener la informacion del cliente
+- cliente no ve en kanban los objetos pendientes
+- control access widget que no salga en ninguna pantalla
+- si no tiene acceso a ver chat, que no aparezca en batch detail screen
+- en web en el movil, usuario con rol de cliente, al recargar la app sale todo a cero, como si no tuviera permisos, al volver a recargar sale bien. y asi sucesivamente, cada recarga cambia de cero a normal.
+- simplificar mucho los permisos de cliente visualmente en client permission selector
+
+notificaciones:
+- en solicitud rechazada que aparezca el motivo en los detalles
+
+
+Ultimos cambios menores:
+- actualizar estado de lote automaticamente: si todos los productos estan pending -> pending. Sino en produccion. Si todos estan en OK -> completado.
+- traducir TODO TODO TODO !!!
+- arreglar archivos .arb: hacer grupos y quitar traducciones repetidas.
+- Comprobar reglas firebase (sla)
+- si no hay organizacion, production screen se ve todo gris y no hay barra de navegacion abajo.
+- añadir unknownUser a l10n, cambiar por User?, Usuario y Usuario?
+- añadir icono a mi app, TP en rojo.
