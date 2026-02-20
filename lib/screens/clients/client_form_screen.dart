@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:provider/provider.dart';
 import 'package:country_picker/country_picker.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/client_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/client_service.dart';
-import '../../services/organization_member_service.dart';
 import '../../widgets/client_color_picker.dart';
 import '../../widgets/client_permissions_selector.dart';
 
@@ -90,12 +90,11 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
   }
 
   Future<void> _checkPermissions() async {
-    final memberService =
-        Provider.of<OrganizationMemberService>(context, listen: false);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
 
     // Solo admins/owners pueden gestionar permisos de clientes
-    final canManageRoles =
-        await memberService.can('organization', 'manageRoles');
+    final canManageRoles = permissionService.canManageRoles;
 
     setState(() {
       _canEditPermissions = canManageRoles;
