@@ -86,7 +86,10 @@ class UIConstants {
     'brush': Icons.brush,
     'engineering': Icons.engineering,
     'handyman': Icons.handyman,
-    'precision_manufacturing': Icons.precision_manufacturing,
+    'precision_manufacturing': Icons.precision_manufacturing, 
+    'view_kanban': Icons.view_kanban,
+    'linear_scale': Icons.linear_scale,
+    'align_vertical_bottom': Icons.align_vertical_bottom,
 
     // Gestión
     'folder': Icons.folder,
