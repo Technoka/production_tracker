@@ -47,7 +47,7 @@ class _ProductCatalogDetailScreenState
   }
 
   Future<void> _loadData() async {
-    final permissionService = Provider.of<PermissionService>(context);
+    final permissionService = Provider.of<PermissionService>(context, listen: false);
     final dataProvider =
         Provider.of<ProductionDataProvider>(context, listen: false);
 
