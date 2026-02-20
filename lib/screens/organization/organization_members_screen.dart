@@ -231,6 +231,7 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
                 FilledButton(
                   onPressed: () async {
                     // Actualizar permisos del cliente
+
                     final success = await clientService.updateClientPermissions(
                       organizationId: member.organizationId,
                       clientId: member.member.clientId!,

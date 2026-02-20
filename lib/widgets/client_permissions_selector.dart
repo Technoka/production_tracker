@@ -4,7 +4,7 @@ import '../../models/permission_registry_model.dart';
 import '../../models/permission_registry_client_extension.dart';
 
 /// Widget para seleccionar permisos especiales de un cliente
-/// 
+///
 /// Los permisos seleccionados se aplicarán como overrides a todos los miembros
 /// con rol 'client' asociados a este cliente
 class ClientPermissionsSelector extends StatefulWidget {
@@ -22,7 +22,8 @@ class ClientPermissionsSelector extends StatefulWidget {
   });
 
   @override
-  State<ClientPermissionsSelector> createState() => _ClientPermissionsSelectorState();
+  State<ClientPermissionsSelector> createState() =>
+      _ClientPermissionsSelectorState();
 }
 
 class _ClientPermissionsSelectorState extends State<ClientPermissionsSelector> {
@@ -51,7 +52,8 @@ class _ClientPermissionsSelectorState extends State<ClientPermissionsSelector> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final applicablePermissions = PermissionRegistryClientExtension.getClientApplicablePermissions();
+    final applicablePermissions =
+        PermissionRegistryClientExtension.getClientApplicablePermissions();
 
     if (applicablePermissions.isEmpty) {
       return Card(
@@ -183,7 +185,8 @@ class _ClientPermissionsSelectorState extends State<ClientPermissionsSelector> {
 
     // Determinar si está habilitado
     final currentValue = _permissions[key];
-    final isEnabled = currentValue != null && currentValue != false && currentValue != 'none';
+    final isEnabled =
+        currentValue != null && currentValue != false && currentValue != 'none';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -316,15 +319,18 @@ class _ClientPermissionsSelectorState extends State<ClientPermissionsSelector> {
               items: [
                 DropdownMenuItem(
                   value: 'none',
-                  child: Text(l10n.scopeNone, style: const TextStyle(fontSize: 13)),
+                  child: Text(l10n.scopeNone,
+                      style: const TextStyle(fontSize: 13)),
                 ),
                 DropdownMenuItem(
                   value: 'assigned',
-                  child: Text(l10n.scopeAssigned, style: const TextStyle(fontSize: 13)),
+                  child: Text(l10n.scopeAssigned,
+                      style: const TextStyle(fontSize: 13)),
                 ),
                 DropdownMenuItem(
                   value: 'all',
-                  child: Text(l10n.scopeAll, style: const TextStyle(fontSize: 13)),
+                  child:
+                      Text(l10n.scopeAll, style: const TextStyle(fontSize: 13)),
                 ),
               ],
               onChanged: (widget.enabled && !widget.readOnly)
@@ -356,7 +362,8 @@ class ClientPermissionsSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final applicablePermissions = PermissionRegistryClientExtension.getClientApplicablePermissions();
+    final applicablePermissions =
+        PermissionRegistryClientExtension.getClientApplicablePermissions();
 
     final enabledPermissions = applicablePermissions.where((p) {
       final key = p.fullKey;
