@@ -10,7 +10,6 @@ import '../../services/production_batch_service.dart';
 import 'add_product_to_batch_screen.dart';
 import 'batch_product_detail_screen.dart';
 import '../../services/organization_member_service.dart';
-import '../../models/organization_member_model.dart';
 
 // TODO: comprobar que se usa scope y assignedMembers correctamente
 
@@ -31,14 +30,11 @@ class ProductionBatchDetailScreen extends StatefulWidget {
 
 class _ProductionBatchDetailScreenState
     extends State<ProductionBatchDetailScreen> {
-  OrganizationMemberWithUser? _currentMember;
-  bool _isLoadingPermissions = true;
   List<String> _selectedMembers = [];
 
   @override
   void initState() {
     super.initState();
-    _loadPermissions();
     _loadBatchMembers();
   }
 
@@ -50,25 +46,7 @@ class _ProductionBatchDetailScreenState
 
     if (batch != null && mounted) {
       setState(() {
-        _selectedMembers = List<String>.from(batch.assignedMembers ?? []);
-      });
-    }
-  }
-
-  Future<void> _loadPermissions() async {
-    final memberService =
-        Provider.of<OrganizationMemberService>(context, listen: false);
-    final authService = Provider.of<AuthService>(context, listen: false);
-
-    final member = await memberService.getCurrentMember(
-      widget.organizationId,
-      authService.currentUser!.uid,
-    );
-
-    if (mounted) {
-      setState(() {
-        _currentMember = member;
-        _isLoadingPermissions = false;
+        _selectedMembers = List<String>.from(batch.assignedMembers);
       });
     }
   }
@@ -81,14 +59,6 @@ class _ProductionBatchDetailScreenState
     final permissionService = Provider.of<PermissionService>(context);
     final canEditBatches = permissionService.canEditBatches;
     final canDeleteBatches = permissionService.canDeleteBatches;
-
-    // ✅ Mostrar loading mientras se cargan permisos
-    if (_isLoadingPermissions) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Cargando...')),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
 
     return Consumer<ProductionDataProvider>(
       builder: (context, dataProvider, _) {

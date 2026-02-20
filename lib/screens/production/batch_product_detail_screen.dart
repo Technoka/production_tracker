@@ -14,7 +14,6 @@ import '../../widgets/chat/chat_button.dart';
 import '../../services/message_service.dart';
 import '../../screens/chat/chat_screen.dart';
 import '../../services/organization_member_service.dart';
-import '../../models/organization_member_model.dart';
 
 import '../../services/status_transition_service.dart';
 import '../../models/status_transition_model.dart';
@@ -44,7 +43,6 @@ class BatchProductDetailScreen extends StatefulWidget {
 }
 
 class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
-  OrganizationMemberWithUser? _currentMember;
   bool _isLoadingPermissions = true;
   bool _isPhasesExpanded = false; // Comprimido por defecto
   bool _isHistoryExpanded = false; // Historial comprimido por defecto
@@ -62,35 +60,11 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   Future<void> _loadPermissions() async {
     final memberService =
         Provider.of<OrganizationMemberService>(context, listen: false);
-    final authService = Provider.of<AuthService>(context, listen: false);
 
-    final member = await memberService.getCurrentMember(
-      widget.organizationId,
-      authService.currentUser!.uid,
-    );
-
-    // Cargar rol completo para validaciones
-    RoleModel? role;
-    if (member != null) {
-      try {
-        final roleDoc = await FirebaseFirestore.instance
-            .collection('organizations')
-            .doc(widget.organizationId)
-            .collection('roles')
-            .doc(member.member.roleId)
-            .get();
-
-        if (roleDoc.exists) {
-          role = RoleModel.fromMap(roleDoc.data()!, docId: roleDoc.id);
-        }
-      } catch (e) {
-        debugPrint('Error loading role: $e');
-      }
-    }
+    final role = memberService.currentRole;
 
     if (mounted) {
       setState(() {
-        _currentMember = member;
         _currentRole = role;
         _isLoadingPermissions = false;
       });
@@ -1968,7 +1942,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     final user = authService.currentUserData;
     final l10n = AppLocalizations.of(context)!;
 
-    if (user == null || _currentRole == null || _currentMember == null) {
+    if (user == null || _currentRole == null) {
       return;
     }
 
