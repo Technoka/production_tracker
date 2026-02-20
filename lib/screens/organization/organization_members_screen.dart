@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
@@ -491,13 +492,20 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
       String currentUserId,
       String ownerId,
       AppLocalizations l10n) {
+        
+    final dataProvider =
+        Provider.of<ProductionDataProvider>(context, listen: false);
+
     // Determinar si es el usuario actual
     final isMe = member.userId == currentUserId;
-    final isOwner = member.userId == ownerId;
 
     String roleText = member.roleName;
     // if (isOwner) roleText = '$roleText';
     if (isMe) roleText += ' (${l10n.you})';
+    if (member.isClient) {
+      final clientName = dataProvider.getClientById(member.member.clientId!)!.name;
+      roleText += " ($clientName)";
+    }
 
     return ListTile(
         leading: CircleAvatar(
