@@ -144,23 +144,33 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Cerrar sesión
   Future<void> signOut() async {
     try {
-      // Limpiar datos locales primero
+      // 1. Limpiar datos locales primero
       _currentUserData = null;
       _error = null;
       _isLoading = false;
 
-      // Cerrar sesión de Google primero (sin await para evitar bloqueos)
-      _googleSignIn.signOut().catchError((e) {
+      // 2. Terminar Firestore para cancelar TODOS los listeners activos.
+      // Esto evita el "FIRESTORE INTERNAL ASSERTION FAILED: Unexpected state"
+      // que ocurre al cambiar de usuario con streams abiertos.
+      // Firestore se reinicia automáticamente en la próxima operación.
+      try {
+        await FirebaseFirestore.instance.terminate();
+        await FirebaseFirestore.instance.clearPersistence();
+      } catch (firestoreError) {
+        // No es crítico si falla (ej: ya estaba terminado)
+        debugPrint('Aviso al terminar Firestore: $firestoreError');
+      }
+
+      // 3. Cerrar sesión de Google
+      await _googleSignIn.signOut().catchError((e) {
         debugPrint('Error al cerrar sesión de Google: $e');
       });
 
-      // Cerrar sesión de Firebase
+      // 4. Cerrar sesión de Firebase Auth
       await _auth.signOut();
 
-      // Notificar cambios
       notifyListeners();
     } catch (e) {
       debugPrint('Error al cerrar sesión: $e');
