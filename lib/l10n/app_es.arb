@@ -962,7 +962,8 @@
   "specialPermissions": "Permisos Especiales",
   "clientPermissions": "Permisos del Cliente",
   "canCreateBatches": "Puede crear lotes",
-  "canCreateProducts": "Puede crear productos",
+  "canCreateCatalogProducts": "Puede crear productos de catálogo",
+  "canCreateProjects": "Puede crear proyectos",
   "requiresApproval": "Requiere aprobación",
   "canViewAllProjects": "Ver todos los proyectos",
   "standardClient": "Cliente estándar",
@@ -1617,5 +1618,5 @@
 "errorNotFound": "El recurso solicitado no existe.",
 "errorAuth": "Error de autenticación. Revisa email y contraseña.",
 "errorValidation": "Revisa los datos introducidos e inténtalo de nuevo.",
-"errorConflict": "Ya existe un registro con estos datos.",
+"errorConflict": "Ya existe un registro con estos datos."
 }

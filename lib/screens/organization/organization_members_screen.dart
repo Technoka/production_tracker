@@ -169,13 +169,12 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
     if (member.member.clientId == null) return;
 
     final clientService = Provider.of<ClientService>(context, listen: false);
+    final dataProvider =
+        Provider.of<ProductionDataProvider>(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
 
     // Obtener cliente
-    final client = await clientService.getClient(
-      member.organizationId,
-      member.member.clientId!,
-    );
+    final client = dataProvider.getClientById(member.member.clientId!);
 
     if (client == null || !context.mounted) return;
 
@@ -190,7 +189,10 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text(l10n.editClientPermissions),
+              title: Text(
+                l10n.editClientPermissions,
+                style: const TextStyle(fontSize: 16),
+              ),
               content: SizedBox(
                 width: double.maxFinite,
                 child: SingleChildScrollView(
@@ -199,18 +201,10 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${l10n.client}: ${client.name}',
+                        client.name,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.clientPermissionsApplyToAllMembers,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       ClientPermissionsSelector(
                         initialPermissions: updatedPermissions,
                         onPermissionsChanged: (newPerms) {
@@ -492,7 +486,6 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
       String currentUserId,
       String ownerId,
       AppLocalizations l10n) {
-        
     final dataProvider =
         Provider.of<ProductionDataProvider>(context, listen: false);
 
@@ -503,7 +496,8 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
     // if (isOwner) roleText = '$roleText';
     if (isMe) roleText += ' (${l10n.you})';
     if (member.isClient) {
-      final clientName = dataProvider.getClientById(member.member.clientId!)!.name;
+      final clientName =
+          dataProvider.getClientById(member.member.clientId!)!.name;
       roleText += " ($clientName)";
     }
 

@@ -2625,7 +2625,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get canCreateBatches => 'Can create batches';
 
   @override
-  String get canCreateProducts => 'Can create products';
+  String get canCreateCatalogProducts => 'Can create products';
+
+  @override
+  String get canCreateProjects => 'Can create projects';
 
   @override
   String get requiresApproval => 'Requires approval';

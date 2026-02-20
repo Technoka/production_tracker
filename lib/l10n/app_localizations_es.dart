@@ -2625,7 +2625,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get canCreateBatches => 'Puede crear lotes';
 
   @override
-  String get canCreateProducts => 'Puede crear productos';
+  String get canCreateCatalogProducts => 'Puede crear productos de catálogo';
+
+  @override
+  String get canCreateProjects => 'Puede crear proyectos';
 
   @override
   String get requiresApproval => 'Requiere aprobación';
@@ -4231,7 +4234,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get errorNotFound => 'El recurso solicitado no existe.';
 
   @override
-  String get errorAuth => 'Error de autenticación. Inicia sesión de nuevo.';
+  String get errorAuth => 'Error de autenticación. Revisa email y contraseña.';
 
   @override
   String get errorValidation => 'Revisa los datos introducidos e inténtalo de nuevo.';

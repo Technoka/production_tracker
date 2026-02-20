@@ -53,7 +53,7 @@ class _ClientPermissionsSelectorState extends State<ClientPermissionsSelector> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final applicablePermissions =
-        PermissionRegistryClientExtension.getClientApplicablePermissions();
+        PermissionRegistryClientExtension.getClientApplicablePermissions(l10n);
 
     if (applicablePermissions.isEmpty) {
       return Card(
@@ -127,52 +127,14 @@ class _ClientPermissionsSelectorState extends State<ClientPermissionsSelector> {
     required String moduleDisplayName,
     required List<ClientApplicablePermission> permissions,
   }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Título del módulo
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Icon(
-                    Icons.shield_outlined,
-                    size: 16,
-                    color: Colors.blue.shade700,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  moduleDisplayName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Permisos del módulo
-            ...permissions.map((permission) {
-              return _buildPermissionTile(context, permission);
-            }),
-          ],
-        ),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Permisos del módulo
+        ...permissions.map((permission) {
+          return _buildPermissionTile(context, permission);
+        }),
+      ],
     );
   }
 
@@ -210,7 +172,7 @@ class _ClientPermissionsSelectorState extends State<ClientPermissionsSelector> {
           // Nota adicional si existe
           if (permission.note != null && !widget.readOnly)
             Padding(
-              padding: const EdgeInsets.only(left: 48, top: 4),
+              padding: const EdgeInsets.only(left: 4),
               child: Row(
                 children: [
                   Icon(
@@ -236,7 +198,7 @@ class _ClientPermissionsSelectorState extends State<ClientPermissionsSelector> {
           // Nota de aprobación si aplica
           if (isEnabled && permission.requiresApproval && !widget.readOnly)
             Padding(
-              padding: const EdgeInsets.only(left: 48, top: 4),
+              padding: const EdgeInsets.only(left: 4),
               child: Row(
                 children: [
                   Icon(
@@ -279,10 +241,6 @@ class _ClientPermissionsSelectorState extends State<ClientPermissionsSelector> {
         permission.displayName,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
       ),
-      subtitle: Text(
-        permission.description,
-        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-      ),
     );
   }
 
@@ -299,11 +257,6 @@ class _ClientPermissionsSelectorState extends State<ClientPermissionsSelector> {
         Text(
           permission.displayName,
           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          permission.description,
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 8),
         Container(
@@ -363,7 +316,7 @@ class ClientPermissionsSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final applicablePermissions =
-        PermissionRegistryClientExtension.getClientApplicablePermissions();
+        PermissionRegistryClientExtension.getClientApplicablePermissions(l10n);
 
     final enabledPermissions = applicablePermissions.where((p) {
       final key = p.fullKey;

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/l10n/app_localizations.dart';
 import 'permission_override_model.dart';
 import 'permission_registry_client_extension.dart';
 
@@ -316,9 +317,9 @@ class ClientModel {
   }
 
   /// Lista de permisos habilitados legibles
-  List<String> get enabledPermissionsDisplay {
+  List<String> enabledPermissionsDisplay (AppLocalizations l10n) {
     final permissions = <String>[];
-    final applicable = PermissionRegistryClientExtension.getClientApplicablePermissions();
+    final applicable = PermissionRegistryClientExtension.getClientApplicablePermissions(l10n);
     
     for (final applicablePermission in applicable) {
       final key = applicablePermission.fullKey;

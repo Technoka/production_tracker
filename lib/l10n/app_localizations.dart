@@ -5219,11 +5219,17 @@ abstract class AppLocalizations {
   /// **'Can create batches'**
   String get canCreateBatches;
 
-  /// No description provided for @canCreateProducts.
+  /// No description provided for @canCreateCatalogProducts.
   ///
   /// In en, this message translates to:
   /// **'Can create products'**
-  String get canCreateProducts;
+  String get canCreateCatalogProducts;
+
+  /// No description provided for @canCreateProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Can create projects'**
+  String get canCreateProjects;
 
   /// No description provided for @requiresApproval.
   ///

@@ -1,51 +1,57 @@
+import 'package:gestion_produccion/l10n/app_localizations.dart';
+
 import 'permission_registry_model.dart';
 
 /// Extensión de PermissionRegistry para gestión de permisos de clientes
 extension PermissionRegistryClientExtension on PermissionRegistry {
   /// Obtener solo los permisos que son aplicables a clientes
-  /// 
-  /// Estos permisos pueden ser asignados como "permisos especiales" 
+  ///
+  /// Estos permisos pueden ser asignados como "permisos especiales"
   /// a un cliente y se aplicarán como overrides a todos los miembros
   /// con rol "client" asociados a ese cliente
-  static List<ClientApplicablePermission> getClientApplicablePermissions() {
+  static List<ClientApplicablePermission> getClientApplicablePermissions(
+      AppLocalizations l10n) {
     return [
       // BATCHES - Crear lotes (incluye crear productos de lote)
-      const ClientApplicablePermission(
+      ClientApplicablePermission(
         moduleKey: 'batches',
         actionKey: 'create',
-        displayName: 'Puede crear lotes',
-        description: 'El cliente puede crear lotes de producción y añadir productos. Scope siempre limitado a solo asignados.',
+        displayName: l10n.canCreateBatches,
+        description:
+            'El cliente puede crear lotes de producción y añadir productos. Scope siempre limitado a solo asignados.',
         requiresApproval: true,
         usesScope: false, // Scope siempre 'assigned', no configurable
         defaultScope: PermissionScope.assigned,
       ),
-      
+
       // PROJECTS - Crear proyectos
-      const ClientApplicablePermission(
+      ClientApplicablePermission(
         moduleKey: 'projects',
         actionKey: 'create',
-        displayName: 'Puede crear proyectos',
-        description: 'El cliente puede crear proyectos nuevos. Scope siempre limitado a solo asignados.',
+        displayName: l10n.canCreateProjects,
+        description:
+            'El cliente puede crear proyectos nuevos. Scope siempre limitado a solo asignados.',
         requiresApproval: true,
         usesScope: false, // Scope siempre 'assigned', no configurable
         defaultScope: PermissionScope.assigned,
       ),
-      
+
       // PRODUCT_CATALOG - Crear productos de catálogo
-      const ClientApplicablePermission(
+      ClientApplicablePermission(
         moduleKey: 'product_catalog',
         actionKey: 'create',
-        displayName: 'Puede crear productos de catálogo',
-        description: 'El cliente puede crear productos personalizados en el catálogo',
+        displayName: l10n.canCreateCatalogProducts,
+        description:
+            'El cliente puede crear productos personalizados en el catálogo',
         requiresApproval: true,
         usesScope: false,
       ),
-      
+
       // CHAT - Enviar mensajes
-      const ClientApplicablePermission(
+      ClientApplicablePermission(
         moduleKey: 'chat',
         actionKey: 'send',
-        displayName: 'Enviar mensajes',
+        displayName: l10n.canSendMessagesDesc,
         description: 'Puede enviar mensajes en el chat',
         requiresApproval: false,
         usesScope: false,
@@ -54,8 +60,9 @@ extension PermissionRegistryClientExtension on PermissionRegistry {
   }
 
   /// Obtener permisos aplicables agrupados por módulo
-  static Map<String, List<ClientApplicablePermission>> getClientApplicablePermissionsByModule() {
-    final permissions = getClientApplicablePermissions();
+  static Map<String, List<ClientApplicablePermission>>
+      getClientApplicablePermissionsByModule(AppLocalizations l10n) {
+    final permissions = getClientApplicablePermissions(l10n);
     final Map<String, List<ClientApplicablePermission>> grouped = {};
 
     for (final permission in permissions) {
@@ -69,8 +76,9 @@ extension PermissionRegistryClientExtension on PermissionRegistry {
   }
 
   /// Verificar si un permiso es aplicable a clientes
-  static bool isPermissionClientApplicable(String moduleKey, String actionKey) {
-    return getClientApplicablePermissions().any(
+  static bool isPermissionClientApplicable(
+      String moduleKey, String actionKey, AppLocalizations l10n) {
+    return getClientApplicablePermissions(l10n).any(
       (p) => p.moduleKey == moduleKey && p.actionKey == actionKey,
     );
   }
@@ -82,7 +90,8 @@ class ClientApplicablePermission {
   final String actionKey;
   final String displayName;
   final String description;
-  final bool requiresApproval; // Si las acciones del cliente requieren aprobación
+  final bool
+      requiresApproval; // Si las acciones del cliente requieren aprobación
   final bool usesScope; // Si el permiso tiene scope (all/assigned)
   final PermissionScope? defaultScope; // Scope por defecto si aplica
   final String? note; // Nota adicional para mostrar al usuario
@@ -105,7 +114,8 @@ class ClientApplicablePermission {
   PermissionModule? get module => PermissionRegistry.getModule(moduleKey);
 
   /// Obtiene la acción desde el registry
-  PermissionAction? get action => PermissionRegistry.getAction(moduleKey, actionKey);
+  PermissionAction? get action =>
+      PermissionRegistry.getAction(moduleKey, actionKey);
 
   /// Nombre del módulo para mostrar
   String get moduleDisplayName => module?.displayName ?? moduleKey;
