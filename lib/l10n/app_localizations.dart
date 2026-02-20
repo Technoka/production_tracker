@@ -8356,6 +8356,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Drag here to approve'**
   String get dragToApproveHint;
+
+  /// No description provided for @errorInternal.
+  ///
+  /// In en, this message translates to:
+  /// **'An internal error occurred. Please try again.'**
+  String get errorInternal;
+
+  /// No description provided for @errorPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have permission to perform this action.'**
+  String get errorPermission;
+
+  /// No description provided for @errorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your internet connection and try again.'**
+  String get errorNetwork;
+
+  /// No description provided for @errorNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The requested resource does not exist.'**
+  String get errorNotFound;
+
+  /// No description provided for @errorAuth.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication error. Please sign in again.'**
+  String get errorAuth;
+
+  /// No description provided for @errorValidation.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check the entered data and try again.'**
+  String get errorValidation;
+
+  /// No description provided for @errorConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'A record with this data already exists.'**
+  String get errorConflict;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

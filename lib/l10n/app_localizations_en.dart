@@ -4217,4 +4217,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dragToApproveHint => 'Drag here to approve';
+
+  @override
+  String get errorInternal => 'An internal error occurred. Please try again.';
+
+  @override
+  String get errorPermission => 'You don\'t have permission to perform this action.';
+
+  @override
+  String get errorNetwork => 'Check your internet connection and try again.';
+
+  @override
+  String get errorNotFound => 'The requested resource does not exist.';
+
+  @override
+  String get errorAuth => 'Authentication error. Please sign in again.';
+
+  @override
+  String get errorValidation => 'Please check the entered data and try again.';
+
+  @override
+  String get errorConflict => 'A record with this data already exists.';
 }

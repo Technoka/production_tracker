@@ -1606,5 +1606,14 @@
 "batchWillMoveToFirstPhase": "The batch and all its products will move to the first production phase",
 "productsInBatch": "Batch products",
 "approveAll": "Approve all",
-"dragToApproveHint": "Drag here to approve"
+"dragToApproveHint": "Drag here to approve",
+
+"@_.APP_ERRORS": {},
+"errorInternal": "An internal error occurred. Please try again.",
+"errorPermission": "You don't have permission to perform this action.",
+"errorNetwork": "Check your internet connection and try again.",
+"errorNotFound": "The requested resource does not exist.",
+"errorAuth": "Authentication error. Please sign in again.",
+"errorValidation": "Please check the entered data and try again.",
+"errorConflict": "A record with this data already exists."
 }

@@ -1608,5 +1608,14 @@
 "batchWillMoveToFirstPhase": "El lote y todos sus productos pasarán a la primera fase de producción",
 "productsInBatch": "Productos del lote",
 "approveAll": "Aprobar todo",
-"dragToApproveHint": "Arrastra aquí para aprobar"
+"dragToApproveHint": "Arrastra aquí para aprobar",
+
+"@_.APP_ERRORS": {},
+"errorInternal": "Ha ocurrido un error interno. Inténtalo de nuevo.",
+"errorPermission": "No tienes permisos para realizar esta acción.",
+"errorNetwork": "Comprueba tu conexión a internet e inténtalo de nuevo.",
+"errorNotFound": "El recurso solicitado no existe.",
+"errorAuth": "Error de autenticación. Revisa email y contraseña.",
+"errorValidation": "Revisa los datos introducidos e inténtalo de nuevo.",
+"errorConflict": "Ya existe un registro con estos datos.",
 }
