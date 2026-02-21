@@ -112,14 +112,10 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
   Future<void> _loadApprovePermission() async {
     final memberService =
         Provider.of<OrganizationMemberService>(context, listen: false);
-    // TODO: añadir permiso para aprobar objetos, y cambiar "canApprove" por ese permiso
     final can =
         await memberService.can('organization', 'approveClientRequests');
 
-    final canTest = memberService.currentMember!.isAdmin ||
-        memberService.currentMember!
-            .isOwner(memberService.currentMember!.userId);
-    if (mounted) setState(() => _canApprove = canTest);
+    if (mounted) setState(() => _canApprove = can);
   }
 
   Future<void> _showPendingApprovalDialog(
