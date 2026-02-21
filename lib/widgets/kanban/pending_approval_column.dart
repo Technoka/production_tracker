@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/screens/notifications/approval_detail_screen.dart';
 import 'package:gestion_produccion/services/auth_service.dart';
 import 'package:gestion_produccion/services/phase_service.dart';
 import 'package:gestion_produccion/services/product_catalog_service.dart';
@@ -185,86 +186,105 @@ class _PendingApprovalCard extends StatelessWidget {
     final createdByCurrentUser =
         pendingObject.createdBy == authService.currentUser!.uid;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: isDragging ? 0 : 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: Colors.amber.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Nombre del objeto (lote/producto/proyecto)
-            Row(
-              children: [
-                Icon(
-                  pendingObject.objectType.icon,
-                  size: 16,
-                  color: pendingObject.objectType.color,
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: isDragging
+          ? null
+          : () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ApprovalDetailScreen(
+                    notificationId: pendingObject.notificationId ?? '',
+                    pendingObjectId: pendingObject.id,
+                    readOnly: !canApprove,
+                  ),
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    pendingObject.objectName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+              );
+            },
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        elevation: isDragging ? 0 : 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(color: Colors.amber.shade200),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Nombre del objeto (lote/producto/proyecto)
+              Row(
+                children: [
+                  Icon(
+                    pendingObject.objectType.icon,
+                    size: 16,
+                    color: pendingObject.objectType.color,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      pendingObject.objectName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // Tipo de objeto
-            Text(
-              pendingObject.objectType.label,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade600,
+                ],
               ),
-            ),
 
-            const SizedBox(height: 6),
+              const SizedBox(height: 8),
 
-            // Solicitante
-            Row(
-              children: [
-                Icon(Icons.person_outline,
-                    size: 13, color: Colors.grey.shade600),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    createdByCurrentUser
-                        ? '${pendingObject.createdByName} (${l10n.you})'
-                        : pendingObject.createdByName,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-                    overflow: TextOverflow.ellipsis,
+              // Tipo de objeto
+              Text(
+                pendingObject.objectType.label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+
+              const SizedBox(height: 6),
+
+              // Solicitante
+              Row(
+                children: [
+                  Icon(Icons.person_outline,
+                      size: 13, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      createdByCurrentUser
+                          ? '${pendingObject.createdByName} (${l10n.you})'
+                          : pendingObject.createdByName,
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
 
-            const SizedBox(height: 4),
+              const SizedBox(height: 4),
 
-            // Fecha de solicitud
-            Row(
-              children: [
-                Icon(Icons.access_time, size: 13, color: Colors.grey.shade600),
-                const SizedBox(width: 4),
-                Text(
-                  _formatDate(pendingObject.createdAt),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-                ),
-              ],
-            ),
-          ],
+              // Fecha de solicitud
+              Row(
+                children: [
+                  Icon(Icons.access_time,
+                      size: 13, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  Text(
+                    _formatDate(pendingObject.createdAt),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/models/production_batch_model.dart';
 import 'package:gestion_produccion/services/phase_service.dart';
 import 'package:gestion_produccion/services/product_catalog_service.dart';
 import 'package:gestion_produccion/services/production_batch_service.dart';
@@ -875,8 +876,8 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
     final productReference =
         productData['productReference']?.toString() ?? 'Sin ref.';
     final family = productData['family']?.toString();
-    final urgencyLevel = productData['urgencyLevel']?.toString() ?? 'medium';
-    final isUrgent = urgencyLevel == 'urgent' || urgencyLevel == 'high';
+    final quantity = productData['quantity']?.toString();
+    final isUrgent = productData['urgencyLevel']?.toString() == UrgencyLevel.urgent.value;
 
     // Parsear fecha
     String? deliveryDateStr;
@@ -901,7 +902,7 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isUrgent ? Colors.orange.shade200 : Colors.grey.shade200,
+          color: isUrgent ? UrgencyLevel.urgent.color : Colors.grey.shade200,
           width: isUrgent ? 2 : 1,
         ),
         boxShadow: [
@@ -948,15 +949,15 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
                       Icon(
                         Icons.priority_high,
                         size: 14,
-                        color: Colors.orange.shade700,
+                        color: UrgencyLevel.urgent.color,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'URGENTE',
+                        UrgencyLevel.urgent.displayName.capitalize,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: Colors.orange.shade700,
+                          color: UrgencyLevel.urgent.color,
                         ),
                       ),
                     ],
@@ -979,6 +980,14 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
               Icons.category_outlined,
               'Familia',
               family,
+            ),
+
+          // Cantidad
+          if (quantity != null && quantity.isNotEmpty)
+            _buildProductInfoRow(
+              Icons.format_list_numbered,
+              'Cantidad',
+              quantity,
             ),
 
           // Fecha de entrega (si existe)
