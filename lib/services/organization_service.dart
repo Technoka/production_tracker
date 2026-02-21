@@ -60,6 +60,7 @@ class OrganizationService extends ChangeNotifier {
 
   // ==================== CREAR ORGANIZACIÓN ====================
 
+//unused. ahora la creo yo directamente desde firebase si alguien solicita.
   Future<String?> createOrganization({
     required String name,
     required String description,
@@ -993,6 +994,7 @@ class OrganizationService extends ChangeNotifier {
     }
   }
 
+// unused. ahora va con cloud functions
   Future<bool> joinOrganizationWithCode({
     required String inviteCode,
     required String userId,
