@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/services/auth_service.dart';
 import 'package:gestion_produccion/services/phase_service.dart';
 import 'package:gestion_produccion/services/product_catalog_service.dart';
 import 'package:gestion_produccion/services/production_batch_service.dart';
@@ -41,7 +42,8 @@ class PendingApprovalColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pendingService = Provider.of<PendingObjectService>(context, listen: false);
+    final pendingService =
+        Provider.of<PendingObjectService>(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
 
     return StreamBuilder<List<PendingObjectModel>>(
@@ -74,12 +76,11 @@ class PendingApprovalColumn extends StatelessWidget {
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     return _PendingApprovalCard(
-                      pendingObject: items[index],
-                      canApprove: canApprove,
-                      onDropToApprove: onDropToApprove,
-                      onDragStarted: onDragStarted,
-                      onDragEnd: onDragEnd
-                    );
+                        pendingObject: items[index],
+                        canApprove: canApprove,
+                        onDropToApprove: onDropToApprove,
+                        onDragStarted: onDragStarted,
+                        onDragEnd: onDragEnd);
                   },
                 ),
               ),
@@ -90,8 +91,7 @@ class PendingApprovalColumn extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(
-      BuildContext context, AppLocalizations l10n, int count) {
+  Widget _buildHeader(BuildContext context, AppLocalizations l10n, int count) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
@@ -166,7 +166,8 @@ class _PendingApprovalCard extends StatelessWidget {
       feedback: Material(
         elevation: 8,
         borderRadius: BorderRadius.circular(10),
-        child: SizedBox(width: 280, child: _buildCard(context, isDragging: true)),
+        child:
+            SizedBox(width: 280, child: _buildCard(context, isDragging: true)),
       ),
       childWhenDragging: Opacity(opacity: 0.35, child: card),
       child: card,
@@ -179,6 +180,10 @@ class _PendingApprovalCard extends StatelessWidget {
 
   Widget _buildCard(BuildContext context, {bool isDragging = false}) {
     final l10n = AppLocalizations.of(context)!;
+    final authService = Provider.of<AuthService>(context, listen: false);
+
+    final createdByCurrentUser =
+        pendingObject.createdBy == authService.currentUser!.uid;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -236,7 +241,9 @@ class _PendingApprovalCard extends StatelessWidget {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    pendingObject.createdByName,
+                    createdByCurrentUser
+                        ? '${pendingObject.createdByName} (${l10n.you})'
+                        : pendingObject.createdByName,
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -255,36 +262,6 @@ class _PendingApprovalCard extends StatelessWidget {
                   _formatDate(pendingObject.createdAt),
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // Chip de estado
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.amber.shade300),
-                  ),
-                  child: Text(
-                    l10n.yourRequestAwaitingApproval,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.amber.shade900,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                // Indicador de que es arrastrable si tiene permiso
-                if (canApprove)
-                  Icon(Icons.drag_indicator,
-                      size: 16, color: Colors.grey.shade400),
               ],
             ),
           ],
@@ -430,8 +407,8 @@ class _BatchApprovalConfirmationDialogState
               // Lista de productos del lote
               Text(
                 l10n.productsInBatch,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 14),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const SizedBox(height: 8),
               _buildProductsList(),
@@ -497,16 +474,14 @@ class _BatchApprovalConfirmationDialogState
                   FilledButton(
                     onPressed: () => _handleReject(
                         context, l10n, pendingService, notifService),
-                    style: FilledButton.styleFrom(
-                        backgroundColor: Colors.red),
+                    style: FilledButton.styleFrom(backgroundColor: Colors.red),
                     child: Text(l10n.reject),
                   ),
                 ]
               : [
                   // Opciones principales
                   TextButton.icon(
-                    onPressed: () =>
-                        setState(() => _showRejectionField = true),
+                    onPressed: () => setState(() => _showRejectionField = true),
                     icon: const Icon(Icons.close, color: Colors.red),
                     label: Text(
                       l10n.rejectRequest,
@@ -518,8 +493,8 @@ class _BatchApprovalConfirmationDialogState
                         context, l10n, pendingService, notifService),
                     icon: const Icon(Icons.check),
                     label: Text(l10n.approveAll),
-                    style: FilledButton.styleFrom(
-                        backgroundColor: Colors.green),
+                    style:
+                        FilledButton.styleFrom(backgroundColor: Colors.green),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
@@ -541,8 +516,8 @@ class _BatchApprovalConfirmationDialogState
             Expanded(
               child: Text(
                 obj.objectName,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
           ],
@@ -584,9 +559,9 @@ class _BatchApprovalConfirmationDialogState
     final modelData = widget.pendingObject.modelData;
 
     // Los productos pueden estar en distintas claves según el tipo de objeto
-    final rawProducts = modelData['products'] as List<dynamic>?
-        ?? modelData['items'] as List<dynamic>?
-        ?? [];
+    final rawProducts = modelData['products'] as List<dynamic>? ??
+        modelData['items'] as List<dynamic>? ??
+        [];
 
     if (rawProducts.isEmpty) {
       // Si no hay lista anidada, mostrar los datos del objeto directamente
@@ -596,9 +571,9 @@ class _BatchApprovalConfirmationDialogState
     return Column(
       children: rawProducts.map<Widget>((item) {
         final product = item as Map<String, dynamic>;
-        final name = product['productName'] as String?
-            ?? product['name'] as String?
-            ?? '—';
+        final name = product['productName'] as String? ??
+            product['name'] as String? ??
+            '—';
         final qty = product['quantity'];
         final ref = product['productReference'] as String?;
 
@@ -618,8 +593,7 @@ class _BatchApprovalConfirmationDialogState
               if (ref != null)
                 Text(
                   ref,
-                  style: TextStyle(
-                      fontSize: 11, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 ),
               const SizedBox(width: 8),
               if (qty != null)
@@ -638,8 +612,13 @@ class _BatchApprovalConfirmationDialogState
   Widget _buildSingleObjectInfo(Map<String, dynamic> data) {
     // Renderizar pares clave-valor filtrando campos técnicos irrelevantes
     const _skip = {
-      'id', 'batchId', 'organizationId', 'createdAt', 'updatedAt',
-      'phaseProgress', 'statusHistory',
+      'id',
+      'batchId',
+      'organizationId',
+      'createdAt',
+      'updatedAt',
+      'phaseProgress',
+      'statusHistory',
     };
 
     final entries = data.entries
@@ -662,8 +641,7 @@ class _BatchApprovalConfirmationDialogState
                 flex: 2,
                 child: Text(
                   _formatKey(e.key),
-                  style: TextStyle(
-                      fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
               ),
               const SizedBox(width: 8),
@@ -699,8 +677,7 @@ class _BatchApprovalConfirmationDialogState
   ) async {
     setState(() => _isLoading = true);
 
-    final notificationId =
-        widget.pendingObject.notificationId ?? '';
+    final notificationId = widget.pendingObject.notificationId ?? '';
 
     // Obtener servicios necesarios para crear objetos
     final batchService =
@@ -765,8 +742,7 @@ class _BatchApprovalConfirmationDialogState
 
     setState(() => _isLoading = true);
 
-    final notificationId =
-        widget.pendingObject.notificationId ?? '';
+    final notificationId = widget.pendingObject.notificationId ?? '';
 
     final success = await ApprovalHelper.rejectRequest(
       organizationId: widget.organizationId,
