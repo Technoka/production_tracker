@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/notification_service.dart';
@@ -13,6 +14,7 @@ class NotificationsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final notificationService = Provider.of<NotificationService>(context);
+    final permissionService = Provider.of<PermissionService>(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
 
     final user = authService.currentUserData;
@@ -24,6 +26,8 @@ class NotificationsScreen extends StatelessWidget {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
+
+    final canApproveClientRequests = permissionService.canApproveClientRequests;
 
     return Scaffold(
       appBar: AppBar(
@@ -110,8 +114,6 @@ class NotificationsScreen extends StatelessWidget {
                     // Navegar según tipo
                     if (notification.type == NotificationType.approvalRequest) {
                       if (context.mounted) {
-                        final isRequester =
-                            notification.isRequesterFor(user.uid);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -119,7 +121,7 @@ class NotificationsScreen extends StatelessWidget {
                               notificationId: notification.id,
                               pendingObjectId: notification
                                   .metadata['pendingObjectId'] as String,
-                              readOnly: isRequester,
+                              readOnly: !canApproveClientRequests,
                             ),
                           ),
                         );
