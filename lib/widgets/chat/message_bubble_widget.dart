@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/message_model.dart';
 import '../../models/user_model.dart';
 import '../../services/user_cache_service.dart';
+import '../../utils/ui_constants.dart';
 
 /// Widget de burbuja de mensaje reutilizable
 /// Soporta mensajes de usuario y eventos del sistema
@@ -17,6 +18,7 @@ class MessageBubble extends StatelessWidget {
   final bool showAvatar;
   final bool showTimestamp;
   final bool showAuthorName;
+  final bool? isHighlighted;
 
   const MessageBubble({
     Key? key,
@@ -29,19 +31,35 @@ class MessageBubble extends StatelessWidget {
     this.showAvatar = true,
     this.showTimestamp = true,
     this.showAuthorName = true,
+    this.isHighlighted,
   }) : super(key: key);
 
   bool get isOwnMessage => message.authorId == currentUser.uid;
-  static const SYSTEM_MESSAGE_MAX_WIDTH = 250.0;
 
   @override
   Widget build(BuildContext context) {
+    final highlighted = isHighlighted ?? false;
+
     // Eventos del sistema tienen diseño diferente
     if (message.isSystemGenerated) {
-      return _buildSystemEvent(context);
+      final systemWidget = _buildSystemEvent(context);
+
+      if (!highlighted) return systemWidget;
+
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        color: Colors.amber.withOpacity(0.25),
+        child: systemWidget,
+      );
     }
 
-    return _buildUserMessage(context);
+    if (!highlighted) return _buildUserMessage(context);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      color: Colors.amber.withOpacity(0.25),
+      child: _buildUserMessage(context),
+    );
   }
 
   /// Mensaje de usuario normal
@@ -195,7 +213,8 @@ class MessageBubble extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Center(
         child: Container(
-          constraints: const BoxConstraints(maxWidth: SYSTEM_MESSAGE_MAX_WIDTH),
+          constraints:
+              const BoxConstraints(maxWidth: UIConstants.MESSAGE_MAX_WIDTH),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: Colors.blue[50],

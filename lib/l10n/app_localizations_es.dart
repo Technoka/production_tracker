@@ -1256,6 +1256,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get react => 'Reaccionar';
 
   @override
+  String get removeReaction => 'Quitar reacción';
+
+  @override
   String get copy => 'Copia';
 
   @override
@@ -4234,11 +4237,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get errorNotFound => 'El recurso solicitado no existe.';
 
   @override
-  String get errorAuth => 'Error de autenticación. Revisa email y contraseña.';
+  String get errorAuth => 'Error de autenticación.';
 
   @override
   String get errorValidation => 'Revisa los datos introducidos e inténtalo de nuevo.';
 
   @override
   String get errorConflict => 'Ya existe un registro con estos datos.';
+
+  @override
+  String get change => 'Cambiar';
 }

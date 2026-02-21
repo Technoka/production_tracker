@@ -452,6 +452,7 @@
   "beFirstToMessage": "Sé el primero en enviar un mensaje",
   "reply": "Responder",
   "react": "Reaccionar",
+  "removeReaction": "Quitar reacción",
   "copy": "Copiar",
   "textCopied": "Texto copiado",
   "unpin": "Desfijar",
@@ -1616,7 +1617,9 @@
 "errorPermission": "No tienes permisos para realizar esta acción.",
 "errorNetwork": "Comprueba tu conexión a internet e inténtalo de nuevo.",
 "errorNotFound": "El recurso solicitado no existe.",
-"errorAuth": "Error de autenticación. Revisa email y contraseña.",
+"errorAuth": "Error de autenticación.",
 "errorValidation": "Revisa los datos introducidos e inténtalo de nuevo.",
-"errorConflict": "Ya existe un registro con estos datos."
+"errorConflict": "Ya existe un registro con estos datos.",
+
+"change": "Cambiar"
 }

@@ -2525,6 +2525,12 @@ abstract class AppLocalizations {
   /// **'React'**
   String get react;
 
+  /// No description provided for @removeReaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove reaction'**
+  String get removeReaction;
+
   /// No description provided for @copy.
   ///
   /// In en, this message translates to:
@@ -5222,7 +5228,7 @@ abstract class AppLocalizations {
   /// No description provided for @canCreateCatalogProducts.
   ///
   /// In en, this message translates to:
-  /// **'Can create products'**
+  /// **'Can create catalog products'**
   String get canCreateCatalogProducts;
 
   /// No description provided for @canCreateProjects.
@@ -8390,7 +8396,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorAuth.
   ///
   /// In en, this message translates to:
-  /// **'Authentication error. Please sign in again.'**
+  /// **'Authentication error.'**
   String get errorAuth;
 
   /// No description provided for @errorValidation.
@@ -8404,6 +8410,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A record with this data already exists.'**
   String get errorConflict;
+
+  /// No description provided for @change.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get change;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

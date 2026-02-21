@@ -1256,6 +1256,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get react => 'React';
 
   @override
+  String get removeReaction => 'Remove reaction';
+
+  @override
   String get copy => 'Copy';
 
   @override
@@ -2625,7 +2628,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get canCreateBatches => 'Can create batches';
 
   @override
-  String get canCreateCatalogProducts => 'Can create products';
+  String get canCreateCatalogProducts => 'Can create catalog products';
 
   @override
   String get canCreateProjects => 'Can create projects';
@@ -4234,11 +4237,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorNotFound => 'The requested resource does not exist.';
 
   @override
-  String get errorAuth => 'Authentication error. Please sign in again.';
+  String get errorAuth => 'Authentication error.';
 
   @override
   String get errorValidation => 'Please check the entered data and try again.';
 
   @override
   String get errorConflict => 'A record with this data already exists.';
+
+  @override
+  String get change => 'Change';
 }

@@ -442,6 +442,7 @@
   "beFirstToMessage": "Be the first to send something",
   "reply": "Answer",
   "react": "React",
+  "removeReaction": "Remove reaction",
   "copy": "Copy",
   "textCopied": "Text copied",
   "unpin": "Unpin",
@@ -1614,7 +1615,9 @@
 "errorPermission": "You don't have permission to perform this action.",
 "errorNetwork": "Check your internet connection and try again.",
 "errorNotFound": "The requested resource does not exist.",
-"errorAuth": "Authentication error. Please sign in again.",
+"errorAuth": "Authentication error.",
 "errorValidation": "Please check the entered data and try again.",
-"errorConflict": "A record with this data already exists."
+"errorConflict": "A record with this data already exists.",
+
+"change": "Change"
 }

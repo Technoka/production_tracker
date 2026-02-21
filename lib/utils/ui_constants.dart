@@ -15,6 +15,9 @@ class UIConstants {
   // Anchura de tarjetas de kanban
   static const double KANBAN_CARD_WIDTH = 280;
 
+  // Chat
+  static const double MESSAGE_MAX_WIDTH = 250;
+
   // ==================== COLORES PREDEFINIDOS ====================
 
   /// Lista de colores predefinidos para selección

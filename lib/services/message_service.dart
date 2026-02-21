@@ -9,31 +9,27 @@ class MessageService {
 
   /// Obtener referencia a la colección de mensajes según el tipo de entidad
   CollectionReference _getMessagesCollection(
-    String organizationId, 
-    String entityType, 
-    String entityId, 
-    {String? parentId}
-  ) {
-    final orgRef = _firestore
-    .collection('organizations')
-    .doc(organizationId);
+      String organizationId, String entityType, String entityId,
+      {String? parentId}) {
+    final orgRef = _firestore.collection('organizations').doc(organizationId);
 
     switch (entityType) {
       case 'project':
         return orgRef
-        .collection('projects')
-        .doc(entityId)
-        .collection('messages');
-      
+            .collection('projects')
+            .doc(entityId)
+            .collection('messages');
+
       case 'batch':
         return orgRef
-        .collection('production_batches')
-        .doc(entityId)
-        .collection('messages');
-      
+            .collection('production_batches')
+            .doc(entityId)
+            .collection('messages');
+
       case 'batch_product':
         if (parentId == null) {
-          throw ArgumentError('parentId (batchId) is required for batch products');
+          throw ArgumentError(
+              'parentId (batchId) is required for batch products');
         }
         return orgRef
             .collection('production_batches')
@@ -41,10 +37,11 @@ class MessageService {
             .collection('batch_products')
             .doc(entityId)
             .collection('messages');
-      
+
       case 'project_product':
         if (parentId == null) {
-          throw ArgumentError('parentId (projectId) is required for project products');
+          throw ArgumentError(
+              'parentId (projectId) is required for project products');
         }
         return orgRef
             .collection('projects')
@@ -52,9 +49,12 @@ class MessageService {
             .collection('products')
             .doc(entityId)
             .collection('messages');
-            
+
       default:
-        return orgRef.collection(entityType).doc(entityId).collection('messages');
+        return orgRef
+            .collection(entityType)
+            .doc(entityId)
+            .collection('messages');
     }
   }
 
@@ -67,7 +67,8 @@ class MessageService {
     bool includeInternal = true,
     int limit = 100,
   }) {
-    Query query = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
+    Query query = _getMessagesCollection(organizationId, entityType, entityId,
+            parentId: parentId)
         .orderBy('createdAt', descending: true)
         .limit(limit);
 
@@ -76,7 +77,9 @@ class MessageService {
     }
 
     return query.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => MessageModel.fromFirestore(doc)).toList();
+      return snapshot.docs
+          .map((doc) => MessageModel.fromFirestore(doc))
+          .toList();
     });
   }
 
@@ -90,7 +93,8 @@ class MessageService {
     int limit = 50,
     DocumentSnapshot? lastDocument,
   }) async {
-    Query query = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
+    Query query = _getMessagesCollection(organizationId, entityType, entityId,
+            parentId: parentId)
         .orderBy('createdAt', descending: true)
         .limit(limit);
 
@@ -119,25 +123,26 @@ class MessageService {
     bool isInternal = false,
     String? parentMessageId,
   }) async {
-    final messagesRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId);
+    final messagesRef = _getMessagesCollection(
+        organizationId, entityType, entityId,
+        parentId: parentId);
 
     final message = MessageModel(
-      id: messagesRef.doc().id,
-      entityType: entityType,
-      entityId: entityId,
-      type: MessageType.userMessage,
-      content: content.trim(),
-      authorId: currentUser.uid,
-      authorName: currentUser.name,
-      authorRole: currentUser.role,
-      authorAvatar: currentUser.photoURL,
-      mentions: mentions,
-      attachments: attachments,
-      isInternal: isInternal,
-      parentMessageId: parentMessageId,
-      createdAt: DateTime.now(),
-      readBy: [currentUser.uid]
-    );
+        id: messagesRef.doc().id,
+        entityType: entityType,
+        entityId: entityId,
+        type: MessageType.userMessage,
+        content: content.trim(),
+        authorId: currentUser.uid,
+        authorName: currentUser.name,
+        authorRole: currentUser.role,
+        authorAvatar: currentUser.photoURL,
+        mentions: mentions,
+        attachments: attachments,
+        isInternal: isInternal,
+        parentMessageId: parentMessageId,
+        createdAt: DateTime.now(),
+        readBy: [currentUser.uid]);
 
     await messagesRef.doc(message.id).set(message.toMap());
 
@@ -164,7 +169,9 @@ class MessageService {
     Map<String, dynamic>? eventData,
     bool isInternal = true,
   }) async {
-    final messagesRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId);
+    final messagesRef = _getMessagesCollection(
+        organizationId, entityType, entityId,
+        parentId: parentId);
     final content = SystemEventType.getEventContent(eventType, eventData);
 
     final message = MessageModel(
@@ -193,7 +200,9 @@ class MessageService {
     required String messageId,
     required String newContent,
   }) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
+    final messageRef = _getMessagesCollection(
+            organizationId, entityType, entityId,
+            parentId: parentId)
         .doc(messageId);
 
     await messageRef.update({
@@ -211,7 +220,9 @@ class MessageService {
     String? parentId,
     required String messageId,
   }) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
+    final messageRef = _getMessagesCollection(
+            organizationId, entityType, entityId,
+            parentId: parentId)
         .doc(messageId);
 
     await messageRef.delete();
@@ -226,7 +237,9 @@ class MessageService {
     required String messageId,
     required String userId,
   }) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
+    final messageRef = _getMessagesCollection(
+            organizationId, entityType, entityId,
+            parentId: parentId)
         .doc(messageId);
 
     // ✅ SOLO actualiza readBy, sin updatedAt
@@ -243,7 +256,9 @@ class MessageService {
     String? parentId,
     required String userId,
   }) async {
-    final messagesRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId);
+    final messagesRef = _getMessagesCollection(
+        organizationId, entityType, entityId,
+        parentId: parentId);
 
     final snapshot = await messagesRef
         .where('readBy', whereNotIn: [userId])
@@ -272,7 +287,9 @@ class MessageService {
     required String emoji,
     required UserModel user,
   }) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
+    final messageRef = _getMessagesCollection(
+            organizationId, entityType, entityId,
+            parentId: parentId)
         .doc(messageId);
 
     final reaction = MessageReaction(
@@ -298,7 +315,9 @@ class MessageService {
     required String emoji,
     required String userId,
   }) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
+    final messageRef = _getMessagesCollection(
+            organizationId, entityType, entityId,
+            parentId: parentId)
         .doc(messageId);
 
     final doc = await messageRef.get();
@@ -315,6 +334,57 @@ class MessageService {
     });
   }
 
+  /// Gestionar reacción única por usuario: añade, cambia o elimina según el estado actual
+  Future<void> toggleReaction({
+    required String organizationId,
+    required String entityType,
+    required String entityId,
+    String? parentId,
+    required String messageId,
+    required String emoji,
+    required UserModel user,
+  }) async {
+    final messageRef = _getMessagesCollection(
+      organizationId,
+      entityType,
+      entityId,
+      parentId: parentId,
+    ).doc(messageId);
+
+    final doc = await messageRef.get();
+    if (!doc.exists) return;
+
+    final message = MessageModel.fromFirestore(doc);
+
+    // Reacción previa del usuario (si existe)
+    final existingReaction =
+        message.reactions.where((r) => r.userId == user.uid).firstOrNull;
+
+    List<MessageReaction> updatedReactions;
+
+    if (existingReaction != null && existingReaction.emoji == emoji) {
+      // Mismo emoji → quitar reacción
+      updatedReactions =
+          message.reactions.where((r) => r.userId != user.uid).toList();
+    } else {
+      // Emoji distinto o sin reacción → reemplazar o añadir
+      updatedReactions = [
+        ...message.reactions.where((r) => r.userId != user.uid),
+        MessageReaction(
+          emoji: emoji,
+          userId: user.uid,
+          userName: user.name,
+          createdAt: DateTime.now(),
+        ),
+      ];
+    }
+
+    await messageRef.update({
+      'reactions': updatedReactions.map((r) => r.toMap()).toList(),
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
+    });
+  }
+
   /// Fijar/desfijar mensaje
   Future<void> togglePin({
     required String organizationId,
@@ -324,7 +394,9 @@ class MessageService {
     required String messageId,
     required bool isPinned,
   }) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
+    final messageRef = _getMessagesCollection(
+            organizationId, entityType, entityId,
+            parentId: parentId)
         .doc(messageId);
 
     await messageRef.update({
@@ -340,12 +412,15 @@ class MessageService {
     required String entityId,
     String? parentId,
   }) {
-    return _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
+    return _getMessagesCollection(organizationId, entityType, entityId,
+            parentId: parentId)
         .where('isPinned', isEqualTo: true)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => MessageModel.fromFirestore(doc)).toList();
+      return snapshot.docs
+          .map((doc) => MessageModel.fromFirestore(doc))
+          .toList();
     });
   }
 
@@ -357,12 +432,15 @@ class MessageService {
     String? parentId,
     required String parentMessageId,
   }) {
-    return _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
+    return _getMessagesCollection(organizationId, entityType, entityId,
+            parentId: parentId)
         .where('parentMessageId', isEqualTo: parentMessageId)
         .orderBy('createdAt', descending: false)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => MessageModel.fromFirestore(doc)).toList();
+      return snapshot.docs
+          .map((doc) => MessageModel.fromFirestore(doc))
+          .toList();
     });
   }
 
@@ -375,24 +453,26 @@ class MessageService {
     required String searchTerm,
     bool includeInternal = true,
   }) async {
-    final messagesRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId);
+    final messagesRef = _getMessagesCollection(
+        organizationId, entityType, entityId,
+        parentId: parentId);
 
-    Query query = messagesRef
-        .orderBy('createdAt', descending: true)
-        .limit(500);
+    Query query = messagesRef.orderBy('createdAt', descending: true).limit(500);
 
     if (!includeInternal) {
       query = query.where('isInternal', isEqualTo: false);
     }
 
     final snapshot = await query.get();
-    final allMessages = snapshot.docs
-        .map((doc) => MessageModel.fromFirestore(doc))
-        .toList();
+    final allMessages =
+        snapshot.docs.map((doc) => MessageModel.fromFirestore(doc)).toList();
 
     return allMessages.where((message) {
       return message.content.toLowerCase().contains(searchTerm.toLowerCase()) ||
-          message.authorName?.toLowerCase().contains(searchTerm.toLowerCase()) == true;
+          message.authorName
+                  ?.toLowerCase()
+                  .contains(searchTerm.toLowerCase()) ==
+              true;
     }).toList();
   }
 
@@ -404,22 +484,23 @@ class MessageService {
     String? parentId,
     required String userId,
   }) {
-    return _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
+    return _getMessagesCollection(organizationId, entityType, entityId,
+            parentId: parentId)
         .orderBy('createdAt', descending: true)
         .limit(50)
         .snapshots()
         .map((snapshot) {
-          int count = 0;
-          for (var doc in snapshot.docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            final readBy = List<String>.from(data['readBy'] ?? []);
-            
-            if (!readBy.contains(userId)) {
-              count++;
-            }
-          }
-          return count;
-        });
+      int count = 0;
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final readBy = List<String>.from(data['readBy'] ?? []);
+
+        if (!readBy.contains(userId)) {
+          count++;
+        }
+      }
+      return count;
+    });
   }
 
   /// Helper específico para productos de lote
@@ -446,7 +527,9 @@ class MessageService {
     String? parentId,
     String parentMessageId,
   ) async {
-    final messageRef = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
+    final messageRef = _getMessagesCollection(
+            organizationId, entityType, entityId,
+            parentId: parentId)
         .doc(parentMessageId);
 
     await messageRef.update({
@@ -463,20 +546,22 @@ class MessageService {
     String? parentId,
     required String userId,
   }) async {
-    final snapshot = await _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId)
+    final snapshot = await _getMessagesCollection(
+            organizationId, entityType, entityId,
+            parentId: parentId)
         .orderBy('createdAt', descending: true)
-        .limit(10) 
+        .limit(10)
         .get();
 
     for (var doc in snapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
       final readBy = List<String>.from(data['readBy'] ?? []);
-      
+
       if (!readBy.contains(userId)) {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -487,15 +572,15 @@ class MessageService {
     String? parentId,
     required String userId,
   }) async {
+    final collection = _getMessagesCollection(
+        organizationId, entityType, entityId,
+        parentId: parentId);
 
-    final collection = _getMessagesCollection(organizationId, entityType, entityId, parentId: parentId);
-    
     try {
       final snapshot = await collection
           .orderBy('createdAt', descending: true)
           .limit(50)
           .get();
-
 
       final batch = _firestore.batch();
       int updateCount = 0;
@@ -507,7 +592,7 @@ class MessageService {
         if (!readBy.contains(userId)) {
           batch.update(doc.reference, {
             'readBy': FieldValue.arrayUnion([userId]),
-            'updatedAt': FieldValue.serverTimestamp(), 
+            'updatedAt': FieldValue.serverTimestamp(),
           });
           updateCount++;
         }
@@ -515,13 +600,96 @@ class MessageService {
 
       if (updateCount > 0) {
         await batch.commit();
-      } else {
-      }
+      } else {}
     } catch (e) {
       if (e is FirebaseException) {
         print('   Code: ${e.code}');
         print('   Message: ${e.message}');
       }
     }
+  }
+
+  /// Carga mensajes hasta incluir un messageId específico.
+  /// Devuelve la lista ampliada si el mensaje no estaba en el límite actual.
+  Future<List<MessageModel>> getMessagesUntil({
+    required String organizationId,
+    required String entityType,
+    required String entityId,
+    String? parentId,
+    required String targetMessageId,
+    bool includeInternal = true,
+    int batchSize = 100,
+    int maxMessages = 1000,
+  }) async {
+    final collection = _getMessagesCollection(
+      organizationId,
+      entityType,
+      entityId,
+      parentId: parentId,
+    );
+
+    int loaded = 0;
+    DocumentSnapshot? lastDoc;
+
+    while (loaded < maxMessages) {
+      Query query =
+          collection.orderBy('createdAt', descending: true).limit(batchSize);
+
+      if (!includeInternal) {
+        query = query.where('isInternal', isEqualTo: false);
+      }
+
+      if (lastDoc != null) {
+        query = query.startAfterDocument(lastDoc);
+      }
+
+      final snapshot = await query.get();
+      if (snapshot.docs.isEmpty) break;
+
+      final found = snapshot.docs.any((d) => d.id == targetMessageId);
+      loaded += snapshot.docs.length;
+      lastDoc = snapshot.docs.last;
+
+      if (found || snapshot.docs.length < batchSize) break;
+    }
+
+    // Devolver el total cargado como stream de una sola emisión no es posible,
+    // así que devolvemos el nuevo limit necesario
+    return []; // señal: usar getMessages con el nuevo limit
+  }
+
+  /// Obtener el offset aproximado de un mensaje (cuántos mensajes hay después de él)
+  Future<int> getMessageOffset({
+    required String organizationId,
+    required String entityType,
+    required String entityId,
+    String? parentId,
+    required String targetMessageId,
+    bool includeInternal = true,
+  }) async {
+    final collection = _getMessagesCollection(
+      organizationId,
+      entityType,
+      entityId,
+      parentId: parentId,
+    );
+
+    // Obtener el documento del mensaje objetivo
+    final targetDoc = await collection.doc(targetMessageId).get();
+    if (!targetDoc.exists) return 0;
+
+    final targetDate = (targetDoc.data() as Map<String, dynamic>)['createdAt'];
+
+    // Contar cuántos mensajes son más recientes (vienen antes en la lista reverse:true)
+    Query countQuery = collection
+        .orderBy('createdAt', descending: true)
+        .where('createdAt', isGreaterThan: targetDate);
+
+    if (!includeInternal) {
+      countQuery = countQuery.where('isInternal', isEqualTo: false);
+    }
+
+    final countSnapshot = await countQuery.count().get();
+    return countSnapshot.count ?? 0;
   }
 }

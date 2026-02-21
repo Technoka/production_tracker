@@ -3,16 +3,18 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:gestion_produccion/services/organization_member_service.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
+import 'package:gestion_produccion/utils/error_handler.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/message_model.dart';
 import '../../models/user_model.dart';
 import '../../services/message_service.dart';
 import '../../services/auth_service.dart';
-import '../../services/chat_role_helper.dart';
 import '../../widgets/chat/message_bubble_widget.dart';
 import '../../widgets/chat/message_input_widget.dart';
 import '../../widgets/chat/message_search_delegate.dart';
 import 'package:provider/provider.dart';
+import '../../widgets/error_display_widget.dart';
+import 'dart:async';
 
 /// Pantalla de chat reutilizable para lotes, proyectos y productos
 class ChatScreen extends StatefulWidget {
@@ -42,12 +44,12 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final MessageService _messageService = MessageService();
   final AuthService _authService = AuthService();
-  final ChatRoleHelper _roleHelper = ChatRoleHelper();
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _inputKey = GlobalKey(); // AGREGAR
   double _inputHeight = 150; // AGREGAR: altura por defecto
 
   Stream<List<MessageModel>>? _messagesStream;
+  int _messagesLimit = 100;
 
   UserModel? _currentUser;
   MessageModel? _replyingTo;
@@ -55,6 +57,11 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _showScrollToBottom = false;
   bool _isUserClient = false;
   bool _isCheckingRole = true;
+
+  // Scroll to message
+  String? _highlightedMessageId;
+  Timer? _highlightTimer;
+  final Map<String, GlobalKey> _messageKeys = {};
 
   // Tiempo máximo para considerar mensajes consecutivos (5 minutos)
   static const Duration _consecutiveMessageThreshold = Duration(minutes: 5);
@@ -75,6 +82,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _highlightTimer?.cancel();
     super.dispose();
   }
 
@@ -88,7 +96,7 @@ class _ChatScreenState extends State<ChatScreen> {
       entityId: widget.entityId,
       parentId: widget.parentId,
       includeInternal: showInternal,
-      limit: 100,
+      limit: _messagesLimit,
     );
   }
 
@@ -115,12 +123,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
   /// Verificar si el usuario actual es cliente
   Future<void> _checkUserRole() async {
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+
     if (_currentUser == null) return;
 
-    final isClient = await _roleHelper.isUserClient(
-      widget.organizationId,
-      _currentUser!.uid,
-    );
+    final isClient = memberService.currentMember!.isClient;
 
     if (mounted) {
       setState(() {
@@ -181,9 +189,7 @@ class _ChatScreenState extends State<ChatScreen> {
       // Scroll to bottom suavemente
       _scrollToBottom();
     } catch (e) {
-      if (mounted) {
-        _showError('Error al enviar mensaje: $e');
-      }
+      if (mounted) AppErrorSnackBar.show(context, ErrorHandler.from(e));
     } finally {
       _isLoading = false;
     }
@@ -232,17 +238,43 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
 
           // Reaccionar
-          if (!message.isSystemGenerated)
-            ListTile(
-              leading: const Icon(Icons.add_reaction),
-              title: Text(l10n.react),
-              onTap: () {
-                Navigator.pop(context);
-                EmojiReactionPicker.show(context, (emoji) {
-                  _addReaction(message, emoji);
-                });
-              },
-            ),
+          if (!message.isSystemGenerated) ...[
+            Builder(builder: (context) {
+              final existingReaction = message.reactions
+                  .where((r) => r.userId == _currentUser!.uid)
+                  .firstOrNull;
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.add_reaction),
+                    title: Text(existingReaction != null
+                        ? '${l10n.react} (${l10n.change}: ${existingReaction.emoji})'
+                        : l10n.react),
+                    onTap: () {
+                      Navigator.pop(context);
+                      EmojiReactionPicker.show(context, (emoji) {
+                        _addReaction(message, emoji);
+                      });
+                    },
+                  ),
+                  if (existingReaction != null)
+                    ListTile(
+                      leading: const Icon(Icons.remove_circle_outline,
+                          color: Colors.red),
+                      title: Text(l10n.removeReaction,
+                          style: const TextStyle(color: Colors.red)),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _addReaction(
+                            message, existingReaction.emoji); // toggle → quita
+                      },
+                    ),
+                ],
+              );
+            }),
+          ],
           // Copiar
           if (!message.isSystemGenerated)
             ListTile(
@@ -300,7 +332,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _addReaction(MessageModel message, String emoji) async {
     try {
-      await _messageService.addReaction(
+      await _messageService.toggleReaction(
         organizationId: widget.organizationId,
         entityType: widget.entityType,
         entityId: widget.entityId,
@@ -310,7 +342,7 @@ class _ChatScreenState extends State<ChatScreen> {
         user: _currentUser!,
       );
     } catch (e) {
-      _showError('Error al añadir reacción: $e');
+      if (mounted) AppErrorSnackBar.show(context, ErrorHandler.from(e));
     }
   }
 
@@ -329,7 +361,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _showSuccess(
           message.isPinned ? l10n.messageUnpinned : l10n.messagePinned);
     } catch (e) {
-      _showError('Error: $e');
+      if (mounted) AppErrorSnackBar.show(context, ErrorHandler.from(e));
     }
   }
 
@@ -372,10 +404,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   messageId: message.id,
                   newContent: newContent,
                 );
-                Navigator.pop(context);
+                if (context.mounted) Navigator.pop(context);
                 _showSuccess(l10n.messageEdited);
               } catch (e) {
-                _showError('${l10n.deleteError} $e');
+                if (context.mounted)
+                  AppErrorSnackBar.show(context, ErrorHandler.from(e));
               }
             },
             child: Text(l10n.save),
@@ -408,10 +441,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   parentId: widget.parentId,
                   messageId: message.id,
                 );
-                Navigator.pop(context);
+                if (context.mounted) Navigator.pop(context);
                 _showSuccess(l10n.messageDeleted);
               } catch (e) {
-                _showError('${l10n.deleteError} $e');
+                if (context.mounted)
+                  AppErrorSnackBar.show(context, ErrorHandler.from(e));
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -419,12 +453,6 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -524,7 +552,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
             // Si se seleccionó un mensaje, scroll hacia él
             if (result != null) {
-              // TODO: Implementar scroll to message
+              _scrollToMessage(result.id);
             }
           },
           tooltip: l10n.search,
@@ -669,8 +697,8 @@ class _ChatScreenState extends State<ChatScreen> {
                               Navigator.pop(context);
                               _handleMessageLongPress(message);
                             },
-                            onReactionTap: (emoji) =>
-                                _addReaction(message, emoji),
+                            // onReactionTap: (emoji) =>
+                            //     _addReaction(message, emoji),
                           );
                         },
                       ),
@@ -736,7 +764,9 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildPinnedMessagePreview(MessageModel message) {
     return InkWell(
       onTap: () {
-        // TODO: Scroll to pinned message
+        // TODO: scrollear al mensaje fijado al hacer click
+        Navigator.pop(context); // cerrar el bottom sheet primero
+        _scrollToMessage(message.id);
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -787,18 +817,21 @@ class _ChatScreenState extends State<ChatScreen> {
             final shouldShowAvatar = _shouldShowAvatar(messages, index);
             final shouldShowAuthorName = shouldShowAvatar;
 
+            final key = _messageKeys.putIfAbsent(
+              message.id,
+              () => GlobalKey(),
+            );
+
             return MessageBubble(
+              key: key,
               message: message,
               currentUser: _currentUser!,
               showAvatar: shouldShowAvatar,
               showAuthorName: shouldShowAuthorName,
+              isHighlighted: _highlightedMessageId == message.id,
               onLongPress: () => _handleMessageLongPress(message),
-              onReactionTap: (emoji) => _addReaction(message, emoji),
-              onReply: message.threadCount > 0
-                  ? () {
-                      // TODO: Abrir vista de thread
-                    }
-                  : null,
+              // onReactionTap: (emoji) => _addReaction(message, emoji),
+              onReply: message.threadCount > 0 ? () {/* TODO: thread */} : null,
             );
           },
         );
@@ -860,8 +893,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageInputWithKey() {
-    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
-    final permissionService = Provider.of<PermissionService>(context, listen: false);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
     final canSendMessages = permissionService.canSendMessages;
 
     // Medir la altura del input después de construir
@@ -889,5 +922,90 @@ class _ChatScreenState extends State<ChatScreen> {
         canSend: canSendMessages,
       ),
     );
+  }
+
+  Future<void> _scrollToMessage(String messageId) async {
+    setState(() => _highlightedMessageId = messageId);
+
+    // Cancelar cualquier highlight pendiente previo
+    _highlightTimer?.cancel();
+
+    final success = await _attemptScrollToMessage(messageId);
+
+    if (!success) {
+      // Intentar ampliar límite y reintentar
+      try {
+        final offset = await _messageService.getMessageOffset(
+          organizationId: widget.organizationId,
+          entityType: widget.entityType,
+          entityId: widget.entityId,
+          parentId: widget.parentId,
+          targetMessageId: messageId,
+          includeInternal: !_isUserClient && widget.showInternalMessages,
+        );
+
+        final neededLimit = offset + 20;
+        if (neededLimit > _messagesLimit) {
+          setState(() {
+            _messagesLimit = neededLimit;
+            _setupStream();
+          });
+          // Esperar a que ListView renderice los nuevos items
+          await Future.delayed(const Duration(milliseconds: 800));
+        }
+
+        // Segundo intento con retries
+        await _retryScrollToMessage(messageId);
+      } catch (e) {
+        debugPrint('Error scrolling to message: $e');
+      }
+    }
+
+    // Siempre limpiar el highlight después de 2s, pase lo que pase
+    _highlightTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _highlightedMessageId = null);
+    });
+  }
+
+  /// Intenta hacer scroll. Devuelve true si tuvo éxito.
+  Future<bool> _attemptScrollToMessage(String messageId) async {
+    final key = _messageKeys[messageId];
+    if (key == null) return false;
+
+    // Esperar un frame para que el context esté disponible
+    final completer = Completer<bool>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final context = key.currentContext;
+        if (context == null) {
+          completer.complete(false);
+          return;
+        }
+        await Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+          alignment: 0.5,
+        );
+        completer.complete(true);
+      } catch (e) {
+        completer.complete(false);
+      }
+    });
+
+    return completer.future;
+  }
+
+  /// Reintenta el scroll hasta 5 veces con delay entre intentos.
+  Future<void> _retryScrollToMessage(String messageId,
+      {int maxRetries = 10}) async {
+    for (int i = 0; i < maxRetries; i++) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      final success = await _attemptScrollToMessage(messageId);
+      if (success) return;
+    }
+    debugPrint(
+        '⚠️ Could not scroll to message $messageId after $maxRetries retries');
   }
 }
