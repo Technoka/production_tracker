@@ -166,15 +166,21 @@ class _HomeScreenState extends State<HomeScreen> {
     final authService = Provider.of<AuthService>(context);
     final organizationService = Provider.of<OrganizationService>(context);
     final user = authService.currentUserData;
+    // print(
+    //     '🏠 HomeScreen build - user: ${user?.uid}, orgId: ${user?.organizationId}');
 
     final permissionService = Provider.of<PermissionService>(context);
     final memberService = Provider.of<OrganizationMemberService>(context);
 
-    // ✅ Inicializar solo una vez
     if (!initProvider.isInitialized && !initProvider.isInitializing) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        initProvider.initialize(context);
-      });
+      // Solo intentar inicializar si ya tenemos el UserModel cargado.
+      // Si user es null pero hay currentUser de Firebase, esperamos al
+      // próximo rebuild (que vendrá cuando AuthService cargue los datos).
+      if (user != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          initProvider.initialize(context);
+        });
+      }
       return const UniversalLoadingScreen();
     }
 
@@ -463,12 +469,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final permissionService = Provider.of<PermissionService>(context);
     final canAccessProduction =
-        permissionService.canViewKanban ||
-            permissionService.canViewBatches;
-    final canAccessManagement =
-        permissionService.canViewProjects ||
-            permissionService.canViewClients ||
-            permissionService.canViewCatalog;
+        permissionService.canViewKanban || permissionService.canViewBatches;
+    final canAccessManagement = permissionService.canViewProjects ||
+        permissionService.canViewClients ||
+        permissionService.canViewCatalog;
     final canViewReports = permissionService.canViewReports;
 
     return Drawer(

@@ -1,7 +1,6 @@
 // lib/widgets/kanban/kanban_board_widget.dart
 
 import 'package:flutter/material.dart';
-import 'package:gestion_produccion/models/pending_object_model.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/screens/notifications/approval_detail_screen.dart';
 import 'package:gestion_produccion/services/organization_member_service.dart';
@@ -107,6 +106,10 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
         _onlyUrgentFilter = widget.initialUrgentFilter ?? false;
       });
     }
+    // Reintentar cargar transiciones si antes fallaron por falta de rol
+    if (_availableTransitions.isEmpty && !_isLoadingTransitions) {
+      _loadAvailableTransitions();
+    }
   }
 
   Future<void> _loadApprovePermission() async {
@@ -116,20 +119,6 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
         await memberService.can('organization', 'approveClientRequests');
 
     if (mounted) setState(() => _canApprove = can);
-  }
-
-  Future<void> _showPendingApprovalDialog(
-      BuildContext context, PendingObjectModel pendingObject) async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-
-    await BatchApprovalConfirmationDialog.show(
-      context,
-      pendingObject: pendingObject,
-      organizationId: widget.organizationId,
-      currentUser: authService.currentUserData!,
-    );
-    // El stream de pending_objects se actualiza automáticamente.
-    // No es necesario recargar nada manualmente.
   }
 
   Future<void> _loadAvailableTransitions() async {
@@ -142,9 +131,16 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
           Provider.of<OrganizationMemberService>(context, listen: false);
 
       // Obtener todas las transiciones posibles
+      final roleId = memberService.currentRole?.id;
+      if (roleId == null) {
+        // Los permisos aún no están cargados, reintentar cuando estén listos
+        setState(() => _isLoadingTransitions = false);
+        return;
+      }
+
       final allTransitions = await transitionService.getAvailableTransitions(
         organizationId: widget.organizationId,
-        userRoleId: memberService.currentRole!.id,
+        userRoleId: roleId,
       );
 
       // Crear mapa de transiciones disponibles por estado origen
@@ -549,7 +545,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
 
                 // Comparamos si el usuario actual fue el que creó la solicitud
                 final isRequester = pendingObj.createdBy == currentUserId;
-                
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -717,7 +713,7 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
 
                 // Comparamos si el usuario actual fue el que creó la solicitud
                 final isRequester = pendingObj.createdBy == currentUserId;
-                
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -816,11 +812,6 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
                           productionProvider
                               .getClientById(batch.clientId)!
                               .color!);
-
-                      // ✅ Determinar si se puede arrastrar
-                      final String columnId = isPhaseView
-                          ? (column as ProductionPhase).id
-                          : (column as ProductStatusModel).id;
 
                       final bool canDrag = isPhaseView
                           ? _canMoveFromPhase(context, product.currentPhase)

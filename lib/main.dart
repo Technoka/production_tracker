@@ -64,6 +64,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // FirebaseAuth.instance.authStateChanges().listen((user) {
+    //   print('🔐 Auth state changed: ${user?.uid ?? "NULL"}');
+    // });
+
+    // FirebaseAuth.instance.idTokenChanges().listen((user) {
+    //   print('🎫 Token changed: ${user?.uid ?? "NULL"}');
+    // });
     return MultiProvider(
       providers: [
         // ==================== SERVICIOS BASE (Sin dependencias) ====================
