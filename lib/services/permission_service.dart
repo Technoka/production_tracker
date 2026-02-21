@@ -79,6 +79,7 @@ class PermissionService extends ChangeNotifier {
   bool get canManageRoles => _getCached('organization_manageRoles');
   bool get canManageSettings => _getCached('organization_manageSettings');
   bool get canManageProductStatuses => _getCached('organization_manageProductStatuses');
+  bool get canApproveClientRequests => _getCached('organization_approveClientRequests');
 
   // CHAT
   bool get canViewChat => _getCached('chat_view');
@@ -147,6 +148,7 @@ class PermissionService extends ChangeNotifier {
       'organization_manageRoles': _effectivePermissions!.can('organization', 'manageRoles'),
       'organization_manageSettings': _effectivePermissions!.can('organization', 'manageSettings'),
       'organization_manageProductStatuses': _effectivePermissions!.can('organization', 'manageProductStatuses'),
+      'organization_approveClientRequests': _effectivePermissions!.can('organization', 'approveClientRequests'),
       
       // CHAT
       'chat_view': _effectivePermissions!.can('chat', 'view'),
