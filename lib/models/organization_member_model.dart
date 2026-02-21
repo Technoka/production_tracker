@@ -7,6 +7,8 @@ import 'role_model.dart';
 /// Conecta un usuario con un rol y permite personalizar permisos mediante overrides
 class OrganizationMemberModel {
   final String userId;
+  final String? userName;
+  final String? userEmail;
   final String organizationId;
   
   // Rol asignado
@@ -34,6 +36,8 @@ class OrganizationMemberModel {
 
   OrganizationMemberModel({
     required this.userId,
+    this.userName,
+    this.userEmail,
     required this.organizationId,
     required this.roleId,
     required this.roleName,
@@ -55,6 +59,8 @@ class OrganizationMemberModel {
     
     return OrganizationMemberModel(
       userId: docId ?? map['userId'] as String,
+      userName: docId ?? map['userName'] as String,
+      userEmail: docId ?? map['userEmail'] as String,
       organizationId: map['organizationId'] as String,
       roleId: map['roleId'] as String,
       roleName: map['roleName'] as String,
@@ -81,6 +87,8 @@ class OrganizationMemberModel {
   Map<String, dynamic> toMap() {
     return {
       'userId': userId,
+      'userName': userName,
+      'userEmail': userEmail,
       'organizationId': organizationId,
       'roleId': roleId,
       'roleName': roleName,
@@ -99,6 +107,8 @@ class OrganizationMemberModel {
 
   OrganizationMemberModel copyWith({
     String? userId,
+    String? userName,
+    String? userEmail,
     String? organizationId,
     String? roleId,
     String? roleName,
@@ -114,6 +124,8 @@ class OrganizationMemberModel {
   }) {
     return OrganizationMemberModel(
       userId: userId ?? this.userId,
+      userName: userName ?? this.userName,
+      userEmail: userEmail ?? this.userEmail,
       organizationId: organizationId ?? this.organizationId,
       roleId: roleId ?? this.roleId,
       roleName: roleName ?? this.roleName,
@@ -422,30 +434,5 @@ class MemberMigrationHelper {
       default:
         return 'operator'; // Default seguro
     }
-  }
-
-  /// Crea un miembro nuevo desde datos legacy
-  static OrganizationMemberModel fromLegacyData({
-    required String userId,
-    required String organizationId,
-    required String legacyRole,
-    required List<RoleModel> availableRoles,
-    required DateTime joinedAt,
-  }) {
-    final roleId = legacyRoleToRoleId(legacyRole);
-    final role = availableRoles.firstWhere(
-      (r) => r.id == roleId,
-      orElse: () => availableRoles.first,
-    );
-
-    return OrganizationMemberModel(
-      userId: userId,
-      organizationId: organizationId,
-      roleId: role.id,
-      roleName: role.name,
-      roleColor: role.color,
-      legacyRole: legacyRole,
-      joinedAt: joinedAt,
-    );
   }
 }
