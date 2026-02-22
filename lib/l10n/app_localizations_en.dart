@@ -4252,19 +4252,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteSimpleWarning => 'This action cannot be undone.';
 
   @override
-  String get deleteCriticalTitle => 'Permanently delete';
+  String get deletePermanentlyTitle => 'Delete permanently';
 
   @override
-  String get deleteCriticalWarning => 'This action is irreversible and will remove all associated data.';
+  String get deletePermanentlyWarning => 'This action is irreversible.';
 
   @override
-  String get deleteCriticalInstructionPrefix => 'To confirm, type the name of';
-
-  @override
-  String get deleteCriticalInstructionSuffix => 'in the field below:';
-
-  @override
-  String get deleteCriticalButton => 'Delete permanently';
+  String get deletePermanentlyInstruction => 'To confirm, type the name of';
 
   @override
   String get permissionDeniedTitle => 'Access denied';

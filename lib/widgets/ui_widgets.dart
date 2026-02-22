@@ -11,7 +11,7 @@ import '../../utils/ui_constants.dart';
 //   AppDialogs.showPhaseMoveConfirmation(...)   → PhaseMoveResult
 //   AppDialogs.showUnsavedChanges(...)          → bool
 //   AppDialogs.showDeleteSimple(...)            → bool
-//   AppDialogs.showDeleteCritical(...)          → bool
+//   AppDialogs.showDeletePermanently(...)          → bool
 //   AppDialogs.showConfirmation(...)            → bool
 //   AppDialogs.showPermissionDenied(...)        → void
 //   AppDialogs.showDateRangePicker(...)         → DateTimeRange?
@@ -524,7 +524,7 @@ class AppDialogs {
   }) async {
     final result = await showDialog<PhaseMoveResult>(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (_) => PhaseMoveConfirmationDialog(
         productName: productName,
         batchNumber: batchNumber,
@@ -547,7 +547,7 @@ class AppDialogs {
 
     final result = await showDialog<bool>(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (_) => Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: UIConstants.POP_UPS_MAX_WIDTH),
@@ -674,14 +674,14 @@ class AppDialogs {
   ///
   /// Ejemplo:
   /// ```dart
-  /// final ok = await AppDialogs.showDeleteCritical(
+  /// final ok = await AppDialogs.showDeletePermanently(
   ///   context: context,
   ///   itemName: organization.name,
   ///   itemType: 'organización',
   ///   warningDetail: 'Se eliminarán todos los miembros, lotes y productos.',
   /// );
   /// ```
-  static Future<bool> showDeleteCritical({
+  static Future<bool> showDeletePermanently({
     required BuildContext context,
     required String itemName,
     String? itemType,
@@ -689,8 +689,8 @@ class AppDialogs {
   }) async {
     final result = await showDialog<bool>(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => _DeleteCriticalDialog(
+      barrierDismissible: true,
+      builder: (_) => _DeletePermanentlyDialog(
         itemName: itemName,
         itemType: itemType,
         warningDetail: warningDetail,
@@ -880,22 +880,22 @@ class AppDialogs {
 // WIDGET INTERNO: Diálogo de eliminación crítica con campo de confirmación
 // =============================================================================
 
-class _DeleteCriticalDialog extends StatefulWidget {
+class _DeletePermanentlyDialog extends StatefulWidget {
   final String itemName;
   final String? itemType;
   final String? warningDetail;
 
-  const _DeleteCriticalDialog({
+  const _DeletePermanentlyDialog({
     required this.itemName,
     this.itemType,
     this.warningDetail,
   });
 
   @override
-  State<_DeleteCriticalDialog> createState() => _DeleteCriticalDialogState();
+  State<_DeletePermanentlyDialog> createState() => _DeletePermanentlyDialogState();
 }
 
-class _DeleteCriticalDialogState extends State<_DeleteCriticalDialog> {
+class _DeletePermanentlyDialogState extends State<_DeletePermanentlyDialog> {
   final TextEditingController _confirmController = TextEditingController();
   bool _isMatch = false;
 
@@ -922,7 +922,7 @@ class _DeleteCriticalDialogState extends State<_DeleteCriticalDialog> {
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: UIConstants.POP_UPS_MAX_WIDTH),
+        constraints: const BoxConstraints(maxWidth: UIConstants.POP_UPS_MAX_WIDTH_MEDIUM),
         child: AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -943,7 +943,7 @@ class _DeleteCriticalDialogState extends State<_DeleteCriticalDialog> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  l10n.deleteCriticalTitle,
+                  l10n.deletePermanentlyTitle,
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w600),
                 ),
@@ -972,7 +972,7 @@ class _DeleteCriticalDialogState extends State<_DeleteCriticalDialog> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        widget.warningDetail ?? l10n.deleteCriticalWarning,
+                        widget.warningDetail ?? l10n.deletePermanentlyWarning,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onErrorContainer,
                         ),
@@ -991,12 +991,11 @@ class _DeleteCriticalDialogState extends State<_DeleteCriticalDialog> {
                   children: [
                     TextSpan(
                         text:
-                            '${l10n.deleteCriticalInstructionPrefix}$typeLine '),
+                            '${l10n.deletePermanentlyInstruction}$typeLine '),
                     TextSpan(
                       text: '"${widget.itemName}"',
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
-                    TextSpan(text: ' ${l10n.deleteCriticalInstructionSuffix}'),
                   ],
                 ),
               ),
@@ -1034,7 +1033,7 @@ class _DeleteCriticalDialogState extends State<_DeleteCriticalDialog> {
                 disabledBackgroundColor:
                     theme.colorScheme.error.withOpacity(0.3),
               ),
-              child: Text(l10n.deleteCriticalButton),
+              child: Text(l10n.deletePermanentlyTitle),
             ),
           ],
         ),

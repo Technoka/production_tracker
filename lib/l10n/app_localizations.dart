@@ -8423,35 +8423,23 @@ abstract class AppLocalizations {
   /// **'This action cannot be undone.'**
   String get deleteSimpleWarning;
 
-  /// No description provided for @deleteCriticalTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Permanently delete'**
-  String get deleteCriticalTitle;
-
-  /// No description provided for @deleteCriticalWarning.
-  ///
-  /// In en, this message translates to:
-  /// **'This action is irreversible and will remove all associated data.'**
-  String get deleteCriticalWarning;
-
-  /// No description provided for @deleteCriticalInstructionPrefix.
-  ///
-  /// In en, this message translates to:
-  /// **'To confirm, type the name of'**
-  String get deleteCriticalInstructionPrefix;
-
-  /// No description provided for @deleteCriticalInstructionSuffix.
-  ///
-  /// In en, this message translates to:
-  /// **'in the field below:'**
-  String get deleteCriticalInstructionSuffix;
-
-  /// No description provided for @deleteCriticalButton.
+  /// No description provided for @deletePermanentlyTitle.
   ///
   /// In en, this message translates to:
   /// **'Delete permanently'**
-  String get deleteCriticalButton;
+  String get deletePermanentlyTitle;
+
+  /// No description provided for @deletePermanentlyWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is irreversible.'**
+  String get deletePermanentlyWarning;
+
+  /// No description provided for @deletePermanentlyInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'To confirm, type the name of'**
+  String get deletePermanentlyInstruction;
 
   /// No description provided for @permissionDeniedTitle.
   ///

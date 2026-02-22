@@ -1627,11 +1627,9 @@
 "deleteSimpleWarning": "Esta acción no se puede deshacer.",
 "delete": "Eliminar",
 
-"deleteCriticalTitle": "Eliminar permanentemente",
-"deleteCriticalWarning": "Esta acción es irreversible y eliminará todos los datos asociados.",
-"deleteCriticalInstructionPrefix": "Para confirmar, escribe el nombre de",
-"deleteCriticalInstructionSuffix": "en el campo de abajo:",
-"deleteCriticalButton": "Eliminar definitivamente",
+"deletePermanentlyTitle": "Eliminar permanentemente",
+"deletePermanentlyWarning": "Esta acción es irreversible.",
+"deletePermanentlyInstruction": "Para confirmar, escribe el nombre de",
 
 "permissionDeniedTitle": "Acceso denegado",
 "permissionDeniedActionPrefix": "No tienes permisos para",

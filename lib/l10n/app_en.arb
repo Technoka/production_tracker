@@ -1625,11 +1625,9 @@
 "deleteSimpleWarning": "This action cannot be undone.",
 "delete": "Delete",
 
-"deleteCriticalTitle": "Permanently delete",
-"deleteCriticalWarning": "This action is irreversible and will remove all associated data.",
-"deleteCriticalInstructionPrefix": "To confirm, type the name of",
-"deleteCriticalInstructionSuffix": "in the field below:",
-"deleteCriticalButton": "Delete permanently",
+"deletePermanentlyTitle": "Delete permanently",
+"deletePermanentlyWarning": "This action is irreversible.",
+"deletePermanentlyInstruction": "To confirm, type the name of",
 
 "permissionDeniedTitle": "Access denied",
 "permissionDeniedActionPrefix": "You do not have permission to",
