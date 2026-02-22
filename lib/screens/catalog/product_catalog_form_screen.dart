@@ -681,6 +681,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
                     setState(() {
                       _selectedClientId = value;
                       _selectedProjectId = null; // Reset proyecto
+                      _selectedFamily = null;
                       _markAsChanged();
                     });
                   },
@@ -842,6 +843,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
                   onChanged: (value) {
                     setState(() {
                       _selectedProjectId = value;
+                      _selectedFamily = null;
                       _markAsChanged();
                     });
                   },
@@ -1160,7 +1162,7 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
                       value: _pendingNewFamily,
                       child: Row(
                         children: [
-                          Icon(Icons.new_label, color: Colors.green, size: 20),
+                          const Icon(Icons.new_label, color: Colors.green, size: 20),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
