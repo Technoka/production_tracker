@@ -328,7 +328,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             const SizedBox(height: 8),
 
             // Referencia
-            if (product.productReference != null) ...[
               Text(
                 'SKU: ${product.productReference}',
                 style: TextStyle(
@@ -337,7 +336,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-            ],
 
 // Lote (Obtenido asíncronamente)
             if (user?.organizationId != null)
@@ -1477,7 +1475,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       context: context,
       productName: product.productName,
       batchNumber: batch.batchNumber,
-      productReference: product.productReference ?? '',
+      productReference: product.productReference,
       fromPhaseName: product.currentPhaseName,
       toPhaseName: targetPhase.name,
       isForward: isForward,
