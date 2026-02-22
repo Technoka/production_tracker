@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/widgets/ui_widgets.dart';
 import '../../utils/app_error.dart';
 import '../../utils/error_handler.dart';
 
@@ -124,20 +125,14 @@ class AppErrorSnackBar {
   /// Muestra un SnackBar con el error. En debug añade el detalle técnico.
   static void show(BuildContext context, AppError error) {
     final userMessage = error.localizedMessage(context);
-    final theme = Theme.of(context);
+    final message =
+        kDebugMode ? '$userMessage\n🔴 ${error.debugDetail}' : userMessage;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: kDebugMode
-            ? Text('$userMessage\n🔴 ${error.debugDetail}',
-                style: const TextStyle(fontSize: 11))
-            : Text(userMessage),
-        backgroundColor: theme.colorScheme.error,
-        behavior: SnackBarBehavior.fixed,
-        duration: kDebugMode
-            ? const Duration(seconds: 6)
-            : const Duration(seconds: 3),
-      ),
+    AppSnackBars.error(
+      context,
+      message,
+      duration:
+          kDebugMode ? const Duration(seconds: 6) : const Duration(seconds: 3),
     );
   }
 
