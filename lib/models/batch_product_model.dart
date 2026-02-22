@@ -103,7 +103,6 @@ class BatchProductModel {
   final String? qualityNotes;
   final String? qualityCheckedBy;
   final DateTime? qualityCheckedAt;
-  final int kanbanPosition;
   final String? swimlane;
   final bool isDelayed;
   final double delayHours;
@@ -155,7 +154,6 @@ class BatchProductModel {
     this.qualityNotes,
     this.qualityCheckedBy,
     this.qualityCheckedAt,
-    this.kanbanPosition = 0,
     this.swimlane,
     this.isDelayed = false,
     this.delayHours = 0,
@@ -204,7 +202,6 @@ class BatchProductModel {
       'qualityNotes': qualityNotes,
       'qualityCheckedBy': qualityCheckedBy,
       'qualityCheckedAt': qualityCheckedAt != null ? Timestamp.fromDate(qualityCheckedAt!) : null,
-      'kanbanPosition': kanbanPosition,
       'swimlane': swimlane,
       'isDelayed': isDelayed,
       'delayHours': delayHours,
@@ -265,7 +262,6 @@ class BatchProductModel {
       qualityNotes: map['qualityNotes'] as String?,
       qualityCheckedBy: map['qualityCheckedBy'] as String?,
       qualityCheckedAt: map['qualityCheckedAt'] != null ? (map['qualityCheckedAt'] as Timestamp).toDate() : null,
-      kanbanPosition: map['kanbanPosition'] as int? ?? 0,
       swimlane: map['swimlane'] as String?,
       isDelayed: map['isDelayed'] as bool? ?? false,
       delayHours: (map['delayHours'] as num?)?.toDouble() ?? 0,
@@ -314,7 +310,6 @@ class BatchProductModel {
     String? qualityNotes,
     String? qualityCheckedBy,
     DateTime? qualityCheckedAt,
-    int? kanbanPosition,
     String? swimlane,
     bool? isDelayed,
     double? delayHours,
@@ -361,7 +356,6 @@ class BatchProductModel {
       qualityNotes: qualityNotes ?? this.qualityNotes,
       qualityCheckedBy: qualityCheckedBy ?? this.qualityCheckedBy,
       qualityCheckedAt: qualityCheckedAt ?? this.qualityCheckedAt,
-      kanbanPosition: kanbanPosition ?? this.kanbanPosition,
       swimlane: swimlane ?? this.swimlane,
       isDelayed: isDelayed ?? this.isDelayed,
       delayHours: delayHours ?? this.delayHours,
