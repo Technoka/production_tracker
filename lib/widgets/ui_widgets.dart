@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
+import '../../utils/ui_constants.dart';
 
 // =============================================================================
 // UI WIDGETS CENTRALIZADOS — lib/widgets/ui_widgets.dart
@@ -549,7 +550,7 @@ class AppDialogs {
       barrierDismissible: false,
       builder: (_) => Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 300),
+          constraints: const BoxConstraints(maxWidth: UIConstants.POP_UPS_MAX_WIDTH),
           child: AlertDialog(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -620,7 +621,7 @@ class AppDialogs {
       context: context,
       builder: (_) => Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 300),
+          constraints: const BoxConstraints(maxWidth: UIConstants.POP_UPS_MAX_WIDTH),
           child: AlertDialog(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -721,7 +722,7 @@ class AppDialogs {
       context: context,
       builder: (_) => Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 320),
+          constraints: const BoxConstraints(maxWidth: UIConstants.POP_UPS_MAX_WIDTH),
           child: AlertDialog(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -833,7 +834,7 @@ class AppDialogs {
       context: context,
       builder: (_) => Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 300),
+          constraints: const BoxConstraints(maxWidth: UIConstants.POP_UPS_MAX_WIDTH),
           child: AlertDialog(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -921,7 +922,7 @@ class _DeleteCriticalDialogState extends State<_DeleteCriticalDialog> {
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 340),
+        constraints: const BoxConstraints(maxWidth: UIConstants.POP_UPS_MAX_WIDTH),
         child: AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
