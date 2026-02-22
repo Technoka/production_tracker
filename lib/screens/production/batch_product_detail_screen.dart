@@ -223,20 +223,14 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                     children: [
                       _buildProductInfoCard(product!, user),
                       const SizedBox(height: 16),
+                      _buildPhasesCard(product, user),
+                      const SizedBox(height: 16),
                       _buildProductStatusCard(product, user),
                       const SizedBox(height: 16),
                       _buildStatusHistoryCard(product),
                       const SizedBox(height: 16),
-                      _buildPhasesCard(product, user),
-                      const SizedBox(height: 16),
                       if (canViewChat)
                         _buildChatSection(product, user), // Ver helper abajo
-                      if (product.color != null ||
-                          product.material != null ||
-                          product.specialDetails != null) ...[
-                        const SizedBox(height: 16),
-                        _buildCustomizationCard(product),
-                      ],
                     ],
                   );
                 }
@@ -254,8 +248,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                           Expanded(
                               child: _buildProductInfoCard(product!, user)),
                           const SizedBox(width: 24),
-                          Expanded(
-                              child: _buildProductStatusCard(product, user)),
+                          Expanded(child: _buildPhasesCard(product, user)),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -264,21 +257,15 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(child: _buildStatusHistoryCard(product)),
+                          Expanded(
+                              child: _buildProductStatusCard(product, user)),
                           const SizedBox(width: 24),
-                          Expanded(child: _buildPhasesCard(product, user)),
+                          Expanded(child: _buildStatusHistoryCard(product)),
                           const SizedBox(width: 24),
                           Expanded(
                             child: Column(
                               children: [
                                 _buildChatSection(product, user),
-                                // Si hay personalización, la ponemos debajo del chat para equilibrar
-                                if (product.color != null ||
-                                    product.material != null ||
-                                    product.specialDetails != null) ...[
-                                  const SizedBox(height: 24),
-                                  _buildCustomizationCard(product),
-                                ],
                               ],
                             ),
                           ),
@@ -296,6 +283,9 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }
 
   Widget _buildProductInfoCard(BatchProductModel product, UserModel? user) {
+    final dataProvider =
+        Provider.of<ProductionDataProvider>(context, listen: false);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -328,14 +318,14 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             const SizedBox(height: 8),
 
             // Referencia
-              Text(
-                'SKU: ${product.productReference}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[700],
-                ),
+            Text(
+              'SKU: ${product.productReference}',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
               ),
-              const SizedBox(height: 8),
+            ),
+            const SizedBox(height: 8),
 
 // Lote (Obtenido asíncronamente)
             if (user?.organizationId != null)
@@ -416,14 +406,31 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               const SizedBox(height: 8),
             ],
 
-            const Divider(),
-            const SizedBox(height: 8),
-
             // Cantidad
             _buildInfoRow(
               Icons.numbers,
               'Cantidad',
               '${product.quantity} unidades',
+            ),
+            const Divider(
+              height: 16,
+            ),
+
+            // Cantidad
+            _buildInfoRow(
+              UIConstants.getIcon(
+                  dataProvider.getPhaseById(product.currentPhase)!.icon),
+              'Fase',
+              product.currentPhaseName,
+            ),
+            const SizedBox(height: 8),
+
+            // Cantidad
+            _buildInfoRow(
+              UIConstants.getIcon(
+                  dataProvider.getStatusById(product.statusId!)!.icon),
+              'Status',
+              product.statusDisplayName,
             ),
             const SizedBox(height: 8),
 
@@ -463,14 +470,9 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                Icon(
-                  UIConstants.getIcon(statusIconValue),
-                  color: product.effectiveStatusColor,
-                ),
-                const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Estado del Producto',
                     style: TextStyle(
@@ -533,22 +535,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                             color: product.effectiveStatusColor,
                           ),
                         ),
-                        if (product.statusName != null)
-                          Text(
-                            product.statusName!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[700],
-                            ),
-                          )
-                        else
-                          Text(
-                            _getStatusDescription(product.productStatus),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[700],
-                            ),
-                          ),
                       ],
                     ),
                   ),
@@ -561,13 +547,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               children: [
                 const Icon(Icons.location_on, size: 18),
                 const SizedBox(width: 8),
-                const Text(
-                  'Fase actual: ',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
                 Expanded(
                   child: Text(
                     product.currentPhaseName,
@@ -1214,8 +1193,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   },
                   child: Row(
                     children: [
-                      const Icon(Icons.list_alt),
-                      const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
                           'Fases de Producción',
@@ -1347,13 +1324,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                         color: borderColor,
                       ),
                     ),
-                    Text(
-                      phase.description,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -1390,12 +1360,12 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
           ),
           // Detalles de la fase
           if (progress != null) ...[
-            const SizedBox(height: 8),
-            const Divider(),
-            const SizedBox(height: 8),
             if (progress.startedAt != null)
               Row(
                 children: [
+                  const Divider(
+                    height: 16,
+                  ),
                   Icon(Icons.play_arrow, size: 14, color: Colors.grey[600]),
                   const SizedBox(width: 4),
                   Text(
@@ -1514,45 +1484,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         ),
       );
     }
-  }
-
-  Widget _buildCustomizationCard(BatchProductModel product) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.palette),
-                SizedBox(width: 8),
-                Text(
-                  'Personalización',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: 24),
-            if (product.color != null) ...[
-              _buildInfoRow(Icons.color_lens, 'Color', product.color!),
-              const SizedBox(height: 8),
-            ],
-            if (product.material != null) ...[
-              _buildInfoRow(Icons.texture, 'Material', product.material!),
-              const SizedBox(height: 8),
-            ],
-            if (product.specialDetails != null) ...[
-              _buildInfoRow(
-                  Icons.notes, 'Detalles especiales', product.specialDetails!),
-            ],
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value,
@@ -1860,83 +1791,43 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     }
   }
 
-// AÑADIR helpers:
-
-  String _getStatusDescription(String status) {
-    switch (status) {
-      case 'pending':
-        return 'En proceso de fabricación';
-      case 'cao':
-        return 'No conforme - Devuelto por el cliente';
-      case 'hold':
-        return 'Enviado - Pendiente de evaluación del cliente';
-      case 'control':
-        return 'En evaluación - Clasificando devoluciones';
-      case 'ok':
-        return 'Aprobado por el cliente';
-      default:
-        return status;
-    }
-  }
-
-  void _showDeleteConfirmation(BatchProductModel product) {
+  void _showDeleteConfirmation(BatchProductModel product) async {
     final batchService =
         Provider.of<ProductionBatchService>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
     final user = authService.currentUserData;
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar Producto'),
-        content: Text(
-          '¿Estás seguro de eliminar "${product.productName}" del lote?\n\n'
-          'Esta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(context); // Cerrar diálogo
+    try {
+      final resultDelete = await AppDialogs.showDeletePermanently(
+          context: context, itemName: product.productReference);
 
-              try {
-                await batchService.removeBatchProduct(
-                    organizationId: widget.organizationId,
-                    batchId: product.batchId,
-                    productId: product.id,
-                    userId: user!.uid);
+      if (resultDelete) {
+        await batchService.removeBatchProduct(
+            organizationId: widget.organizationId,
+            batchId: product.batchId,
+            productId: product.id,
+            userId: user!.uid);
 
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Producto eliminado'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  Navigator.pop(context); // Volver a la pantalla anterior
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: ${e.toString()}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Producto eliminado'),
+              backgroundColor: Colors.green,
             ),
-            child: const Text('Eliminar'),
+          );
+          Navigator.pop(context); // Volver a la pantalla anterior
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
           ),
-        ],
-      ),
-    );
+        );
+      }
+    }
   }
 
 // Helper para mostrar el chat condicionalmente
