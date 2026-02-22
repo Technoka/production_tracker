@@ -184,58 +184,6 @@ class KanbanService {
     }
   }
 
-  // ==================== VALIDACIONES ====================
-
-  /// Verificar si se puede mover a fase (WIP limit)
-  Future<bool> canMoveToPhase({
-    required String organizationId,
-    required String projectId,
-    required String batchId,
-    required String phaseId,
-    required ProductionPhase phase,
-  }) async {
-    try {
-      final snapshot = await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .get();
-
-      final productsInPhase = snapshot.docs
-          .map((doc) => BatchProductModel.fromMap(doc.data()))
-          .where((p) => p.currentPhase == phaseId)
-          .length;
-
-      return productsInPhase < phase.wipLimit;
-    } catch (e) {
-      return true; // En caso de error, permitir
-    }
-  }
-
-  /// Verificar si usuario puede mover producto a una fase específica
-  Future<bool> canUserMoveToPhase({
-    required String phaseId,
-  }) async {
-    // Verificar permiso general
-    final canMove = await _memberService.can('kanban', 'moveProducts');
-    if (!canMove) return false;
-
-    // Verificar scope
-    final scope = await _memberService.getScope('kanban', 'moveProducts');
-
-    switch (scope) {
-      case PermissionScope.all:
-        return true; // Admin puede mover a cualquier fase
-      case PermissionScope.assigned:
-        // Operario solo puede mover a sus fases asignadas
-        return _memberService.canManagePhase(phaseId);
-      case PermissionScope.none:
-        return false;
-    }
-  }
-
   // ==================== BLOQUEO DE PRODUCTOS ====================
 
   /// Bloquear/desbloquear producto
