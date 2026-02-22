@@ -20,12 +20,11 @@ import '../../services/organization_member_service.dart';
 import '../../services/status_transition_service.dart';
 import '../../models/status_transition_model.dart';
 import '../../models/role_model.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widgets/validation_dialogs/validation_dialog_manager.dart';
 import '../../models/validation_config_model.dart';
 import '../../utils/filter_utils.dart';
 import '../../l10n/app_localizations.dart';
-import '../../utils/message_events_helper.dart';
+import '../../widgets/error_display_widget.dart';
 
 class BatchProductDetailScreen extends StatefulWidget {
   final String organizationId;
@@ -96,8 +95,10 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       // Filtrar solo las activas
       return transitions.where((t) => t.isActive).toList();
     } catch (e) {
-      debugPrint('Error loading transitions: $e');
-      return [];
+      if (mounted) {
+        AppErrorSnackBar.showFromException(context, e);
+      }
+        return [];
     }
   }
 
@@ -542,23 +543,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               ),
             ),
 
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Icon(Icons.location_on, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    product.currentPhaseName,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
             const Divider(
               height: 24,
               thickness: 3,
@@ -638,14 +622,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
   Widget _buildHistoryEntry(StatusHistoryEntry entry) {
     // Parsear color desde hex string
-    Color statusColor;
-    try {
-      statusColor = Color(
-        int.parse(entry.statusColor.replaceFirst('#', '0xFF')),
-      );
-    } catch (e) {
-      statusColor = Colors.grey;
-    }
+    Color statusColor = UIConstants.parseColor(entry.statusColor);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -933,10 +910,11 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         }
 
         // Verificar si el producto está en la última fase
-        final isInLastPhase =
-            lastPhase != null && product.currentPhase == lastPhase.id;
+        final lastPhaseCompleted = lastPhase != null &&
+            product.currentPhase == lastPhase.id &&
+            product.phaseProgress[product.currentPhase]!.status == 'completed';
 
-        if (!isInLastPhase) {
+        if (!lastPhaseCompleted) {
           // No está en la última fase, no mostrar acciones
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1125,17 +1103,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       return;
     }
 
-    if (product.currentPhase != 'studio') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Error: el producto debe estar en Studio antes de cambiar de estado'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     // Mostrar el diálogo de validación apropiado
     final validationData = await ValidationDialogManager.showValidationDialog(
       context: context,
@@ -1187,7 +1154,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 InkWell(
                   onTap: () {
                     setStateLocal(() {
-                      // ✅ CAMBIADO: usar setStateLocal en vez de setState
                       _isPhasesExpanded = !_isPhasesExpanded;
                     });
                   },
@@ -1331,7 +1297,9 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               // Botones de acción
               if (user?.canManageProduction ?? false) ...[
                 // Retroceder (solo admin)
-                if ((user?.isAdmin ?? false) && (isCompleted)) ...[
+                if ((user?.isAdmin ?? false) &&
+                    isCompleted &&
+                    currentIndex < allPhases.length - 1) ...[
                   IconButton(
                     icon: const Icon(Icons.undo, color: Colors.orange),
                     onPressed: () => _showChangePhaseDialog(
@@ -1477,12 +1445,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppErrorSnackBar.showFromException(context, e);
     }
   }
 
@@ -1548,6 +1511,9 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         TextEditingController(text: product.quantity.toString());
     final notesController =
         TextEditingController(text: product.productNotes ?? '');
+    final batchService =
+        Provider.of<ProductionBatchService>(context, listen: false);
+
     DateTime? selectedDate = product.expectedDeliveryDate;
     UrgencyLevel selectedUrgency =
         UrgencyLevel.fromString(product.urgencyLevel);
@@ -1673,45 +1639,19 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       ),
     );
 
-    // Si la urgencia ha cambiado
-    final urgencyChanged = product.urgencyLevel != selectedUrgency.value;
-    final oldUrgency = product.urgencyLevel;
-
     if (result != null) {
       // Actualizar producto en Firestore
       try {
-        await FirebaseFirestore.instance
-            .collection('organizations')
-            .doc(widget.organizationId)
-            .collection('production_batches')
-            .doc(widget.batchId)
-            .collection('batch_products')
-            .doc(product.id)
-            .update({
-          'quantity': result['quantity'],
-          'productNotes': result['notes'],
-          'dueDate': result['dueDate'] != null
-              ? Timestamp.fromDate(result['dueDate'])
-              : null,
-          'urgencyLevel': result['urgencyLevel'],
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-
-        //Si la urgencia ha cambiado, generar mensaje de evento
-        if (urgencyChanged) {
-          // 🆕 Generar evento de cambio de urgencia
-          await MessageEventsHelper.onProductUrgencyChanged(
-            organizationId: widget.organizationId,
-            batchId: product.batchId,
-            productId: product.id,
-            productName: product.productName,
-            productNumber: product.productNumber,
-            productCode: product.productCode,
-            oldUrgency: oldUrgency,
-            newUrgency: selectedUrgency.value,
-            changedBy: authService.currentUserData!.name,
-          );
-        }
+        await batchService.updateBatchProduct(
+          organizationId: widget.organizationId,
+          batchId: widget.batchId,
+          product: product, // ← modelo completo
+          userName: authService.currentUserData!.name,
+          quantity: result['quantity'],
+          dueDate: result['dueDate'],
+          productNotes: result['notes'],
+          urgencyLevel: result['urgencyLevel'],
+        );
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1723,12 +1663,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          AppErrorSnackBar.showFromException(context, e);
         }
       }
     }
@@ -1781,12 +1716,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppErrorSnackBar.showFromException(context, e);
       }
     }
   }
@@ -1819,13 +1749,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         }
       }
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      if (mounted) {
+        AppErrorSnackBar.showFromException(context, e);
       }
     }
   }
