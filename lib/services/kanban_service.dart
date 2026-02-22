@@ -161,6 +161,16 @@ class KanbanService {
       updates['phaseProgress.$toPhaseId.status'] = 'in_progress';
       updates['phaseProgress.$toPhaseId.startedAt'] =
           FieldValue.serverTimestamp();
+
+      // Si la fase destino es la última, marcarla como completada también
+      final isLastPhase = toIndex == allPhases.length - 1;
+      if (isLastPhase) {
+        updates['phaseProgress.$toPhaseId.status'] = 'completed';
+        updates['phaseProgress.$toPhaseId.completedAt'] =
+            FieldValue.serverTimestamp();
+        updates['phaseProgress.$toPhaseId.completedBy'] = userId;
+        updates['phaseProgress.$toPhaseId.completedByName'] = userName;
+      }
     }
 
     await productRef.update(updates);
