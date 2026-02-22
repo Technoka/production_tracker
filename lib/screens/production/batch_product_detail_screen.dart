@@ -98,7 +98,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       if (mounted) {
         AppErrorSnackBar.showFromException(context, e);
       }
-        return [];
+      return [];
     }
   }
 
@@ -306,7 +306,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 ),
               ],
             ),
-            const Divider(height: 24),
+            const SizedBox(height: 24),
 
             // Nombre
             Text(
@@ -413,8 +413,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               'Cantidad',
               '${product.quantity} unidades',
             ),
-            const Divider(
-              height: 16,
+            const SizedBox(
+              height: 24,
             ),
 
             // Cantidad
@@ -505,7 +505,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 ),
               ),
             ],
-            const Divider(height: 24),
+            const SizedBox(height: 24),
 
             // Estado actual
             Container(
@@ -542,13 +542,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 ],
               ),
             ),
-
-            const Divider(
-              height: 24,
-              thickness: 3,
-            ),
             _buildProductStatusActions(product, user),
-            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -587,7 +581,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 },
               ),
               if (_isHistoryExpanded) ...[
-                const Divider(height: 1),
+                // const Divider(height: 1),
                 if (!hasHistory)
                   const Padding(
                     padding: EdgeInsets.all(16.0),
@@ -606,7 +600,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                     padding: const EdgeInsets.all(16),
                     itemCount: product.statusHistory.length,
                     separatorBuilder: (context, index) =>
-                        const Divider(height: 24),
+                        const SizedBox(height: 24),
                     itemBuilder: (context, index) {
                       final entry = product.statusHistory[index];
                       return _buildHistoryEntry(entry);
@@ -919,6 +913,10 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+
+            const SizedBox(
+              height: 24,
+            ),
               const Text(
                 'Acciones Disponibles',
                 style: TextStyle(
@@ -1177,7 +1175,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                     ],
                   ),
                 ),
-                const Divider(height: 24),
+                const SizedBox(height: 24),
 
                 Consumer<ProductionDataProvider>(
                   builder: (context, dataProvider, _) {
@@ -1246,6 +1244,9 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     List<ProductionPhase> allPhases,
     int currentIndex,
   ) {
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+
     final isInProgress = progress?.isInProgress ?? false;
     final isCompleted = progress?.isCompleted ?? false;
 
@@ -1295,7 +1296,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               ),
 
               // Botones de acción
-              if (user?.canManageProduction ?? false) ...[
+              if (user?.canManageProduction ?? false || memberService.currentMember!.isClient) ...[
                 // Retroceder (solo admin)
                 if ((user?.isAdmin ?? false) &&
                     isCompleted &&
@@ -1310,19 +1311,19 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                     tooltip: 'Retroceder fase',
                   ),
                 ],
-              ],
 
-              // Avanzar
-              if (isCurrentPhase && currentIndex < allPhases.length - 1) ...[
-                IconButton(
-                  icon: const Icon(Icons.arrow_forward),
-                  onPressed: () => _showChangePhaseDialog(
-                    product,
-                    allPhases[currentIndex + 1],
-                    true,
+                // Avanzar
+                if (isCurrentPhase && currentIndex < allPhases.length - 1) ...[
+                  IconButton(
+                    icon: const Icon(Icons.arrow_forward),
+                    onPressed: () => _showChangePhaseDialog(
+                      product,
+                      allPhases[currentIndex + 1],
+                      true,
+                    ),
+                    tooltip: 'Avanzar fase',
                   ),
-                  tooltip: 'Avanzar fase',
-                ),
+                ],
               ],
             ],
           ),
@@ -1331,7 +1332,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             if (progress.startedAt != null)
               Row(
                 children: [
-                  const Divider(
+                  const SizedBox(
                     height: 16,
                   ),
                   Icon(Icons.play_arrow, size: 14, color: Colors.grey[600]),
