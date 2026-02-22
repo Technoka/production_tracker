@@ -12,6 +12,7 @@ class UIConstants {
   static const double SCREEN_MAX_WIDTH = 1000;
   static const int BATCH_MAX_PRODUCTS = 20;
   static const double POP_UPS_MAX_WIDTH = 250;
+  static const double POP_UPS_MAX_WIDTH_MEDIUM = 400;
 
   // Anchura de tarjetas de kanban
   static const double KANBAN_CARD_WIDTH = 280;
