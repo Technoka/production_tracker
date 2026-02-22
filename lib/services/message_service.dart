@@ -692,4 +692,28 @@ class MessageService {
     final countSnapshot = await countQuery.count().get();
     return countSnapshot.count ?? 0;
   }
+
+  /// Verifica si hay mensajes más allá del límite actual (para paginación).
+  Future<bool> hasMessagesBeforeLimit({
+    required String organizationId,
+    required String entityType,
+    required String entityId,
+    String? parentId,
+    bool includeInternal = true,
+    required int currentLimit,
+  }) async {
+    Query query = _getMessagesCollection(
+      organizationId,
+      entityType,
+      entityId,
+      parentId: parentId,
+    ).orderBy('createdAt', descending: true).limit(currentLimit + 1);
+
+    if (!includeInternal) {
+      query = query.where('isInternal', isEqualTo: false);
+    }
+
+    final snapshot = await query.get();
+    return snapshot.docs.length > currentLimit;
+  }
 }
