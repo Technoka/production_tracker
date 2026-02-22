@@ -145,12 +145,13 @@ class ProductionBatchService extends ChangeNotifier {
             case ConditionalActionType.requireAdditionalField:
               // Podríamos forzar un error si el campo no está, o manejarlo en UI.
               break;
-              
+
             case ConditionalActionType.notifyRoles:
               // La transición continúa normalmente, solo notificamos
               // TODO: Aquí implementar sistema de notificaciones (Fase futura)
               // Por ahora solo registramos en logs
-              debugPrint('Notificar a roles: ${action.parameters?['requiredRoles']}');
+              debugPrint(
+                  'Notificar a roles: ${action.parameters?['requiredRoles']}');
               break; // Continuamos al paso 5
           }
         }
@@ -209,98 +210,99 @@ class ProductionBatchService extends ChangeNotifier {
 
   // ==================== LECTURA DE LOTES ====================
 
-/// Stream de lotes con scope-awareness
-/// Si el usuario es cliente, obtiene TODOS sus lotes
-Stream<List<ProductionBatchModel>> watchBatches(
-  String organizationId,
-  String userId, {
-  String? clientId,
-  String? projectId,
-}) async* {
-  try {
-    // Obtener datos del miembro actual
-    final memberData = await _memberService.getCurrentMember(organizationId, userId);
+  /// Stream de lotes con scope-awareness
+  /// Si el usuario es cliente, obtiene TODOS sus lotes
+  Stream<List<ProductionBatchModel>> watchBatches(
+    String organizationId,
+    String userId, {
+    String? clientId,
+    String? projectId,
+  }) async* {
+    try {
+      // Obtener datos del miembro actual
+      final memberData =
+          await _memberService.getCurrentMember(organizationId, userId);
 
-    // Si es cliente, obtener TODOS sus lotes (sin restricciones de scope)
-    if (memberData?.member.roleId == 'client') {
-      final memberClientId = memberData!.member.clientId;
-      
-      if (memberClientId == null) {
-        debugPrint('Cliente sin clientId asociado');
-        yield [];
+      // Si es cliente, obtener TODOS sus lotes (sin restricciones de scope)
+      if (memberData?.member.roleId == 'client') {
+        final memberClientId = memberData!.member.clientId;
+
+        if (memberClientId == null) {
+          debugPrint('Cliente sin clientId asociado');
+          yield [];
+          return;
+        }
+
+        Query<Map<String, dynamic>> query = _firestore
+            .collection('organizations')
+            .doc(organizationId)
+            .collection('production_batches')
+            .where('clientId', isEqualTo: memberClientId);
+
+        // Aplicar filtro de proyecto si se especifica
+        if (projectId != null) {
+          query = query.where('projectId', isEqualTo: projectId);
+        }
+
+        yield* query
+            .orderBy('createdAt', descending: true)
+            .snapshots()
+            .map((snapshot) {
+          _batches = snapshot.docs
+              .map((doc) => ProductionBatchModel.fromMap(doc.data()))
+              .toList();
+          return _batches;
+        });
         return;
       }
+
+      // Usuario normal: aplicar scope
+      final scope = await _memberService.getScope('batches', 'view');
 
       Query<Map<String, dynamic>> query = _firestore
           .collection('organizations')
           .doc(organizationId)
-          .collection('production_batches')
-          .where('clientId', isEqualTo: memberClientId);
+          .collection('production_batches');
+
+      // Aplicar filtro de cliente si se especifica
+      if (clientId != null) {
+        query = query.where('clientId', isEqualTo: clientId);
+      }
 
       // Aplicar filtro de proyecto si se especifica
       if (projectId != null) {
         query = query.where('projectId', isEqualTo: projectId);
       }
 
+      // Aplicar filtro según scope
+      switch (scope) {
+        case PermissionScope.all:
+          // Sin filtro adicional - ver todos
+          break;
+        case PermissionScope.assigned:
+          // Solo lotes asignados
+          query = query.where('assignedMembers', arrayContains: userId);
+          break;
+        case PermissionScope.none:
+          // Sin acceso
+          yield [];
+          return;
+      }
+
       yield* query
           .orderBy('createdAt', descending: true)
           .snapshots()
           .map((snapshot) {
-            _batches = snapshot.docs
-                .map((doc) => ProductionBatchModel.fromMap(doc.data()))
-                .toList();
-            return _batches;
-          });
-      return;
+        _batches = snapshot.docs
+            .map((doc) => ProductionBatchModel.fromMap(doc.data()))
+            .toList();
+        return _batches;
+      });
+    } catch (e) {
+      debugPrint('Error watching batches: $e');
+      yield [];
     }
-
-    // Usuario normal: aplicar scope
-    final scope = await _memberService.getScope('batches', 'view');
-
-    Query<Map<String, dynamic>> query = _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('production_batches');
-
-    // Aplicar filtro de cliente si se especifica
-    if (clientId != null) {
-      query = query.where('clientId', isEqualTo: clientId);
-    }
-
-    // Aplicar filtro de proyecto si se especifica
-    if (projectId != null) {
-      query = query.where('projectId', isEqualTo: projectId);
-    }
-
-    // Aplicar filtro según scope
-    switch (scope) {
-      case PermissionScope.all:
-        // Sin filtro adicional - ver todos
-        break;
-      case PermissionScope.assigned:
-        // Solo lotes asignados
-        query = query.where('assignedMembers', arrayContains: userId);
-        break;
-      case PermissionScope.none:
-        // Sin acceso
-        yield [];
-        return;
-    }
-
-    yield* query
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          _batches = snapshot.docs
-              .map((doc) => ProductionBatchModel.fromMap(doc.data()))
-              .toList();
-          return _batches;
-        });
-  } catch (e) {
-    debugPrint('Error watching batches: $e');
-    yield [];
   }
-}
 
   /// Stream de lote por id
   Stream<ProductionBatchModel?> watchBatch(
@@ -450,7 +452,7 @@ Stream<List<ProductionBatchModel>> watchBatches(
         notifyListeners();
         return false;
       }
-      
+
       final canAdd = await _memberService.can(
         'batch_products',
         'create',
@@ -542,81 +544,83 @@ Stream<List<ProductionBatchModel>> watchBatches(
     }
   }
 
-/// Stream de productos de un lote
-/// Verifica permisos: cliente solo puede ver productos de SUS lotes
-Stream<List<BatchProductModel>> watchBatchProducts(
-  String organizationId,
-  String batchId,
-  String userId,
-) async* {
-  try {
-    // 1. Verificar acceso al batch primero
-    final batchDoc = await _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('production_batches')
-        .doc(batchId)
-        .get();
+  /// Stream de productos de un lote
+  /// Verifica permisos: cliente solo puede ver productos de SUS lotes
+  Stream<List<BatchProductModel>> watchBatchProducts(
+    String organizationId,
+    String batchId,
+    String userId,
+  ) async* {
+    try {
+      // 1. Verificar acceso al batch primero
+      final batchDoc = await _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('production_batches')
+          .doc(batchId)
+          .get();
 
-    if (!batchDoc.exists) {
-      yield [];
-      return;
-    }
-
-    final batchData = batchDoc.data()!;
-
-    // 2. Obtener datos del miembro
-    final memberData = await _memberService.getCurrentMember(organizationId, userId);
-
-    // 3. Si es cliente, verificar que el batch sea suyo
-    if (memberData?.member.roleId == 'client') {
-      final memberClientId = memberData!.member.clientId;
-      final batchClientId = batchData['clientId'] as String?;
-
-      if (memberClientId == null || batchClientId != memberClientId) {
-        // No tiene acceso a este batch
-        debugPrint('Cliente no tiene acceso al batch $batchId');
-        yield [];
-        return;
-      }
-    } else {
-      // Usuario normal: verificar scope de permisos
-      final scope = await _memberService.getScope('batches', 'view');
-      
-      if (scope == PermissionScope.none) {
+      if (!batchDoc.exists) {
         yield [];
         return;
       }
 
-      if (scope == PermissionScope.assigned) {
-        final assignedMembers = List<String>.from(batchData['assignedMembers'] ?? []);
-        if (!assignedMembers.contains(userId)) {
-          // No está asignado a este batch
+      final batchData = batchDoc.data()!;
+
+      // 2. Obtener datos del miembro
+      final memberData =
+          await _memberService.getCurrentMember(organizationId, userId);
+
+      // 3. Si es cliente, verificar que el batch sea suyo
+      if (memberData?.member.roleId == 'client') {
+        final memberClientId = memberData!.member.clientId;
+        final batchClientId = batchData['clientId'] as String?;
+
+        if (memberClientId == null || batchClientId != memberClientId) {
+          // No tiene acceso a este batch
+          debugPrint('Cliente no tiene acceso al batch $batchId');
           yield [];
           return;
         }
-      }
-    }
+      } else {
+        // Usuario normal: verificar scope de permisos
+        final scope = await _memberService.getScope('batches', 'view');
 
-    // 4. Tiene acceso: retornar stream de productos
-    yield* _firestore
-        .collection('organizations')
-        .doc(organizationId)
-        .collection('production_batches')
-        .doc(batchId)
-        .collection('batch_products')
-        .orderBy('productNumber') // Ordenar por número de producto
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => BatchProductModel.fromMap(doc.data()))
-              .toList();
-        });
-  } catch (e) {
-    debugPrint('Error en watchBatchProducts: $e');
-    yield [];
+        if (scope == PermissionScope.none) {
+          yield [];
+          return;
+        }
+
+        if (scope == PermissionScope.assigned) {
+          final assignedMembers =
+              List<String>.from(batchData['assignedMembers'] ?? []);
+          if (!assignedMembers.contains(userId)) {
+            // No está asignado a este batch
+            yield [];
+            return;
+          }
+        }
+      }
+
+      // 4. Tiene acceso: retornar stream de productos
+      yield* _firestore
+          .collection('organizations')
+          .doc(organizationId)
+          .collection('production_batches')
+          .doc(batchId)
+          .collection('batch_products')
+          .orderBy('productNumber') // Ordenar por número de producto
+          .snapshots()
+          .map((snapshot) {
+        return snapshot.docs
+            .map((doc) => BatchProductModel.fromMap(doc.data()))
+            .toList();
+      });
+    } catch (e) {
+      debugPrint('Error en watchBatchProducts: $e');
+      yield [];
+    }
   }
-}
 
   /// Obtener producto de lote por ID
   Future<BatchProductModel?> getBatchProduct(
@@ -753,7 +757,7 @@ Stream<List<BatchProductModel>> watchBatchProducts(
         organizationId,
         fromStatusId,
       );
-      
+
       await MessageEventsHelper.onProductStatusChangedV2(
         organizationId: organizationId,
         batchId: batchId,
@@ -882,8 +886,8 @@ Stream<List<BatchProductModel>> watchBatchProducts(
   Future<bool> updateBatchProduct({
     required String organizationId,
     required String batchId,
-    required String productId,
-    required String userId,
+    required BatchProductModel product,
+    required String userName,
     int? quantity,
     DateTime? dueDate,
     String? productNotes,
@@ -917,7 +921,7 @@ Stream<List<BatchProductModel>> watchBatchProducts(
           .collection('production_batches')
           .doc(batchId)
           .collection('batch_products')
-          .doc(productId)
+          .doc(product.id)
           .update(updates);
 
       // Actualizar timestamp del lote
@@ -929,6 +933,28 @@ Stream<List<BatchProductModel>> watchBatchProducts(
           .update({
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      // Evento de cambio de urgencia — no bloqueante
+      final urgencyChanged =
+          urgencyLevel != null && urgencyLevel != product.urgencyLevel;
+
+      if (urgencyChanged) {
+        try {
+          await MessageEventsHelper.onProductUrgencyChanged(
+            organizationId: organizationId,
+            batchId: batchId,
+            productId: product.id,
+            productName: product.productName,
+            productNumber: product.productNumber,
+            productCode: product.productCode,
+            oldUrgency: product.urgencyLevel,
+            newUrgency: urgencyLevel,
+            changedBy: userName,
+          );
+        } catch (e) {
+          debugPrint('Error generating urgency change event: $e');
+        }
+      }
 
       _isLoading = false;
       notifyListeners();
