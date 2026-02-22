@@ -174,6 +174,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get inviteMembers => 'Invitar Miembros';
 
   @override
+  String get unknown => 'Desconocido';
+
+  @override
+  String get unknownUser => 'Usuario desconocido';
+
+  @override
   String get project => 'Proyecto';
 
   @override
@@ -265,6 +271,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get productionBatch => 'Lote de Producción';
+
+  @override
+  String get batch => 'Lote';
 
   @override
   String get batches => 'Lotes';
@@ -2601,7 +2610,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get validationData => 'Datos de validación';
 
   @override
-  String get noStatusHistory => 'Sin historial de cambios';
+  String get noStatusHistory => 'No hay historial de cambios';
 
   @override
   String get specialPermissions => 'Permisos Especiales';
@@ -2970,9 +2979,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get noClientsMessage => 'No hay miembros registrados como clientes';
-
-  @override
-  String get unknownUser => 'Usuario desconocido';
 
   @override
   String get withoutEmail => 'Sin email';
@@ -3578,9 +3584,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get totalLabel => 'Total';
-
-  @override
-  String get unknown => 'Desconocido';
 
   @override
   String get clientFormTitle => 'Formulario de Cliente';
@@ -4271,4 +4274,115 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get permissionDeniedContactAdmin => 'Contacta con el administrador de tu organización si crees que es un error.';
+
+  @override
+  String get productInfoTitle => 'Información del Producto';
+
+  @override
+  String get batchNotAvailable => 'Lote no disponible';
+
+  @override
+  String get viewBatchBtn => 'Ver lote';
+
+  @override
+  String get quantityUnitsSingular => 'unidad';
+
+  @override
+  String get quantityUnitsPlural => 'unidades';
+
+  @override
+  String get unitPriceLabel => 'Precio unitario';
+
+  @override
+  String get totalPriceLabel => 'Precio total';
+
+  @override
+  String get productStatusTitle => 'Estado del Producto';
+
+  @override
+  String get availableActionsTitle => 'Acciones Disponibles';
+
+  @override
+  String get actionsOnlyAtLastPhase => 'Las acciones de estado están disponibles solo cuando el producto llegue a la última fase de producción';
+
+  @override
+  String get noTransitionsAvailable => 'No hay transiciones disponibles desde este estado';
+
+  @override
+  String get changeTo => 'Cambiar a';
+
+  @override
+  String get statusHistoryTitle => 'Historial de Cambios de Estado';
+
+  @override
+  String get generalDescription => 'Descripción general';
+
+  @override
+  String get individualDescription => 'Descripción individual';
+
+  @override
+  String get individualDescriptions => 'Descripciones individuales';
+
+  @override
+  String get startedLabel => 'Iniciado';
+
+  @override
+  String get advancePhaseTooltip => 'Avanzar fase';
+
+  @override
+  String get rollbackPhaseTooltip => 'Retroceder fase';
+
+  @override
+  String get phaseAdvancedSuccess => 'Avanzado a';
+
+  @override
+  String get phaseRolledBackSuccess => 'Retrocedido a';
+
+  @override
+  String get deliveryDateLabel => 'Fecha de entrega';
+
+  @override
+  String get noDeliveryDate => 'Sin fecha';
+
+  @override
+  String get invalidQuantity => 'Cantidad inválida';
+
+  @override
+  String get chatQuickViewSubtitle => 'Vista rápida de los últimos mensajes';
+
+  @override
+  String get viewFullChatBtn => 'Ver chat completo';
+
+  @override
+  String get by => 'Por';
+
+  @override
+  String get urgency => 'Urgencia';
+
+  @override
+  String get checklist => 'Checklist';
+
+  @override
+  String get photo => 'Foto';
+
+  @override
+  String get photos => 'Fotos';
+
+  @override
+  String get approval => 'Aprobación';
+
+  @override
+  String get completedMasculinePlural => 'completados';
+
+  @override
+  String get attachedPlural => 'adjuntas';
+
+  @override
+  String get users => 'usuarios';
+
+  @override
+  String get mode => 'Modo';
+
+  @override
+  String get now => 'Ahora';
 }

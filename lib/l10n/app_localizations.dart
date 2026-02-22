@@ -194,7 +194,7 @@ abstract class AppLocalizations {
   /// No description provided for @back.
   ///
   /// In en, this message translates to:
-  /// **'Back'**
+  /// **'Go back'**
   String get back;
 
   /// No description provided for @next.
@@ -425,6 +425,18 @@ abstract class AppLocalizations {
   /// **'Invite Members'**
   String get inviteMembers;
 
+  /// No description provided for @unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get unknown;
+
+  /// No description provided for @unknownUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown user'**
+  String get unknownUser;
+
   /// No description provided for @project.
   ///
   /// In en, this message translates to:
@@ -610,6 +622,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Production Batch'**
   String get productionBatch;
+
+  /// No description provided for @batch.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch'**
+  String get batch;
 
   /// No description provided for @batches.
   ///
@@ -5885,12 +5903,6 @@ abstract class AppLocalizations {
   /// **'No members registered as clients'**
   String get noClientsMessage;
 
-  /// No description provided for @unknownUser.
-  ///
-  /// In en, this message translates to:
-  /// **'Unknown user'**
-  String get unknownUser;
-
   /// No description provided for @withoutEmail.
   ///
   /// In en, this message translates to:
@@ -7096,12 +7108,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Total'**
   String get totalLabel;
-
-  /// No description provided for @unknown.
-  ///
-  /// In en, this message translates to:
-  /// **'Unknown'**
-  String get unknown;
 
   /// No description provided for @clientFormTitle.
   ///
@@ -8464,6 +8470,228 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contact your organization administrator if you think this is an error.'**
   String get permissionDeniedContactAdmin;
+
+  /// No description provided for @productInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Product Information'**
+  String get productInfoTitle;
+
+  /// No description provided for @batchNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch not available'**
+  String get batchNotAvailable;
+
+  /// No description provided for @viewBatchBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'View batch'**
+  String get viewBatchBtn;
+
+  /// No description provided for @quantityUnitsSingular.
+  ///
+  /// In en, this message translates to:
+  /// **'unit'**
+  String get quantityUnitsSingular;
+
+  /// No description provided for @quantityUnitsPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'units'**
+  String get quantityUnitsPlural;
+
+  /// No description provided for @unitPriceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit price'**
+  String get unitPriceLabel;
+
+  /// No description provided for @totalPriceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Total price'**
+  String get totalPriceLabel;
+
+  /// No description provided for @productStatusTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Product Status'**
+  String get productStatusTitle;
+
+  /// No description provided for @availableActionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Available actions'**
+  String get availableActionsTitle;
+
+  /// No description provided for @actionsOnlyAtLastPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'Status actions are only available when the product reaches the last production phase'**
+  String get actionsOnlyAtLastPhase;
+
+  /// No description provided for @noTransitionsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No transitions available from this status'**
+  String get noTransitionsAvailable;
+
+  /// No description provided for @changeTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Change to'**
+  String get changeTo;
+
+  /// No description provided for @statusHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Status Change History'**
+  String get statusHistoryTitle;
+
+  /// No description provided for @generalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'General description'**
+  String get generalDescription;
+
+  /// No description provided for @individualDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Individual description'**
+  String get individualDescription;
+
+  /// No description provided for @individualDescriptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Individual descriptions'**
+  String get individualDescriptions;
+
+  /// No description provided for @startedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Started'**
+  String get startedLabel;
+
+  /// No description provided for @advancePhaseTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Advance phase'**
+  String get advancePhaseTooltip;
+
+  /// No description provided for @rollbackPhaseTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Roll back phase'**
+  String get rollbackPhaseTooltip;
+
+  /// No description provided for @phaseAdvancedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced to'**
+  String get phaseAdvancedSuccess;
+
+  /// No description provided for @phaseRolledBackSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Rolled back to'**
+  String get phaseRolledBackSuccess;
+
+  /// No description provided for @deliveryDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery date'**
+  String get deliveryDateLabel;
+
+  /// No description provided for @noDeliveryDate.
+  ///
+  /// In en, this message translates to:
+  /// **'No date'**
+  String get noDeliveryDate;
+
+  /// No description provided for @invalidQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid quantity'**
+  String get invalidQuantity;
+
+  /// No description provided for @chatQuickViewSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick view of the latest messages'**
+  String get chatQuickViewSubtitle;
+
+  /// No description provided for @viewFullChatBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'View full chat'**
+  String get viewFullChatBtn;
+
+  /// No description provided for @by.
+  ///
+  /// In en, this message translates to:
+  /// **'By'**
+  String get by;
+
+  /// No description provided for @urgency.
+  ///
+  /// In en, this message translates to:
+  /// **'Urgency'**
+  String get urgency;
+
+  /// No description provided for @checklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist'**
+  String get checklist;
+
+  /// No description provided for @photo.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get photo;
+
+  /// No description provided for @photos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get photos;
+
+  /// No description provided for @approval.
+  ///
+  /// In en, this message translates to:
+  /// **'Approval'**
+  String get approval;
+
+  /// No description provided for @completedMasculinePlural.
+  ///
+  /// In en, this message translates to:
+  /// **'completed'**
+  String get completedMasculinePlural;
+
+  /// No description provided for @attachedPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'attached'**
+  String get attachedPlural;
+
+  /// No description provided for @users.
+  ///
+  /// In en, this message translates to:
+  /// **'users'**
+  String get users;
+
+  /// No description provided for @mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Mode'**
+  String get mode;
+
+  /// No description provided for @now.
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get now;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -57,7 +57,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
-  String get back => 'Back';
+  String get back => 'Go back';
 
   @override
   String get next => 'Next';
@@ -174,6 +174,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inviteMembers => 'Invite Members';
 
   @override
+  String get unknown => 'Unknown';
+
+  @override
+  String get unknownUser => 'Unknown user';
+
+  @override
   String get project => 'Project';
 
   @override
@@ -265,6 +271,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get productionBatch => 'Production Batch';
+
+  @override
+  String get batch => 'Batch';
 
   @override
   String get batches => 'Batches';
@@ -2972,9 +2981,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noClientsMessage => 'No members registered as clients';
 
   @override
-  String get unknownUser => 'Unknown user';
-
-  @override
   String get withoutEmail => 'Without email';
 
   @override
@@ -3578,9 +3584,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get totalLabel => 'Total';
-
-  @override
-  String get unknown => 'Unknown';
 
   @override
   String get clientFormTitle => 'Client Form';
@@ -4271,4 +4274,115 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionDeniedContactAdmin => 'Contact your organization administrator if you think this is an error.';
+
+  @override
+  String get productInfoTitle => 'Product Information';
+
+  @override
+  String get batchNotAvailable => 'Batch not available';
+
+  @override
+  String get viewBatchBtn => 'View batch';
+
+  @override
+  String get quantityUnitsSingular => 'unit';
+
+  @override
+  String get quantityUnitsPlural => 'units';
+
+  @override
+  String get unitPriceLabel => 'Unit price';
+
+  @override
+  String get totalPriceLabel => 'Total price';
+
+  @override
+  String get productStatusTitle => 'Product Status';
+
+  @override
+  String get availableActionsTitle => 'Available actions';
+
+  @override
+  String get actionsOnlyAtLastPhase => 'Status actions are only available when the product reaches the last production phase';
+
+  @override
+  String get noTransitionsAvailable => 'No transitions available from this status';
+
+  @override
+  String get changeTo => 'Change to';
+
+  @override
+  String get statusHistoryTitle => 'Status Change History';
+
+  @override
+  String get generalDescription => 'General description';
+
+  @override
+  String get individualDescription => 'Individual description';
+
+  @override
+  String get individualDescriptions => 'Individual descriptions';
+
+  @override
+  String get startedLabel => 'Started';
+
+  @override
+  String get advancePhaseTooltip => 'Advance phase';
+
+  @override
+  String get rollbackPhaseTooltip => 'Roll back phase';
+
+  @override
+  String get phaseAdvancedSuccess => 'Advanced to';
+
+  @override
+  String get phaseRolledBackSuccess => 'Rolled back to';
+
+  @override
+  String get deliveryDateLabel => 'Delivery date';
+
+  @override
+  String get noDeliveryDate => 'No date';
+
+  @override
+  String get invalidQuantity => 'Invalid quantity';
+
+  @override
+  String get chatQuickViewSubtitle => 'Quick view of the latest messages';
+
+  @override
+  String get viewFullChatBtn => 'View full chat';
+
+  @override
+  String get by => 'By';
+
+  @override
+  String get urgency => 'Urgency';
+
+  @override
+  String get checklist => 'Checklist';
+
+  @override
+  String get photo => 'Photo';
+
+  @override
+  String get photos => 'Photos';
+
+  @override
+  String get approval => 'Approval';
+
+  @override
+  String get completedMasculinePlural => 'completed';
+
+  @override
+  String get attachedPlural => 'attached';
+
+  @override
+  String get users => 'users';
+
+  @override
+  String get mode => 'Mode';
+
+  @override
+  String get now => 'Now';
 }

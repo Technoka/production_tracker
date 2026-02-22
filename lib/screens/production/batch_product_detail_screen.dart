@@ -1,3 +1,4 @@
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/services/kanban_service.dart';
@@ -25,6 +26,7 @@ import '../../models/validation_config_model.dart';
 import '../../utils/filter_utils.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/error_display_widget.dart';
+import '../../l10n/app_localizations.dart';
 
 class BatchProductDetailScreen extends StatefulWidget {
   final String organizationId;
@@ -107,13 +109,14 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserData;
     final permissionService = Provider.of<PermissionService>(context);
+    final l10n = AppLocalizations.of(context)!;
 
     final canViewChat = permissionService.canViewChat;
 
     // ✅ Mostrar loading mientras cargan permisos
     if (_isLoadingPermissions) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Cargando...')),
+        appBar: AppBar(title: Text(l10n.loading)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -125,18 +128,18 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
         if (products.isEmpty) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Error')),
+            appBar: AppBar(title: Text(l10n.error)),
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 16),
-                  const Text('Producto no encontrado'),
+                  Text(l10n.productNotFound),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Volver'),
+                    child: Text(l10n.back),
                   ),
                 ],
               ),
@@ -186,23 +189,24 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   icon: const Icon(Icons.more_vert),
                   onSelected: (value) => _handleAction(value, product!),
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit, size: 20),
-                          SizedBox(width: 8),
-                          Text('Editar Producto'),
+                          const Icon(Icons.edit, size: 20),
+                          const SizedBox(width: 8),
+                          Text(l10n.editProductTitle),
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Eliminar', style: TextStyle(color: Colors.red)),
+                          const Icon(Icons.delete, size: 20, color: Colors.red),
+                          const SizedBox(width: 8),
+                          Text(l10n.delete,
+                              style: const TextStyle(color: Colors.red)),
                         ],
                       ),
                     ),
@@ -286,6 +290,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   Widget _buildProductInfoCard(BatchProductModel product, UserModel? user) {
     final dataProvider =
         Provider.of<ProductionDataProvider>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
 
     return Card(
       child: Padding(
@@ -293,13 +298,13 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.info_outline),
-                SizedBox(width: 8),
+                const Icon(Icons.info_outline),
+                const SizedBox(width: 8),
                 Text(
-                  'Información del Producto',
-                  style: TextStyle(
+                  l10n.productInfoTitle,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -320,7 +325,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
             // Referencia
             Text(
-              'SKU: ${product.productReference}',
+              '${l10n.skuLabel} ${product.productReference}',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[700],
@@ -337,7 +342,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   if (batch == null) {
                     // Si falla o no encuentra el lote, mostramos el ID o un texto genérico
                     return Text(
-                      'Lote no disponible',
+                      l10n.batchNotAvailable,
                       style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                     );
                   }
@@ -346,7 +351,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Lote: ${batch.batchNumber} (Producto #${product.productNumber} / ${batch.totalProducts})',
+                          '${l10n.batch}: ${batch.batchNumber} (${l10n.product} # ${product.productNumber} / ${batch.totalProducts})',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[700],
@@ -374,7 +379,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                             visualDensity: VisualDensity.compact,
                             textStyle: const TextStyle(fontSize: 12),
                           ),
-                          child: const Text('Ver lote'),
+                          child: Text(l10n.viewBatchBtn),
                         ),
                       ),
                     ],
@@ -386,7 +391,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             // Descripción
             if (product.description != null) ...[
               Text(
-                'Descripción: ${product.description!}',
+                '${l10n.description}: ${product.description!}',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[700],
@@ -398,7 +403,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             // Notas
             if (product.productNotes != null) ...[
               Text(
-                'Notas: ${product.productNotes!}',
+                '${l10n.notes}: ${product.productNotes!}',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[700],
@@ -410,8 +415,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             // Cantidad
             _buildInfoRow(
               Icons.numbers,
-              'Cantidad',
-              '${product.quantity} unidades',
+              l10n.quantity,
+              '${product.quantity} ${l10n.quantityUnitsPlural}',
             ),
             const SizedBox(
               height: 24,
@@ -421,7 +426,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             _buildInfoRow(
               UIConstants.getIcon(
                   dataProvider.getPhaseById(product.currentPhase)!.icon),
-              'Fase',
+              l10n.phase,
               product.currentPhaseName,
             ),
             const SizedBox(height: 8),
@@ -430,7 +435,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             _buildInfoRow(
               UIConstants.getIcon(
                   dataProvider.getStatusById(product.statusId!)!.icon),
-              'Status',
+              l10n.status,
               product.statusDisplayName,
             ),
             const SizedBox(height: 8),
@@ -439,13 +444,13 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             if ((user!.canViewFinancials) && product.unitPrice != null) ...[
               _buildInfoRow(
                 Icons.euro,
-                'Precio unitario',
+                l10n.unitPrice,
                 '${product.unitPrice!.toStringAsFixed(2)} €',
               ),
               const SizedBox(height: 8),
               _buildInfoRow(
                 Icons.account_balance_wallet,
-                'Precio total',
+                l10n.totalPrice,
                 '${product.totalPrice?.toStringAsFixed(2) ?? "0.00"} €',
                 isBold: true,
               ),
@@ -464,6 +469,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     final dataProvider =
         Provider.of<ProductionDataProvider>(context, listen: false);
     final statusIconValue = dataProvider.getStatusById(product.statusId!)!.icon;
+    final l10n = AppLocalizations.of(context)!;
 
     return Card(
       child: Padding(
@@ -471,12 +477,12 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
                 Expanded(
                   child: Text(
-                    'Estado del Producto',
-                    style: TextStyle(
+                    l10n.productStatusTitle,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -550,6 +556,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }
 
   Widget _buildStatusHistoryCard(BatchProductModel product) {
+    final l10n = AppLocalizations.of(context)!;
     final hasHistory = product.statusHistory.isNotEmpty;
 
     return Card(
@@ -563,9 +570,9 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   Icons.history,
                   color: Theme.of(context).colorScheme.primary,
                 ),
-                title: const Text(
-                  'Historial de Cambios de Estado',
-                  style: TextStyle(
+                title: Text(
+                  l10n.statusHistoryTitle,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -583,11 +590,11 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               if (_isHistoryExpanded) ...[
                 // const Divider(height: 1),
                 if (!hasHistory)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.all(16.0),
                     child: Text(
-                      'No hay historial de cambios',
-                      style: TextStyle(
+                      l10n.noStatusHistory,
+                      style: const TextStyle(
                         color: Colors.grey,
                         fontStyle: FontStyle.italic,
                       ),
@@ -708,6 +715,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }
 
   Widget _buildValidationDataSection(Map<String, dynamic> validationData) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -723,7 +732,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               Icon(Icons.info_outline, size: 16, color: Colors.grey[700]),
               const SizedBox(width: 6),
               Text(
-                'Datos de validación',
+                l10n.validationData,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -737,14 +746,14 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
           // Cantidad
           if (validationData['quantity'] != null)
             _buildValidationDataRow(
-              'Cantidad',
+              l10n.quantity,
               '${validationData['quantity']}',
             ),
 
           // Texto
           if (validationData['text'] != null)
             _buildValidationDataRow(
-              'Descripción',
+              l10n.description,
               validationData['text'] as String,
             ),
 
@@ -759,8 +768,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               // Retornas la lista de widgets
               return [
                 _buildValidationDataRow(
-                  'Checklist',
-                  '$completed/${answers.length} completados',
+                  l10n.checklist,
+                  '$completed/${answers.length} ${l10n.completed.toLowerCase()}',
                 ),
               ];
             }(), // <--- Nota los paréntesis aquí para ejecutar la función
@@ -772,8 +781,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               if (photos.isNotEmpty) {
                 return [
                   _buildValidationDataRow(
-                    'Fotos',
-                    '${photos.length} adjuntas',
+                    l10n.photos,
+                    '${photos.length} ${l10n.attachedPlural.toLowerCase()}',
                   ),
                 ];
               }
@@ -787,8 +796,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               if (approvers.isNotEmpty) {
                 return [
                   _buildValidationDataRow(
-                    'Aprobado por',
-                    '${approvers.length} usuarios',
+                    l10n.approvedBy,
+                    '${approvers.length} ${l10n.users.toLowerCase()}',
                   ),
                 ];
               }
@@ -811,10 +820,10 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
           // Modo de texto
           if (validationData['textMode'] != null)
             _buildValidationDataRow(
-              'Modo',
+              l10n.mode,
               validationData['textMode'] == 'single'
-                  ? 'Descripción general'
-                  : 'Descripciones individuales',
+                  ? l10n.generalDescription
+                  : l10n.individualDescription,
             ),
 
           // Defectos individuales
@@ -825,7 +834,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               return [
                 const SizedBox(height: 4),
                 Text(
-                  'Descripciones individuales:',
+                  l10n.individualDescriptions,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -887,6 +896,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     // Si no tiene permisos, no mostramos nada
     final permissionService =
         Provider.of<PermissionService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
 
     final canChangeStatus = permissionService.canChangeProductStatus;
 
@@ -906,20 +916,20 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         // Verificar si el producto está en la última fase
         final lastPhaseCompleted = lastPhase != null &&
             product.currentPhase == lastPhase.id &&
-            product.phaseProgress[product.currentPhase]!.status == 'completed';
+            product.phaseProgress[product.currentPhase]!.status ==
+                'completed'; //TODO: cambiar a enum con nombre de estados de phase.
 
         if (!lastPhaseCompleted) {
           // No está en la última fase, no mostrar acciones
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
-            const SizedBox(
-              height: 24,
-            ),
-              const Text(
-                'Acciones Disponibles',
-                style: TextStyle(
+              const SizedBox(
+                height: 24,
+              ),
+              Text(
+                l10n.availableActionsTitle,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -938,7 +948,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Las acciones de estado están disponibles solo cuando el producto llegue a la última fase de producción (${lastPhase?.name ?? "desconocida"})',
+                        '${l10n.actionsOnlyAtLastPhase} (${lastPhase?.name ?? l10n.unknown})',
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.blue.shade900,
@@ -982,20 +992,20 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Acciones Disponibles',
-                  style: TextStyle(
+                Text(
+                  l10n.availableActionsTitle,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 12),
                 if (transitions.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: Text(
-                      'No hay transiciones disponibles desde este estado',
-                      style: TextStyle(
+                      l10n.noTransitionsAvailable,
+                      style: const TextStyle(
                         color: Colors.grey,
                         fontStyle: FontStyle.italic,
                       ),
@@ -1027,6 +1037,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     final dataProvider =
         Provider.of<ProductionDataProvider>(context, listen: false);
     final status = dataProvider.getStatusById(transition.toStatusId)!;
+    final l10n = AppLocalizations.of(context)!;
 
     return SizedBox(
       width: double.infinity,
@@ -1037,7 +1048,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
           children: [
             Expanded(
               child: Text(
-                'Cambiar a: ${transition.toStatusName}',
+                '${l10n.changeTo}: ${transition.toStatusName}',
                 style: TextStyle(
                   color: status.colorValue,
                   fontWeight: FontWeight.w600,
@@ -1122,23 +1133,27 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   }
 
   String _getValidationLabel(ValidationType type) {
+    final l10n = AppLocalizations.of(context)!;
+
     switch (type) {
       case ValidationType.textRequired:
-        return 'Texto';
+        return l10n.text.capitalize;
       case ValidationType.quantityAndText:
-        return 'Cantidad';
+        return l10n.quantity.capitalize;
       case ValidationType.checklist:
-        return 'Checklist';
+        return l10n.checklist.capitalize;
       case ValidationType.photoRequired:
-        return 'Foto';
+        return l10n.photo.capitalize;
       case ValidationType.multiApproval:
-        return 'Aprobación';
+        return l10n.approval.capitalize;
       default:
         return '';
     }
   }
 
   Widget _buildPhasesCard(BatchProductModel product, UserModel? user) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1157,10 +1172,10 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   },
                   child: Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Fases de Producción',
-                          style: TextStyle(
+                          l10n.productionPhasesLabel,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -1246,6 +1261,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   ) {
     final memberService =
         Provider.of<OrganizationMemberService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
 
     final isInProgress = progress?.isInProgress ?? false;
     final isCompleted = progress?.isCompleted ?? false;
@@ -1296,7 +1312,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               ),
 
               // Botones de acción
-              if (user?.canManageProduction ?? false || memberService.currentMember!.isClient) ...[
+              if (user?.canManageProduction ??
+                  false || memberService.currentMember!.isClient) ...[
                 // Retroceder (solo admin)
                 if ((user?.isAdmin ?? false) &&
                     isCompleted &&
@@ -1308,7 +1325,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                       allPhases[currentIndex],
                       false, // isForward = false
                     ),
-                    tooltip: 'Retroceder fase',
+                    tooltip: l10n.rollbackPhaseTooltip,
                   ),
                 ],
 
@@ -1321,7 +1338,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                       allPhases[currentIndex + 1],
                       true,
                     ),
-                    tooltip: 'Avanzar fase',
+                    tooltip: l10n.advancePhaseTooltip,
                   ),
                 ],
               ],
@@ -1338,7 +1355,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   Icon(Icons.play_arrow, size: 14, color: Colors.grey[600]),
                   const SizedBox(width: 4),
                   Text(
-                    'Iniciado: ${_formatDateTime(progress.startedAt!)}',
+                    '${l10n.startedLabel.capitalize}: ${_formatDateTime(progress.startedAt!)}',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
@@ -1350,7 +1367,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   Icon(Icons.check, size: 14, color: Colors.grey[600]),
                   const SizedBox(width: 4),
                   Text(
-                    'Completado: ${_formatDateTime(progress.completedAt!)}',
+                    '${l10n.completed.capitalize}: ${_formatDateTime(progress.completedAt!)}',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
@@ -1363,7 +1380,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   Icon(Icons.person, size: 14, color: Colors.grey[600]),
                   const SizedBox(width: 4),
                   Text(
-                    'Por: ${progress.completedByName}',
+                    '${l10n.by.capitalize}: ${progress.completedByName}',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
@@ -1372,7 +1389,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             if (progress.notes != null && progress.notes!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
-                'Notas: ${progress.notes}',
+                '${l10n.notes.capitalize}: ${progress.notes}',
                 style: TextStyle(fontSize: 12, color: Colors.grey[700]),
               ),
             ],
@@ -1394,6 +1411,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     final dataProvider =
         Provider.of<ProductionDataProvider>(context, listen: false);
     final user = authService.currentUserData;
+    final l10n = AppLocalizations.of(context)!;
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1438,8 +1456,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         SnackBar(
           content: Text(
             isForward
-                ? 'Avanzado a: ${targetPhase.name}'
-                : 'Retrocedido a: ${targetPhase.name}',
+                ? '${l10n.phaseAdvancedSuccess}: ${targetPhase.name}'
+                : '${l10n.phaseRolledBackSuccess}: ${targetPhase.name}',
           ),
           backgroundColor: isForward ? Colors.green : Colors.orange,
         ),
@@ -1514,6 +1532,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         TextEditingController(text: product.productNotes ?? '');
     final batchService =
         Provider.of<ProductionBatchService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
 
     DateTime? selectedDate = product.expectedDeliveryDate;
     UrgencyLevel selectedUrgency =
@@ -1524,16 +1543,16 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: const Text('Editar Producto'),
+            title: Text(l10n.editProductTitle),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Urgencia
-                  const Text(
-                    'Urgencia',
-                    style: TextStyle(
+                  Text(
+                    l10n.urgency,
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1554,11 +1573,11 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.calendar_today),
-                    title: const Text('Fecha de entrega'),
+                    title: Text(l10n.deliveryDate),
                     subtitle: Text(
                       selectedDate != null
                           ? _formatDateTime(selectedDate!)
-                          : 'Sin fecha',
+                          : l10n.noDeliveryDate,
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.edit),
@@ -1583,10 +1602,10 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   // Cantidad
                   TextField(
                     controller: quantityController,
-                    decoration: const InputDecoration(
-                      labelText: 'Cantidad',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.numbers),
+                    decoration: InputDecoration(
+                      labelText: l10n.quantity,
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.numbers),
                     ),
                     keyboardType: TextInputType.number,
                   ),
@@ -1595,10 +1614,10 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                   // Notas
                   TextField(
                     controller: notesController,
-                    decoration: const InputDecoration(
-                      labelText: 'Notas',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.note),
+                    decoration: InputDecoration(
+                      labelText: l10n.notes.capitalize,
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.note),
                     ),
                     maxLines: 3,
                   ),
@@ -1608,15 +1627,15 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar'),
+                child: Text(l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () {
                   final quantity = int.tryParse(quantityController.text);
                   if (quantity == null || quantity < 1) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Cantidad inválida'),
+                      SnackBar(
+                        content: Text(l10n.invalidQuantity),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -1632,7 +1651,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                     'urgencyLevel': selectedUrgency.value,
                   });
                 },
-                child: const Text('Guardar'),
+                child: Text(l10n.save),
               ),
             ],
           );
@@ -1656,8 +1675,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Producto actualizado'),
+            SnackBar(
+              content: Text(l10n.productUpdatedSuccess),
               backgroundColor: Colors.green,
             ),
           );
@@ -1701,8 +1720,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Estado cambiado exitosamente'),
+            SnackBar(
+              content: Text(l10n.statusChangedSuccess),
               backgroundColor: Colors.green,
             ),
           );
@@ -1727,6 +1746,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         Provider.of<ProductionBatchService>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
     final user = authService.currentUserData;
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       final resultDelete = await AppDialogs.showDeletePermanently(
@@ -1741,8 +1761,8 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Producto eliminado'),
+            SnackBar(
+              content: Text(l10n.productDeletedSuccess),
               backgroundColor: Colors.green,
             ),
           );
@@ -1769,6 +1789,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
   /// Vista previa de chat (solo lectura, últimos 10 mensajes)
   Widget _buildChatPreviewCard(BatchProductModel product, UserModel? user) {
     if (user == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
 
     return InkWell(
       // ✅ CAMBIADO: Envolver Card en InkWell
@@ -1780,13 +1801,13 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              const Row(
+              Row(
                 children: [
                   Icon(Icons.chat_bubble_outline),
                   SizedBox(width: 8),
                   Text(
-                    'Chat del Producto',
-                    style: TextStyle(
+                    l10n.productChat,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1795,7 +1816,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Vista rápida de los últimos mensajes',
+                l10n.chatQuickViewSubtitle,
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[600],
@@ -1847,7 +1868,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'No hay mensajes aún',
+                              l10n.noMessagesYet,
                               style: TextStyle(color: Colors.grey[600]),
                             ),
                           ],
@@ -1889,7 +1910,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
-                                        'Sistema',
+                                        l10n.system,
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 12,
@@ -1962,8 +1983,9 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                                       const SizedBox(width: 6),
                                       Text(
                                         isCurrentUser
-                                            ? '${message.authorName ?? 'Usuario'} (Tú)'
-                                            : (message.authorName ?? 'Usuario'),
+                                            ? '${message.authorName ?? l10n.unknownUser} (${l10n.you})'
+                                            : (message.authorName ??
+                                                l10n.unknownUser),
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 13,
@@ -2004,7 +2026,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                         child: OutlinedButton.icon(
                           onPressed: () => _openChat(product),
                           icon: const Icon(Icons.chat),
-                          label: const Text('Ver chat completo'),
+                          label: Text(l10n.viewFullChatBtn),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
@@ -2023,11 +2045,13 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
   /// Formatear tiempo del mensaje
   String _formatMessageTime(DateTime dateTime) {
+    final l10n = AppLocalizations.of(context)!;
+
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 
     if (difference.inMinutes < 1) {
-      return 'Ahora';
+      return l10n.now;
     } else if (difference.inHours < 1) {
       return '${difference.inMinutes}m';
     } else if (difference.inDays < 1) {
