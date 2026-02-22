@@ -81,6 +81,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get apply => 'Apply';
 
   @override
+  String get change => 'Change';
+
+  @override
+  String get move => 'Move';
+
+  @override
+  String get notes => 'Notes';
+
+  @override
+  String get from => 'From';
+
+  @override
+  String get to => 'To';
+
+  @override
   String get home => 'Home';
 
   @override
@@ -223,9 +238,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customization => 'Customization';
-
-  @override
-  String get notes => 'Notes';
 
   @override
   String get phases => 'Phases';
@@ -2418,33 +2430,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moduleReports => 'Reports';
 
   @override
-  String get actionView => 'View';
-
-  @override
-  String get actionCreate => 'Create';
-
-  @override
-  String get actionEdit => 'Edit';
-
-  @override
-  String get actionDelete => 'Delete';
-
-  @override
-  String get actionMove => 'Move';
-
-  @override
-  String get actionAssign => 'Assign';
-
-  @override
-  String get actionManage => 'Manage';
-
-  @override
-  String get actionExport => 'Export';
-
-  @override
-  String get actionGenerate => 'Generate';
-
-  @override
   String get scopeAll => 'All';
 
   @override
@@ -3904,7 +3889,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get requestSentNextSteps => 'You\'ll receive an email with the activation code within the next 24-48 hours. Check your spam folder.';
 
   @override
-  String get understood => 'Understood';
+  String get understood => 'Got it';
 
   @override
   String get requestSendError => 'Error sending request';
@@ -4246,5 +4231,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorConflict => 'A record with this data already exists.';
 
   @override
-  String get change => 'Change';
+  String get noMoreMessages => 'Congrats, you have reached the first message';
+
+  @override
+  String get phaseMoveDialogTitle => 'Change phase';
+
+  @override
+  String get addNotes => 'Add notes';
+
+  @override
+  String get keepEditing => 'Keep editing';
+
+  @override
+  String get deleteSimpleTitle => 'Delete';
+
+  @override
+  String get deleteSimpleConfirmPrefix => 'Are you sure you want to delete';
+
+  @override
+  String get deleteSimpleWarning => 'This action cannot be undone.';
+
+  @override
+  String get deleteCriticalTitle => 'Permanently delete';
+
+  @override
+  String get deleteCriticalWarning => 'This action is irreversible and will remove all associated data.';
+
+  @override
+  String get deleteCriticalInstructionPrefix => 'To confirm, type the name of';
+
+  @override
+  String get deleteCriticalInstructionSuffix => 'in the field below:';
+
+  @override
+  String get deleteCriticalButton => 'Delete permanently';
+
+  @override
+  String get permissionDeniedTitle => 'Access denied';
+
+  @override
+  String get permissionDeniedActionPrefix => 'You do not have permission to';
+
+  @override
+  String get permissionDeniedGeneric => 'You do not have permission to perform this action.';
+
+  @override
+  String get permissionDeniedContactAdmin => 'Contact your organization administrator if you think this is an error.';
 }

@@ -26,6 +26,11 @@
   "selectAll": "Seleccionar Todo",
   "clear": "Limpiar",
   "apply": "Aplicar",
+  "change": "Cambiar",
+  "move": "Mover",
+  "notes": "Notas",
+  "from": "De",
+  "to": "A",
   
   "@_.TITLES": {},
   "home": "Inicio",
@@ -873,17 +878,6 @@
   "moduleOrganization": "Organización",
   "moduleReports": "Reportes",
   
-  "@_.PERMISSION_ACTIONS": {},
-  "actionView": "Ver",
-  "actionCreate": "Crear",
-  "actionEdit": "Editar",
-  "actionDelete": "Eliminar",
-  "actionMove": "Mover",
-  "actionAssign": "Asignar",
-  "actionManage": "Gestionar",
-  "actionExport": "Exportar",
-  "actionGenerate": "Generar",
-  
   "@_.PERMISSION_SCOPES": {},
   "scopeAll": "Todos",
   "scopeAssigned": "Solo asignados",
@@ -1621,5 +1615,27 @@
 "errorValidation": "Revisa los datos introducidos e inténtalo de nuevo.",
 "errorConflict": "Ya existe un registro con estos datos.",
 
-"change": "Cambiar"
+"noMoreMessages": "Enhorabuena, has llegado al primer mensaje",
+
+"phaseMoveDialogTitle": "Cambiar de Fase",
+"addNotes": "Añadir notas",
+"keepEditing": "Seguir editando",
+"discardChanges": "Descartar cambios",
+
+"deleteSimpleTitle": "Eliminar",
+"deleteSimpleConfirmPrefix": "¿Estás seguro de que quieres eliminar",
+"deleteSimpleWarning": "Esta acción no se puede deshacer.",
+"delete": "Eliminar",
+
+"deleteCriticalTitle": "Eliminar permanentemente",
+"deleteCriticalWarning": "Esta acción es irreversible y eliminará todos los datos asociados.",
+"deleteCriticalInstructionPrefix": "Para confirmar, escribe el nombre de",
+"deleteCriticalInstructionSuffix": "en el campo de abajo:",
+"deleteCriticalButton": "Eliminar definitivamente",
+
+"permissionDeniedTitle": "Acceso denegado",
+"permissionDeniedActionPrefix": "No tienes permisos para",
+"permissionDeniedGeneric": "No tienes permisos para realizar esta acción.",
+"permissionDeniedContactAdmin": "Contacta con el administrador de tu organización si crees que es un error.",
+"understood": "Entendido"
 }

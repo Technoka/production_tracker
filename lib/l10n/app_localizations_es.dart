@@ -81,6 +81,21 @@ class AppLocalizationsEs extends AppLocalizations {
   String get apply => 'Aplicar';
 
   @override
+  String get change => 'Cambiar';
+
+  @override
+  String get move => 'Mover';
+
+  @override
+  String get notes => 'Notas';
+
+  @override
+  String get from => 'De';
+
+  @override
+  String get to => 'A';
+
+  @override
   String get home => 'Inicio';
 
   @override
@@ -223,9 +238,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get customization => 'Personalización';
-
-  @override
-  String get notes => 'Notas';
 
   @override
   String get phases => 'Fases';
@@ -2418,33 +2430,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get moduleReports => 'Reportes';
 
   @override
-  String get actionView => 'Ver';
-
-  @override
-  String get actionCreate => 'Crear';
-
-  @override
-  String get actionEdit => 'Editar';
-
-  @override
-  String get actionDelete => 'Eliminar';
-
-  @override
-  String get actionMove => 'Mover';
-
-  @override
-  String get actionAssign => 'Asignar';
-
-  @override
-  String get actionManage => 'Gestionar';
-
-  @override
-  String get actionExport => 'Exportar';
-
-  @override
-  String get actionGenerate => 'Generar';
-
-  @override
   String get scopeAll => 'Todos';
 
   @override
@@ -4246,5 +4231,50 @@ class AppLocalizationsEs extends AppLocalizations {
   String get errorConflict => 'Ya existe un registro con estos datos.';
 
   @override
-  String get change => 'Cambiar';
+  String get noMoreMessages => 'Enhorabuena, has llegado al primer mensaje';
+
+  @override
+  String get phaseMoveDialogTitle => 'Cambiar de Fase';
+
+  @override
+  String get addNotes => 'Añadir notas';
+
+  @override
+  String get keepEditing => 'Seguir editando';
+
+  @override
+  String get deleteSimpleTitle => 'Eliminar';
+
+  @override
+  String get deleteSimpleConfirmPrefix => '¿Estás seguro de que quieres eliminar';
+
+  @override
+  String get deleteSimpleWarning => 'Esta acción no se puede deshacer.';
+
+  @override
+  String get deleteCriticalTitle => 'Eliminar permanentemente';
+
+  @override
+  String get deleteCriticalWarning => 'Esta acción es irreversible y eliminará todos los datos asociados.';
+
+  @override
+  String get deleteCriticalInstructionPrefix => 'Para confirmar, escribe el nombre de';
+
+  @override
+  String get deleteCriticalInstructionSuffix => 'en el campo de abajo:';
+
+  @override
+  String get deleteCriticalButton => 'Eliminar definitivamente';
+
+  @override
+  String get permissionDeniedTitle => 'Acceso denegado';
+
+  @override
+  String get permissionDeniedActionPrefix => 'No tienes permisos para';
+
+  @override
+  String get permissionDeniedGeneric => 'No tienes permisos para realizar esta acción.';
+
+  @override
+  String get permissionDeniedContactAdmin => 'Contacta con el administrador de tu organización si crees que es un error.';
 }

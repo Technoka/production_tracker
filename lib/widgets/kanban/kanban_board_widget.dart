@@ -7,6 +7,7 @@ import 'package:gestion_produccion/services/organization_member_service.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:gestion_produccion/widgets/kanban/pending_approval_column.dart';
+import 'package:gestion_produccion/widgets/ui_widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/batch_product_model.dart';
@@ -957,15 +958,12 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     ProductionPhase toPhase,
     AppLocalizations l10n,
   ) async {
-    print("dentro de on phase move, data: ${data}, toPhase: ${toPhase}");
     final productionProvider =
         Provider.of<ProductionDataProvider>(context, listen: false);
-    print("after provider");
 
     if (!_canMoveFromPhase(context, data['fromPhase'] as String)) {
       return;
     }
-    print("after canmovefromphase");
 
     final product = data['product'] as BatchProductModel;
     final batch = data['batch'] as ProductionBatchModel;
@@ -978,97 +976,16 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     final newPhaseIndex = phases.indexWhere((p) => p.id == toPhase.id);
     final isForward = newPhaseIndex > currentPhaseIndex;
 
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(
-              isForward ? Icons.arrow_forward : Icons.arrow_back,
-              color: isForward ? Colors.green : Colors.orange,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                isForward ? l10n.moveProductForward : l10n.moveProductBackward,
-                style: const TextStyle(fontSize: 18),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              product.productName,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${l10n.batchLabel} ${batch.batchNumber}',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
-            ),
-            Text(
-              '${l10n.skuLabel} ${product.productReference}',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'De: ${product.currentPhaseName}',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'A: ${toPhase.name}',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-            ),
-            if (!isForward) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.warning_amber,
-                        color: Colors.orange.shade700, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '${l10n.moveWarningPart1} ${toPhase.name}',
-                        style: TextStyle(
-                          color: Colors.orange.shade700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isForward ? Colors.green : Colors.orange,
-            ),
-            child: Text(isForward ? l10n.moveForward : l10n.moveBackward),
-          ),
-        ],
-      ),
-    );
+    final resultPhaseMove = await AppDialogs.showPhaseMoveConfirmation(
+      context: context, 
+      productName: product.productName, 
+      batchNumber: batch.batchNumber, 
+      productReference: product.productReference!, 
+      fromPhaseName: product.currentPhaseName, 
+      toPhaseName: toPhase.name,
+      isForward: isForward);
 
-    if (result == true) {
+    if (resultPhaseMove.confirmed) {
       await _handlePhaseMove(data, toPhase, l10n);
     }
   }

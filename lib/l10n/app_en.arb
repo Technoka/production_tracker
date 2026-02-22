@@ -25,6 +25,11 @@
   "selectAll": "Select All",
   "clear": "Clear",
   "apply": "Apply",
+  "change": "Change",
+  "move": "Move",
+  "notes": "Notes",
+  "from": "From",
+  "to": "To",
   
   "home": "Home",
   "projects": "Projects",
@@ -869,17 +874,6 @@
   "moduleOrganization": "Organization",
   "moduleReports": "Reports",
   
-  "@_.PERMISSION_ACTIONS": {},
-  "actionView": "View",
-  "actionCreate": "Create",
-  "actionEdit": "Edit",
-  "actionDelete": "Delete",
-  "actionMove": "Move",
-  "actionAssign": "Assign",
-  "actionManage": "Manage",
-  "actionExport": "Export",
-  "actionGenerate": "Generate",
-  
   "@_.PERMISSION_SCOPES": {},
   "scopeAll": "All",
   "scopeAssigned": "Assigned only",
@@ -1619,5 +1613,27 @@
 "errorValidation": "Please check the entered data and try again.",
 "errorConflict": "A record with this data already exists.",
 
-"change": "Change"
+"noMoreMessages": "Congrats, you have reached the first message",
+
+"phaseMoveDialogTitle": "Change phase",
+"addNotes": "Add notes",
+"keepEditing": "Keep editing",
+"discardChanges": "Discard changes",
+
+"deleteSimpleTitle": "Delete",
+"deleteSimpleConfirmPrefix": "Are you sure you want to delete",
+"deleteSimpleWarning": "This action cannot be undone.",
+"delete": "Delete",
+
+"deleteCriticalTitle": "Permanently delete",
+"deleteCriticalWarning": "This action is irreversible and will remove all associated data.",
+"deleteCriticalInstructionPrefix": "To confirm, type the name of",
+"deleteCriticalInstructionSuffix": "in the field below:",
+"deleteCriticalButton": "Delete permanently",
+
+"permissionDeniedTitle": "Access denied",
+"permissionDeniedActionPrefix": "You do not have permission to",
+"permissionDeniedGeneric": "You do not have permission to perform this action.",
+"permissionDeniedContactAdmin": "Contact your organization administrator if you think this is an error.",
+"understood": "Got it"
 }

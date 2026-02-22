@@ -239,6 +239,36 @@ abstract class AppLocalizations {
   /// **'Apply'**
   String get apply;
 
+  /// No description provided for @change.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get change;
+
+  /// No description provided for @move.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get move;
+
+  /// No description provided for @notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notes;
+
+  /// No description provided for @from.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get from;
+
+  /// No description provided for @to.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get to;
+
   /// No description provided for @home.
   ///
   /// In en, this message translates to:
@@ -526,12 +556,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Customization'**
   String get customization;
-
-  /// No description provided for @notes.
-  ///
-  /// In en, this message translates to:
-  /// **'Notes'**
-  String get notes;
 
   /// No description provided for @phases.
   ///
@@ -4805,60 +4829,6 @@ abstract class AppLocalizations {
   /// **'Reports'**
   String get moduleReports;
 
-  /// No description provided for @actionView.
-  ///
-  /// In en, this message translates to:
-  /// **'View'**
-  String get actionView;
-
-  /// No description provided for @actionCreate.
-  ///
-  /// In en, this message translates to:
-  /// **'Create'**
-  String get actionCreate;
-
-  /// No description provided for @actionEdit.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit'**
-  String get actionEdit;
-
-  /// No description provided for @actionDelete.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete'**
-  String get actionDelete;
-
-  /// No description provided for @actionMove.
-  ///
-  /// In en, this message translates to:
-  /// **'Move'**
-  String get actionMove;
-
-  /// No description provided for @actionAssign.
-  ///
-  /// In en, this message translates to:
-  /// **'Assign'**
-  String get actionAssign;
-
-  /// No description provided for @actionManage.
-  ///
-  /// In en, this message translates to:
-  /// **'Manage'**
-  String get actionManage;
-
-  /// No description provided for @actionExport.
-  ///
-  /// In en, this message translates to:
-  /// **'Export'**
-  String get actionExport;
-
-  /// No description provided for @actionGenerate.
-  ///
-  /// In en, this message translates to:
-  /// **'Generate'**
-  String get actionGenerate;
-
   /// No description provided for @scopeAll.
   ///
   /// In en, this message translates to:
@@ -7730,7 +7700,7 @@ abstract class AppLocalizations {
   /// No description provided for @understood.
   ///
   /// In en, this message translates to:
-  /// **'Understood'**
+  /// **'Got it'**
   String get understood;
 
   /// No description provided for @requestSendError.
@@ -8411,11 +8381,101 @@ abstract class AppLocalizations {
   /// **'A record with this data already exists.'**
   String get errorConflict;
 
-  /// No description provided for @change.
+  /// No description provided for @noMoreMessages.
   ///
   /// In en, this message translates to:
-  /// **'Change'**
-  String get change;
+  /// **'Congrats, you have reached the first message'**
+  String get noMoreMessages;
+
+  /// No description provided for @phaseMoveDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change phase'**
+  String get phaseMoveDialogTitle;
+
+  /// No description provided for @addNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Add notes'**
+  String get addNotes;
+
+  /// No description provided for @keepEditing.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep editing'**
+  String get keepEditing;
+
+  /// No description provided for @deleteSimpleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteSimpleTitle;
+
+  /// No description provided for @deleteSimpleConfirmPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete'**
+  String get deleteSimpleConfirmPrefix;
+
+  /// No description provided for @deleteSimpleWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get deleteSimpleWarning;
+
+  /// No description provided for @deleteCriticalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete'**
+  String get deleteCriticalTitle;
+
+  /// No description provided for @deleteCriticalWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is irreversible and will remove all associated data.'**
+  String get deleteCriticalWarning;
+
+  /// No description provided for @deleteCriticalInstructionPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'To confirm, type the name of'**
+  String get deleteCriticalInstructionPrefix;
+
+  /// No description provided for @deleteCriticalInstructionSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'in the field below:'**
+  String get deleteCriticalInstructionSuffix;
+
+  /// No description provided for @deleteCriticalButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete permanently'**
+  String get deleteCriticalButton;
+
+  /// No description provided for @permissionDeniedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Access denied'**
+  String get permissionDeniedTitle;
+
+  /// No description provided for @permissionDeniedActionPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to'**
+  String get permissionDeniedActionPrefix;
+
+  /// No description provided for @permissionDeniedGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to perform this action.'**
+  String get permissionDeniedGeneric;
+
+  /// No description provided for @permissionDeniedContactAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact your organization administrator if you think this is an error.'**
+  String get permissionDeniedContactAdmin;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
