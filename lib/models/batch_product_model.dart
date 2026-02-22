@@ -85,7 +85,7 @@ class BatchProductModel {
   final String batchId;
   final String productCatalogId;
   final String productName;
-  final String? productReference;
+  final String productReference;
   final String? family;
   final String? description;
   final int quantity;
@@ -136,7 +136,7 @@ class BatchProductModel {
     required this.batchId,
     required this.productCatalogId,
     required this.productName,
-    this.productReference,
+    required this.productReference,
     this.family,
     this.description,
     required this.quantity,
@@ -242,7 +242,7 @@ class BatchProductModel {
       batchId: map['batchId'] as String,
       productCatalogId: map['productCatalogId'] as String,
       productName: map['productName'] as String,
-      productReference: map['productReference'] as String?,
+      productReference: map['productReference'] as String,
       family: map['family'] as String?,
       description: map['description'] as String?,
       quantity: map['quantity'] as int,
