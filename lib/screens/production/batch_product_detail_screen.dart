@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
+import 'package:gestion_produccion/services/kanban_service.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
+import 'package:gestion_produccion/widgets/ui_widgets.dart';
 import 'package:provider/provider.dart';
 import '../../models/batch_product_model.dart';
 import '../../models/phase_model.dart';
@@ -1364,10 +1366,10 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
                 if ((user?.isAdmin ?? false) && (isCompleted)) ...[
                   IconButton(
                     icon: const Icon(Icons.undo, color: Colors.orange),
-                    onPressed: () => _showRollbackDialog(
+                    onPressed: () => _showChangePhaseDialog(
                       product,
                       allPhases[currentIndex],
-                      user!,
+                      false, // isForward = false
                     ),
                     tooltip: 'Retroceder fase',
                   ),
@@ -1378,10 +1380,10 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
               if (isCurrentPhase && currentIndex < allPhases.length - 1) ...[
                 IconButton(
                   icon: const Icon(Icons.arrow_forward),
-                  onPressed: () => _showAdvancePhaseDialog(
+                  onPressed: () => _showChangePhaseDialog(
                     product,
                     allPhases[currentIndex + 1],
-                    user!,
+                    true,
                   ),
                   tooltip: 'Avanzar fase',
                 ),
@@ -1443,105 +1445,77 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
     );
   }
 
-  void _showRollbackDialog(
+  /// Diálogo unificado para avanzar o retroceder fase.
+  /// Usa AppDialogs.showPhaseMoveConfirmation y delega a KanbanService.
+  Future<void> _showChangePhaseDialog(
     BatchProductModel product,
-    ProductionPhase previousPhase,
-    UserModel user,
-  ) {
-    final reasonController = TextEditingController();
+    ProductionPhase targetPhase,
+    bool isForward,
+  ) async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final kanbanService = Provider.of<KanbanService>(context, listen: false);
+    final dataProvider =
+        Provider.of<ProductionDataProvider>(context, listen: false);
+    final user = authService.currentUserData;
 
-    showDialog(
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: Usuario no autenticado'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final batch = dataProvider.getBatchById(product.batchId);
+    if (batch == null) return;
+    final allPhases = dataProvider.phases.where((p) => p.isActive).toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
+
+    final result = await AppDialogs.showPhaseMoveConfirmation(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.warning, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('Retroceder Fase'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '¿Retroceder a "${previousPhase.name}"?',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Esta acción solo debe realizarse en casos excepcionales.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: reasonController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Motivo del retroceso *',
-                border: OutlineInputBorder(),
-                hintText: 'Explica por qué se retrocede...',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              if (reasonController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Debes indicar el motivo')),
-                );
-                return;
-              }
-
-              Navigator.pop(context);
-
-              try {
-                await FirebaseFirestore.instance
-                    .collection('organizations')
-                    .doc(widget.organizationId)
-                    .collection('production_batches')
-                    .doc(widget.batchId)
-                    .collection('batch_products')
-                    .doc(widget.productId)
-                    .update({
-                  'currentPhase': previousPhase.id,
-                  'currentPhaseName': previousPhase.name,
-                  'updatedAt': FieldValue.serverTimestamp(),
-                  'phaseProgress.${product.currentPhase}.status': 'pending',
-                  'phaseProgress.${previousPhase.id}.status': 'in_progress',
-                });
-
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Retrocedido a: ${previousPhase.name}'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: ${e.toString()}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Retroceder'),
-          ),
-        ],
-      ),
+      productName: product.productName,
+      batchNumber: batch.batchNumber,
+      productReference: product.productReference ?? '',
+      fromPhaseName: product.currentPhaseName,
+      toPhaseName: targetPhase.name,
+      isForward: isForward,
     );
+
+    if (!result.confirmed || !mounted) return;
+
+    try {
+      await kanbanService.moveProductToPhase(
+        organizationId: widget.organizationId,
+        product: product,
+        toPhase: targetPhase,
+        allPhases: allPhases,
+        userId: user.uid,
+        userName: user.name,
+        notes: result.notes,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isForward
+                ? 'Avanzado a: ${targetPhase.name}'
+                : 'Retrocedido a: ${targetPhase.name}',
+          ),
+          backgroundColor: isForward ? Colors.green : Colors.orange,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _buildCustomizationCard(BatchProductModel product) {
@@ -1612,106 +1586,6 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
 
   String _formatDateTime(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
-  }
-
-  void _showAdvancePhaseDialog(
-    BatchProductModel product,
-    ProductionPhase nextPhase,
-    UserModel user,
-  ) {
-    final notesController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Avanzar Fase'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('¿Completar fase actual y avanzar a "${nextPhase.name}"?'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: notesController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Notas (opcional)',
-                border: OutlineInputBorder(),
-                hintText: 'Añade observaciones...',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              try {
-                await FirebaseFirestore.instance
-                    .collection('organizations')
-                    .doc(widget.organizationId)
-                    .collection('production_batches')
-                    .doc(widget.batchId)
-                    .collection('batch_products')
-                    .doc(widget.productId)
-                    .update({
-                  'currentPhase': nextPhase.id,
-                  'currentPhaseName': nextPhase.name,
-                  'updatedAt': FieldValue.serverTimestamp(),
-                  'phaseProgress.${product.currentPhase}.status': 'completed',
-                  'phaseProgress.${product.currentPhase}.completedAt':
-                      FieldValue.serverTimestamp(),
-                  'phaseProgress.${product.currentPhase}.completedBy': user.uid,
-                  'phaseProgress.${product.currentPhase}.completedByName':
-                      user.name,
-                  'phaseProgress.${nextPhase.id}.status': 'in_progress',
-                  'phaseProgress.${nextPhase.id}.startedAt':
-                      FieldValue.serverTimestamp(),
-                });
-                Navigator.pop(context); // Cerrar diálogo
-
-                // Generar evento de cambio de fase
-                await MessageEventsHelper.onProductPhaseChanged(
-                  organizationId: widget.organizationId,
-                  batchId: product.batchId,
-                  productId: product.id,
-                  productName: product.productName,
-                  productNumber: product.productNumber,
-                  productCode: product.productCode,
-                  oldPhaseName: product.currentPhaseName,
-                  newPhaseName: nextPhase.name,
-                  changedBy: user.name,
-                  validationData:
-                      null, // Sin validación en movimientos simples de Kanban
-                );
-
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Avanzado a: ${nextPhase.name}'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: ${e.toString()}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Avanzar'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _handleAction(String action, BatchProductModel product) async {

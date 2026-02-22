@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/rendering.dart';
 import '../models/batch_product_model.dart';
 import '../models/phase_model.dart';
 import '../models/permission_model.dart';
@@ -68,185 +69,118 @@ class KanbanService {
 
   // ==================== MOVER PRODUCTO ====================
 
-  /// Mover producto a nueva fase con validación RBAC
+  /// Mover producto a nueva fase con validación RBAC.
+  /// Recibe el [BatchProductModel] completo para evitar una lectura extra a Firestore.
+  /// [allPhases] debe estar ordenado por [ProductionPhase.order] ascendente.
+  /// Si es un rollback (fase destino anterior a la actual), todas las fases
+  /// posteriores a la destino se resetean a "pending" con sus campos a null.
+  /// [notes] es opcional y se pasa al evento de cambio de fase.
   Future<void> moveProductToPhase({
     required String organizationId,
-    required String projectId,
-    required String batchId,
-    required String productId,
-    required String fromPhaseId,
-    required String toPhaseId,
-    required String toPhaseName,
-    required int newPosition,
+    required BatchProductModel product,
+    required ProductionPhase toPhase,
+    required List<ProductionPhase> allPhases,
     required String userId,
     required String userName,
+    String? notes,
   }) async {
-    try {
-      // ✅ VALIDAR PERMISOS GENERALES
-      final canMove = await _memberService.can('kanban', 'moveProducts');
-      if (!canMove) {
-        throw Exception('No tienes permisos para mover productos');
-      }
+    final fromPhaseId = product.currentPhase;
+    final toPhaseId = toPhase.id;
 
-      // ✅ VALIDAR SCOPE (verificar si operario tiene fase asignada)
-      final scope = await _memberService.getScope('kanban', 'moveProducts');
+    if (fromPhaseId == toPhaseId) return;
 
-      if (scope == PermissionScope.assigned) {
-        // Verificar que el operario tenga AMBAS fases asignadas
-        final canManageFromPhase = _memberService.canManagePhase(fromPhaseId);
-        final canManageToPhase = _memberService.canManagePhase(toPhaseId);
-
-        if (!canManageFromPhase || !canManageToPhase) {
-          throw Exception(
-              'No tienes asignadas todas las fases necesarias para este movimiento');
-        }
-      }
-      // Si scope == all, puede mover entre cualquier fase
-
-      final productRef = _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .doc(productId);
-
-      final productDoc = await productRef.get();
-      if (!productDoc.exists) {
-        throw Exception('Producto no encontrado');
-      }
-
-      final product = BatchProductModel.fromMap(productDoc.data()!);
-      final updatedProgress =
-          Map<String, PhaseProgressData>.from(product.phaseProgress);
-
-      // Generar evento de movimiento de fase
-      await MessageEventsHelper.onProductMoved(
-        organizationId: organizationId,
-        batchId: batchId,
-        productId: productId,
-        productName: product.productName,
-        oldPhase: product.currentPhaseName,
-        newPhase: toPhaseName,
-        movedBy: userName,
-      );
-
-      // Completar fase anterior si existe y es diferente
-      if (fromPhaseId != toPhaseId && updatedProgress.containsKey(fromPhaseId)) {
-        updatedProgress[fromPhaseId] = updatedProgress[fromPhaseId]!.copyWith(
-          status: 'completed',
-          completedAt: DateTime.now(),
-          completedBy: userId,
-          completedByName: userName,
-        );
-      }
-
-      // Iniciar nueva fase si no existe o está pendiente
-      if (!updatedProgress.containsKey(toPhaseId)) {
-        updatedProgress[toPhaseId] = PhaseProgressData(
-          status: 'in_progress',
-          startedAt: DateTime.now(),
-        );
-      } else if (updatedProgress[toPhaseId]!.status == 'pending') {
-        updatedProgress[toPhaseId] = updatedProgress[toPhaseId]!.copyWith(
-          status: 'in_progress',
-          startedAt: DateTime.now(),
-        );
-      }
-
-      // Si se completó una fase
-      if (fromPhaseId != toPhaseId &&
-          updatedProgress[fromPhaseId]?.status == 'completed') {
-        await MessageEventsHelper.onPhaseCompleted(
-          organizationId: organizationId,
-          batchId: batchId,
-          productId: productId,
-          phaseName: product.currentPhaseName,
-          completedBy: userName,
-          productName: product.productName,
-        );
-      }
-
-      // Actualizar producto
-      await productRef.update({
-        'currentPhase': toPhaseId,
-        'currentPhaseName': toPhaseName,
-        'phaseProgress': updatedProgress.map(
-          (key, value) => MapEntry(key, value.toMap()),
-        ),
-        'kanbanPosition': newPosition,
-        'updatedAt': Timestamp.now(),
-      });
-
-      // Reordenar otros productos en la columna destino
-      await _reorderProductsInPhase(
-        organizationId: organizationId,
-        projectId: projectId,
-        batchId: batchId,
-        phaseId: toPhaseId,
-        movedProductId: productId,
-        newPosition: newPosition,
-      );
-    } catch (e) {
-      throw Exception('Error al mover producto: $e');
+    // ✅ VALIDAR PERMISOS GENERALES
+    final canMove = await _memberService.can('kanban', 'moveProducts');
+    if (!canMove) {
+      throw Exception('No tienes permisos para mover productos');
     }
-  }
 
-  // ==================== REORDENAR PRODUCTOS ====================
+    // ✅ VALIDAR SCOPE
+    final scope = await _memberService.getScope('kanban', 'moveProducts');
+    if (scope == PermissionScope.assigned) {
+      if (!_memberService.canManagePhase(fromPhaseId) ||
+          !_memberService.canManagePhase(toPhaseId)) {
+        throw Exception(
+            'No tienes asignadas todas las fases necesarias para este movimiento');
+      }
+    }
 
-  /// Reordenar productos dentro de una fase
-  Future<void> _reorderProductsInPhase({
-    required String organizationId,
-    required String projectId,
-    required String batchId,
-    required String phaseId,
-    required String movedProductId,
-    required int newPosition,
-  }) async {
-    try {
-      // Obtener todos los productos de esa fase
-      final snapshot = await _firestore
-          .collection('organizations')
-          .doc(organizationId)
-          .collection('production_batches')
-          .doc(batchId)
-          .collection('batch_products')
-          .orderBy('kanbanPosition')
-          .get();
+    // Determinar si es avance o retroceso usando el orden de las fases
+    final fromIndex = allPhases.indexWhere((p) => p.id == fromPhaseId);
+    final toIndex = allPhases.indexWhere((p) => p.id == toPhaseId);
+    final isRollback = toIndex < fromIndex;
 
-      final products = snapshot.docs
-          .map((doc) => BatchProductModel.fromMap(doc.data()))
-          .where((p) => p.currentPhase == phaseId && p.id != movedProductId)
+    final productRef = _firestore
+        .collection('organizations')
+        .doc(organizationId)
+        .collection('production_batches')
+        .doc(product.batchId)
+        .collection('batch_products')
+        .doc(product.id);
+
+    // Construir el mapa de actualización
+    final Map<String, dynamic> updates = {
+      'currentPhase': toPhaseId,
+      'currentPhaseName': toPhase.name,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (isRollback) {
+      // — ROLLBACK —
+      // La fase destino pasa a in_progress (conserva startedAt si ya existía)
+      updates['phaseProgress.$toPhaseId.status'] = 'in_progress';
+      updates['phaseProgress.$toPhaseId.completedAt'] = null;
+      updates['phaseProgress.$toPhaseId.completedBy'] = null;
+      updates['phaseProgress.$toPhaseId.completedByName'] = null;
+
+      // Todas las fases POSTERIORES a la destino (incluida la fase actual)
+      // se resetean completamente a pending
+      final phasesToReset = allPhases
+          .where((p) => allPhases.indexOf(p) > toIndex)
+          .map((p) => p.id)
           .toList();
 
-      // Reordenar posiciones
-      final batch = _firestore.batch();
-      int position = 0;
-
-      for (var product in products) {
-        if (position == newPosition) {
-          position++; // Dejar espacio para el producto movido
-        }
-
-        if (product.kanbanPosition != position) {
-          final ref = _firestore
-              .collection('organizations')
-              .doc(organizationId)
-              .collection('production_batches')
-              .doc(batchId)
-              .collection('batch_products')
-              .doc(product.id);
-
-          batch.update(ref, {'kanbanPosition': position});
-        }
-
-        position++;
+      for (final phaseId in phasesToReset) {
+        updates['phaseProgress.$phaseId.status'] = 'pending';
+        updates['phaseProgress.$phaseId.startedAt'] = null;
+        updates['phaseProgress.$phaseId.completedAt'] = null;
+        updates['phaseProgress.$phaseId.completedBy'] = null;
+        updates['phaseProgress.$phaseId.completedByName'] = null;
+        updates['phaseProgress.$phaseId.notes'] = null;
       }
+    } else {
+      // — AVANCE —
+      // Completar fase anterior
+      updates['phaseProgress.$fromPhaseId.status'] = 'completed';
+      updates['phaseProgress.$fromPhaseId.completedAt'] =
+          FieldValue.serverTimestamp();
+      updates['phaseProgress.$fromPhaseId.completedBy'] = userId;
+      updates['phaseProgress.$fromPhaseId.completedByName'] = userName;
 
-      await batch.commit();
+      // Iniciar nueva fase
+      updates['phaseProgress.$toPhaseId.status'] = 'in_progress';
+      updates['phaseProgress.$toPhaseId.startedAt'] =
+          FieldValue.serverTimestamp();
+    }
+
+    await productRef.update(updates);
+
+    // Generar evento — no bloqueante
+    try {
+      await MessageEventsHelper.onProductPhaseChanged(
+        organizationId: organizationId,
+        batchId: product.batchId,
+        productId: product.id,
+        productName: product.productName,
+        productNumber: product.productNumber,
+        productCode: product.productCode,
+        oldPhaseName: product.currentPhaseName,
+        newPhaseName: toPhase.name,
+        changedBy: userName,
+        validationData: notes != null ? {'notes': notes} : null,
+      );
     } catch (e) {
-      // No lanzar error, es operación secundaria
-      print('Error reordenando productos: $e');
+      debugPrint('Error generating phase change event: $e');
     }
   }
 
@@ -315,7 +249,8 @@ class KanbanService {
   }) async {
     try {
       // ✅ VALIDAR PERMISOS
-      final canBlock = await _memberService.can('batch_products', 'changeStatus');
+      final canBlock =
+          await _memberService.can('batch_products', 'changeStatus');
       if (!canBlock) {
         throw Exception('No tienes permisos para bloquear productos');
       }
@@ -423,11 +358,9 @@ class KanbanService {
           .map((doc) => BatchProductModel.fromMap(doc.data()))
           .toList();
 
-      final activeProducts =
-          allProducts.where((p) => !p.isCompleted).toList();
+      final activeProducts = allProducts.where((p) => !p.isCompleted).toList();
 
-      final completedProducts =
-          allProducts.where((p) => p.isCompleted).length;
+      final completedProducts = allProducts.where((p) => p.isCompleted).length;
 
       // final blockedProducts =
       //     allProducts.where((p) => p.isBlocked).length;

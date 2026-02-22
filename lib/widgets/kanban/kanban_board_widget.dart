@@ -3,13 +3,13 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/screens/notifications/approval_detail_screen.dart';
+import 'package:gestion_produccion/services/kanban_service.dart';
 import 'package:gestion_produccion/services/organization_member_service.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
 import 'package:gestion_produccion/widgets/kanban/pending_approval_column.dart';
 import 'package:gestion_produccion/widgets/ui_widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/batch_product_model.dart';
 import '../../models/phase_model.dart';
 import '../../models/production_batch_model.dart';
@@ -21,7 +21,6 @@ import 'draggable_product_card.dart';
 import '../../screens/production/batch_product_detail_screen.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/validation_dialogs/validation_dialog_manager.dart';
-import '../../utils/message_events_helper.dart';
 
 enum KanbanViewMode { phases, statuses }
 
@@ -977,16 +976,16 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
     final isForward = newPhaseIndex > currentPhaseIndex;
 
     final resultPhaseMove = await AppDialogs.showPhaseMoveConfirmation(
-      context: context, 
-      productName: product.productName, 
-      batchNumber: batch.batchNumber, 
-      productReference: product.productReference!, 
-      fromPhaseName: product.currentPhaseName, 
-      toPhaseName: toPhase.name,
-      isForward: isForward);
+        context: context,
+        productName: product.productName,
+        batchNumber: batch.batchNumber,
+        productReference: product.productReference!,
+        fromPhaseName: product.currentPhaseName,
+        toPhaseName: toPhase.name,
+        isForward: isForward);
 
     if (resultPhaseMove.confirmed) {
-      await _handlePhaseMove(data, toPhase, l10n);
+      await _handlePhaseMove(data, toPhase, l10n, notes: resultPhaseMove.notes);
     }
   }
 
@@ -1073,62 +1072,31 @@ class _KanbanBoardWidgetState extends State<KanbanBoardWidget> {
   Future<void> _handlePhaseMove(
     Map<String, dynamic> data,
     ProductionPhase toPhase,
-    AppLocalizations l10n,
-  ) async {
+    AppLocalizations l10n, {
+    String? notes,
+  }) async {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
+      final kanbanService = Provider.of<KanbanService>(context, listen: false);
       final user = authService.currentUserData!;
-
       final product = data['product'] as BatchProductModel;
-      final fromPhaseId = product.currentPhase;
+      final productionProvider =
+          Provider.of<ProductionDataProvider>(context, listen: false);
+      final allPhases = productionProvider.phases
+          .where((p) => p.isActive)
+          .toList()
+        ..sort((a, b) => a.order.compareTo(b.order));
 
-      if (fromPhaseId == toPhase.id) return;
-
-      // Actualizar la fase del producto directamente en Firestore
-      await FirebaseFirestore.instance
-          .collection('organizations')
-          .doc(widget.organizationId)
-          .collection('production_batches')
-          .doc(product.batchId)
-          .collection('batch_products')
-          .doc(product.id)
-          .update({
-        'currentPhase': toPhase.id,
-        'currentPhaseName': toPhase.name,
-        'updatedAt': FieldValue.serverTimestamp(),
-
-        // Actualizar progreso de fases
-        'phaseProgress.$fromPhaseId.status': 'completed',
-        'phaseProgress.$fromPhaseId.completedAt': FieldValue.serverTimestamp(),
-        'phaseProgress.$fromPhaseId.completedBy': user.uid,
-        'phaseProgress.$fromPhaseId.completedByName': user.name,
-
-        'phaseProgress.${toPhase.id}.status': 'in_progress',
-        'phaseProgress.${toPhase.id}.startedAt': FieldValue.serverTimestamp(),
-      });
-
-      try {
-        // Generar evento de cambio de fase (mejorado)
-        await MessageEventsHelper.onProductPhaseChanged(
+      await kanbanService.moveProductToPhase(
           organizationId: widget.organizationId,
-          batchId: product.batchId,
-          productId: product.id,
-          productName: product.productName,
-          productNumber: product.productNumber,
-          productCode: product.productCode,
-          oldPhaseName: product.currentPhaseName,
-          newPhaseName: toPhase.name,
-          changedBy: user.name,
-          validationData:
-              null, // Sin validación en movimientos simples de Kanban
-        );
-      } catch (e) {
-        debugPrint('Error generating event: $e');
-        // No bloquear si falla el evento
-      }
+          product: product,
+          toPhase: toPhase,
+          allPhases: allPhases,
+          userId: user.uid,
+          userName: user.name,
+          notes: notes);
 
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${l10n.productMovedTo} ${toPhase.name}'),
