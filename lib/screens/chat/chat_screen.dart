@@ -50,6 +50,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Stream<List<MessageModel>>? _messagesStream;
   int _messagesLimit = 100;
+  bool _isLoadingMore = false;
+  bool _hasMoreMessages =
+      true; // evita llamadas innecesarias cuando ya no hay más
 
   UserModel? _currentUser;
   MessageModel? _replyingTo;
@@ -101,10 +104,52 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _onScroll() {
-    // Mostrar botón de scroll to bottom si no está en el final
+    // Botón scroll-to-bottom
     final showButton = _scrollController.offset > 500;
     if (showButton != _showScrollToBottom) {
       setState(() => _showScrollToBottom = showButton);
+    }
+
+    // Cargar más mensajes al llegar al tope superior (mensajes antiguos)
+    if (_scrollController.offset >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        _hasMoreMessages) {
+      _loadMoreMessages();
+    }
+  }
+
+  Future<void> _loadMoreMessages() async {
+    if (_isLoadingMore || !_hasMoreMessages) return;
+
+    setState(() => _isLoadingMore = true);
+
+    final previousLimit = _messagesLimit;
+    final newLimit = _messagesLimit + 50;
+
+    // Comprobar si realmente hay más mensajes antes de ampliar
+    try {
+      final hasMore = await _messageService.hasMessagesBeforeLimit(
+        organizationId: widget.organizationId,
+        entityType: widget.entityType,
+        entityId: widget.entityId,
+        parentId: widget.parentId,
+        includeInternal: !_isUserClient && widget.showInternalMessages,
+        currentLimit: previousLimit,
+      );
+
+      if (!mounted) return;
+
+      if (hasMore) {
+        setState(() {
+          _messagesLimit = newLimit;
+          _setupStream();
+        });
+      } else {
+        setState(() => _hasMoreMessages = false);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingMore = false);
     }
   }
 
@@ -751,9 +796,15 @@ class _ChatScreenState extends State<ChatScreen> {
                 ],
               ),
               const SizedBox(height: 4),
-              ...pinnedMessages
-                  .take(2)
-                  .map((message) => _buildPinnedMessagePreview(message)),
+              Builder(
+                builder: (sheetContext) => Column(
+                  children: pinnedMessages
+                      .take(2)
+                      .map((message) =>
+                          _buildPinnedMessagePreview(message, sheetContext))
+                      .toList(),
+                ),
+              ),
             ],
           ),
         );
@@ -761,11 +812,12 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildPinnedMessagePreview(MessageModel message) {
+  Widget _buildPinnedMessagePreview(
+      MessageModel message, BuildContext sheetContext) {
     return InkWell(
       onTap: () {
         // TODO: scrollear al mensaje fijado al hacer click
-        Navigator.pop(context); // cerrar el bottom sheet primero
+        Navigator.pop(sheetContext); // cerrar el bottom sheet primero
         _scrollToMessage(message.id);
       },
       child: Padding(
@@ -809,8 +861,31 @@ class _ChatScreenState extends State<ChatScreen> {
           controller: _scrollController,
           reverse: true,
           padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: messages.length,
+          itemCount: messages.length + 1, // +1 para el indicador/fin
           itemBuilder: (context, index) {
+            // Último item (tope superior): indicador de carga o fin
+            if (index == messages.length) {
+              if (_isLoadingMore) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child:
+                      Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                );
+              }
+              if (!_hasMoreMessages) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: Text(
+                      AppLocalizations.of(context)!.noMoreMessages,
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox(height: 8);
+            }
             final message = messages[index];
 
             // Determinar si debe mostrar avatar y nombre
@@ -896,6 +971,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final permissionService =
         Provider.of<PermissionService>(context, listen: false);
     final canSendMessages = permissionService.canSendMessages;
+    print("can send messages: $canSendMessages");
 
     // Medir la altura del input después de construir
     WidgetsBinding.instance.addPostFrameCallback((_) {
