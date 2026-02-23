@@ -152,7 +152,7 @@ class WelcomeScreen extends StatelessWidget {
             Center(
               child: Container(
                 constraints: const BoxConstraints(
-                    maxWidth: UIConstants.SCREEN_MAX_WIDTH),
+                    maxWidth: UIConstants.SCREEN_MEDIUM_WIDTH),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
@@ -160,10 +160,12 @@ class WelcomeScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Logo/Icono
-                      Icon(
-                        Icons.factory,
-                        size: 100,
-                        color: Theme.of(context).colorScheme.primary,
+                      Image.asset(
+                        'assets/icon/app_icon.png', // Asegúrate de que esta ruta coincida con la de tu pubspec.yaml
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit
+                            .contain, // Mantiene la proporción del logo sin distorsionarlo
                       ),
                       const SizedBox(height: 24),
 

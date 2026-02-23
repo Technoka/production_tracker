@@ -50,7 +50,7 @@ class ProductionDashboardWidget extends StatelessWidget {
     return Center(
       child: Container(
         constraints:
-            const BoxConstraints(maxWidth: UIConstants.SCREEN_MAX_WIDTH),
+            const BoxConstraints(maxWidth: UIConstants.SCREEN_MEDIUM_WIDTH),
         child: Card(
           elevation: 4,
           child: Padding(

@@ -75,7 +75,7 @@ class _JoinOrganizationScreenState extends State<JoinOrganizationScreen> {
         child: Center(
           child: Container(
             constraints:
-                const BoxConstraints(maxWidth: UIConstants.SCREEN_MAX_WIDTH),
+                const BoxConstraints(maxWidth: UIConstants.SCREEN_MEDIUM_WIDTH),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Form(
