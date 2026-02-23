@@ -31,6 +31,9 @@ class ErrorHandler {
   // ---------------------------------------------------------------------------
 
   static AppErrorType _mapToType(dynamic error) {
+    //Error de permisos
+    if (error is PermissionException) return AppErrorType.permission;
+
     // FirebaseAuthException hereda de FirebaseException, hay que comprobarlo primero
     if (error is FirebaseAuthException) {
       return _mapAuthCode(error.code);
@@ -45,6 +48,9 @@ class ErrorHandler {
     final msg = error?.toString().toLowerCase() ?? '';
     if (_isNetworkError(msg)) return AppErrorType.network;
     if (_isValidationError(msg)) return AppErrorType.validation;
+
+    // Detectar errores de permisos lanzados manualmente desde servicios
+    if (_isPermissionError(msg)) return AppErrorType.permission;
 
     return AppErrorType.internal;
   }
@@ -77,10 +83,10 @@ class ErrorHandler {
     switch (code) {
       case 'permission-denied':
       case 'unauthenticated':
-      case 'unauthorized':      // Storage
+      case 'unauthorized': // Storage
         return AppErrorType.permission;
       case 'not-found':
-      case 'object-not-found':  // Storage
+      case 'object-not-found': // Storage
         return AppErrorType.notFound;
       case 'already-exists':
         return AppErrorType.conflict;
@@ -119,6 +125,14 @@ class ErrorHandler {
         msg.contains('formato');
   }
 
+  static bool _isPermissionError(String msg) {
+    return msg.contains('permisos') ||
+        msg.contains('permission') ||
+        msg.contains('autorizado') ||
+        msg.contains('unauthorized') ||
+        msg.contains('no tienes');
+  }
+
   /// Extrae el mensaje técnico completo para debug.
   static String _extractDetail(dynamic error) {
     if (error is FirebaseAuthException) {
@@ -129,4 +143,14 @@ class ErrorHandler {
     }
     return error?.toString() ?? 'Unknown error';
   }
+}
+
+/// Excepción semántica de permisos.
+/// Lanzada por servicios cuando el usuario no tiene autorización.
+/// ErrorHandler la mapea automáticamente a AppErrorType.permission.
+class PermissionException implements Exception {
+  final String message;
+  const PermissionException(this.message);
+  @override
+  String toString() => message;
 }

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/rendering.dart';
+import 'package:gestion_produccion/utils/error_handler.dart';
 import '../models/batch_product_model.dart';
 import '../models/phase_model.dart';
 import '../models/permission_model.dart';
@@ -92,7 +93,7 @@ class KanbanService {
     // ✅ VALIDAR PERMISOS GENERALES
     final canMove = await _memberService.can('kanban', 'moveProducts');
     if (!canMove) {
-      throw Exception('No tienes permisos para mover productos');
+      throw const PermissionException('No tienes permisos para mover productos');
     }
 
     // ✅ VALIDAR SCOPE
@@ -100,8 +101,7 @@ class KanbanService {
     if (scope == PermissionScope.assigned) {
       if (!_memberService.canManagePhase(fromPhaseId) ||
           !_memberService.canManagePhase(toPhaseId)) {
-        throw Exception(
-            'No tienes asignadas todas las fases necesarias para este movimiento');
+        throw const PermissionException('No tienes asignadas todas las fases necesarias para este movimiento');
       }
     }
 
