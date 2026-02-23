@@ -1,21 +1,34 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/l10n/app_localizations.dart';
 
 /// Estado del lote de producción
 enum BatchStatus {
-  pending('pending', 'Pendiente'),
-  inProgress('in_progress', 'En Producción'),
-  completed('completed', 'Completado');
+  pending('pending'),
+  inProgress('in_progress'),
+  completed('completed');
 
   final String value;
-  final String displayName;
-  const BatchStatus(this.value, this.displayName);
+  const BatchStatus(this.value);
 
   static BatchStatus fromString(String value) {
     return BatchStatus.values.firstWhere(
       (status) => status.value == value,
       orElse: () => BatchStatus.pending,
     );
+  }
+}
+
+extension BatchStatusL10n on BatchStatus {
+  String getDisplayName(AppLocalizations l10n) {
+    switch (this) {
+      case BatchStatus.pending:
+        return l10n.pending;
+      case BatchStatus.inProgress:
+        return l10n.inProgress;
+      case BatchStatus.completed:
+        return l10n.completed;
+    }
   }
 }
 
@@ -219,7 +232,6 @@ class ProductionBatchModel {
 
   // Getters útiles
   BatchStatus get statusEnum => BatchStatus.fromString(status);
-  String get statusDisplayName => statusEnum.displayName;
   
   UrgencyLevel get urgencyEnum => UrgencyLevel.fromString(urgencyLevel);
   String get urgencyDisplayName => urgencyEnum.displayName;
