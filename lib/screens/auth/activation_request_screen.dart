@@ -118,7 +118,8 @@ class _ActivationRequestScreenState extends State<ActivationRequestScreen> {
           // AGREGAR Center
           child: Container(
             // AGREGAR Container con constraints
-            constraints: const BoxConstraints(maxWidth: UIConstants.SCREEN_MAX_WIDTH), // AGREGAR
+            constraints: const BoxConstraints(
+                maxWidth: UIConstants.SCREEN_MEDIUM_WIDTH), // AGREGAR
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Form(
@@ -126,11 +127,13 @@ class _ActivationRequestScreenState extends State<ActivationRequestScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Icono
-                    Icon(
-                      Icons.business_center,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.primary,
+                    // Logo/Icono
+                    Image.asset(
+                      'assets/icon/app_icon.png', // Asegúrate de que esta ruta coincida con la de tu pubspec.yaml
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit
+                          .contain, // Mantiene la proporción del logo sin distorsionarlo
                     ),
                     const SizedBox(height: 16),
 

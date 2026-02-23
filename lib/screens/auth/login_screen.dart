@@ -111,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Center(
               child: Container(
                 constraints: const BoxConstraints(
-                    maxWidth: UIConstants.SCREEN_MAX_WIDTH),
+                    maxWidth: UIConstants.SCREEN_MEDIUM_WIDTH),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24.0),
                   child: Form(
@@ -120,10 +120,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Icon(
-                          Icons.factory,
-                          size: 80,
-                          color: Theme.of(context).colorScheme.primary,
+                        // Logo/Icono
+                        Image.asset(
+                          'assets/icon/app_icon.png', // Asegúrate de que esta ruta coincida con la de tu pubspec.yaml
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit
+                              .contain, // Mantiene la proporción del logo sin distorsionarlo
                         ),
                         const SizedBox(height: 24),
                         Text(
