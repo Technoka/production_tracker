@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/l10n/app_localizations.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:gestion_produccion/widgets/access_control_widget.dart';
+import 'package:gestion_produccion/widgets/ui_widgets.dart';
 import 'package:provider/provider.dart';
 import '../../models/production_batch_model.dart';
 import '../../models/user_model.dart';
@@ -59,6 +61,7 @@ class _ProductionBatchDetailScreenState
     final permissionService = Provider.of<PermissionService>(context);
     final canEditBatches = permissionService.canEditBatches;
     final canDeleteBatches = permissionService.canDeleteBatches;
+    final l10n = AppLocalizations.of(context)!;
 
     return Consumer<ProductionDataProvider>(
       builder: (context, dataProvider, _) {
@@ -66,18 +69,18 @@ class _ProductionBatchDetailScreenState
 
         if (batch == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Error')),
+            appBar: AppBar(title: Text(l10n.error)),
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 16),
-                  const Text('Lote no encontrado'),
+                  Text(l10n.batchNotFound),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Volver'),
+                    child: Text(l10n.back),
                   ),
                 ],
               ),
@@ -99,28 +102,29 @@ class _ProductionBatchDetailScreenState
                   itemBuilder: (context) => [
                     // 2. Opción Editar: Solo si canEditBatches es true
                     if (canEditBatches)
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Editar Notas'),
+                            const Icon(Icons.edit, size: 20),
+                            const SizedBox(width: 8),
+                            Text(l10n.editNotes),
                           ],
                         ),
                       ),
 
                     // 3. Opción Eliminar: Solo si canDeleteBatches es true
                     if (canDeleteBatches)
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete, size: 20, color: Colors.red),
-                            SizedBox(width: 8),
+                            const Icon(Icons.delete,
+                                size: 20, color: Colors.red),
+                            const SizedBox(width: 8),
                             Text(
-                              'Eliminar Lote',
-                              style: TextStyle(color: Colors.red),
+                              l10n.deleteBatchAction,
+                              style: const TextStyle(color: Colors.red),
                             ),
                           ],
                         ),
@@ -163,23 +167,21 @@ class _ProductionBatchDetailScreenState
                         builder:
                             (BuildContext context, StateSetter setStateLocal) {
                           return AccessControlWidget(
-                            organizationId: widget.organizationId,
-                            currentUserId: authService.currentUser!.uid,
-                            clientId: batch.clientId,
-                            selectedMembers: _selectedMembers,
-                            onMembersChanged: (members) {
-                              setStateLocal(() {
-                                // CAMBIAR: usar setStateLocal en lugar de setState
-                                _selectedMembers = members;
-                              });
-                            },
-                            readOnly: true,
-                            showTitle: true,
-                            resourceType: 'batch',
-                            customTitle: 'Control de Acceso al Lote',
-                            customDescription:
-                                'Gestiona quiénes pueden ver y trabajar con este lote',
-                          );
+                              organizationId: widget.organizationId,
+                              currentUserId: authService.currentUser!.uid,
+                              clientId: batch.clientId,
+                              selectedMembers: _selectedMembers,
+                              onMembersChanged: (members) {
+                                setStateLocal(() {
+                                  // CAMBIAR: usar setStateLocal en lugar de setState
+                                  _selectedMembers = members;
+                                });
+                              },
+                              readOnly: true,
+                              showTitle: true,
+                              resourceType: 'batch',
+                              customTitle: l10n.accessControlBatchTitle,
+                              customDescription: l10n.accessControlDescription);
                         },
                       ),
                     ),
@@ -202,6 +204,7 @@ class _ProductionBatchDetailScreenState
       OrganizationMemberService memberService) {
     final permissionService = Provider.of<PermissionService>(context);
     final canEditBatches = permissionService.canEditBatches;
+    final l10n = AppLocalizations.of(context)!;
 
 // Si no tiene permisos, cortamos aquí devolviendo un widget vacío
     if (!canEditBatches) return const SizedBox.shrink();
@@ -228,26 +231,28 @@ class _ProductionBatchDetailScreenState
             );
           },
           icon: const Icon(Icons.add),
-          label: const Text('Añadir Productos'),
+          label: Text(l10n.addProductsTitle),
         ),
       ],
     );
   }
 
   Widget _buildBatchInfoCard(ProductionBatchModel batch, UserModel? user) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.info_outline),
-                SizedBox(width: 8),
+                const Icon(Icons.info_outline),
+                const SizedBox(width: 8),
                 Text(
-                  'Información del Lote',
-                  style: TextStyle(
+                  l10n.batchInfoTitle,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -260,7 +265,7 @@ class _ProductionBatchDetailScreenState
             Row(
               children: [
                 Text(
-                  'Estado:',
+                  '${l10n.status}:',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[700],
@@ -276,7 +281,7 @@ class _ProductionBatchDetailScreenState
             // Proyecto
             _buildInfoRow(
               Icons.folder_outlined,
-              'Proyecto',
+              l10n.project,
               batch.projectName,
             ),
             const SizedBox(height: 8),
@@ -284,7 +289,7 @@ class _ProductionBatchDetailScreenState
             // Cliente
             _buildInfoRow(
               Icons.person_outline,
-              'Cliente',
+              l10n.client,
               batch.clientName,
             ),
             const SizedBox(height: 8),
@@ -292,7 +297,7 @@ class _ProductionBatchDetailScreenState
             // Fecha de creación
             _buildInfoRow(
               Icons.calendar_today,
-              'Creado',
+              l10n.createdLabel,
               _formatDate(batch.createdAt),
             ),
             const SizedBox(height: 8),
@@ -300,15 +305,15 @@ class _ProductionBatchDetailScreenState
             // Creado por
             _buildInfoRow(
               Icons.person,
-              'Creado por',
-              user?.name ?? 'Desconocido',
+              l10n.createdBy,
+              user?.name ?? l10n.unknownUser,
             ),
 
             // Notas
             if (batch.notes != null && batch.notes!.isNotEmpty) ...[
               const Divider(height: 24),
               Text(
-                'Notas:',
+                l10n.notes,
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[700],
@@ -328,6 +333,8 @@ class _ProductionBatchDetailScreenState
   }
 
   Widget _buildProgressCard(ProductionBatchModel batch) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Consumer<ProductionDataProvider>(
       builder: (context, dataProvider, _) {
         final stats = dataProvider.getBatchProgress(widget.batchId);
@@ -338,13 +345,13 @@ class _ProductionBatchDetailScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.analytics_outlined),
-                    SizedBox(width: 8),
+                    const Icon(Icons.analytics_outlined),
+                    const SizedBox(width: 8),
                     Text(
-                      'Progreso General',
-                      style: TextStyle(
+                      l10n.generalProgress,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -360,7 +367,7 @@ class _ProductionBatchDetailScreenState
                         size: 18, color: Colors.blue[700]),
                     const SizedBox(width: 8),
                     Text(
-                      'Fases: ${stats['completedPhases'] ?? 0}/${stats['totalProducts'] ?? 0} en ${stats['lastPhaseName'] ?? 'N/A'}',
+                      '${l10n.phases}: ${stats['completedPhases'] ?? 0}/${stats['totalProducts'] ?? 0} en ${stats['lastPhaseName'] ?? l10n.na}',
                       style: const TextStyle(fontSize: 14),
                     ),
                   ],
@@ -374,7 +381,7 @@ class _ProductionBatchDetailScreenState
                         size: 18, color: Colors.green[700]),
                     const SizedBox(width: 8),
                     Text(
-                      'Estados: ${stats['completedStatuses'] ?? 0}/${stats['totalProducts'] ?? 0} en ${stats['lastStatusName'] ?? 'N/A'}',
+                      '${l10n.statuses}: ${stats['completedStatuses'] ?? 0}/${stats['totalProducts'] ?? 0} en ${stats['lastStatusName'] ?? l10n.na}',
                       style: const TextStyle(fontSize: 14),
                     ),
                   ],
@@ -394,6 +401,7 @@ class _ProductionBatchDetailScreenState
     final canViewBatches = permissionService.canViewBatches;
 
     if (!canViewBatches) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
 
     return Consumer<ProductionDataProvider>(
       builder: (context, dataProvider, _) {
@@ -412,18 +420,10 @@ class _ProductionBatchDetailScreenState
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No hay productos en este lote',
+                    l10n.noProductsInBatch,
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Añade productos usando el botón +',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[500],
                     ),
                   ),
                 ],
@@ -442,7 +442,8 @@ class _ProductionBatchDetailScreenState
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Productos en el lote (${batch.totalProducts})',
+                    Text(
+                        '${l10n.productsInBatchTitle} (${batch.totalProducts})',
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold)),
                   ],
@@ -515,7 +516,7 @@ class _ProductionBatchDetailScreenState
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'SKU: ${product.productReference ?? "-"}',
+                                  '${l10n.skuLabel}: ${product.productReference}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[700],
@@ -526,7 +527,7 @@ class _ProductionBatchDetailScreenState
                                 if (product.expectedDeliveryDate != null) ...[
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Entrega: ${_formatDate(product.expectedDeliveryDate!)}',
+                                    '${l10n.estimatedDeliveryDate}: ${_formatDate(product.expectedDeliveryDate!)}',
                                     style: TextStyle(
                                         fontSize: 12, color: Colors.grey[600]),
                                   ),
@@ -542,7 +543,7 @@ class _ProductionBatchDetailScreenState
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      'Notas: ${product.productNotes}',
+                                      '${l10n.notes}: ${product.productNotes}',
                                       style: TextStyle(
                                           fontSize: 11,
                                           color: Colors.blue[800],
@@ -647,22 +648,23 @@ class _ProductionBatchDetailScreenState
     Color backgroundColor;
     Color textColor;
     String label;
+    final l10n = AppLocalizations.of(context)!;
 
     switch (status) {
       case 'pending':
         backgroundColor = Colors.grey[200]!;
         textColor = Colors.grey[800]!;
-        label = 'Pendiente';
+        label = BatchStatus.fromString(status).getDisplayName(l10n);
         break;
       case 'in_progress':
         backgroundColor = Colors.blue[100]!;
         textColor = Colors.blue[900]!;
-        label = 'En Producción';
+        label = BatchStatus.fromString(status).getDisplayName(l10n);
         break;
       case 'completed':
         backgroundColor = Colors.green[100]!;
         textColor = Colors.green[900]!;
-        label = 'Completado';
+        label = BatchStatus.fromString(status).getDisplayName(l10n);
         break;
       default:
         backgroundColor = Colors.grey[200]!;
@@ -695,6 +697,7 @@ class _ProductionBatchDetailScreenState
       UserModel user, OrganizationMemberService memberService) async {
     final batchService =
         Provider.of<ProductionBatchService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
 
     switch (action) {
       case 'start':
@@ -705,9 +708,7 @@ class _ProductionBatchDetailScreenState
             userId: user.uid);
 
         if (success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Lote iniciado')),
-          );
+          AppSnackBars.success(context, l10n.batchStartedSuccess);
         }
         break;
 
@@ -719,12 +720,7 @@ class _ProductionBatchDetailScreenState
             userId: user.uid);
 
         if (success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Lote marcado como completado'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          AppSnackBars.success(context, l10n.batchCompletedSuccess);
         }
         break;
 
@@ -744,23 +740,24 @@ class _ProductionBatchDetailScreenState
 
   void _showEditNotesDialog(ProductionBatchModel batch, String userId) {
     final notesController = TextEditingController(text: batch.notes);
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Editar Notas'),
+        title: Text(l10n.editNotes),
         content: TextField(
           controller: notesController,
           maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Escribe las notas...',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: l10n.notesHint,
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -776,21 +773,38 @@ class _ProductionBatchDetailScreenState
                 notes: notesController.text.trim(),
               );
 
-              if (success && mounted) {
+              if (success && context.mounted) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Notas actualizadas')),
-                );
+                AppSnackBars.success(context, l10n.updatedSuccess);
               }
             },
-            child: const Text('Guardar'),
+            child: Text(l10n.save),
           ),
         ],
       ),
     );
   }
 
-  void _showDeleteConfirmation(ProductionBatchModel batch, String userId) {
+  void _showDeleteConfirmation(
+      ProductionBatchModel batch, String userId) async {
+    final l10n = AppLocalizations.of(context)!;
+    final batchService =
+        Provider.of<ProductionBatchService>(context, listen: false);
+
+    final resultDelete = await AppDialogs.showDeletePermanently(
+        context: context, itemName: batch.batchNumber);
+
+    if (resultDelete) {
+      final success = await batchService.deleteBatch(
+          organizationId: widget.organizationId,
+          batchId: widget.batchId,
+          userId: userId);
+
+      if (success && mounted) {
+        AppSnackBars.success(context, l10n.batchDeletedSuccess);
+      }
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -806,27 +820,8 @@ class _ProductionBatchDetailScreenState
           ),
           FilledButton(
             onPressed: () async {
-              final batchService = Provider.of<ProductionBatchService>(
-                context,
-                listen: false,
-              );
-
               Navigator.pop(context);
               Navigator.pop(context);
-
-              final success = await batchService.deleteBatch(
-                  organizationId: widget.organizationId,
-                  batchId: widget.batchId,
-                  userId: userId);
-
-              if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Lote eliminado'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
             },
             style: FilledButton.styleFrom(
               backgroundColor: Colors.red,

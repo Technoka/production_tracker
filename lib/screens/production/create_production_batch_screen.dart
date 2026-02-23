@@ -7,6 +7,8 @@ import 'package:gestion_produccion/services/notification_service.dart';
 import 'package:gestion_produccion/services/pending_object_service.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
+import 'package:gestion_produccion/widgets/error_display_widget.dart';
+import 'package:gestion_produccion/widgets/ui_widgets.dart';
 import 'package:provider/provider.dart';
 import '../../models/project_model.dart';
 import '../../services/auth_service.dart';
@@ -166,20 +168,19 @@ class _CreateProductionBatchScreenState
 
   // --- MÉTODOS PARA GESTIÓN DE PRODUCTOS ---
   void _addProductToList() {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_selectedProduct == null) return;
 
     if (_productsToAdd.length >= 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Máximo 10 productos por lote')),
-      );
+      AppSnackBars.warning(
+          context, l10n.maxProductsReached(UIConstants.BATCH_MAX_PRODUCTS));
       return;
     }
 
     final quantity = int.tryParse(_productQuantityController.text) ?? 0;
     if (quantity <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La cantidad debe ser mayor a 0')),
-      );
+      AppSnackBars.warning(context, l10n.quantityMustBePositive);
       return;
     }
 
@@ -212,13 +213,14 @@ class _CreateProductionBatchScreenState
   }
 
   Future<void> _selectProductDeliveryDate() async {
+    final l10n = AppLocalizations.of(context)!;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _productExpectedDelivery ??
           DateTime.now().add(const Duration(days: 21)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      helpText: 'Fecha de entrega del producto',
+      helpText: l10n.deliveryDate,
     );
 
     if (picked != null) {
@@ -230,14 +232,12 @@ class _CreateProductionBatchScreenState
 
   // NUEVO: Método para mostrar popup de crear producto rápido
   Future<void> _showQuickCreateProductDialog(String familyName) async {
+    final l10n = AppLocalizations.of(context)!;
     final skuController = TextEditingController();
     final notesController = TextEditingController();
 
     if (_selectedProject == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Error: Debes seleccionar un proyecto primero')),
-      );
+      AppSnackBars.error(context, l10n.selectProjectError);
       return;
     }
 
@@ -249,7 +249,7 @@ class _CreateProductionBatchScreenState
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          'Crear producto en "$familyNameCapitalized"', // Asegúrate que esta variable exista o pásala
+          l10n.quickCreateProductTitle(familyNameCapitalized),
           style: const TextStyle(fontSize: 14),
         ),
         content: Column(
@@ -257,9 +257,9 @@ class _CreateProductionBatchScreenState
           children: [
             TextField(
               controller: skuController,
-              decoration: const InputDecoration(
-                labelText: 'SKU',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.skuLabel,
+                border: const OutlineInputBorder(),
               ),
               textCapitalization: TextCapitalization.characters,
             ),
@@ -267,9 +267,9 @@ class _CreateProductionBatchScreenState
             TextField(
               controller: notesController,
               maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Notas (opcional)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.notesHint,
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
@@ -277,7 +277,7 @@ class _CreateProductionBatchScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(l10n.cancel),
           ),
           // Usamos ValueListenableBuilder para escuchar cambios en el controlador
           ValueListenableBuilder<TextEditingValue>(
@@ -289,7 +289,7 @@ class _CreateProductionBatchScreenState
               return FilledButton(
                 // Si no es válido, onPressed es null (lo que deshabilita/pone en gris el botón)
                 onPressed: isValid ? () => Navigator.pop(context, true) : null,
-                child: const Text('Crear Producto'),
+                child: Text(l10n.createProduct),
               );
             },
           ),
@@ -311,6 +311,7 @@ class _CreateProductionBatchScreenState
     required String notes,
     required String family,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       setState(() => _isLoading = true);
 
@@ -349,17 +350,13 @@ class _CreateProductionBatchScreenState
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Producto creado y seleccionado')),
-          );
+          AppSnackBars.success(context, l10n.productCreatedSuccess);
         }
       }
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al crear producto: $e')),
-        );
+        AppSnackBars.error(context, l10n.createProductError);
       }
     }
   }
@@ -367,11 +364,13 @@ class _CreateProductionBatchScreenState
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nuevo Lote de Producción'),
+        title: Text(l10n.newBatchTitle),
       ),
       body: Form(
         key: _formKey,
@@ -392,9 +391,9 @@ class _CreateProductionBatchScreenState
                           color: Theme.of(context).colorScheme.primary,
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          'Información del Lote',
-                          style: TextStyle(
+                        Text(
+                          l10n.batchInfoTitle,
+                          style: const TextStyle(
                               fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -405,11 +404,10 @@ class _CreateProductionBatchScreenState
                     TextFormField(
                       controller: _prefixController,
                       decoration: InputDecoration(
-                        labelText: 'Prefijo del Lote *',
-                        hintText: 'Ej: FL1, ABC, X99',
+                        labelText: l10n.batchPrefixLabel,
+                        hintText: 'FL1, ABC, X99...',
                         border: const OutlineInputBorder(),
                         prefixIcon: const Icon(Icons.tag),
-                        helperText: '3 caracteres alfanuméricos',
                         counterText: '${_prefixController.text.length}/3',
                       ),
                       inputFormatters: [
@@ -420,10 +418,10 @@ class _CreateProductionBatchScreenState
                       ],
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'El prefijo es obligatorio';
+                          return l10n.batchPrefixRequired;
                         }
                         if (!BatchNumberHelper.isValidPrefix(value)) {
-                          return 'Debe tener exactamente 3 caracteres alfanuméricos';
+                          return l10n.batchPrefixInvalid;
                         }
                         return null;
                       },
@@ -451,7 +449,7 @@ class _CreateProductionBatchScreenState
                                       size: 18, color: Colors.blue[700]),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Preview del número de lote:',
+                                    l10n.batchNumberPreviewLabel,
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
@@ -473,7 +471,7 @@ class _CreateProductionBatchScreenState
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Formato: Prefijo (3) + Año (2) + Semana (2)',
+                                l10n.batchNumberFormat,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
@@ -497,9 +495,9 @@ class _CreateProductionBatchScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Proyecto *',
-                      style: TextStyle(
+                    Text(
+                      l10n.project,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -523,9 +521,9 @@ class _CreateProductionBatchScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Notas del lote (opcional)',
-                      style: TextStyle(
+                    Text(
+                      l10n.notes,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -534,10 +532,10 @@ class _CreateProductionBatchScreenState
                     TextFormField(
                       controller: _notesController,
                       maxLines: 2,
-                      decoration: const InputDecoration(
-                        hintText: 'Añade notas sobre este lote...',
-                        hintStyle: TextStyle(fontSize: 12),
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        hintText: l10n.notesHint,
+                        hintStyle: const TextStyle(fontSize: 12),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ],
@@ -553,14 +551,16 @@ class _CreateProductionBatchScreenState
             const SizedBox(height: 24),
 
             // Card de Control de Acceso (solo si hay proyecto seleccionado y no es cliente)
-            if (_selectedProject != null || memberService.currentMember?.clientId != null)
+            if (_selectedProject != null ||
+                memberService.currentMember?.clientId != null)
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.all(20),
-                  child: StatefulBuilder( // CAMBIAR: Usar StatefulBuilder
+                  child: StatefulBuilder(
+                    // CAMBIAR: Usar StatefulBuilder
                     builder: (BuildContext context, StateSetter setStateLocal) {
                       return AccessControlWidget(
                         organizationId: widget.organizationId,
@@ -575,9 +575,8 @@ class _CreateProductionBatchScreenState
                         readOnly: memberService.currentMember?.clientId != null,
                         showTitle: true,
                         resourceType: 'batch',
-                        customTitle: 'Control de Acceso al Lote',
-                        customDescription:
-                            'Gestiona quiénes pueden ver y trabajar con este lote',
+                        customTitle: l10n.accessControlBatchTitle,
+                        customDescription: l10n.accessControlDescription,
                       );
                     },
                   ),
@@ -599,7 +598,7 @@ class _CreateProductionBatchScreenState
                       ),
                     )
                   : const Icon(Icons.add),
-              label: Text(_isLoading ? 'Creando...' : 'Crear Lote'),
+              label: Text(_isLoading ? l10n.creating : l10n.createBatch),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: Colors.green[700],
@@ -616,6 +615,7 @@ class _CreateProductionBatchScreenState
 
     // Buscar el cliente en el provider usando el clientId del proyecto seleccionado
     final client = productionProvider.getClientById(_selectedProject!.clientId);
+    final l10n = AppLocalizations.of(context)!;
 
     return Card(
       elevation: 0,
@@ -639,7 +639,7 @@ class _CreateProductionBatchScreenState
                   // Usamos el cliente obtenido del provider directamente
                   if (client != null)
                     Text(
-                      'Cliente: ${client.name}',
+                      '${l10n.client}: ${client.name}',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[700],
@@ -659,7 +659,7 @@ class _CreateProductionBatchScreenState
                     _selectedProduct = null;
                   });
                 },
-                tooltip: 'Cambiar proyecto',
+                tooltip: l10n.changeProjectTooltip,
               ),
           ],
         ),
@@ -670,6 +670,7 @@ class _CreateProductionBatchScreenState
   Widget _buildProjectSelector() {
     // 1. Acceder al provider
     final productionProvider = Provider.of<ProductionDataProvider>(context);
+    final l10n = AppLocalizations.of(context)!;
 
     // 2. Usar listas cacheadas en lugar de streams
     final projects = productionProvider.projects;
@@ -686,15 +687,8 @@ class _CreateProductionBatchScreenState
       return Column(
         children: [
           Text(
-            'No hay proyectos disponibles',
+            l10n.noProjectsAvailable,
             style: TextStyle(color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('Crear proyecto primero'),
           ),
         ],
       );
@@ -702,10 +696,10 @@ class _CreateProductionBatchScreenState
 
     return FilterUtils.buildFullWidthDropdown<String>(
       context: context,
-      label: 'Proyecto',
+      label: l10n.project,
       value: _selectedProject?.id,
       icon: Icons.folder_outlined,
-      hintText: 'Seleccionar proyecto...',
+      hintText: l10n.selectProject,
       isRequired: true,
       items: projects.map((project) {
         final client = clientMap[project.clientId];
@@ -723,7 +717,7 @@ class _CreateProductionBatchScreenState
               if (client != null) ...[
                 const SizedBox(height: 2),
                 Text(
-                  'Cliente: ${client.name}',
+                  '${l10n.client}: ${client.name}',
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
@@ -742,7 +736,7 @@ class _CreateProductionBatchScreenState
       },
       validator: (value) {
         if (value == null) {
-          return 'Debes seleccionar un proyecto';
+          return l10n.selectProjectError;
         }
         return null;
       },
@@ -756,6 +750,7 @@ class _CreateProductionBatchScreenState
         Provider.of<PermissionService>(context, listen: false);
     final memberService =
         Provider.of<OrganizationMemberService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
 
     // 2. Obtener productos cacheados
     final allProducts = productionProvider.catalogProducts;
@@ -774,10 +769,10 @@ class _CreateProductionBatchScreenState
                     Icon(Icons.inventory_2_outlined,
                         color: Theme.of(context).colorScheme.primary),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Añadir Productos',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    Text(
+                      l10n.addProductsTitle,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -793,9 +788,9 @@ class _CreateProductionBatchScreenState
               ],
             ),
             const SizedBox(height: 4),
-            const Text(
-              'También puedes añadir productos al lote después de crearlo.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            Text(
+              l10n.addProductsSectionSubtitle,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const Divider(height: 24),
 
@@ -836,10 +831,10 @@ class _CreateProductionBatchScreenState
                         child: IgnorePointer(
                           child: FilterUtils.buildFullWidthDropdown<String>(
                             context: context,
-                            label: 'Familia',
+                            label: l10n.family.capitalize,
                             value: null,
                             icon: Icons.category_outlined,
-                            hintText: 'Selecciona un proyecto primero',
+                            hintText: l10n.selectProjectFirst,
                             items: [],
                             onChanged: (_) {},
                           ),
@@ -848,12 +843,12 @@ class _CreateProductionBatchScreenState
                     else
                       FilterUtils.buildFullWidthDropdown<String>(
                         context: context,
-                        label: 'Familia de Productos',
+                        label: l10n.productFamilyLabel,
                         value: _selectedFamily,
                         icon: Icons.category_outlined,
                         hintText: families.isEmpty
-                            ? 'No hay familias definidas'
-                            : 'Seleccionar familia...',
+                            ? l10n.noFamiliesDefined
+                            : l10n.selectFamily,
                         items: families.map((f) {
                           final String text = f ?? '';
                           final String displayName = text.isNotEmpty
@@ -884,10 +879,10 @@ class _CreateProductionBatchScreenState
                           child: IgnorePointer(
                             child: FilterUtils.buildFullWidthDropdown<String>(
                               context: context,
-                              label: 'Producto',
+                              label: l10n.product,
                               value: null,
                               icon: Icons.inventory,
-                              hintText: 'Selecciona una familia primero',
+                              hintText: l10n.selectFamilyFirst,
                               items: [],
                               onChanged: (_) {},
                             ),
@@ -907,22 +902,20 @@ class _CreateProductionBatchScreenState
                       if (permissionService.canCreateBatchProducts &&
                           !memberService.isClient) {
                         dropdownItems.add(
-                          const DropdownMenuItem(
+                          DropdownMenuItem(
                             value: '__CREATE_NEW__',
                             child: Row(
                               children: [
-                                Icon(Icons.add_circle_outline,
+                                const Icon(Icons.add_circle_outline,
                                     color: Colors.blue, size: 20),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Crear nuevo producto',
-                                  style: TextStyle(
+                                  l10n.createProduct,
+                                  style: const TextStyle(
                                       color: Colors.blue,
                                       fontWeight: FontWeight.bold),
                                 ),
-                                SizedBox(height: 4),
-                                Divider(height: 1),
-                                SizedBox(height: 4),
+                                const Divider(height: 9),
                               ],
                             ),
                           ),
@@ -937,7 +930,7 @@ class _CreateProductionBatchScreenState
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text('SKU: ${p.reference}',
+                                    Text('${l10n.skuLabel} ${p.reference}',
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
                                             fontWeight: FontWeight.w600)),
@@ -953,10 +946,10 @@ class _CreateProductionBatchScreenState
 
                       return FilterUtils.buildFullWidthDropdown<String>(
                         context: context,
-                        label: 'Producto',
+                        label: l10n.product,
                         value: currentValue,
                         icon: Icons.inventory,
-                        hintText: 'Seleccionar producto...',
+                        hintText: l10n.selectProductTitle,
                         items: dropdownItems,
                         onChanged: (value) {
                           if (value == '__CREATE_NEW__') {
@@ -1011,7 +1004,7 @@ class _CreateProductionBatchScreenState
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Fecha de entrega estimada',
+                            l10n.estimatedDeliveryDate,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey.shade600,
@@ -1042,11 +1035,11 @@ class _CreateProductionBatchScreenState
             TextFormField(
               controller: _productNotesController,
               maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Notas del producto (opcional)',
-                labelStyle: TextStyle(fontSize: 14),
-                hintText: 'Añade detalles específicos de este producto...',
-                hintStyle: TextStyle(fontSize: 12),
+              decoration: InputDecoration(
+                labelText: l10n.notes,
+                labelStyle: const TextStyle(fontSize: 14),
+                hintText: l10n.notesHint,
+                hintStyle: const TextStyle(fontSize: 12),
                 border: const OutlineInputBorder(),
                 prefixIcon: const Icon(Icons.notes),
                 alignLabelWithHint: true,
@@ -1065,11 +1058,11 @@ class _CreateProductionBatchScreenState
                     controller: _productQuantityController,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      labelText: 'Cant.',
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    decoration: InputDecoration(
+                      labelText: l10n.quantity,
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
                     ),
                   ),
                 ),
@@ -1080,7 +1073,7 @@ class _CreateProductionBatchScreenState
                     onPressed:
                         _selectedProduct == null ? null : _addProductToList,
                     icon: const Icon(Icons.add_shopping_cart),
-                    label: const Text('Añadir al Lote'),
+                    label: Text(l10n.addToBatchBtn),
                   ),
                 ),
               ],
@@ -1099,7 +1092,7 @@ class _CreateProductionBatchScreenState
                   border: Border.all(color: Colors.grey[300]!),
                 ),
                 child: Text(
-                  'No hay productos seleccionados',
+                  l10n.noProductSelected,
                   style: TextStyle(color: Colors.grey[500]),
                 ),
               )
@@ -1132,7 +1125,7 @@ class _CreateProductionBatchScreenState
                             fontWeight: FontWeight.bold),
                       ),
                     ),
-                    title: Text('SKU: ${product.reference}',
+                    title: Text('${l10n.skuLabel} ${product.reference}',
                         style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 12)),
                     subtitle: Column(
@@ -1141,13 +1134,13 @@ class _CreateProductionBatchScreenState
                         const SizedBox(height: 4),
                         if (deliveryDate != null)
                           Text(
-                            'Entrega: ${_formatDate(deliveryDate)}',
+                            '${l10n.deliveryLabel}: ${_formatDate(deliveryDate)}',
                             style: TextStyle(
                                 fontSize: 12, color: Colors.grey[600]),
                           ),
                         if (notes != null)
                           Text(
-                            'Notas: $notes',
+                            '${l10n.notes}: $notes',
                             style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.blue[700],
@@ -1189,11 +1182,10 @@ class _CreateProductionBatchScreenState
 
   Future<void> _createBatch() async {
     if (!_formKey.currentState!.validate()) return;
+    final l10n = AppLocalizations.of(context)!;
 
     if (_selectedProject == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Debes seleccionar un proyecto')),
-      );
+      AppSnackBars.warning(context, l10n.selectProjectError);
       return;
     }
 
@@ -1210,7 +1202,6 @@ class _CreateProductionBatchScreenState
         Provider.of<NotificationService>(context, listen: false);
     final pendingService =
         Provider.of<PendingObjectService>(context, listen: false);
-    final l10n = AppLocalizations.of(context)!;
 
     try {
       final client = await clientService.getClient(
@@ -1219,7 +1210,9 @@ class _CreateProductionBatchScreenState
       );
 
       if (client == null) {
-        throw Exception('No se pudo obtener la información del cliente');
+        if (mounted) {
+          AppErrorSnackBar.showFromException(context, "Client is null");
+        }
       }
 
       // Verificar si requiere aprobación
@@ -1233,7 +1226,10 @@ class _CreateProductionBatchScreenState
         final phases =
             await phaseService.getOrganizationPhases(widget.organizationId);
         if (phases.isEmpty) {
-          throw Exception('No hay fases configuradas');
+        if (mounted) {
+          AppErrorSnackBar.showFromException(
+              context, "No hay fases configuradas");
+        }
         }
         phases.sort((a, b) => a.order.compareTo(b.order));
 
@@ -1241,7 +1237,7 @@ class _CreateProductionBatchScreenState
         final batchData = {
           'projectId': _selectedProject!.id,
           'projectName': _selectedProject!.name,
-          'clientId': client.id,
+          'clientId': client!.id,
           'clientName': client.name,
           'createdBy': authService.currentUser!.uid,
           'batchPrefix': _prefixController.text.toUpperCase(),
@@ -1263,7 +1259,7 @@ class _CreateProductionBatchScreenState
           final product = item['product'] as ProductCatalogModel;
           final quantity = item['quantity'] as int;
           final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
-          final urgency = item['urgencyLevel'] as String? ?? 'medium';
+          final urgency = item['urgencyLevel'] as String? ?? UrgencyLevel.medium.value;
           final notes = item['notes'] as String?;
           final family = item['family'];
 
@@ -1271,7 +1267,7 @@ class _CreateProductionBatchScreenState
           final Map<String, dynamic> phaseProgress = {};
           for (var phase in phases) {
             phaseProgress[phase.id] = {
-              'status': phase.id == phases.first.id ? 'in_progress' : 'pending',
+              'status': phase.id == phases.first.id ? 'in_progress' : 'pending', // TODO: cambiar a enum de progreso de fases
               'startedAt': phase.id == phases.first.id
                   ? Timestamp.fromDate(DateTime.now())
                   : null,
@@ -1313,7 +1309,7 @@ class _CreateProductionBatchScreenState
           collectionRoute: 'production_batches',
           modelData: batchData,
           createdBy: authService.currentUser!.uid,
-          createdByName: authService.currentUser!.displayName ?? 'Usuario',
+          createdByName: authService.currentUser!.displayName ?? l10n.unknownUser,
           requiresApproval: true,
           userIsClient: true,
           pendingService: pendingService,
@@ -1340,7 +1336,7 @@ class _CreateProductionBatchScreenState
           userId: authService.currentUser!.uid,
           projectId: _selectedProject!.id,
           projectName: _selectedProject!.name,
-          clientId: client.id,
+          clientId: client!.id,
           clientName: client.name,
           createdBy: authService.currentUser!.uid,
           batchPrefix: _prefixController.text.toUpperCase(),
@@ -1351,9 +1347,11 @@ class _CreateProductionBatchScreenState
               : _notesController.text.trim(),
         );
 
-        if (batchId == null) {
-          throw Exception(
-              batchService.error ?? 'Error desconocido al crear lote');
+        if (batchId == null) { //TODO: needs to be moved to a service function and use throw Exception from there.
+          if (mounted) {
+          AppErrorSnackBar.showFromException(
+              context, batchService.error ?? 'Error desconocido al crear lote');
+          }
         }
 
         // 2. Si hay productos, añadirlos
@@ -1373,7 +1371,7 @@ class _CreateProductionBatchScreenState
               final product = item['product'] as ProductCatalogModel;
               final quantity = item['quantity'] as int;
               final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
-              final urgency = item['urgencyLevel'] as String? ?? 'medium';
+              final urgency = item['urgencyLevel'] as String? ?? UrgencyLevel.medium.value;
               final notes = item['notes'] as String?;
               final family = item['family'];
 
@@ -1389,7 +1387,7 @@ class _CreateProductionBatchScreenState
 
               final batchProduct = BatchProductModel(
                 id: '',
-                batchId: batchId,
+                batchId: batchId!,
                 productCatalogId: product.id,
                 productName: product.name,
                 productReference: product.reference,
@@ -1417,10 +1415,10 @@ class _CreateProductionBatchScreenState
 
             final success = await batchService.addProductsToBatch(
               organizationId: widget.organizationId,
-              batchId: batchId,
+              batchId: batchId!,
               products: batchProducts,
               userId: authService.currentUser!.uid,
-              userName: authService.currentUser!.displayName ?? 'Usuario',
+              userName: authService.currentUser!.displayName ?? l10n.unknownUser,
             );
 
             if (!success) {
@@ -1431,24 +1429,14 @@ class _CreateProductionBatchScreenState
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  'Lote ${_batchNumberPreview.value} creado con ${_productsToAdd.length} productos.'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          AppSnackBars.success(
+              context, l10n.batchCreatedSuccess(_batchNumberPreview.value, _productsToAdd.length));
           Navigator.pop(context, batchId);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al crear lote: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+          AppSnackBars.error(context, "Error creating batch");
       }
     } finally {
       if (mounted) {
