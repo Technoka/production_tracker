@@ -27,19 +27,19 @@ class ThemeProvider extends ChangeNotifier {
 
   /// Obtener color primario
   Color get primaryColor {
-    if (_branding == null) return Colors.blue;
+    if (_branding == null) return Colors.red.shade600;
     return _colorFromHex(_branding!.primaryColor);
   }
 
   /// Obtener color secundario
   Color get secondaryColor {
-    if (_branding == null) return Colors.orange;
+    if (_branding == null) return Colors.orange.shade200;
     return _colorFromHex(_branding!.secondaryColor);
   }
 
   /// Obtener color de acento
   Color get accentColor {
-    if (_branding == null) return Colors.green;
+    if (_branding == null) return const Color.fromARGB(255, 106, 43, 38);
     return _colorFromHex(_branding!.accentColor);
   }
 
