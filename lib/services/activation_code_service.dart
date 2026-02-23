@@ -34,19 +34,19 @@ class ActivationCodeService extends ChangeNotifier {
       notifyListeners();
 
       // Validar que el email no tenga ya una solicitud pendiente
-      final existingRequest = await _firestore
-          .collection('activation_requests')
-          .where('contactEmail', isEqualTo: contactEmail)
-          .where('status', isEqualTo: 'pending')
-          .limit(1)
-          .get();
+      // final existingRequest = await _firestore
+      //     .collection('activation_requests')
+      //     .where('contactEmail', isEqualTo: contactEmail)
+      //     .where('status', isEqualTo: 'pending')
+      //     .limit(1)
+      //     .get();
 
-      if (existingRequest.docs.isNotEmpty) {
-        _error = 'Ya existe una solicitud pendiente para este email';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
+      // if (existingRequest.docs.isNotEmpty) {
+      //   _error = 'Ya existe una solicitud pendiente para este email';
+      //   _isLoading = false;
+      //   notifyListeners();
+      //   return false;
+      // }
 
       // Crear solicitud
       final request = ActivationRequestModel(
