@@ -194,7 +194,7 @@ abstract class AppLocalizations {
   /// No description provided for @back.
   ///
   /// In en, this message translates to:
-  /// **'Go back'**
+  /// **'Return'**
   String get back;
 
   /// No description provided for @next.
@@ -650,7 +650,7 @@ abstract class AppLocalizations {
   /// No description provided for @inProduction.
   ///
   /// In en, this message translates to:
-  /// **'In Production'**
+  /// **'Production'**
   String get inProduction;
 
   /// No description provided for @completed.
@@ -664,6 +664,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pending'**
   String get pending;
+
+  /// No description provided for @started.
+  ///
+  /// In en, this message translates to:
+  /// **'Started'**
+  String get started;
+
+  /// No description provided for @inProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get inProgress;
+
+  /// No description provided for @draft.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get draft;
+
+  /// No description provided for @cancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get cancelled;
 
   /// No description provided for @clientName.
   ///
@@ -998,13 +1022,13 @@ abstract class AppLocalizations {
   /// No description provided for @createdLabel.
   ///
   /// In en, this message translates to:
-  /// **'Created:'**
+  /// **'Created'**
   String get createdLabel;
 
   /// No description provided for @updatedLabel.
   ///
   /// In en, this message translates to:
-  /// **'Updated:'**
+  /// **'Updated'**
   String get updatedLabel;
 
   /// No description provided for @noProductsInProject.
@@ -1016,7 +1040,7 @@ abstract class AppLocalizations {
   /// No description provided for @batchLabel.
   ///
   /// In en, this message translates to:
-  /// **'Batch:'**
+  /// **'Batch'**
   String get batchLabel;
 
   /// No description provided for @quantityLabel.
@@ -3344,7 +3368,7 @@ abstract class AppLocalizations {
   /// No description provided for @newBatchTitle.
   ///
   /// In en, this message translates to:
-  /// **'New Batch'**
+  /// **'New Production Batch'**
   String get newBatchTitle;
 
   /// No description provided for @newBatchSubtitle.
@@ -3374,32 +3398,8 @@ abstract class AppLocalizations {
   /// No description provided for @batchCreatedSuccess.
   ///
   /// In en, this message translates to:
-  /// **'Batch created successfully'**
-  String get batchCreatedSuccess;
-
-  /// No description provided for @batchStatusDraft.
-  ///
-  /// In en, this message translates to:
-  /// **'Draft'**
-  String get batchStatusDraft;
-
-  /// No description provided for @batchStatusInProgress.
-  ///
-  /// In en, this message translates to:
-  /// **'In Progress'**
-  String get batchStatusInProgress;
-
-  /// No description provided for @batchStatusCompleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Completed'**
-  String get batchStatusCompleted;
-
-  /// No description provided for @batchStatusCancelled.
-  ///
-  /// In en, this message translates to:
-  /// **'Cancelled'**
-  String get batchStatusCancelled;
+  /// **'Batch {batchNumber} created with {count} products.'**
+  String batchCreatedSuccess(Object batchNumber, Object count);
 
   /// No description provided for @batchDetailTitle.
   ///
@@ -3452,13 +3452,13 @@ abstract class AppLocalizations {
   /// No description provided for @batchStartedSuccess.
   ///
   /// In en, this message translates to:
-  /// **'Production started'**
+  /// **'Batch started'**
   String get batchStartedSuccess;
 
   /// No description provided for @batchCompletedSuccess.
   ///
   /// In en, this message translates to:
-  /// **'Batch marked as completed'**
+  /// **'Batch completed'**
   String get batchCompletedSuccess;
 
   /// No description provided for @noProductsInBatch.
@@ -5360,7 +5360,7 @@ abstract class AppLocalizations {
   /// No description provided for @accessControlDescription.
   ///
   /// In en, this message translates to:
-  /// **'Manage who can view and work with this project'**
+  /// **'Manage who can view and work here'**
   String get accessControlDescription;
 
   /// No description provided for @projectClient.
@@ -6008,7 +6008,7 @@ abstract class AppLocalizations {
   /// No description provided for @productCreatedSuccess.
   ///
   /// In en, this message translates to:
-  /// **'Product created successfully'**
+  /// **'Product created and selected'**
   String get productCreatedSuccess;
 
   /// No description provided for @noProjectsForThisClient.
@@ -8692,6 +8692,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Now'**
   String get now;
+
+  /// No description provided for @batchPrefixLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch prefix'**
+  String get batchPrefixLabel;
+
+  /// No description provided for @batchPrefixRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Prefix is required'**
+  String get batchPrefixRequired;
+
+  /// No description provided for @batchPrefixInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Must be exactly 3 alphanumeric characters'**
+  String get batchPrefixInvalid;
+
+  /// No description provided for @batchNumberPreviewLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch number preview'**
+  String get batchNumberPreviewLabel;
+
+  /// No description provided for @batchNumberFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Format: Prefix (3) + Year (2) + Week (2)'**
+  String get batchNumberFormat;
+
+  /// No description provided for @addProductsSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You can also add products to the batch after creating it.'**
+  String get addProductsSectionSubtitle;
+
+  /// No description provided for @noProjectsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No projects available'**
+  String get noProjectsAvailable;
+
+  /// No description provided for @changeProjectTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Change project'**
+  String get changeProjectTooltip;
+
+  /// No description provided for @noFamiliesDefined.
+  ///
+  /// In en, this message translates to:
+  /// **'No families defined'**
+  String get noFamiliesDefined;
+
+  /// No description provided for @selectFamilyFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a family first'**
+  String get selectFamilyFirst;
+
+  /// No description provided for @addToBatchBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to batch'**
+  String get addToBatchBtn;
+
+  /// No description provided for @noProductsSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No products selected'**
+  String get noProductsSelected;
+
+  /// No description provided for @maxProductsReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum {count} products per batch'**
+  String maxProductsReached(Object count);
+
+  /// No description provided for @quantityMustBePositive.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity must be greater than 0'**
+  String get quantityMustBePositive;
+
+  /// No description provided for @selectProjectError.
+  ///
+  /// In en, this message translates to:
+  /// **'You must select a project'**
+  String get selectProjectError;
+
+  /// No description provided for @accessControlBatchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch Access Control'**
+  String get accessControlBatchTitle;
+
+  /// No description provided for @quickCreateProductTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create product in \"{familyName}\"'**
+  String quickCreateProductTitle(Object familyName);
+
+  /// No description provided for @batchNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch not found'**
+  String get batchNotFound;
+
+  /// No description provided for @batchInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch information'**
+  String get batchInfoTitle;
+
+  /// No description provided for @batchStatusInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In production'**
+  String get batchStatusInProgress;
+
+  /// No description provided for @generalProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'General progress'**
+  String get generalProgress;
+
+  /// No description provided for @na.
+  ///
+  /// In en, this message translates to:
+  /// **'N/A'**
+  String get na;
+
+  /// No description provided for @productsInBatchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Products already in the batch'**
+  String get productsInBatchTitle;
+
+  /// No description provided for @deliveryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery'**
+  String get deliveryLabel;
+
+  /// No description provided for @creating.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating'**
+  String get creating;
+
+  /// No description provided for @editNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit notes'**
+  String get editNotes;
+
+  /// No description provided for @updatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Update successful'**
+  String get updatedSuccess;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

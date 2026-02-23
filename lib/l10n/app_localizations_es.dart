@@ -204,13 +204,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get statuses => 'Estados';
 
   @override
-  String get deliveryDate => 'Fecha de Entrega';
+  String get deliveryDate => 'Fecha de entrega';
 
   @override
-  String get estimatedDeliveryDate => 'Fecha Estimada de Entrega';
+  String get estimatedDeliveryDate => 'Fecha de entrega estimada';
 
   @override
-  String get actualDeliveryDate => 'Fecha Real de Entrega';
+  String get actualDeliveryDate => 'Fecha de entrega real';
 
   @override
   String get description => 'Descripción';
@@ -285,13 +285,25 @@ class AppLocalizationsEs extends AppLocalizations {
   String get batchName => 'Nombre del Lote';
 
   @override
-  String get inProduction => 'En Producción';
+  String get inProduction => 'Producción';
 
   @override
   String get completed => 'Completado';
 
   @override
   String get pending => 'Pendiente';
+
+  @override
+  String get started => 'Iniciado';
+
+  @override
+  String get inProgress => 'En Proceso';
+
+  @override
+  String get draft => 'Borrador';
+
+  @override
+  String get cancelled => 'Cancelado';
 
   @override
   String get clientName => 'Nombre del Cliente';
@@ -459,16 +471,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get invalidColor => 'Formato de color inválido';
 
   @override
-  String get createdLabel => 'Creado:';
+  String get createdLabel => 'Creado';
 
   @override
-  String get updatedLabel => 'Actualizado:';
+  String get updatedLabel => 'Actualizado';
 
   @override
   String get noProductsInProject => 'No hay productos en este proyecto';
 
   @override
-  String get batchLabel => 'Lote:';
+  String get batchLabel => 'Lote';
 
   @override
   String get quantityLabel => 'Etiqueta de cantidad';
@@ -1664,7 +1676,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get createBatchBtn => 'Crear Lote';
 
   @override
-  String get newBatchTitle => 'Nuevo Lote';
+  String get newBatchTitle => 'Nuevo Lote de Producción';
 
   @override
   String get newBatchSubtitle => 'Crear un nuevo lote de producción';
@@ -1679,19 +1691,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get batchNameError => 'Por favor ingresa un nombre';
 
   @override
-  String get batchCreatedSuccess => 'Lote creado exitosamente';
-
-  @override
-  String get batchStatusDraft => 'Borrador';
-
-  @override
-  String get batchStatusInProgress => 'En Proceso';
-
-  @override
-  String get batchStatusCompleted => 'Completado';
-
-  @override
-  String get batchStatusCancelled => 'Cancelado';
+  String batchCreatedSuccess(Object batchNumber, Object count) {
+    return 'Lote $batchNumber creado con $count productos.';
+  }
 
   @override
   String get batchDetailTitle => 'Detalle del Lote';
@@ -1715,13 +1717,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get deleteBatchConfirmMsg => 'Esta acción no se puede deshacer y eliminará todos los datos asociados.';
 
   @override
-  String get batchDeletedSuccess => 'Lote eliminado correctamente';
+  String get batchDeletedSuccess => 'Lote eliminado';
 
   @override
-  String get batchStartedSuccess => 'Producción iniciada';
+  String get batchStartedSuccess => 'Lote iniciado';
 
   @override
-  String get batchCompletedSuccess => 'Lote marcado como completado';
+  String get batchCompletedSuccess => 'Lote completado';
 
   @override
   String get noProductsInBatch => 'No hay productos en este lote';
@@ -1742,7 +1744,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addSelectedBtn => 'Añadir seleccionados';
 
   @override
-  String get productsAddedSuccess => 'Productos añadidos correctamente';
+  String get productsAddedSuccess => 'Productos añadidos';
 
   @override
   String get currentPhaseLabel => 'Fase actual';
@@ -1936,10 +1938,10 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get startDate => 'Fecha inicio';
+  String get startDate => 'Fecha de inicio';
 
   @override
-  String get dueDate => 'Fecha entrega';
+  String get dueDate => 'Fecha de entrega';
 
   @override
   String get viewProjectDetails => 'Ver detalles del proyecto';
@@ -2694,7 +2696,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get accessControl => 'Control de Acceso';
 
   @override
-  String get accessControlDescription => 'Gestiona quiénes pueden ver y trabajar con este proyecto';
+  String get accessControlDescription => 'Gestiona quiénes pueden ver y trabajar aquí';
 
   @override
   String get projectClient => 'Cliente del Proyecto';
@@ -3034,7 +3036,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get productCreatedSuccess => 'Producto creado exitosamente';
+  String get productCreatedSuccess => 'Producto creado y seleccionado';
 
   @override
   String get noProjectsForThisClient => 'No hay proyectos para este cliente';
@@ -4385,4 +4387,89 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get now => 'Ahora';
+
+  @override
+  String get batchPrefixLabel => 'Prefijo del Lote';
+
+  @override
+  String get batchPrefixRequired => 'El prefijo es obligatorio';
+
+  @override
+  String get batchPrefixInvalid => 'Debe tener exactamente 3 caracteres alfanuméricos';
+
+  @override
+  String get batchNumberPreviewLabel => 'Preview del número de lote';
+
+  @override
+  String get batchNumberFormat => 'Formato: Prefijo (3) + Año (2) + Semana (2)';
+
+  @override
+  String get addProductsSectionSubtitle => 'También puedes añadir productos al lote después de crearlo.';
+
+  @override
+  String get noProjectsAvailable => 'No hay proyectos disponibles';
+
+  @override
+  String get changeProjectTooltip => 'Cambiar proyecto';
+
+  @override
+  String get noFamiliesDefined => 'No hay familias definidas';
+
+  @override
+  String get selectFamilyFirst => 'Selecciona una familia primero';
+
+  @override
+  String get addToBatchBtn => 'Añadir al Lote';
+
+  @override
+  String get noProductsSelected => 'No hay productos seleccionados';
+
+  @override
+  String maxProductsReached(Object count) {
+    return 'Máximo $count productos por lote';
+  }
+
+  @override
+  String get quantityMustBePositive => 'La cantidad debe ser mayor a 0';
+
+  @override
+  String get selectProjectError => 'Debes seleccionar un proyecto';
+
+  @override
+  String get accessControlBatchTitle => 'Control de Acceso al Lote';
+
+  @override
+  String quickCreateProductTitle(Object familyName) {
+    return 'Crear producto para: \"$familyName\"';
+  }
+
+  @override
+  String get batchNotFound => 'Lote no encontrado';
+
+  @override
+  String get batchInfoTitle => 'Información del Lote';
+
+  @override
+  String get batchStatusInProgress => 'En Producción';
+
+  @override
+  String get generalProgress => 'Progreso General';
+
+  @override
+  String get na => 'N/A';
+
+  @override
+  String get productsInBatchTitle => 'Productos ya en el lote';
+
+  @override
+  String get deliveryLabel => 'Entrega';
+
+  @override
+  String get creating => 'Creando';
+
+  @override
+  String get editNotes => 'Editar notas';
+
+  @override
+  String get updatedSuccess => 'Actualización correcta';
 }

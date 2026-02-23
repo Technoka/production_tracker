@@ -57,7 +57,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
-  String get back => 'Go back';
+  String get back => 'Return';
 
   @override
   String get next => 'Next';
@@ -285,13 +285,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get batchName => 'Batch Name';
 
   @override
-  String get inProduction => 'In Production';
+  String get inProduction => 'Production';
 
   @override
   String get completed => 'Completed';
 
   @override
   String get pending => 'Pending';
+
+  @override
+  String get started => 'Started';
+
+  @override
+  String get inProgress => 'In progress';
+
+  @override
+  String get draft => 'Draft';
+
+  @override
+  String get cancelled => 'Cancelled';
 
   @override
   String get clientName => 'Client Name';
@@ -459,16 +471,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invalidColor => 'Invalid color format';
 
   @override
-  String get createdLabel => 'Created:';
+  String get createdLabel => 'Created';
 
   @override
-  String get updatedLabel => 'Updated:';
+  String get updatedLabel => 'Updated';
 
   @override
   String get noProductsInProject => 'No products in this project';
 
   @override
-  String get batchLabel => 'Batch:';
+  String get batchLabel => 'Batch';
 
   @override
   String get quantityLabel => 'Quantity label';
@@ -1664,7 +1676,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createBatchBtn => 'Create Batch';
 
   @override
-  String get newBatchTitle => 'New Batch';
+  String get newBatchTitle => 'New Production Batch';
 
   @override
   String get newBatchSubtitle => 'Create a new production batch';
@@ -1679,19 +1691,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get batchNameError => 'Please enter a name';
 
   @override
-  String get batchCreatedSuccess => 'Batch created successfully';
-
-  @override
-  String get batchStatusDraft => 'Draft';
-
-  @override
-  String get batchStatusInProgress => 'In Progress';
-
-  @override
-  String get batchStatusCompleted => 'Completed';
-
-  @override
-  String get batchStatusCancelled => 'Cancelled';
+  String batchCreatedSuccess(Object batchNumber, Object count) {
+    return 'Batch $batchNumber created with $count products.';
+  }
 
   @override
   String get batchDetailTitle => 'Batch Detail';
@@ -1718,10 +1720,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get batchDeletedSuccess => 'Batch deleted successfully';
 
   @override
-  String get batchStartedSuccess => 'Production started';
+  String get batchStartedSuccess => 'Batch started';
 
   @override
-  String get batchCompletedSuccess => 'Batch marked as completed';
+  String get batchCompletedSuccess => 'Batch completed';
 
   @override
   String get noProductsInBatch => 'No products in this batch';
@@ -2694,7 +2696,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accessControl => 'Access Control';
 
   @override
-  String get accessControlDescription => 'Manage who can view and work with this project';
+  String get accessControlDescription => 'Manage who can view and work here';
 
   @override
   String get projectClient => 'Project Client';
@@ -3034,7 +3036,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get productCreatedSuccess => 'Product created successfully';
+  String get productCreatedSuccess => 'Product created and selected';
 
   @override
   String get noProjectsForThisClient => 'No projects for this client';
@@ -4385,4 +4387,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get now => 'Now';
+
+  @override
+  String get batchPrefixLabel => 'Batch prefix';
+
+  @override
+  String get batchPrefixRequired => 'Prefix is required';
+
+  @override
+  String get batchPrefixInvalid => 'Must be exactly 3 alphanumeric characters';
+
+  @override
+  String get batchNumberPreviewLabel => 'Batch number preview';
+
+  @override
+  String get batchNumberFormat => 'Format: Prefix (3) + Year (2) + Week (2)';
+
+  @override
+  String get addProductsSectionSubtitle => 'You can also add products to the batch after creating it.';
+
+  @override
+  String get noProjectsAvailable => 'No projects available';
+
+  @override
+  String get changeProjectTooltip => 'Change project';
+
+  @override
+  String get noFamiliesDefined => 'No families defined';
+
+  @override
+  String get selectFamilyFirst => 'Select a family first';
+
+  @override
+  String get addToBatchBtn => 'Add to batch';
+
+  @override
+  String get noProductsSelected => 'No products selected';
+
+  @override
+  String maxProductsReached(Object count) {
+    return 'Maximum $count products per batch';
+  }
+
+  @override
+  String get quantityMustBePositive => 'Quantity must be greater than 0';
+
+  @override
+  String get selectProjectError => 'You must select a project';
+
+  @override
+  String get accessControlBatchTitle => 'Batch Access Control';
+
+  @override
+  String quickCreateProductTitle(Object familyName) {
+    return 'Create product in \"$familyName\"';
+  }
+
+  @override
+  String get batchNotFound => 'Batch not found';
+
+  @override
+  String get batchInfoTitle => 'Batch information';
+
+  @override
+  String get batchStatusInProgress => 'In production';
+
+  @override
+  String get generalProgress => 'General progress';
+
+  @override
+  String get na => 'N/A';
+
+  @override
+  String get productsInBatchTitle => 'Products already in the batch';
+
+  @override
+  String get deliveryLabel => 'Delivery';
+
+  @override
+  String get creating => 'Creating';
+
+  @override
+  String get editNotes => 'Edit notes';
+
+  @override
+  String get updatedSuccess => 'Update successful';
 }
