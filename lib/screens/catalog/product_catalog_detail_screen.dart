@@ -767,7 +767,9 @@ class _ProductCatalogDetailScreenState
         content: Text(l10n.deleteConfirmMessage(_product!.name)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => {
+              Navigator.pop(context, false), // cerrar pop up
+            },
             child: Text(l10n.cancel),
           ),
           FilledButton(
@@ -792,7 +794,7 @@ class _ProductCatalogDetailScreenState
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, true);
+        Navigator.pop(context, false); // volver atras al eliminar el producto
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
