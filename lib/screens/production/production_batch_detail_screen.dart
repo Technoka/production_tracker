@@ -802,34 +802,9 @@ class _ProductionBatchDetailScreenState
 
       if (success && mounted) {
         AppSnackBars.success(context, l10n.batchDeletedSuccess);
+        Navigator.pop(context);
+        Navigator.pop(context);
       }
     }
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar Lote'),
-        content: Text(
-          '¿Estás seguro de eliminar el lote ${batch.batchNumber}?\n\n'
-          'Esta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
-    );
   }
 }
