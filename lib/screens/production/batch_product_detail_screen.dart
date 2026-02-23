@@ -26,7 +26,6 @@ import '../../models/validation_config_model.dart';
 import '../../utils/filter_utils.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/error_display_widget.dart';
-import '../../l10n/app_localizations.dart';
 
 class BatchProductDetailScreen extends StatefulWidget {
   final String organizationId;
