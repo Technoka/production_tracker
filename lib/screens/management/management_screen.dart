@@ -36,7 +36,7 @@ class _ManagementScreenState extends State<ManagementScreen> {
     if (user?.organizationId == null) {
       return AppScaffold(
         title: l10n.management,
-        currentIndex: AppNavIndex.production,
+        currentIndex: AppNavIndex.management,
         body: Center(child: Text(l10n.noOrganizationAssigned)),
       );
     }
