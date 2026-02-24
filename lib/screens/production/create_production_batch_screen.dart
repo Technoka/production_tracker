@@ -7,6 +7,7 @@ import 'package:gestion_produccion/services/notification_service.dart';
 import 'package:gestion_produccion/services/pending_object_service.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:gestion_produccion/widgets/error_display_widget.dart';
 import 'package:gestion_produccion/widgets/ui_widgets.dart';
 import 'package:provider/provider.dart';
@@ -368,10 +369,9 @@ class _CreateProductionBatchScreenState
         Provider.of<OrganizationMemberService>(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.newBatchTitle),
-      ),
+    return AppScaffold(
+      title: l10n.newBatchTitle,
+      currentIndex: AppNavIndex.production,
       body: Form(
         key: _formKey,
         child: ListView(
@@ -1226,10 +1226,10 @@ class _CreateProductionBatchScreenState
         final phases =
             await phaseService.getOrganizationPhases(widget.organizationId);
         if (phases.isEmpty) {
-        if (mounted) {
-          AppErrorSnackBar.showFromException(
-              context, "No hay fases configuradas");
-        }
+          if (mounted) {
+            AppErrorSnackBar.showFromException(
+                context, "No hay fases configuradas");
+          }
         }
         phases.sort((a, b) => a.order.compareTo(b.order));
 
@@ -1259,7 +1259,8 @@ class _CreateProductionBatchScreenState
           final product = item['product'] as ProductCatalogModel;
           final quantity = item['quantity'] as int;
           final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
-          final urgency = item['urgencyLevel'] as String? ?? UrgencyLevel.medium.value;
+          final urgency =
+              item['urgencyLevel'] as String? ?? UrgencyLevel.medium.value;
           final notes = item['notes'] as String?;
           final family = item['family'];
 
@@ -1267,7 +1268,9 @@ class _CreateProductionBatchScreenState
           final Map<String, dynamic> phaseProgress = {};
           for (var phase in phases) {
             phaseProgress[phase.id] = {
-              'status': phase.id == phases.first.id ? 'in_progress' : 'pending', // TODO: cambiar a enum de progreso de fases
+              'status': phase.id == phases.first.id
+                  ? 'in_progress'
+                  : 'pending', // TODO: cambiar a enum de progreso de fases
               'startedAt': phase.id == phases.first.id
                   ? Timestamp.fromDate(DateTime.now())
                   : null,
@@ -1309,7 +1312,8 @@ class _CreateProductionBatchScreenState
           collectionRoute: 'production_batches',
           modelData: batchData,
           createdBy: authService.currentUser!.uid,
-          createdByName: authService.currentUser!.displayName ?? l10n.unknownUser,
+          createdByName:
+              authService.currentUser!.displayName ?? l10n.unknownUser,
           requiresApproval: true,
           userIsClient: true,
           pendingService: pendingService,
@@ -1347,10 +1351,11 @@ class _CreateProductionBatchScreenState
               : _notesController.text.trim(),
         );
 
-        if (batchId == null) { //TODO: needs to be moved to a service function and use throw Exception from there.
+        if (batchId == null) {
+          //TODO: needs to be moved to a service function and use throw Exception from there.
           if (mounted) {
-          AppErrorSnackBar.showFromException(
-              context, batchService.error ?? 'Error desconocido al crear lote');
+            AppErrorSnackBar.showFromException(context,
+                batchService.error ?? 'Error desconocido al crear lote');
           }
         }
 
@@ -1371,7 +1376,8 @@ class _CreateProductionBatchScreenState
               final product = item['product'] as ProductCatalogModel;
               final quantity = item['quantity'] as int;
               final deliveryDate = item['expectedDeliveryDate'] as DateTime?;
-              final urgency = item['urgencyLevel'] as String? ?? UrgencyLevel.medium.value;
+              final urgency =
+                  item['urgencyLevel'] as String? ?? UrgencyLevel.medium.value;
               final notes = item['notes'] as String?;
               final family = item['family'];
 
@@ -1418,7 +1424,8 @@ class _CreateProductionBatchScreenState
               batchId: batchId!,
               products: batchProducts,
               userId: authService.currentUser!.uid,
-              userName: authService.currentUser!.displayName ?? l10n.unknownUser,
+              userName:
+                  authService.currentUser!.displayName ?? l10n.unknownUser,
             );
 
             if (!success) {
@@ -1430,13 +1437,15 @@ class _CreateProductionBatchScreenState
 
         if (mounted) {
           AppSnackBars.success(
-              context, l10n.batchCreatedSuccess(_batchNumberPreview.value, _productsToAdd.length));
+              context,
+              l10n.batchCreatedSuccess(
+                  _batchNumberPreview.value, _productsToAdd.length));
           Navigator.pop(context, batchId);
         }
       }
     } catch (e) {
       if (mounted) {
-          AppSnackBars.error(context, "Error creating batch");
+        AppSnackBars.error(context, "Error creating batch");
       }
     } finally {
       if (mounted) {

@@ -1,17 +1,13 @@
-// lib/screens/management/management_screen.dart
-// ✅ OPTIMIZADO: Usa ProductionDataProvider en lugar de queries individuales
-
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
 import '../../models/client_model.dart';
 import '../../services/auth_service.dart';
-import '../../services/permission_service.dart';
 import '../../providers/production_data_provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/management_view_types.dart';
 import '../../utils/filter_utils.dart';
-import '../../widgets/bottom_nav_bar_widget.dart';
 import 'management_folders_view.dart';
 
 class ManagementScreen extends StatefulWidget {
@@ -35,21 +31,19 @@ class _ManagementScreenState extends State<ManagementScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final authService = Provider.of<AuthService>(context);
-    final permissionService = Provider.of<PermissionService>(context);
     final user = authService.currentUserData;
 
     if (user?.organizationId == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.management)),
+      return AppScaffold(
+        title: l10n.management,
+        currentIndex: AppNavIndex.production,
         body: Center(child: Text(l10n.noOrganizationAssigned)),
-        bottomNavigationBar: BottomNavBarWidget(currentIndex: 2, user: user!),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.management),
-      ),
+    return AppScaffold(
+      title: l10n.management,
+      currentIndex: AppNavIndex.production,
       body: Consumer<ProductionDataProvider>(
         builder: (context, provider, child) {
           if (!provider.isInitialized) {
@@ -75,7 +69,6 @@ class _ManagementScreenState extends State<ManagementScreen> {
           );
         },
       ),
-      bottomNavigationBar: BottomNavBarWidget(currentIndex: 2, user: user!),
     );
   }
 

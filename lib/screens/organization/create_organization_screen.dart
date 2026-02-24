@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/organization_service.dart';
@@ -60,10 +61,9 @@ class _CreateOrganizationScreenState extends State<CreateOrganizationScreen> {
     final organizationService = Provider.of<OrganizationService>(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.createOrganization),
-      ),
+    return AppScaffold(
+      title: l10n.createOrganization,
+      currentIndex: AppNavIndex.organization,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),

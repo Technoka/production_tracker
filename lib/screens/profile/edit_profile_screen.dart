@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/auth_service.dart';
@@ -58,7 +59,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void _checkForChanges() {
     final nameChanged = _nameController.text.trim() != _originalName;
     final phoneChanged = _phoneController.text.trim() != _originalPhone;
-    
+
     final hasChangesNow = nameChanged || phoneChanged;
 
     if (_hasChanges != hasChangesNow) {
@@ -78,7 +79,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         content: Text(l10n.unsavedChangesMessage),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false), // No salir (quedarse)
+            onPressed: () =>
+                Navigator.pop(context, false), // No salir (quedarse)
             child: Text(l10n.cancel),
           ),
           FilledButton(
@@ -96,7 +98,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _pickAndUploadPhoto() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
-    
+
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -108,7 +110,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text(l10n.uploadingPhoto)),
+          SnackBar(content: Text(l10n.uploadingPhoto)),
         );
       }
 
@@ -116,13 +118,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (mounted && url != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text(l10n.photoUpdated), backgroundColor: Colors.green),
+          SnackBar(
+              content: Text(l10n.photoUpdated), backgroundColor: Colors.green),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n.error}: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('${l10n.error}: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -132,7 +136,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
     // Doble verificación por seguridad
     if (!_hasChanges) return;
-    
 
     final authService = Provider.of<AuthService>(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
@@ -155,13 +158,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(
+          SnackBar(
             content: Text(l10n.profileUpdatedSuccess),
             backgroundColor: Colors.green,
           ),
         );
         // Opcional: Salir automáticamente al guardar
-        // Navigator.pop(context); 
+        // Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -187,30 +190,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     return WillPopScope(
       onWillPop: () => _onWillPop(l10n),
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.editProfileTitle),
-          actions: [
-            // Badge de "Sin guardar"
-            if (_hasChanges)
-              Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.orange[100],
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  l10n.unsavedChanges,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange,
-                  ),
+      child: AppScaffold(
+        currentIndex: AppNavIndex.profile,
+        title: l10n.editProfileTitle,
+        actions: [
+          // Badge de "Sin guardar"
+          if (_hasChanges)
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.orange[100],
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                l10n.unsavedChanges,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange,
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Form(
@@ -224,13 +226,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     children: [
                       CircleAvatar(
                         radius: 60,
-                        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                        backgroundImage: (user.photoURL != null && user.photoURL!.isNotEmpty)  
-                            ? NetworkImage(user.photoURL!) 
-                            : null,
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.1),
+                        backgroundImage:
+                            (user.photoURL != null && user.photoURL!.isNotEmpty)
+                                ? NetworkImage(user.photoURL!)
+                                : null,
                         child: (user.photoURL == null || user.photoURL!.isEmpty)
                             ? Text(
-                                user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                                user.name.isNotEmpty
+                                    ? user.name[0].toUpperCase()
+                                    : '?',
                                 style: TextStyle(
                                   fontSize: 48,
                                   fontWeight: FontWeight.bold,
@@ -243,7 +251,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         bottom: 0,
                         right: 0,
                         child: InkWell(
-                          onTap: authService.isLoading ? null : _pickAndUploadPhoto,
+                          onTap: authService.isLoading
+                              ? null
+                              : _pickAndUploadPhoto,
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -253,11 +263,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ),
                             child: authService.isLoading
                                 ? const SizedBox(
-                                    width: 20, 
-                                    height: 20, 
-                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                                  )
-                                : const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        color: Colors.white, strokeWidth: 2))
+                                : const Icon(Icons.camera_alt,
+                                    color: Colors.white, size: 20),
                           ),
                         ),
                       ),
@@ -265,7 +276,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Nombre
                 TextFormField(
                   controller: _nameController,
@@ -326,18 +337,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-              FilledButton(
-                onPressed: _isLoading || !_hasChanges ? null : () => _saveChanges(),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(l10n.saveChangesButton),
-              ),
-              const SizedBox(height: 16),
-
+                FilledButton(
+                  onPressed:
+                      _isLoading || !_hasChanges ? null : () => _saveChanges(),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(l10n.saveChangesButton),
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),

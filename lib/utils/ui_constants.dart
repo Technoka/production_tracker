@@ -9,11 +9,12 @@ class UIConstants {
   // Constantes en la app centralizadas aqui
 
   // Anchura maxima de pantallas
-  static const double SCREEN_MAX_WIDTH = 1000;
+  static const double DESKTOP_MIN_SCREEN_WIDTH = 900;
   static const double SCREEN_MEDIUM_WIDTH = 750;
   static const int BATCH_MAX_PRODUCTS = 20;
   static const double POP_UPS_MAX_WIDTH = 250;
   static const double POP_UPS_MAX_WIDTH_MEDIUM = 400;
+  static const double SIDE_DRAWER_WIDTH = 200;
 
   // Anchura de tarjetas de kanban
   static const double KANBAN_CARD_WIDTH = 280;

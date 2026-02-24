@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../models/status_transition_model.dart';
 import '../../models/product_status_model.dart';
@@ -38,33 +39,33 @@ class _ManageStatusTransitionsScreenState
     final user = authService.currentUserData;
 
     if (user?.organizationId == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.manageStatusTransitions)),
+      return AppScaffold(
+        title: l10n.manageStatusTransitions,
+        currentIndex: AppNavIndex.organization,
         body: Center(child: Text(l10n.noOrganizationTitle)),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.manageStatusTransitions),
-        actions: [
-          // Toggle mostrar inactivos
-          IconButton(
-            icon: Icon(
-              _showInactive ? Icons.visibility : Icons.visibility_off,
-              color: _showInactive ? Colors.amber : null,
-            ),
-            tooltip: _showInactive
-                ? l10n.hideInactiveTransitions
-                : l10n.showInactiveTransitions,
-            onPressed: () {
-              setState(() {
-                _showInactive = !_showInactive;
-              });
-            },
+    return AppScaffold(
+      title: l10n.manageStatusTransitions,
+      currentIndex: AppNavIndex.organization,
+      actions: [
+        // Toggle mostrar inactivos
+        IconButton(
+          icon: Icon(
+            _showInactive ? Icons.visibility : Icons.visibility_off,
+            color: _showInactive ? Colors.amber : null,
           ),
-        ],
-      ),
+          tooltip: _showInactive
+              ? l10n.hideInactiveTransitions
+              : l10n.showInactiveTransitions,
+          onPressed: () {
+            setState(() {
+              _showInactive = !_showInactive;
+            });
+          },
+        ),
+      ],
       body: Column(
         children: [
           // Filtros
@@ -108,8 +109,7 @@ class _ManageStatusTransitionsScreenState
 
                 // Aplicar filtro de activos/inactivos
                 if (!_showInactive) {
-                  transitions =
-                      transitions.where((t) => t.isActive).toList();
+                  transitions = transitions.where((t) => t.isActive).toList();
                 }
 
                 if (transitions.isEmpty) {
@@ -313,8 +313,7 @@ class _ManageStatusTransitionsScreenState
     );
   }
 
-  void _showEditDialog(
-      BuildContext context, StatusTransitionModel transition) {
+  void _showEditDialog(BuildContext context, StatusTransitionModel transition) {
     showDialog(
       context: context,
       barrierDismissible: false,

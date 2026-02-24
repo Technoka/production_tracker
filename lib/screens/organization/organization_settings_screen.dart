@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -19,25 +20,26 @@ class OrganizationSettingsScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<OrganizationSettingsScreen> createState() => _OrganizationSettingsScreenState();
+  State<OrganizationSettingsScreen> createState() =>
+      _OrganizationSettingsScreenState();
 }
 
-class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen> 
+class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
     with SingleTickerProviderStateMixin {
-  
-  final OrganizationSettingsService _settingsService = OrganizationSettingsService();
+  final OrganizationSettingsService _settingsService =
+      OrganizationSettingsService();
   final AuthService _authService = AuthService();
   final ImagePicker _imagePicker = ImagePicker();
-  
+
   late TabController _tabController;
   OrganizationSettings? _currentSettings;
   OrganizationSettings? _previewSettings;
-  
+
   bool _isLoading = true;
   bool _isSaving = false;
   bool _hasPermission = false;
   bool _isPreviewMode = false;
-  
+
   // Controladores de texto
   final _orgNameController = TextEditingController();
   final _welcomeMessageEsController = TextEditingController();
@@ -79,17 +81,20 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
     setState(() => _isLoading = true);
 
     try {
-      final settings = await _settingsService.getOrganizationSettings(widget.organizationId);
-      
+      final settings =
+          await _settingsService.getOrganizationSettings(widget.organizationId);
+
       if (settings != null) {
         setState(() {
           _currentSettings = settings;
           _previewSettings = settings;
-          
+
           // Inicializar controladores
           _orgNameController.text = settings.branding.organizationName;
-          _welcomeMessageEsController.text = settings.branding.welcomeMessage['es'] ?? '';
-          _welcomeMessageEnController.text = settings.branding.welcomeMessage['en'] ?? '';
+          _welcomeMessageEsController.text =
+              settings.branding.welcomeMessage['es'] ?? '';
+          _welcomeMessageEnController.text =
+              settings.branding.welcomeMessage['en'] ?? '';
         });
       } else {
         // Inicializar con valores por defecto
@@ -135,7 +140,7 @@ class _OrganizationSettingsScreenState extends State<OrganizationSettingsScreen>
     }
   }
 
-Future<void> _pickLogo() async {
+  Future<void> _pickLogo() async {
     try {
       // image_picker devuelve un XFile, que es perfecto
       final XFile? image = await _imagePicker.pickImage(
@@ -148,12 +153,13 @@ Future<void> _pickLogo() async {
 
       setState(() => _isSaving = true);
 
-      final orgService = Provider.of<OrganizationService>(context, listen: false);
-      
+      final orgService =
+          Provider.of<OrganizationService>(context, listen: false);
+
       // ✅ PASAMOS EL XFILE DIRECTAMENTE (image), NO File(image.path)
       final logoUrl = await orgService.uploadOrganizationLogo(
         widget.organizationId,
-        image, 
+        image,
       );
 
       if (logoUrl != null) {
@@ -171,7 +177,8 @@ Future<void> _pickLogo() async {
     } finally {
       setState(() => _isSaving = false);
     }
-  }   
+  }
+
   Future<void> _removeLogo() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -214,7 +221,7 @@ Future<void> _pickLogo() async {
   void _togglePreview() {
     setState(() {
       _isPreviewMode = !_isPreviewMode;
-      
+
       if (_isPreviewMode) {
         // Aplicar preview al tema
         Provider.of<ThemeProvider>(context, listen: false)
@@ -252,8 +259,10 @@ Future<void> _pickLogo() async {
     setState(() {
       _previewSettings = OrganizationSettings.defaultSettings();
       _orgNameController.text = _previewSettings!.branding.organizationName;
-      _welcomeMessageEsController.text = _previewSettings!.branding.welcomeMessage['es'] ?? '';
-      _welcomeMessageEnController.text = _previewSettings!.branding.welcomeMessage['en'] ?? '';
+      _welcomeMessageEsController.text =
+          _previewSettings!.branding.welcomeMessage['es'] ?? '';
+      _welcomeMessageEnController.text =
+          _previewSettings!.branding.welcomeMessage['en'] ?? '';
     });
   }
 
@@ -282,15 +291,17 @@ Future<void> _pickLogo() async {
     final l10n = AppLocalizations.of(context)!;
 
     if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.organizationSettings)),
+      return AppScaffold(
+        title: l10n.organizationSettings,
+        currentIndex: AppNavIndex.organization,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (!_hasPermission) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.organizationSettings)),
+      return AppScaffold(
+        title: l10n.organizationSettings,
+        currentIndex: AppNavIndex.organization,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -308,52 +319,60 @@ Future<void> _pickLogo() async {
     }
 
     if (_previewSettings == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.organizationSettings)),
+      return AppScaffold(
+        title: l10n.organizationSettings,
+        currentIndex: AppNavIndex.organization,
         body: Center(child: Text(l10n.error)),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.organizationSettings),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(icon: const Icon(Icons.palette), text: l10n.brandingSettings),
-            Tab(icon: const Icon(Icons.language), text: l10n.languageSettings),
-          ],
-        ),
-        actions: [
-          if (_isPreviewMode)
-            IconButton(
-              icon: const Icon(Icons.visibility_off),
-              onPressed: _togglePreview,
-              tooltip: 'Salir de vista previa',
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.visibility),
-              onPressed: _togglePreview,
-              tooltip: l10n.preview,
-            ),
-        ],
-      ),
-      body: TabBarView(
-        controller: _tabController,
+    return AppScaffold(
+      title: l10n.organizationSettings,
+      currentIndex: AppNavIndex.organization,
+      actions: [
+        if (_isPreviewMode)
+          IconButton(
+            icon: const Icon(Icons.visibility_off),
+            onPressed: _togglePreview,
+            tooltip: 'Salir de vista previa',
+          )
+        else
+          IconButton(
+            icon: const Icon(Icons.visibility),
+            onPressed: _togglePreview,
+            tooltip: l10n.preview,
+          ),
+      ],
+      body: Column(
         children: [
-          _buildBrandingTab(),
-          _buildLanguageTab(),
+          TabBar(
+            controller: _tabController,
+            tabs: [
+              Tab(icon: const Icon(Icons.palette), text: l10n.brandingSettings),
+              Tab(
+                  icon: const Icon(Icons.language),
+                  text: l10n.languageSettings),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildBrandingTab(),
+                _buildLanguageTab(),
+              ],
+            ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _isSaving ? null : _saveSettings,
-        icon: _isSaving 
+        icon: _isSaving
             ? const SizedBox(
-                width: 20, 
-                height: 20, 
+                width: 20,
+                height: 20,
                 child: CircularProgressIndicator(
-                  strokeWidth: 2, 
+                  strokeWidth: 2,
                   color: Colors.white,
                 ),
               )
@@ -365,7 +384,7 @@ Future<void> _pickLogo() async {
 
   Widget _buildBrandingTab() {
     final l10n = AppLocalizations.of(context)!;
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -405,7 +424,8 @@ Future<void> _pickLogo() async {
               setState(() {
                 _previewSettings = _previewSettings!.copyWith(
                   branding: _previewSettings!.branding.copyWith(
-                    primaryColor: '#${color.value.toRadixString(16).substring(2)}',
+                    primaryColor:
+                        '#${color.value.toRadixString(16).substring(2)}',
                   ),
                 );
               });
@@ -416,13 +436,15 @@ Future<void> _pickLogo() async {
           _buildSectionTitle(l10n.secondaryColor),
           _buildColorPicker(
             currentColor: Color(int.parse(
-              _previewSettings!.branding.secondaryColor.replaceFirst('#', '0xff'),
+              _previewSettings!.branding.secondaryColor
+                  .replaceFirst('#', '0xff'),
             )),
             onColorChanged: (color) {
               setState(() {
                 _previewSettings = _previewSettings!.copyWith(
                   branding: _previewSettings!.branding.copyWith(
-                    secondaryColor: '#${color.value.toRadixString(16).substring(2)}',
+                    secondaryColor:
+                        '#${color.value.toRadixString(16).substring(2)}',
                   ),
                 );
               });
@@ -439,7 +461,8 @@ Future<void> _pickLogo() async {
               setState(() {
                 _previewSettings = _previewSettings!.copyWith(
                   branding: _previewSettings!.branding.copyWith(
-                    accentColor: '#${color.value.toRadixString(16).substring(2)}',
+                    accentColor:
+                        '#${color.value.toRadixString(16).substring(2)}',
                   ),
                 );
               });
@@ -519,7 +542,7 @@ Future<void> _pickLogo() async {
 
   Widget _buildLanguageTab() {
     final l10n = AppLocalizations.of(context)!;
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -549,7 +572,6 @@ Future<void> _pickLogo() async {
             },
           ),
           const SizedBox(height: 24),
-
           _buildSectionTitle(l10n.supportedLanguages),
           const SizedBox(height: 8),
           Text(
@@ -568,8 +590,8 @@ Future<void> _pickLogo() async {
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-        ),
+              fontWeight: FontWeight.bold,
+            ),
       ),
     );
   }
@@ -615,9 +637,8 @@ Future<void> _pickLogo() async {
               ElevatedButton.icon(
                 onPressed: _pickLogo,
                 icon: Icon(logoUrl != null ? Icons.edit : Icons.upload),
-                label: Text(logoUrl != null 
-                    ? l10n.changeLogo 
-                    : l10n.uploadLogo),
+                label:
+                    Text(logoUrl != null ? l10n.changeLogo : l10n.uploadLogo),
               ),
               if (logoUrl != null) ...[
                 const SizedBox(width: 8),
@@ -725,7 +746,6 @@ Future<void> _pickLogo() async {
       'Karla',
     ];
 
-
     return DropdownButtonFormField<String>(
       value: _previewSettings!.branding.fontFamily,
       decoration: InputDecoration(
@@ -736,7 +756,8 @@ Future<void> _pickLogo() async {
           value: font,
           child: Text(
             font,
-            style: GoogleFonts.getFont(font, textStyle: const TextStyle(fontSize: 16)),
+            style: GoogleFonts.getFont(font,
+                textStyle: const TextStyle(fontSize: 16)),
           ),
         );
       }).toList(),

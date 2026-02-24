@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/screens/catalog/product_catalog_form_screen.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -47,7 +48,8 @@ class _ProductCatalogDetailScreenState
   }
 
   Future<void> _loadData() async {
-    final permissionService = Provider.of<PermissionService>(context, listen: false);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
     final dataProvider =
         Provider.of<ProductionDataProvider>(context, listen: false);
 
@@ -88,15 +90,17 @@ class _ProductCatalogDetailScreenState
     final l10n = AppLocalizations.of(context)!;
 
     if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.productDetailTitle)),
+      return AppScaffold(
+        title: l10n.productDetailTitle,
+        currentIndex: AppNavIndex.management,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_product == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.productDetailTitle)),
+      return AppScaffold(
+        title: l10n.productDetailTitle,
+        currentIndex: AppNavIndex.management,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

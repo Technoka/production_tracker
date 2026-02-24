@@ -6,6 +6,7 @@ import 'package:gestion_produccion/services/notification_service.dart';
 import 'package:gestion_produccion/services/organization_member_service.dart';
 import 'package:gestion_produccion/services/pending_object_service.dart';
 import 'package:gestion_produccion/widgets/access_control_widget.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/project_service.dart';
@@ -240,9 +241,10 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
     final user = authService.currentUserData;
 
     if (user?.organizationId == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Nuevo Proyecto')),
-        body: const Center(
+      return const AppScaffold(
+        title: "Nuevo Proyecto",
+        currentIndex: AppNavIndex.organization,
+        body: Center(
           child: Text('Debes pertenecer a una organización'),
         ),
       );
@@ -251,8 +253,9 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
     final canCreateProjects = permissionService.canCreateProjects;
 
     if (!canCreateProjects) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Acceso Denegado')),
+      return AppScaffold(
+        title: "Acceso denegado",
+        currentIndex: AppNavIndex.organization,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -299,11 +302,9 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
   Widget _buildForm(BuildContext context, UserModel user) {
     final projectService = Provider.of<ProjectService>(context, listen: false);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nuevo Proyecto'),
-        elevation: 0,
-      ),
+    return AppScaffold(
+      title: "Nuevo Proyecto",
+      currentIndex: AppNavIndex.organization,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -625,9 +626,11 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
   }
 
   Widget _buildAccessControlCard(BuildContext context, UserModel user) {
-    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
     // Si no hay cliente seleccionado, no mostrar nada
-    if (_selectedClientId == null || memberService.currentMember?.clientId != null) {
+    if (_selectedClientId == null ||
+        memberService.currentMember?.clientId != null) {
       return const SizedBox.shrink();
     }
 

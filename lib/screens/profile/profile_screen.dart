@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/screens/profile/user_preferences_screen.dart';
 import 'package:gestion_produccion/services/organization_member_service.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart'; // ✅ Asegúrate de tener intl
+import 'package:intl/intl.dart';
 import '../../services/auth_service.dart';
 import '../../utils/role_utils.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
 import '../../widgets/common_refresh.dart';
-import '../../widgets/bottom_nav_bar_widget.dart';
-import '../../l10n/app_localizations.dart'; // ✅ Importar l10n
+import '../../l10n/app_localizations.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -18,8 +18,9 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserData;
-    final l10n = AppLocalizations.of(context)!; // ✅ Referencia a l10n
-    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
+    final l10n = AppLocalizations.of(context)!;
+    final memberService =
+        Provider.of<OrganizationMemberService>(context, listen: false);
 
     if (user == null) {
       return const Scaffold(
@@ -33,24 +34,23 @@ class ProfileScreen extends StatelessWidget {
       await Provider.of<AuthService>(context, listen: false).loadUserData();
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.myProfileTitle), // ✅ Traducido
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const EditProfileScreen(),
-                ),
-              );
-            },
-            tooltip: l10n.edit, // ✅ Traducido
-          ),
-        ],
-      ),
+    return AppScaffold(
+      currentIndex: AppNavIndex.profile,
+      title: l10n.myProfileTitle,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.edit),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const EditProfileScreen(),
+              ),
+            );
+          },
+          tooltip: l10n.edit, // ✅ Traducido
+        ),
+      ],
       body: CommonRefresh(
         onRefresh: handleRefresh,
         child: SingleChildScrollView(
@@ -121,7 +121,9 @@ class ProfileScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
-                      child: RoleUtils.buildRoleBadge(memberService.currentRole!.name, compact: true),
+                      child: RoleUtils.buildRoleBadge(
+                          memberService.currentRole!.name,
+                          compact: true),
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -258,7 +260,6 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavBarWidget(currentIndex: 3, user: user),
     );
   }
 

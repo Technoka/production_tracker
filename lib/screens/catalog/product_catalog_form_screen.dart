@@ -6,6 +6,7 @@ import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/services/notification_service.dart';
 import 'package:gestion_produccion/services/organization_member_service.dart';
 import 'package:gestion_produccion/services/pending_object_service.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/product_catalog_service.dart';
@@ -424,10 +425,9 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
     final user = authService.currentUserData;
 
     if (user?.organizationId == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(isCreateMode ? 'Nuevo Producto' : 'Editar Producto'),
-        ),
+      return AppScaffold(
+        currentIndex: AppNavIndex.management,
+        title: isCreateMode ? 'Nuevo Producto' : 'Editar Producto',
         body: const Center(
           child: Text('Debes pertenecer a una organización'),
         ),
@@ -444,13 +444,10 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
           }
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
+      child: AppScaffold(
+        currentIndex: AppNavIndex.management,
+        title:
             isCreateMode ? 'Nuevo Producto' : 'Editar: ${widget.product!.name}',
-          ),
-          elevation: 0,
-        ),
         body: Column(
           children: [
             Expanded(
@@ -604,7 +601,6 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
   }
 
   Widget _buildClientCard(BuildContext context, user, AppLocalizations l10n) {
-
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1162,7 +1158,8 @@ class _ProductCatalogFormScreenState extends State<ProductCatalogFormScreen> {
                       value: _pendingNewFamily,
                       child: Row(
                         children: [
-                          const Icon(Icons.new_label, color: Colors.green, size: 20),
+                          const Icon(Icons.new_label,
+                              color: Colors.green, size: 20),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(

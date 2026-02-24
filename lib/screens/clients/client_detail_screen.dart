@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/screens/projects/project_detail_screen.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
@@ -38,7 +39,8 @@ class _ClientScreenState extends State<ClientDetailScreen> {
 
   Future<void> _loadPermissions() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final permissionService = Provider.of<PermissionService>(context, listen: false);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
 
     final user = authService.currentUserData;
     if (user?.organizationId == null) return;
@@ -84,85 +86,83 @@ class _ClientScreenState extends State<ClientDetailScreen> {
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.clientDetailTitle),
-        actions: [
-          if (_canEditClients || _canDeleteClients)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert),
-              onSelected: (value) async {
-                switch (value) {
-                  case 'edit':
-                    if (_canEditClients) {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ClientFormScreen(client: widget.client),
-                        ),
-                      );
-                    }
-                    break;
-                  case 'duplicate':
-                    if (_canEditClients) {
-                      await _handleDuplicate(
-                          context, clientService, user, l10n);
-                    }
-                    break;
-                  case 'delete':
-                    if (_canDeleteClients) {
-                      await _showDeleteDialog(
-                        context,
-                        clientService,
-                        organizationId,
-                        l10n,
-                      );
-                    }
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                if (_canEditClients)
-                  PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.edit_outlined),
-                        const SizedBox(width: 12),
-                        Text(l10n.edit),
-                      ],
-                    ),
+    return AppScaffold(
+      title: l10n.clientDetailTitle,
+      currentIndex: AppNavIndex.management,
+      actions: [
+        if (_canEditClients || _canDeleteClients)
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) async {
+              switch (value) {
+                case 'edit':
+                  if (_canEditClients) {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ClientFormScreen(client: widget.client),
+                      ),
+                    );
+                  }
+                  break;
+                case 'duplicate':
+                  if (_canEditClients) {
+                    await _handleDuplicate(context, clientService, user, l10n);
+                  }
+                  break;
+                case 'delete':
+                  if (_canDeleteClients) {
+                    await _showDeleteDialog(
+                      context,
+                      clientService,
+                      organizationId,
+                      l10n,
+                    );
+                  }
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              if (_canEditClients)
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.edit_outlined),
+                      const SizedBox(width: 12),
+                      Text(l10n.edit),
+                    ],
                   ),
-                if (_canEditClients)
-                  PopupMenuItem(
-                    value: 'duplicate',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.content_copy),
-                        const SizedBox(width: 12),
-                        Text(l10n.duplicate),
-                      ],
-                    ),
+                ),
+              if (_canEditClients)
+                PopupMenuItem(
+                  value: 'duplicate',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.content_copy),
+                      const SizedBox(width: 12),
+                      Text(l10n.duplicate),
+                    ],
                   ),
-                if (_canDeleteClients)
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.delete_outline, color: Colors.red),
-                        const SizedBox(width: 12),
-                        Text(
-                          l10n.delete,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ],
-                    ),
+                ),
+              if (_canDeleteClients)
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.delete_outline, color: Colors.red),
+                      const SizedBox(width: 12),
+                      Text(
+                        l10n.delete,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ],
                   ),
-              ],
-            ),
-        ],
-      ),
+                ),
+            ],
+          ),
+      ],
       body: CommonRefresh(
         onRefresh: handleRefresh,
         child: SingleChildScrollView(
@@ -378,8 +378,7 @@ class _ClientScreenState extends State<ClientDetailScreen> {
   }
 
   Widget _buildHeader(BuildContext context, ClientModel client) {
-    final colorValue =
-        client.colorValue;
+    final colorValue = client.colorValue;
 
     return Container(
       width: double.infinity,

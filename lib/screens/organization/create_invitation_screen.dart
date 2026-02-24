@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/invitation_service.dart';
@@ -269,11 +270,6 @@ class _CreateInvitationScreenState extends State<CreateInvitationScreen> {
     );
   }
 
-  String _getClientName(String clientId) {
-    // Obtener nombre del cliente del StreamBuilder
-    return 'Cliente'; // Se actualizará desde el StreamBuilder
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -281,12 +277,9 @@ class _CreateInvitationScreenState extends State<CreateInvitationScreen> {
     final roleService = Provider.of<RoleService>(context, listen: false);
     final clientService = Provider.of<ClientService>(context, listen: false);
 
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(l10n.createInvitationTitle),
-        elevation: 0,
-      ),
+    return AppScaffold(
+      title: l10n.createInvitationTitle,
+      currentIndex: AppNavIndex.organization,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),

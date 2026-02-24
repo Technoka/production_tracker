@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/organization_service.dart';
@@ -114,10 +115,9 @@ class _OrganizationSetupWizardScreenState
     final l10n = AppLocalizations.of(context)!;
     final organizationService = Provider.of<OrganizationService>(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.setupOrganizationTitle),
-      ),
+    return AppScaffold(
+      title: l10n.setupOrganizationTitle,
+      currentIndex: AppNavIndex.organization,
       body: SafeArea(
         child: Stepper(
           currentStep: _currentStep,

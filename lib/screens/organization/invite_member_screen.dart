@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/organization_service.dart';
@@ -77,10 +78,9 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.inviteMemberTitle),
-      ),
+    return AppScaffold(
+      title: l10n.inviteMemberTitle,
+      currentIndex: AppNavIndex.organization,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),

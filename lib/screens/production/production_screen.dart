@@ -2,6 +2,7 @@
 // ✅ OPTIMIZADO: Usa ProductionDataProvider para eliminar queries redundantes
 
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../models/production_batch_model.dart';
 import '../../models/batch_product_model.dart';
@@ -14,7 +15,6 @@ import 'production_batch_detail_screen.dart';
 import 'batch_product_detail_screen.dart';
 import '../../utils/filter_utils.dart';
 import '../../widgets/kanban/kanban_board_widget.dart';
-import '../../widgets/bottom_nav_bar_widget.dart';
 import '../../l10n/app_localizations.dart';
 
 enum ProductionView { batches, products, kanban }
@@ -133,61 +133,58 @@ class _ProductionScreenState extends State<ProductionScreen> {
     final user = authService.currentUserData;
 
     if (user?.organizationId == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.production)),
+      return AppScaffold(
+        currentIndex: AppNavIndex.production,
+        title: l10n.production,
         body: Center(child: Text(l10n.noOrganizationAssigned)),
-        bottomNavigationBar: BottomNavBarWidget(currentIndex: 1, user: user!),
       );
     }
 
     // ✅ OPTIMIZACIÓN: Usar permisos cacheados
     final canCreateBatches = permissionService.canCreateBatches;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.productionTitle),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: _buildViewToggle(l10n),
+    return AppScaffold(
+        title: l10n.productionTitle,
+        currentIndex: AppNavIndex.production,
+        body: Column(
+          children: [
+            PreferredSize(
+              preferredSize: const Size.fromHeight(60),
+              child: _buildViewToggle(l10n),
+            ),
+            _buildFilters(user!, l10n),
+            Expanded(
+              child: _currentView == ProductionView.batches
+                  ? _buildBatchesView(user, l10n)
+                  : _currentView == ProductionView.products
+                      ? _buildProductsView(user, l10n)
+                      : _buildKanbanView(user, l10n),
+            ),
+          ],
         ),
-      ),
-      body: Column(
-        children: [
-          _buildFilters(user!, l10n),
-          Expanded(
-            child: _currentView == ProductionView.batches
-                ? _buildBatchesView(user, l10n)
-                : _currentView == ProductionView.products
-                    ? _buildProductsView(user, l10n)
-                    : _buildKanbanView(user, l10n),
-          ),
-        ],
-      ),
-      floatingActionButton:
-          canCreateBatches && _currentView == ProductionView.batches
-              ? SizedBox(
-                  height: 40,
-                  child: FloatingActionButton.extended(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CreateProductionBatchScreen(
-                            organizationId: user.organizationId!,
-                          ),
+        floatingActionButton: canCreateBatches &&
+                _currentView == ProductionView.batches
+            ? SizedBox(
+                height: 40,
+                child: FloatingActionButton.extended(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CreateProductionBatchScreen(
+                          organizationId: user.organizationId!,
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.add, size: 20),
-                    label: Text(l10n.createBatchBtn,
-                        style: const TextStyle(fontSize: 13)),
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                )
-              : null,
-      bottomNavigationBar: BottomNavBarWidget(currentIndex: 1, user: user),
-    );
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.add, size: 20),
+                  label: Text(l10n.createBatchBtn,
+                      style: const TextStyle(fontSize: 13)),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  extendedPadding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+              )
+            : null);
   }
 
   Widget _buildViewToggle(AppLocalizations l10n) {
@@ -783,7 +780,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
                 children: [
                   Icon(Icons.qr_code, size: 14, color: Colors.grey[500]),
                   const SizedBox(width: 4),
-                  Text('${l10n.skuLabel} ${product.productReference!}',
+                  Text('${l10n.skuLabel} ${product.productReference}',
                       style: TextStyle(color: Colors.grey[700], fontSize: 13)),
                 ],
               ),

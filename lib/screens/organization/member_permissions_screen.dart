@@ -1,6 +1,7 @@
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/organization_member_model.dart';
@@ -380,58 +381,9 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
         }
         return true;
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l10n.managePermissions),
-              Text(
-                widget.memberData.userName,
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ),
-        bottomNavigationBar: _hasChanges
-            ? SafeArea(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: theme.scaffoldBackgroundColor,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, -2),
-                      ),
-                    ],
-                  ),
-                  child: FilledButton.icon(
-                    onPressed: _isSaving ? null : _saveChanges,
-                    icon: _isSaving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.save),
-                    label: Text(
-                      l10n.save,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                  ),
-                ),
-              )
-            : null,
+      child: AppScaffold(
+        title: '${l10n.managePermissions}: ${widget.memberData.userName}',
+        currentIndex: AppNavIndex.organization,
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _errorMessage != null
@@ -521,6 +473,48 @@ class _MemberPermissionsScreenState extends State<MemberPermissionsScreen> {
                         Expanded(
                           child: _buildPermissionsList(),
                         ),
+
+                        // Boton de save changes
+                        if (_hasChanges)
+                          SafeArea(
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: theme.scaffoldBackgroundColor,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, -2),
+                                  ),
+                                ],
+                              ),
+                              child: FilledButton.icon(
+                                onPressed: _isSaving ? null : _saveChanges,
+                                icon: _isSaving
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.save),
+                                label: Text(
+                                  l10n.save,
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                                style: FilledButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                  minimumSize: const Size(double.infinity, 50),
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/notification_service.dart';
@@ -14,34 +15,35 @@ class NotificationsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final notificationService = Provider.of<NotificationService>(context);
-    final permissionService = Provider.of<PermissionService>(context, listen: false);
+    final permissionService =
+        Provider.of<PermissionService>(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
 
     final user = authService.currentUserData;
     final organizationId = user?.organizationId;
 
     if (user == null || organizationId == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.notifications)),
+      return AppScaffold(
+        title: l10n.notifications,
+        currentIndex: AppNavIndex.production,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     final canApproveClientRequests = permissionService.canApproveClientRequests;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.notifications),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.done_all),
-            tooltip: l10n.markAllAsRead,
-            onPressed: () async {
-              await notificationService.markAllAsRead(organizationId, user.uid);
-            },
-          ),
-        ],
-      ),
+    return AppScaffold(
+      title: l10n.notifications,
+      currentIndex: AppNavIndex.production,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.done_all),
+          tooltip: l10n.markAllAsRead,
+          onPressed: () async {
+            await notificationService.markAllAsRead(organizationId, user.uid);
+          },
+        ),
+      ],
       body: StreamBuilder<List<NotificationModel>>(
         stream: notificationService.getUserNotificationsStream(
           organizationId,

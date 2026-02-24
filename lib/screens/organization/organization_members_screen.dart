@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/organization_service.dart';
@@ -300,34 +301,25 @@ class _OrganizationMembersScreenState extends State<OrganizationMembersScreen> {
       return a.userName.compareTo(b.userName);
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.members),
-            if (!_isLoading)
-              Text(
-                '${filteredMembers.length} ${l10n.peopleLabel}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-          ],
-        ),
-        actions: [
-          if (permissionService.hasPermission('organization', 'inviteMembers'))
-            IconButton(
-              icon: const Icon(Icons.person_add_outlined),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const InviteMemberScreen(),
-                  ),
-                );
-              },
-            ),
-        ],
-      ),
+    return AppScaffold(
+      title: _isLoading
+          ? l10n.members
+          : "${l10n.members}: ${filteredMembers.length} ${l10n.peopleLabel}",
+      currentIndex: AppNavIndex.organization,
+      actions: [
+        if (permissionService.hasPermission('organization', 'inviteMembers'))
+          IconButton(
+            icon: const Icon(Icons.person_add_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const InviteMemberScreen(),
+                ),
+              );
+            },
+          ),
+      ],
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null

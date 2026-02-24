@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../models/product_status_model.dart';
 import '../../services/auth_service.dart';
@@ -36,28 +37,28 @@ class _ManageProductStatusesScreenState
     final user = authService.currentUserData;
 
     if (user?.organizationId == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.manageProductStatuses)),
+      return AppScaffold(
+        title: l10n.manageProductStatuses,
+        currentIndex: AppNavIndex.organization,
         body: Center(child: Text(l10n.noOrganizationTitle)),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.manageProductStatuses),
-        actions: [
-          // Botón para alternar modo reordenamiento
-          IconButton(
-            icon: Icon(_isReordering ? Icons.check : Icons.sort),
-            tooltip: _isReordering ? l10n.done : l10n.reorderStatuses,
-            onPressed: () {
-              setState(() {
-                _isReordering = !_isReordering;
-              });
-            },
-          ),
-        ],
-      ),
+    return AppScaffold(
+      title: l10n.manageProductStatuses,
+      currentIndex: AppNavIndex.organization,
+      actions: [
+        // Botón para alternar modo reordenamiento
+        IconButton(
+          icon: Icon(_isReordering ? Icons.check : Icons.sort),
+          tooltip: _isReordering ? l10n.done : l10n.reorderStatuses,
+          onPressed: () {
+            setState(() {
+              _isReordering = !_isReordering;
+            });
+          },
+        ),
+      ],
       body: StreamBuilder<List<ProductStatusModel>>(
         stream: statusService.watchStatuses(widget.organizationId),
         builder: (context, snapshot) {
@@ -138,11 +139,13 @@ class _ManageProductStatusesScreenState
                 if (_isReordering)
                   Container(
                     margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 16),
                     decoration: BoxDecoration(
                       color: Colors.orange.shade100,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.shade300, width: 2),
+                      border:
+                          Border.all(color: Colors.orange.shade300, width: 2),
                     ),
                     child: Row(
                       children: [
@@ -179,7 +182,7 @@ class _ManageProductStatusesScreenState
                       statusService,
                     );
                   }).toList(),
-                  
+
                 const SizedBox(height: 100),
               ],
             ),
@@ -208,10 +211,8 @@ class _ManageProductStatusesScreenState
     ProductStatusService statusService,
   ) {
     // Color más oscuro para estados inactivos
-    final cardColor = status.isActive 
-        ? null 
-        : Colors.grey.shade300;
-    
+    final cardColor = status.isActive ? null : Colors.grey.shade300;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       color: cardColor,
@@ -230,7 +231,8 @@ class _ManageProductStatusesScreenState
               width: 12,
               height: 12,
               decoration: BoxDecoration(
-                color: status.isActive ? status.colorValue : Colors.grey.shade600,
+                color:
+                    status.isActive ? status.colorValue : Colors.grey.shade600,
                 shape: BoxShape.circle,
               ),
             ),
@@ -301,7 +303,9 @@ class _ManageProductStatusesScreenState
               'Order: ${status.order}',
               style: TextStyle(
                 fontSize: 11,
-                color: status.isActive ? Colors.grey.shade600 : Colors.grey.shade500,
+                color: status.isActive
+                    ? Colors.grey.shade600
+                    : Colors.grey.shade500,
               ),
             ),
           ],
@@ -330,7 +334,7 @@ class _ManageProductStatusesScreenState
                 }
               },
               itemBuilder: (context) => [
-                    if (status.isActive)
+                if (status.isActive)
                   PopupMenuItem(
                     value: 'edit',
                     child: Row(
@@ -353,9 +357,7 @@ class _ManageProductStatusesScreenState
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        status.isActive
-                            ? l10n.deactivate
-                            : l10n.activate,
+                        status.isActive ? l10n.deactivate : l10n.activate,
                       ),
                     ],
                   ),
@@ -396,10 +398,8 @@ class _ManageProductStatusesScreenState
       },
       children: statuses.map((status) {
         // Color más oscuro para estados inactivos en modo reordenamiento
-        final cardColor = status.isActive 
-            ? null 
-            : Colors.grey.shade300;
-            
+        final cardColor = status.isActive ? null : Colors.grey.shade300;
+
         return Card(
           key: ValueKey(status.id),
           margin: const EdgeInsets.only(bottom: 8),
@@ -412,14 +412,18 @@ class _ManageProductStatusesScreenState
                   width: 12,
                   height: 12,
                   decoration: BoxDecoration(
-                    color: status.isActive ? status.colorValue : Colors.grey.shade600,
+                    color: status.isActive
+                        ? status.colorValue
+                        : Colors.grey.shade600,
                     shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Icon(
-                  UIConstants.getIcon(status.icon), 
-                  color: status.isActive ? status.colorValue : Colors.grey.shade600,
+                  UIConstants.getIcon(status.icon),
+                  color: status.isActive
+                      ? status.colorValue
+                      : Colors.grey.shade600,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -434,7 +438,8 @@ class _ManageProductStatusesScreenState
                 // Badge de sistema
                 if (status.isSystem)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.blue.shade100,
                       borderRadius: BorderRadius.circular(10),
@@ -453,7 +458,8 @@ class _ManageProductStatusesScreenState
                 if (!status.isActive) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade400,
                       borderRadius: BorderRadius.circular(10),

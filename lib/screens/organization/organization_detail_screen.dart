@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/screens/organization/manage_invitations_screen.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import '../../screens/organization/manage_status_transitions_screen.dart';
 import '../../screens/organization/organization_settings_screen.dart';
 import 'package:provider/provider.dart';
@@ -96,10 +97,9 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     final canManageStatusTransitions = permissionService.hasPermission(
         'organization', 'manageStatusTransitions');
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.myOrganizationTitle),
-      ),
+    return AppScaffold(
+      title: l10n.myOrganizationTitle,
+      currentIndex: AppNavIndex.organization,
       body: StreamBuilder<OrganizationModel?>(
         stream: organizationService.watchOrganization(organization.id),
         builder: (context, snapshot) {

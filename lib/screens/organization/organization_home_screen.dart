@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/organization_service.dart';
@@ -36,13 +37,13 @@ class _OrganizationHomeScreenState extends State<OrganizationHomeScreen> {
       await authService.getUserData();
     }
   }
-    
+
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final organizationService = Provider.of<OrganizationService>(context);
     final l10n = AppLocalizations.of(context)!;
-    
+
     final currentUser = authService.currentUserData;
 
     if (currentUser == null) {
@@ -50,58 +51,56 @@ class _OrganizationHomeScreenState extends State<OrganizationHomeScreen> {
     }
 
     return StreamBuilder<UserModel?>(
-      stream: authService.userStream, 
+      stream: authService.userStream,
       initialData: currentUser,
       builder: (context, snapshot) {
-        
         final user = snapshot.data ?? currentUser;
 
         // CASO 1: El usuario YA TIENE organización
         if (user.organizationId != null) {
-          
-          if (organizationService.currentOrganization?.id != user.organizationId) {
-             Future.microtask(() => 
-               organizationService.loadOrganization(user.organizationId!)
-             );
+          if (organizationService.currentOrganization?.id !=
+              user.organizationId) {
+            Future.microtask(() =>
+                organizationService.loadOrganization(user.organizationId!));
           }
 
-          if (organizationService.currentOrganization != null && !organizationService.isLoading) {
-             return const OrganizationDetailScreen();
+          if (organizationService.currentOrganization != null &&
+              !organizationService.isLoading) {
+            return const OrganizationDetailScreen();
           }
 
           return const UniversalLoadingScreen();
         }
 
         // CASO 2: NO TIENE ORGANIZACIÓN
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(l10n.myOrganizationTitle),
-            actions: [
-              StreamBuilder<List<dynamic>>(
-                stream: organizationService.getPendingInvitations(user.email),
-                builder: (context, invitationSnapshot) {
-                  final count = invitationSnapshot.data?.length ?? 0;
-                  if (count == 0) return const SizedBox.shrink();
+        return AppScaffold(
+          title: l10n.myOrganizationTitle,
+          currentIndex: AppNavIndex.organization,
+          actions: [
+            StreamBuilder<List<dynamic>>(
+              stream: organizationService.getPendingInvitations(user.email),
+              builder: (context, invitationSnapshot) {
+                final count = invitationSnapshot.data?.length ?? 0;
+                if (count == 0) return const SizedBox.shrink();
 
-                  return IconButton(
-                    icon: Badge(
-                      label: Text('$count'),
-                      child: const Icon(Icons.mail_outline),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PendingInvitationsScreen(),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
-          ),
-          body: organizationService.isLoading 
+                return IconButton(
+                  icon: Badge(
+                    label: Text('$count'),
+                    child: const Icon(Icons.mail_outline),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PendingInvitationsScreen(),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+          body: organizationService.isLoading
               ? const Center(child: CircularProgressIndicator())
               : _buildNoOrganizationView(context, user),
         );
@@ -111,7 +110,7 @@ class _OrganizationHomeScreenState extends State<OrganizationHomeScreen> {
 
   Widget _buildNoOrganizationView(BuildContext context, user) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),

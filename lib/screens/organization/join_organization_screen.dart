@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../services/invitation_service.dart';
 import '../../l10n/app_localizations.dart';
@@ -67,10 +68,9 @@ class _JoinOrganizationScreenState extends State<JoinOrganizationScreen> {
     final invitationService = Provider.of<InvitationService>(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.joinOrganizationTitle),
-      ),
+    return AppScaffold(
+      title: l10n.joinOrganizationTitle,
+      currentIndex: AppNavIndex.organization,
       body: SafeArea(
         child: Center(
           child: Container(

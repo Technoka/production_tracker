@@ -4,6 +4,7 @@ import 'package:gestion_produccion/models/pending_object_model.dart';
 import 'package:gestion_produccion/services/notification_service.dart';
 import 'package:gestion_produccion/services/organization_member_service.dart';
 import 'package:gestion_produccion/services/pending_object_service.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/product_catalog_service.dart';
@@ -53,7 +54,7 @@ class _CreateProductCatalogScreenState
   @override
   void initState() {
     super.initState();
-    
+
     // Pre-seleccionar valores iniciales
     if (widget.initialClientId != null) {
       _selectedClientId = widget.initialClientId;
@@ -96,7 +97,7 @@ class _CreateProductCatalogScreenState
 
   Future<void> _showCreateFamilyDialog() async {
     final familyController = TextEditingController();
-    
+
     final result = await showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -188,156 +189,160 @@ class _CreateProductCatalogScreenState
     return result ?? false;
   }
 
-Future<void> _handleCreate() async {
-  if (!_formKey.currentState!.validate()) return;
+  Future<void> _handleCreate() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  if (_selectedClientId == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Por favor selecciona un cliente'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  if (_selectedProjectId == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Por favor selecciona un proyecto'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  if (_selectedFamily == null || _selectedFamily!.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Por favor selecciona o crea una familia'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  setState(() => _isLoading = true);
-
-  try {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
-    final memberService = Provider.of<OrganizationMemberService>(context, listen: false);
-    final notificationService = Provider.of<NotificationService>(context, listen: false);
-    final pendingService = Provider.of<PendingObjectService>(context, listen: false);
-    final user = authService.currentUserData;
-    final l10n = AppLocalizations.of(context)!;
-
-    if (user == null || user.organizationId == null) return;
-
-    // Verificar si requiere aprobación
-    final userIsClient = memberService.currentMember?.roleId == 'client';
-    final requiresApproval = userIsClient;
-
-    String? resultId;
-
-    if (requiresApproval) {
-      // FLUJO CON APROBACIÓN
-      resultId = await ApprovalHelper.createOrRequestApproval(
-        organizationId: user.organizationId!,
-        objectType: PendingObjectType.productCatalog,
-        collectionRoute: 'product_catalog',
-        modelData: {
-          'name': _nameController.text.trim(),
-          'reference': _referenceController.text.trim(),
-          'description': _descriptionController.text.trim(),
-          'family': _selectedFamily,
-          'isNewFamily': widget.createNewFamily,
-          'clientId': _selectedClientId,
-          'createdBy': user.uid,
-          'isPublic': false,
-          'notes': _notesController.text.trim().isNotEmpty
-              ? _notesController.text.trim()
-              : null,
-          'projects': [_selectedProjectId!],
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        createdBy: user.uid,
-        createdByName: user.name,
-        requiresApproval: true,
-        userIsClient: true,
-        pendingService: pendingService,
-        notificationService: notificationService,
-        organizationMemberService: memberService,
-        clientId: _selectedClientId,
+    if (_selectedClientId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor selecciona un cliente'),
+          backgroundColor: Colors.red,
+        ),
       );
+      return;
+    }
 
-      if (mounted && resultId != null) {
-        _hasUnsavedChanges = false;
-        Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.productCreationPendingApproval),
-            backgroundColor: Colors.orange,
-          ),
+    if (_selectedProjectId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor selecciona un proyecto'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedFamily == null || _selectedFamily!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor selecciona o crea una familia'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final catalogService =
+          Provider.of<ProductCatalogService>(context, listen: false);
+      final memberService =
+          Provider.of<OrganizationMemberService>(context, listen: false);
+      final notificationService =
+          Provider.of<NotificationService>(context, listen: false);
+      final pendingService =
+          Provider.of<PendingObjectService>(context, listen: false);
+      final user = authService.currentUserData;
+      final l10n = AppLocalizations.of(context)!;
+
+      if (user == null || user.organizationId == null) return;
+
+      // Verificar si requiere aprobación
+      final userIsClient = memberService.currentMember?.roleId == 'client';
+      final requiresApproval = userIsClient;
+
+      String? resultId;
+
+      if (requiresApproval) {
+        // FLUJO CON APROBACIÓN
+        resultId = await ApprovalHelper.createOrRequestApproval(
+          organizationId: user.organizationId!,
+          objectType: PendingObjectType.productCatalog,
+          collectionRoute: 'product_catalog',
+          modelData: {
+            'name': _nameController.text.trim(),
+            'reference': _referenceController.text.trim(),
+            'description': _descriptionController.text.trim(),
+            'family': _selectedFamily,
+            'isNewFamily': widget.createNewFamily,
+            'clientId': _selectedClientId,
+            'createdBy': user.uid,
+            'isPublic': false,
+            'notes': _notesController.text.trim().isNotEmpty
+                ? _notesController.text.trim()
+                : null,
+            'projects': [_selectedProjectId!],
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          createdBy: user.uid,
+          createdByName: user.name,
+          requiresApproval: true,
+          userIsClient: true,
+          pendingService: pendingService,
+          notificationService: notificationService,
+          organizationMemberService: memberService,
+          clientId: _selectedClientId,
         );
-      }
-    } else {
-      // FLUJO DIRECTO (SIN APROBACIÓN)
-      resultId = await catalogService.createProduct(
-        organizationId: user.organizationId!,
-        name: _nameController.text.trim(),
-        reference: _referenceController.text.trim(),
-        description: _descriptionController.text.trim(),
-        family: _selectedFamily,
-        clientId: _selectedClientId,
-        createdBy: user.uid,
-        isPublic: false,
-        notes: _notesController.text.trim().isNotEmpty
-            ? _notesController.text.trim()
-            : null,
-        projects: [_selectedProjectId!],
-      );
 
-      if (mounted) {
-        if (resultId != null) {
+        if (mounted && resultId != null) {
           _hasUnsavedChanges = false;
           Navigator.pop(context, true);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                _pendingNewFamily != null
-                    ? 'Familia "$_pendingNewFamily" y producto creados exitosamente'
-                    : 'Producto creado exitosamente',
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error al crear el producto'),
-              backgroundColor: Colors.red,
+              content: Text(l10n.productCreationPendingApproval),
+              backgroundColor: Colors.orange,
             ),
           );
         }
+      } else {
+        // FLUJO DIRECTO (SIN APROBACIÓN)
+        resultId = await catalogService.createProduct(
+          organizationId: user.organizationId!,
+          name: _nameController.text.trim(),
+          reference: _referenceController.text.trim(),
+          description: _descriptionController.text.trim(),
+          family: _selectedFamily,
+          clientId: _selectedClientId,
+          createdBy: user.uid,
+          isPublic: false,
+          notes: _notesController.text.trim().isNotEmpty
+              ? _notesController.text.trim()
+              : null,
+          projects: [_selectedProjectId!],
+        );
+
+        if (mounted) {
+          if (resultId != null) {
+            _hasUnsavedChanges = false;
+            Navigator.pop(context, true);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  _pendingNewFamily != null
+                      ? 'Familia "$_pendingNewFamily" y producto creados exitosamente'
+                      : 'Producto creado exitosamente',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Error al crear el producto'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -346,8 +351,9 @@ Future<void> _handleCreate() async {
     final user = authService.currentUserData;
 
     if (user?.organizationId == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.newProduct)),
+      return AppScaffold(
+        title: l10n.newProduct,
+        currentIndex: AppNavIndex.management,
         body: const Center(
           child: Text('Debes pertenecer a una organización'),
         ),
@@ -356,10 +362,9 @@ Future<void> _handleCreate() async {
 
     return WillPopScope(
       onWillPop: _onWillPop,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.newProduct),
-        ),
+      child: AppScaffold(
+        title: l10n.newProduct,
+        currentIndex: AppNavIndex.management,
         body: Form(
           key: _formKey,
           child: Column(
@@ -419,7 +424,7 @@ Future<void> _handleCreate() async {
               ],
             ),
             const SizedBox(height: 20),
-            
+
             // Nombre del producto
             TextFormField(
               controller: _nameController,
@@ -439,7 +444,7 @@ Future<void> _handleCreate() async {
               textCapitalization: TextCapitalization.words,
             ),
             const SizedBox(height: 16),
-            
+
             // Referencia (SKU)
             TextFormField(
               controller: _referenceController,
@@ -459,7 +464,7 @@ Future<void> _handleCreate() async {
               textCapitalization: TextCapitalization.characters,
             ),
             const SizedBox(height: 16),
-            
+
             // Descripción
             TextFormField(
               controller: _descriptionController,
@@ -481,15 +486,15 @@ Future<void> _handleCreate() async {
               textCapitalization: TextCapitalization.sentences,
             ),
             const SizedBox(height: 20),
-            
+
             // Cliente
             _buildClientDropdown(context, user, l10n),
             const SizedBox(height: 16),
-            
+
             // Proyecto
             _buildProjectDropdown(context, user, l10n),
             const SizedBox(height: 16),
-            
+
             // Familia
             _buildFamilyDropdown(context, user, l10n),
           ],
@@ -714,7 +719,7 @@ Future<void> _handleCreate() async {
         }
 
         final allProducts = snapshot.data ?? [];
-        
+
         // Extraer familias únicas
         final families = allProducts
             .map((p) => p.family)
@@ -747,7 +752,8 @@ Future<void> _handleCreate() async {
         );
 
         // Si hay una familia pendiente de crear que no está en la lista, agregarla
-        if (_pendingNewFamily != null && !families.contains(_pendingNewFamily)) {
+        if (_pendingNewFamily != null &&
+            !families.contains(_pendingNewFamily)) {
           dropdownItems.add(
             DropdownMenuItem(
               value: _pendingNewFamily,
@@ -774,20 +780,20 @@ Future<void> _handleCreate() async {
         // Opciones: Familias existentes
         dropdownItems.addAll(
           families.map((family) => DropdownMenuItem(
-            value: family,
-            child: Text(
-              family!,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-              overflow: TextOverflow.ellipsis,
-            ),
-          )),
+                value: family,
+                child: Text(
+                  family!,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              )),
         );
 
         // Validar que el valor seleccionado esté en los items
         final validValue = _selectedFamily != null &&
-            (families.contains(_selectedFamily) || 
-             _selectedFamily == _pendingNewFamily ||
-             _selectedFamily == '__CREATE_NEW__')
+                (families.contains(_selectedFamily) ||
+                    _selectedFamily == _pendingNewFamily ||
+                    _selectedFamily == '__CREATE_NEW__')
             ? _selectedFamily
             : null;
 

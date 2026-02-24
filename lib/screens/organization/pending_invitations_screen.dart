@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../services/organization_service.dart';
 import '../../services/auth_service.dart';
@@ -15,10 +16,9 @@ class PendingInvitationsScreen extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final user = authService.currentUserData;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.pendingInvitationsTitle),
-      ),
+    return AppScaffold(
+      title: l10n.pendingInvitationsTitle,
+      currentIndex: AppNavIndex.organization,
       body: user == null
           ? const Center(child: CircularProgressIndicator())
           : StreamBuilder<List<InvitationModel>>(

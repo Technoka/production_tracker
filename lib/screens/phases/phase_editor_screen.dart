@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import '../../models/phase_model.dart';
 import '../../services/phase_service.dart';
 import '../../l10n/app_localizations.dart';
@@ -22,13 +23,13 @@ class PhaseEditorScreen extends StatefulWidget {
 class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phaseService = PhaseService();
-  
+
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   late TextEditingController _wipLimitController;
   late TextEditingController _maxDurationController;
   late TextEditingController _warningThresholdController;
-  
+
   String _selectedColor = '#2196F3';
   String _selectedIcon = 'work';
   bool _slaEnabled = false;
@@ -37,11 +38,12 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     final phase = widget.phase;
-    
+
     _nameController = TextEditingController(text: phase?.name ?? '');
-    _descriptionController = TextEditingController(text: phase?.description ?? '');
+    _descriptionController =
+        TextEditingController(text: phase?.description ?? '');
     _wipLimitController = TextEditingController(
       text: phase?.wipLimit.toString() ?? '10',
     );
@@ -51,7 +53,7 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
     _warningThresholdController = TextEditingController(
       text: phase?.warningThresholdPercent?.toString() ?? '80',
     );
-    
+
     if (phase != null) {
       _selectedColor = phase.color;
       _selectedIcon = phase.icon;
@@ -86,7 +88,8 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
       // Handle SLA settings properly
       if (_slaEnabled && _maxDurationController.text.isNotEmpty) {
         updates['maxDurationHours'] = int.parse(_maxDurationController.text);
-        updates['warningThresholdPercent'] = int.parse(_warningThresholdController.text);
+        updates['warningThresholdPercent'] =
+            int.parse(_warningThresholdController.text);
       } else {
         // Use FieldValue.delete() for removing fields in Firestore
         updates['maxDurationHours'] = FieldValue.delete();
@@ -95,11 +98,15 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
 
       if (widget.phase == null) {
         // Create new
-        final existingPhases = await _phaseService.getOrganizationPhases(widget.organizationId);
-        final newOrder = existingPhases.isEmpty 
-            ? 1 
-            : existingPhases.map((p) => p.order).reduce((a, b) => a > b ? a : b) + 1;
-        
+        final existingPhases =
+            await _phaseService.getOrganizationPhases(widget.organizationId);
+        final newOrder = existingPhases.isEmpty
+            ? 1
+            : existingPhases
+                    .map((p) => p.order)
+                    .reduce((a, b) => a > b ? a : b) +
+                1;
+
         final newPhase = ProductionPhase(
           id: '', // Firestore will generate
           name: updates['name'] as String,
@@ -111,14 +118,16 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
           icon: updates['icon'] as String,
           wipLimit: updates['wipLimit'] as int,
           kanbanPosition: newOrder,
-          maxDurationHours: _slaEnabled && _maxDurationController.text.isNotEmpty
-              ? int.parse(_maxDurationController.text)
-              : null,
-          warningThresholdPercent: _slaEnabled && _warningThresholdController.text.isNotEmpty
-              ? int.parse(_warningThresholdController.text)
-              : null,
+          maxDurationHours:
+              _slaEnabled && _maxDurationController.text.isNotEmpty
+                  ? int.parse(_maxDurationController.text)
+                  : null,
+          warningThresholdPercent:
+              _slaEnabled && _warningThresholdController.text.isNotEmpty
+                  ? int.parse(_warningThresholdController.text)
+                  : null,
         );
-        
+
         await _phaseService.createCustomPhase(widget.organizationId, newPhase);
       } else {
         // Update existing
@@ -130,10 +139,12 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
           'icon': updates['icon'],
           'wipLimit': updates['wipLimit'],
         };
-        
+
         if (_slaEnabled && _maxDurationController.text.isNotEmpty) {
-          updateData['maxDurationHours'] = int.parse(_maxDurationController.text);
-          updateData['warningThresholdPercent'] = int.parse(_warningThresholdController.text);
+          updateData['maxDurationHours'] =
+              int.parse(_maxDurationController.text);
+          updateData['warningThresholdPercent'] =
+              int.parse(_warningThresholdController.text);
         }
         // Note: To actually remove fields in Firestore when updating existing doc,
         // we need to use FieldValue.delete(), but only if the phase exists
@@ -141,7 +152,7 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
           updateData['maxDurationHours'] = FieldValue.delete();
           updateData['warningThresholdPercent'] = FieldValue.delete();
         }
-        
+
         await _phaseService.updatePhase(
           widget.organizationId,
           widget.phase!.id,
@@ -170,27 +181,26 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
     final l10n = AppLocalizations.of(context)!;
     final isEditing = widget.phase != null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditing ? l10n.editPhaseTitle : l10n.createPhaseTitle),
-        actions: [
-          if (_isSaving)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            )
-          else
-            TextButton(
-              onPressed: _save,
-              child: Text(
-                l10n.save,
-                style: const TextStyle(color: Colors.white),
-              ),
+    return AppScaffold(
+      title: isEditing ? l10n.editPhaseTitle : l10n.createPhaseTitle,
+      currentIndex: AppNavIndex.production,
+      actions: [
+        if (_isSaving)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
-        ],
-      ),
+          )
+        else
+          TextButton(
+            onPressed: _save,
+            child: Text(
+              l10n.save,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+      ],
       body: Form(
         key: _formKey,
         child: ListView(
@@ -220,9 +230,9 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
                         return null;
                       },
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Description
                     TextFormField(
                       controller: _descriptionController,
@@ -237,9 +247,9 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // ==================== VISUAL SETTINGS ====================
             _buildSectionHeader(l10n.visualSettings, Icons.palette),
             const SizedBox(height: 8),
@@ -259,9 +269,9 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildColorPicker(),
-                    
+
                     const Divider(height: 32),
-                    
+
                     // Icon picker
                     Text(
                       l10n.selectIcon,
@@ -276,9 +286,9 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // ==================== ADVANCED SETTINGS ====================
             _buildSectionHeader(l10n.advancedSettings, Icons.settings),
             const SizedBox(height: 8),
@@ -320,9 +330,9 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
                         return null;
                       },
                     ),
-                    
+
                     const Divider(height: 32),
-                    
+
                     // SLA Settings
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -342,10 +352,10 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
                         ),
                       ],
                     ),
-                    
+
                     if (_slaEnabled) ...[
                       const SizedBox(height: 12),
-                      
+
                       // Max Duration
                       TextFormField(
                         controller: _maxDurationController,
@@ -358,7 +368,9 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
                           suffixText: 'horas',
                         ),
                         keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
                         validator: _slaEnabled
                             ? (value) {
                                 if (value == null || value.isEmpty) {
@@ -372,9 +384,9 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
                               }
                             : null,
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Warning Threshold
                       TextFormField(
                         controller: _warningThresholdController,
@@ -387,14 +399,18 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
                           suffixText: '%',
                         ),
                         keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
                         validator: _slaEnabled
                             ? (value) {
                                 if (value == null || value.isEmpty) {
                                   return l10n.fieldRequired;
                                 }
                                 final number = int.tryParse(value);
-                                if (number == null || number < 1 || number > 100) {
+                                if (number == null ||
+                                    number < 1 ||
+                                    number > 100) {
                                   return 'Debe estar entre 1 y 100';
                                 }
                                 return null;
@@ -415,7 +431,7 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 32),
           ],
         ),
@@ -441,11 +457,26 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
 
   Widget _buildColorPicker() {
     final colors = [
-      '#F44336', '#E91E63', '#9C27B0', '#673AB7',
-      '#3F51B5', '#2196F3', '#03A9F4', '#00BCD4',
-      '#009688', '#4CAF50', '#8BC34A', '#CDDC39',
-      '#FFEB3B', '#FFC107', '#FF9800', '#FF5722',
-      '#795548', '#9E9E9E', '#607D8B', '#000000',
+      '#F44336',
+      '#E91E63',
+      '#9C27B0',
+      '#673AB7',
+      '#3F51B5',
+      '#2196F3',
+      '#03A9F4',
+      '#00BCD4',
+      '#009688',
+      '#4CAF50',
+      '#8BC34A',
+      '#CDDC39',
+      '#FFEB3B',
+      '#FFC107',
+      '#FF9800',
+      '#FF5722',
+      '#795548',
+      '#9E9E9E',
+      '#607D8B',
+      '#000000',
     ];
 
     return Wrap(
@@ -519,12 +550,13 @@ class _PhaseEditorScreenState extends State<PhaseEditorScreen> {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: isSelected
-                  ? _parseColor(_selectedColor)
-                  : Colors.grey[200],
+              color:
+                  isSelected ? _parseColor(_selectedColor) : Colors.grey[200],
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isSelected ? _parseColor(_selectedColor) : Colors.grey[300]!,
+                color: isSelected
+                    ? _parseColor(_selectedColor)
+                    : Colors.grey[300]!,
                 width: 2,
               ),
             ),

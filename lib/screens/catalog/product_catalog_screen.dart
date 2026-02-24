@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/screens/catalog/product_catalog_form_screen.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/product_catalog_model.dart';
@@ -27,7 +28,7 @@ class ProductCatalogScreen extends StatefulWidget {
 
 class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
   final TextEditingController _searchController = TextEditingController();
-  
+
   String _searchQuery = '';
   String? _selectedCategory;
   List<String> _availableCategories = [];
@@ -46,8 +47,10 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
   }
 
   Future<void> _loadCategories() async {
-    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
-    final categories = await catalogService.getOrganizationCategories(widget.organizationId);
+    final catalogService =
+        Provider.of<ProductCatalogService>(context, listen: false);
+    final categories =
+        await catalogService.getOrganizationCategories(widget.organizationId);
     if (mounted) {
       setState(() {
         _availableCategories = categories;
@@ -62,51 +65,51 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!; // Referencia local
-    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
+    final catalogService =
+        Provider.of<ProductCatalogService>(context, listen: false);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.catalogTitle),
-        actions: [
-          // Filtro de categorías
-          if (_availableCategories.isNotEmpty)
-            PopupMenuButton<String?>(
-              icon: const Icon(Icons.filter_list),
-              tooltip: l10n.filterByCategory,
-              onSelected: (category) {
-                setState(() {
-                  _selectedCategory = category;
-                });
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem<String?>(
-                  value: null,
-                  child: Text(l10n.allCategories),
-                ),
-                const PopupMenuDivider(),
-                ..._availableCategories.map(
-                  (category) => PopupMenuItem<String?>(
-                    value: category,
-                    child: Text(category),
-                  ),
-                ),
-              ],
-            ),
-          // Mostrar inactivos
-          if (_canManageProducts())
-            IconButton(
-              icon: Icon(
-                _showInactive ? Icons.visibility : Icons.visibility_off,
+    return AppScaffold(
+      currentIndex: AppNavIndex.management,
+      title: l10n.catalogTitle,
+      actions: [
+        // Filtro de categorías
+        if (_availableCategories.isNotEmpty)
+          PopupMenuButton<String?>(
+            icon: const Icon(Icons.filter_list),
+            tooltip: l10n.filterByCategory,
+            onSelected: (category) {
+              setState(() {
+                _selectedCategory = category;
+              });
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem<String?>(
+                value: null,
+                child: Text(l10n.allCategories),
               ),
-              tooltip: _showInactive ? l10n.hideInactive : l10n.showInactive,
-              onPressed: () {
-                setState(() {
-                  _showInactive = !_showInactive;
-                });
-              },
+              const PopupMenuDivider(),
+              ..._availableCategories.map(
+                (category) => PopupMenuItem<String?>(
+                  value: category,
+                  child: Text(category),
+                ),
+              ),
+            ],
+          ),
+        // Mostrar inactivos
+        if (_canManageProducts())
+          IconButton(
+            icon: Icon(
+              _showInactive ? Icons.visibility : Icons.visibility_off,
             ),
-        ],
-      ),
+            tooltip: _showInactive ? l10n.hideInactive : l10n.showInactive,
+            onPressed: () {
+              setState(() {
+                _showInactive = !_showInactive;
+              });
+            },
+          ),
+      ],
       body: Column(
         children: [
           // Barra de búsqueda
@@ -186,7 +189,8 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                             setState(() {});
                           },
                           icon: const Icon(Icons.refresh),
-                          label: const Text('Reintentar'), // Puedes añadir "retry" a arb
+                          label: const Text(
+                              'Reintentar'), // Puedes añadir "retry" a arb
                         ),
                       ],
                     ),
@@ -272,7 +276,8 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                                 final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => ProductCatalogFormScreen(
+                                    builder: (context) =>
+                                        ProductCatalogFormScreen(
                                       product: product,
                                     ),
                                   ),
@@ -303,9 +308,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ProductCatalogFormScreen(
-
-                    ),
+                    builder: (context) => const ProductCatalogFormScreen(),
                   ),
                 );
                 if (result == true) {
@@ -320,13 +323,17 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
     );
   }
 
-  Future<void> _toggleProductActive(ProductCatalogModel product, AppLocalizations l10n) async {
-    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
+  Future<void> _toggleProductActive(
+      ProductCatalogModel product, AppLocalizations l10n) async {
+    final catalogService =
+        Provider.of<ProductCatalogService>(context, listen: false);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          product.isActive ? l10n.deactivateProductTitle : l10n.reactivateProductTitle,
+          product.isActive
+              ? l10n.deactivateProductTitle
+              : l10n.reactivateProductTitle,
         ),
         content: Text(
           product.isActive
@@ -344,7 +351,10 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
               backgroundColor: product.isActive ? Colors.red : null,
             ),
             child: Text(
-              product.isActive ? l10n.delete : l10n.save, // Usando delete/save genéricos o crear específicos
+              product.isActive
+                  ? l10n.delete
+                  : l10n
+                      .save, // Usando delete/save genéricos o crear específicos
             ),
           ),
         ],
@@ -520,7 +530,7 @@ class _ProductCard extends StatelessWidget {
                       PopupMenuButton(
                         itemBuilder: (context) => [
                           if (onEdit != null)
-                             PopupMenuItem(
+                            PopupMenuItem(
                               value: 'edit',
                               child: Row(
                                 children: [
@@ -542,7 +552,9 @@ class _ProductCard extends StatelessWidget {
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
-                                  Text(product.isActive ? l10n.deactivateProductTitle : l10n.reactivateProductTitle),
+                                  Text(product.isActive
+                                      ? l10n.deactivateProductTitle
+                                      : l10n.reactivateProductTitle),
                                 ],
                               ),
                             ),
@@ -567,7 +579,8 @@ class _ProductCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (product.dimensions != null && product.dimensions!.hasAnyDimension) ...[
+                if (product.dimensions != null &&
+                    product.dimensions!.hasAnyDimension) ...[
                   const SizedBox(height: 8),
                   Row(
                     children: [

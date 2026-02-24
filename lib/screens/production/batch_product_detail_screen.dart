@@ -218,7 +218,7 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 // Definimos el breakpoint para "Escritorio" (ej: 900px)
-                final isDesktop = constraints.maxWidth > 900;
+                final isDesktop = constraints.maxWidth > UIConstants.DESKTOP_MIN_SCREEN_WIDTH;
 
                 // Si es móvil, mantenemos el ListView original (1 columna)
                 if (!isDesktop) {

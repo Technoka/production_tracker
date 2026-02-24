@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import 'package:country_picker/country_picker.dart';
 import '../../l10n/app_localizations.dart';
@@ -62,7 +63,8 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     _nameController = TextEditingController(text: client?.name ?? '');
     _companyController = TextEditingController(text: client?.company ?? '');
     _emailController = TextEditingController(text: client?.email ?? '');
-    _phonePrefixController = TextEditingController(text: client?.phonePrefix ?? '+34');
+    _phonePrefixController =
+        TextEditingController(text: client?.phonePrefix ?? '+34');
     _phoneController = TextEditingController(text: client?.phone ?? '');
     _addressController = TextEditingController(text: client?.address ?? '');
     _cityController = TextEditingController(text: client?.city ?? '');
@@ -186,12 +188,12 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     final phonePrefix = _phonePrefixController.text.trim().isEmpty
         ? null
         : _phonePrefixController.text.trim();
-    
+
     final phone = _phoneController.text.trim().isEmpty
         ? null
         : _phoneController.text.trim();
 
-        print("valor de phone prefix: ${phonePrefix}");
+    print("valor de phone prefix: ${phonePrefix}");
 
     bool success;
     if (widget.isEditMode) {
@@ -300,11 +302,9 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
           }
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-              widget.isEditMode ? l10n.editClientTitle : l10n.newClientTitle),
-        ),
+      child: AppScaffold(
+        title: widget.isEditMode ? l10n.editClientTitle : l10n.newClientTitle,
+        currentIndex: AppNavIndex.management,
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
@@ -401,7 +401,8 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
                                   showPhoneCode: true,
                                   onSelect: (Country country) {
                                     setState(() {
-                                      _phonePrefixController.text = '+${country.phoneCode}';
+                                      _phonePrefixController.text =
+                                          '+${country.phoneCode}';
                                     });
                                   },
                                 );

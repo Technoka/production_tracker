@@ -3,6 +3,7 @@ import 'package:gestion_produccion/l10n/app_localizations.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:gestion_produccion/widgets/access_control_widget.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:gestion_produccion/widgets/ui_widgets.dart';
 import 'package:provider/provider.dart';
 import '../../models/production_batch_model.dart';
@@ -68,8 +69,9 @@ class _ProductionBatchDetailScreenState
         final batch = dataProvider.getBatchById(widget.batchId);
 
         if (batch == null) {
-          return Scaffold(
-            appBar: AppBar(title: Text(l10n.error)),
+          return AppScaffold(
+            title: l10n.productionTitle,
+            currentIndex: AppNavIndex.production,
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -88,9 +90,9 @@ class _ProductionBatchDetailScreenState
           );
         }
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(batch.batchNumber),
+        return AppScaffold(
+            title: l10n.productionTitle,
+            currentIndex: AppNavIndex.production,
             actions: [
               // 1. Solo mostramos el botón de menú si tiene permiso de Editar O Eliminar.
               // Si no tiene ninguno, no se muestra nada.
@@ -132,7 +134,6 @@ class _ProductionBatchDetailScreenState
                   ],
                 ),
             ],
-          ),
 
           body: RefreshIndicator(
             onRefresh: () async {

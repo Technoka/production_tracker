@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../l10n/app_localizations.dart';
@@ -137,9 +138,9 @@ class ManageInvitationsScreen extends StatelessWidget {
     final invitationService = Provider.of<InvitationService>(context);
     final roleService = Provider.of<RoleService>(context, listen: false);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.manageInvitationsTitle),
+    return AppScaffold(
+      title: l10n.manageInvitationsTitle,
+      currentIndex: AppNavIndex.organization,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -157,7 +158,6 @@ class ManageInvitationsScreen extends StatelessWidget {
             tooltip: l10n.createInvitationTitle,
           ),
         ],
-      ),
       body: StreamBuilder<List<InvitationModel>>(
         stream: invitationService.watchActiveInvitations(organizationId),
         builder: (context, snapshot) {

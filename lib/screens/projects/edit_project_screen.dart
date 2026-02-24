@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/services/organization_member_service.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../services/project_service.dart';
 import '../../services/auth_service.dart';
@@ -95,8 +96,9 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     final user = authService.currentUserData;
 
     if (user?.organizationId == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.editProjectTitle)),
+      return AppScaffold(
+        title: l10n.editProjectTitle,
+        currentIndex: AppNavIndex.organization,
         body: Center(
           child: Text(l10n.noOrganizationAssigned),
         ),
@@ -143,8 +145,9 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       icon = Icons.lock_outline;
     }
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.editProjectTitle)),
+    return AppScaffold(
+      title: l10n.editProjectTitle,
+      currentIndex: AppNavIndex.organization,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -177,11 +180,9 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
       BuildContext context, AppLocalizations l10n, UserModel user) {
     final projectService = Provider.of<ProjectService>(context, listen: false);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.editProjectTitle),
-        elevation: 0,
-      ),
+    return AppScaffold(
+      title: l10n.editProjectTitle,
+      currentIndex: AppNavIndex.organization,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gestion_produccion/models/product_catalog_model.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/project_service.dart';
@@ -55,8 +56,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         final project = dataProvider.getProjectById(widget.projectId);
 
         if (project == null) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Detalle del Proyecto')),
+          return AppScaffold(
+            title: 'Detalle del Proyecto',
+            currentIndex: AppNavIndex.organization,
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -78,8 +80,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         final canViewProjects = permissionService.canViewProjects;
 
         if (!canViewProjects) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Acceso Denegado')),
+          return AppScaffold(
+            title: 'Acceso denegado',
+            currentIndex: AppNavIndex.organization,
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -119,120 +122,125 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     final hasAnyAction =
         canEditProjects || canDeleteProjects || canDuplicateProjects;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detalle del Proyecto'),
-        actions: [
-          if (hasAnyAction)
-            PopupMenuButton(
-              itemBuilder: (context) {
-                final List<PopupMenuEntry> items = [];
+    return AppScaffold(
+      title: 'Detalle del Proyecto',
+      currentIndex: AppNavIndex.organization,
+      actions: [
+        if (hasAnyAction)
+          PopupMenuButton(
+            itemBuilder: (context) {
+              final List<PopupMenuEntry> items = [];
 
-                if (canEditProjects) {
-                  items.add(
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 20),
-                          SizedBox(width: 8),
-                          Text('Editar'),
-                        ],
-                      ),
+              if (canEditProjects) {
+                items.add(
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, size: 20),
+                        SizedBox(width: 8),
+                        Text('Editar'),
+                      ],
                     ),
-                  );
-                }
+                  ),
+                );
+              }
 
-                if (canDuplicateProjects) {
-                  items.add(
-                    const PopupMenuItem(
-                      value: 'duplicate',
-                      child: Row(
-                        children: [
-                          Icon(Icons.content_copy, size: 20),
-                          SizedBox(width: 8),
-                          Text('Duplicar'),
-                        ],
-                      ),
+              if (canDuplicateProjects) {
+                items.add(
+                  const PopupMenuItem(
+                    value: 'duplicate',
+                    child: Row(
+                      children: [
+                        Icon(Icons.content_copy, size: 20),
+                        SizedBox(width: 8),
+                        Text('Duplicar'),
+                      ],
                     ),
-                  );
-                }
+                  ),
+                );
+              }
 
-                if (canEditProjects) {
-                  items.add(
-                    PopupMenuItem(
-                      value: 'deactivate',
-                      child: Row(
-                        children: [
-                          Icon(
-                            project.isActive
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(project.isActive ? 'Desactivar' : 'Reactivar'),
-                        ],
-                      ),
+              if (canEditProjects) {
+                items.add(
+                  PopupMenuItem(
+                    value: 'deactivate',
+                    child: Row(
+                      children: [
+                        Icon(
+                          project.isActive
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(project.isActive ? 'Desactivar' : 'Reactivar'),
+                      ],
                     ),
-                  );
-                }
+                  ),
+                );
+              }
 
-                if (canDeleteProjects && !project.isActive) {
-                  items.add(
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Eliminar', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
+              if (canDeleteProjects && !project.isActive) {
+                items.add(
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete, size: 20, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Eliminar', style: TextStyle(color: Colors.red)),
+                      ],
                     ),
-                  );
-                }
+                  ),
+                );
+              }
 
-                return items;
-              },
-              onSelected: (value) async {
-                if (value == 'edit') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => EditProjectScreen(project: project),
-                    ),
-                  );
-                } else if (value == 'duplicate') {
-                  await _duplicateProject(context, projectService, project);
-                } else if (value == 'deactivate') {
-                  await _toggleProjectActive(
-                      context, projectService, project, user.organizationId!);
-                } else if (value == 'delete') {
-                  await _showDeleteDialog(
-                      context, projectService, project, user.organizationId!);
-                }
-              },
-            ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          onTap: (index) {
-            setState(() {
-              // _selectedTab = index;
-            });
-          },
-          tabs: const [
-            Tab(text: 'Detalles', icon: Icon(Icons.info_outline)),
-            Tab(text: 'Productos', icon: Icon(Icons.inventory_2_outlined)),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
+              return items;
+            },
+            onSelected: (value) async {
+              if (value == 'edit') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EditProjectScreen(project: project),
+                  ),
+                );
+              } else if (value == 'duplicate') {
+                await _duplicateProject(context, projectService, project);
+              } else if (value == 'deactivate') {
+                await _toggleProjectActive(
+                    context, projectService, project, user.organizationId!);
+              } else if (value == 'delete') {
+                await _showDeleteDialog(
+                    context, projectService, project, user.organizationId!);
+              }
+            },
+          ),
+      ],
+      body: Column(
         children: [
-          _buildDetailsTab(context, user, project),
-          _buildProductsTab(context, user, project),
+          TabBar(
+            controller: _tabController,
+            onTap: (index) {
+              setState(() {
+                // _selectedTab = index;
+              });
+            },
+            tabs: const [
+              Tab(text: 'Detalles', icon: Icon(Icons.info_outline)),
+              Tab(text: 'Productos', icon: Icon(Icons.inventory_2_outlined)),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildDetailsTab(context, user, project),
+                _buildProductsTab(context, user, project),
+              ],
+            ),
+          ),
         ],
       ),
     );

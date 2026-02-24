@@ -6,6 +6,7 @@ import 'package:gestion_produccion/services/phase_service.dart';
 import 'package:gestion_produccion/services/product_catalog_service.dart';
 import 'package:gestion_produccion/services/production_batch_service.dart';
 import 'package:gestion_produccion/services/project_service.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/auth_service.dart';
@@ -51,16 +52,16 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
     final organizationId = user?.organizationId;
 
     if (user == null || organizationId == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.pendingApproval)),
+      return AppScaffold(
+        title: l10n.pendingApproval,
+        currentIndex: AppNavIndex.production,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.pendingApproval),
-      ),
+    return AppScaffold(
+      title: l10n.pendingApproval,
+      currentIndex: AppNavIndex.production,
       body: StreamBuilder<PendingObjectModel?>(
         stream: pendingService.watchPendingObject(
           organizationId,
@@ -877,7 +878,8 @@ class _ApprovalDetailScreenState extends State<ApprovalDetailScreen> {
         productData['productReference']?.toString() ?? 'Sin ref.';
     final family = productData['family']?.toString();
     final quantity = productData['quantity']?.toString();
-    final isUrgent = productData['urgencyLevel']?.toString() == UrgencyLevel.urgent.value;
+    final isUrgent =
+        productData['urgencyLevel']?.toString() == UrgencyLevel.urgent.value;
 
     // Parsear fecha
     String? deliveryDateStr;

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:gestion_produccion/services/organization_member_service.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:gestion_produccion/utils/error_handler.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/message_model.dart';
 import '../../models/user_model.dart';
@@ -509,9 +510,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_currentUser == null || _isCheckingRole) {
-      return Scaffold(
-        appBar: AppBar(title: Text(widget.entityName)),
+      return AppScaffold(
+        title: widget.entityName,
+        currentIndex: AppNavIndex.production,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -520,65 +524,9 @@ class _ChatScreenState extends State<ChatScreen> {
     // Los clientes NO ven mensajes internos
     final effectiveShowInternal = !_isUserClient && widget.showInternalMessages;
 
-    return Scaffold(
-      appBar: _buildAppBar(),
-      body: Center(
-        child: Container(
-          // Limitar ancho máximo en web a 1000px
-          constraints: kIsWeb
-              ? const BoxConstraints(maxWidth: 1000)
-              : const BoxConstraints(),
-          child: Stack(
-            // CAMBIAR: Column a Stack
-            children: [
-              Column(
-                children: [
-                  // Mensajes fijados
-                  _buildPinnedMessages(),
-
-                  // Lista de mensajes
-                  Expanded(child: _buildMessagesList(effectiveShowInternal)),
-
-                  _buildMessageInputWithKey(),
-                ],
-              ),
-
-              // AGREGAR: Botón flotante encima del MessageInput
-              if (_showScrollToBottom)
-                Positioned(
-                  bottom: _inputHeight + 20, // Encima del input
-                  right: 16,
-                  child: FloatingActionButton.small(
-                    onPressed: _scrollToBottom,
-                    backgroundColor: Colors.green,
-                    child:
-                        const Icon(Icons.arrow_downward, color: Colors.white),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    final l10n = AppLocalizations.of(context)!;
-
-    return AppBar(
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(widget.entityName),
-          Text(
-            _getEntityTypeLabel(l10n),
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[300],
-            ),
-          ),
-        ],
-      ),
+    return AppScaffold(
+      title: '${widget.entityName}: ${_getEntityTypeLabel(l10n)}',
+      currentIndex: AppNavIndex.production,
       actions: [
         // Buscar
         IconButton(
@@ -626,6 +574,43 @@ class _ChatScreenState extends State<ChatScreen> {
           },
         ),
       ],
+      body: Center(
+        child: Container(
+          // Limitar ancho máximo en web a 1000px
+          constraints: kIsWeb
+              ? const BoxConstraints(maxWidth: 1000)
+              : const BoxConstraints(),
+          child: Stack(
+            // CAMBIAR: Column a Stack
+            children: [
+              Column(
+                children: [
+                  // Mensajes fijados
+                  _buildPinnedMessages(),
+
+                  // Lista de mensajes
+                  Expanded(child: _buildMessagesList(effectiveShowInternal)),
+
+                  _buildMessageInputWithKey(),
+                ],
+              ),
+
+              // AGREGAR: Botón flotante encima del MessageInput
+              if (_showScrollToBottom)
+                Positioned(
+                  bottom: _inputHeight + 20, // Encima del input
+                  right: 16,
+                  child: FloatingActionButton.small(
+                    onPressed: _scrollToBottom,
+                    backgroundColor: Colors.green,
+                    child:
+                        const Icon(Icons.arrow_downward, color: Colors.white),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -971,7 +956,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final permissionService =
         Provider.of<PermissionService>(context, listen: false);
     final canSendMessages = permissionService.canSendMessages;
-    print("can send messages: $canSendMessages");
 
     // Medir la altura del input después de construir
     WidgetsBinding.instance.addPostFrameCallback((_) {

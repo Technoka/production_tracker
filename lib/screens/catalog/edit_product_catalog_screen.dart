@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/product_catalog_model.dart';
 import '../../models/user_model.dart';
@@ -64,9 +65,12 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
 
   void _initializeControllers() {
     _nameController = TextEditingController(text: widget.product.name);
-    _referenceController = TextEditingController(text: widget.product.reference);
-    _descriptionController = TextEditingController(text: widget.product.description);
-    _categoryController = TextEditingController(text: widget.product.category ?? '');
+    _referenceController =
+        TextEditingController(text: widget.product.reference);
+    _descriptionController =
+        TextEditingController(text: widget.product.description);
+    _categoryController =
+        TextEditingController(text: widget.product.category ?? '');
     _notesController = TextEditingController(text: widget.product.notes ?? '');
     _basePriceController = TextEditingController(
       text: widget.product.basePrice?.toString() ?? '',
@@ -93,7 +97,8 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
       text: widget.product.materialInfo?.color ?? '',
     );
 
-    _secondaryMaterials = List.from(widget.product.materialInfo?.secondaryMaterials ?? []);
+    _secondaryMaterials =
+        List.from(widget.product.materialInfo?.secondaryMaterials ?? []);
     _tags = List.from(widget.product.tags);
     _imageUrls = List.from(widget.product.imageUrls);
 
@@ -134,9 +139,10 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
   }
 
   Future<void> _loadCategories() async {
-    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
-    final categories =
-        await catalogService.getOrganizationCategories(widget.product.organizationId);
+    final catalogService =
+        Provider.of<ProductCatalogService>(context, listen: false);
+    final categories = await catalogService
+        .getOrganizationCategories(widget.product.organizationId);
     if (mounted) {
       setState(() {
         _availableCategories = categories;
@@ -146,7 +152,8 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
 
   Future<void> _saveChanges(AppLocalizations l10n) async {
     if (!_formKey.currentState!.validate()) return;
-    final catalogService = Provider.of<ProductCatalogService>(context, listen: false);
+    final catalogService =
+        Provider.of<ProductCatalogService>(context, listen: false);
 
     setState(() {
       _isLoading = true;
@@ -269,29 +276,28 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
           Navigator.pop(context);
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.editProductTitle),
-          actions: [
-            if (_hasChanges)
-              Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.orange[100],
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  l10n.unsavedChanges,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange,
-                  ),
+      child: AppScaffold(
+        currentIndex: AppNavIndex.management,
+        title: l10n.editProductTitle,
+        actions: [
+          if (_hasChanges)
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.orange[100],
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                l10n.unsavedChanges,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange,
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
         body: Form(
           key: _formKey,
           child: ListView(
@@ -350,14 +356,16 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
                   if (textEditingValue.text.isEmpty) {
                     return _availableCategories;
                   }
-                  return _availableCategories.where((category) =>
-                      category.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                  return _availableCategories.where((category) => category
+                      .toLowerCase()
+                      .contains(textEditingValue.text.toLowerCase()));
                 },
                 onSelected: (selection) {
                   _categoryController.text = selection;
                   _markAsChanged();
                 },
-                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                fieldViewBuilder:
+                    (context, controller, focusNode, onFieldSubmitted) {
                   if (controller.text != _categoryController.text) {
                     controller.text = _categoryController.text;
                   }
@@ -386,12 +394,10 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
                   Expanded(
                     child: SwitchListTile(
                       title: Text(
-                        _isPublic 
-                            ? l10n.publicProduct 
-                            : l10n.privateProduct),
+                          _isPublic ? l10n.publicProduct : l10n.privateProduct),
                       subtitle: Text(
-                        _isPublic 
-                            ? l10n.publicProductSubtitle 
+                        _isPublic
+                            ? l10n.publicProductSubtitle
                             : l10n.privateProductSubtitle,
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
@@ -471,9 +477,8 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
                         setState(() {
                           _selectedClientId = clientId;
                           _hasChanges = true;
-                          _selectedClientName = clients
-                              .firstWhere((c) => c.id == clientId)
-                              .name;
+                          _selectedClientName =
+                              clients.firstWhere((c) => c.id == clientId).name;
                         });
                       },
                       validator: (value) {
@@ -486,7 +491,6 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -496,7 +500,8 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, size: 18, color: Colors.blue[700]),
+                      Icon(Icons.info_outline,
+                          size: 18, color: Colors.blue[700]),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -512,7 +517,7 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
                 ),
               ],
 
-              const SizedBox(height: 24),     
+              const SizedBox(height: 24),
 
               _buildSectionTitle(l10n.dimensionsLabel('cm')),
               Row(
@@ -525,9 +530,11 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
                         border: const OutlineInputBorder(),
                         suffixText: 'cm',
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d+\.?\d{0,2}')),
                       ],
                       onChanged: (_) => _markAsChanged(),
                     ),
@@ -541,9 +548,11 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
                         border: const OutlineInputBorder(),
                         suffixText: 'cm',
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d+\.?\d{0,2}')),
                       ],
                       onChanged: (_) => _markAsChanged(),
                     ),
@@ -557,9 +566,11 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
                         border: const OutlineInputBorder(),
                         suffixText: 'cm',
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d+\.?\d{0,2}')),
                       ],
                       onChanged: (_) => _markAsChanged(),
                     ),
@@ -637,9 +648,11 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
                         border: const OutlineInputBorder(),
                         suffixText: 'kg',
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d+\.?\d{0,2}')),
                       ],
                       onChanged: (_) => _markAsChanged(),
                     ),
@@ -653,9 +666,11 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
                         border: const OutlineInputBorder(),
                         prefixText: '€ ',
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d+\.?\d{0,2}')),
                       ],
                       onChanged: (_) => _markAsChanged(),
                     ),
@@ -694,7 +709,9 @@ class _EditProductCatalogScreenState extends State<EditProductCatalogScreen> {
               const SizedBox(height: 32),
 
               FilledButton(
-                onPressed: _isLoading || !_hasChanges ? null : () => _saveChanges(l10n),
+                onPressed: _isLoading || !_hasChanges
+                    ? null
+                    : () => _saveChanges(l10n),
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,

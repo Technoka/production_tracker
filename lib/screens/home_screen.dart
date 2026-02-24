@@ -8,6 +8,8 @@ import 'package:gestion_produccion/services/product_catalog_service.dart';
 import 'package:gestion_produccion/services/product_status_service.dart';
 import 'package:gestion_produccion/services/production_batch_service.dart';
 import 'package:gestion_produccion/services/project_service.dart';
+import 'package:gestion_produccion/utils/ui_constants.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:gestion_produccion/widgets/notification_badge.dart';
 import 'package:gestion_produccion/widgets/universal_loading_screen.dart';
 import 'package:provider/provider.dart';
@@ -21,7 +23,6 @@ import 'production/create_production_batch_screen.dart';
 import '../widgets/production_dashboard_widget.dart';
 import '../widgets/kanban/kanban_board_widget.dart';
 import '../widgets/bottom_nav_bar_widget.dart';
-import '../../screens/dashboard/metrics_dashboard_screen.dart';
 import '../../models/user_model.dart';
 import '../../services/update_service.dart';
 import '../../widgets/whats_new_dialog.dart';
@@ -201,168 +202,130 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: user.organizationId != null && initProvider.cachedOrgName != null
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (initProvider.cachedOrgLogoUrl != null) ...[
-                    Container(
-                      height:
-                          kToolbarHeight - 16, // Altura del AppBar menos margen
-                      constraints: const BoxConstraints(
-                        maxWidth: 120, // Ancho máximo para logos horizontales
-                      ),
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          initProvider.cachedOrgLogoUrl!,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const SizedBox.shrink(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  Flexible(
-                    child: Text(
-                      initProvider.cachedOrgName!,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              )
-            : Text(l10n.appTitle),
-        actions: const [
-          NotificationBadge(),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _handleRefresh,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Saludo
-              Row(
-                children: [
-                  IconButton(
-                    padding: const EdgeInsets.all(8),
-                    icon: CircleAvatar(
-                      radius: 30, // Tamaño ajustado para AppBar
-                      backgroundColor: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.1),
-                      backgroundImage:
-                          (user.photoURL != null && user.photoURL!.isNotEmpty)
-                              ? NetworkImage(user.photoURL!)
-                              : null,
-                      child: (user.photoURL == null || user.photoURL!.isEmpty)
-                          ? Text(
-                              user.name.isNotEmpty
-                                  ? user.name[0].toUpperCase()
-                                  : '?',
-                              style: TextStyle(
-                                fontSize: 25,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            )
-                          : null,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const ProfileScreen()),
-                      );
-                    },
-                    tooltip: l10n.profile,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+    return AppScaffold(
+      currentIndex: AppNavIndex.home,
+      title: l10n.appTitle,
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // El contenido principal
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _handleRefresh,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Saludo
+                    Row(
                       children: [
-                        Text(
-                          '${l10n.welcome}, ${user.name}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                        const SizedBox(height: 4),
-                        // Usar el cache del provider en lugar de variable local
-                        if (initProvider.cachedRoleName != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              initProvider.cachedRoleName!,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                        IconButton(
+                          padding: const EdgeInsets.all(8),
+                          icon: CircleAvatar(
+                            radius: 30, // Tamaño ajustado para AppBar
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.1),
+                            backgroundImage: (user.photoURL != null &&
+                                    user.photoURL!.isNotEmpty)
+                                ? NetworkImage(user.photoURL!)
+                                : null,
+                            child: (user.photoURL == null ||
+                                    user.photoURL!.isEmpty)
+                                ? Text(
+                                    user.name.isNotEmpty
+                                        ? user.name[0].toUpperCase()
+                                        : '?',
+                                    style: TextStyle(
+                                      fontSize: 25,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                  )
+                                : null,
                           ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const ProfileScreen()),
+                            );
+                          },
+                          tooltip: l10n.profile,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${l10n.welcome}, ${user.name}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              // Usar el cache del provider en lugar de variable local
+                              if (initProvider.cachedRoleName != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    initProvider.cachedRoleName!,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                ],
-              ),
 
-              const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-              // Dashboard de Producción (si aplica)
-              if (canViewBatches && user.organizationId != null) ...[
-                ProductionDashboardWidget(
-                  organizationId: user.organizationId!,
-                  clientId: memberService.getClientFilter(),
+                    // Dashboard de Producción (si aplica)
+                    if (canViewBatches && user.organizationId != null) ...[
+                      ProductionDashboardWidget(
+                        organizationId: user.organizationId!,
+                        clientId: memberService.getClientFilter(),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+
+                    // Vista Kanban (si aplica)
+                    if (canViewKanban && user.organizationId != null) ...[
+                      _buildKanbanSection(user, l10n),
+                    ],
+
+                    // Nuevo: Mensaje cuando no tiene acceso
+                    if (!canAccessProduction && user.organizationId != null)
+                      _buildNoAccessCard(l10n),
+                  ],
                 ),
-                const SizedBox(height: 24),
-              ],
-
-              // Vista Kanban (si aplica)
-              if (canViewKanban && user.organizationId != null) ...[
-                _buildKanbanSection(user, l10n),
-              ],
-
-              // Nuevo: Mensaje cuando no tiene acceso
-              if (!canAccessProduction && user.organizationId != null)
-                _buildNoAccessCard(l10n),
-            ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
-      drawer:
-          _buildDrawer(context, user, authService, organizationService, l10n),
-      bottomNavigationBar: BottomNavBarWidget(currentIndex: 0, user: user),
       floatingActionButton: canCreateBatches && user.organizationId != null
           ? _buildFloatingButtons(user, l10n)
           : null,
@@ -475,146 +438,114 @@ class _HomeScreenState extends State<HomeScreen> {
         permissionService.canViewCatalog;
     final canViewReports = permissionService.canViewReports;
 
+    // Obtener el color primario del tema para aplicarlo a los iconos
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
+    // Función auxiliar para cerrar el drawer solo si está abierto en modo móvil
+    void closeDrawer() {
+      // Si la pantalla es pequeña, significa que es el Drawer flotante de móvil
+      if (MediaQuery.of(context).size.width <
+          UIConstants.DESKTOP_MIN_SCREEN_WIDTH) {
+        Navigator.pop(context); // Esto cierra el Drawer flotante
+      }
+      // Si es pantalla grande, el Drawer es parte del body (fijo), así que no hacemos pop.
+    }
+
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
+      backgroundColor: Colors.white, // Fondo blanco
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.zero, // Sin bordes redondeados
+      ),
+      child: Column(
         children: [
-          UserAccountsDrawerHeader(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            currentAccountPicture: IconButton(
-              icon: CircleAvatar(
-                radius: 30,
-                // backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                backgroundImage:
-                    (user.photoURL != null && user.photoURL!.isNotEmpty)
-                        ? NetworkImage(user.photoURL!)
-                        : null,
-                child: (user.photoURL == null || user.photoURL!.isEmpty)
-                    ? Text(
-                        user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      )
-                    : null,
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const ProfileScreen()),
-                );
-              },
-              tooltip: l10n.profile,
-            ),
-            accountName: Text(user.name),
-            accountEmail: Text(user.email),
-          ),
-          ListTile(
-            leading: const Icon(Icons.home),
-            title: Text(l10n.home),
-            selected: true,
-            onTap: () {
-              Navigator.pop(context);
-            },
-          ),
-          if (canAccessProduction) ...[
-            ListTile(
-              leading: const Icon(Icons.precision_manufacturing),
-              title: Text(l10n.production),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProductionScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
-          if (canAccessManagement) ...[
-            ListTile(
-              leading: const Icon(Icons.manage_accounts),
-              title: Text(l10n.management),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ManagementScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
-          if (canViewReports && user.organizationId != null)
-            // TODO: eliminado hasta que arregle la pantalla y todas las metricas
-            // ListTile(
-            //   leading: const Icon(Icons.align_vertical_bottom),
-            //   title: Text(l10n.slaAlerts),
-            //   onTap: () {
-            //     Navigator.pop(context);
-            //     if (user.organizationId == null) return;
-            //     Navigator.push(
-            //         context,
-            //         MaterialPageRoute(
-            //           builder: (context) => MetricsDashboardScreen(
-            //               organizationId: user.organizationId!,
-            //               currentUser: user),
-            //         ));
-            //   },
-            // ),
-            ListTile(
-              leading: const Icon(Icons.business),
-              title: Text(l10n.organization),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const OrganizationHomeScreen(),
-                  ),
-                );
-              },
-            ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: Text(l10n.profile),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ProfileScreen(),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                const SizedBox(height: 15),
+                ListTile(
+                  leading:
+                      Icon(Icons.home, color: primaryColor, size: 20), // Color aplicado
+                  title: Text(l10n.home, style: const TextStyle(fontSize: 14)),
+                  selected: true,
+                  onTap: () {
+                    // No hace nada para evitar hacer pop del contexto y destruir la app
+                    closeDrawer();
+                  },
                 ),
-              );
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: Icon(Icons.logout, color: Colors.red[700]),
-            title: Text(
-              l10n.logout,
-              style: TextStyle(color: Colors.red[700]),
+                if (canAccessProduction) ...[
+                  ListTile(
+                    leading: Icon(Icons.precision_manufacturing,
+                        color: primaryColor, size: 20), // Color aplicado
+                    title: Text(l10n.production, style: const TextStyle(fontSize: 14)),
+                    onTap: () {
+                      closeDrawer();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ProductionScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+                if (canAccessManagement) ...[
+                  ListTile(
+                    leading: Icon(Icons.manage_accounts,
+                        color: primaryColor, size: 20), // Color aplicado
+                    title: Text(l10n.management, style: const TextStyle(fontSize: 14)),
+                    onTap: () {
+                      closeDrawer();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ManagementScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+                if (canViewReports && user.organizationId != null)
+                  ListTile(
+                    leading: Icon(Icons.business, color: primaryColor, size: 20),
+                    title: Text(l10n.organization, style: const TextStyle(fontSize: 14)),
+                    onTap: () {
+                      closeDrawer();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const OrganizationHomeScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                const Divider(),
+                ListTile(
+                  leading:
+                      Icon(Icons.person, color: primaryColor, size: 20), // Color aplicado
+                  title: Text(l10n.profile, style: const TextStyle(fontSize: 14)),
+                  onTap: () {
+                    closeDrawer();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ProfileScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-            onTap: () {
-              Navigator.pop(context);
-              _showLogoutDialog(authService, l10n);
-            },
           ),
+          // Version movida abajo del todo, fuera del ListView
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24.0),
+            padding: EdgeInsets.symmetric(vertical: 24.0, horizontal: 10),
             child: Center(
               child: Text(
-                'Version 0.10.0 - 10/2/25 - Alpha Test',
+                'Version 0.10.0 - 23/2/25 - Alpha Test',
                 style: TextStyle(
                   color: Colors.grey,
-                  fontSize: 12,
+                  fontSize: 10,
                 ),
               ),
             ),
@@ -653,90 +584,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  /// ✅ MEJORADO
-  Widget _buildUserHeader(UserModel user, AppLocalizations l10n) {
-    return Row(
-      children: [
-        // Avatar clickable
-        IconButton(
-          icon: CircleAvatar(
-            radius: 30,
-            child: Text(user.name[0].toUpperCase()), // ✅ Usa el nuevo getter
-          ),
-          onPressed: () {/* ir a perfil */},
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('${l10n.welcome}, ${user.name}'),
-              const SizedBox(height: 4),
-              // ✅ NUEVO: Badge con el rol del usuario
-              if (_memberRoleName != null)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _memberRoleName!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showLogoutDialog(AuthService authService, AppLocalizations l10n) {
-    final initProvider =
-        Provider.of<InitializationProvider>(context, listen: false);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.logoutTitle),
-        content: Text(l10n.logoutConfirmMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              initProvider.reset();
-              await authService.signOut();
-
-              if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/welcome', // ⚠️ Asegúrate de que esta ruta esté definida en tu main.dart
-                  (route) => false, // Esto elimina todas las rutas anteriores
-                );
-              }
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: Text(l10n.exitButton),
-          ),
-        ],
       ),
     );
   }

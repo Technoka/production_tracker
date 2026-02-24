@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../l10n/app_localizations.dart'; // ✅ Importar l10n
@@ -33,9 +34,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     final authService = Provider.of<AuthService>(context, listen: false);
     final l10n = AppLocalizations.of(context)!; // ✅ Referencia a l10n
-    
+
     authService.clearError();
-    
+
     final success = await authService.changePassword(
       currentPassword: _currentPasswordController.text,
       newPassword: _newPasswordController.text,
@@ -51,8 +52,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           ),
         );
       } else {
-        String errorMessage = authService.error ?? l10n.changePasswordError; // ✅ Traducido
-        
+        String errorMessage =
+            authService.error ?? l10n.changePasswordError; // ✅ Traducido
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -69,10 +71,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final authService = Provider.of<AuthService>(context);
     final l10n = AppLocalizations.of(context)!; // ✅ Referencia a l10n
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.changePasswordTitle), // ✅ Traducido
-      ),
+    return AppScaffold(
+      currentIndex: AppNavIndex.profile,
+      title: l10n.changePasswordTitle,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -152,7 +153,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       },
                     ),
                     border: const OutlineInputBorder(),
-                    helperText: l10n.passwordMinLengthHelper, // ✅ Traducido (reusado)
+                    helperText:
+                        l10n.passwordMinLengthHelper, // ✅ Traducido (reusado)
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {

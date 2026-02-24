@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../models/phase_model.dart';
 import '../../models/user_model.dart';
@@ -240,18 +241,17 @@ class _ManagePhasesScreenState extends State<ManagePhasesScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.managePhasesTitle),
-        actions: [
-          if (_canEdit)
-            IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: _createPhase,
-              tooltip: l10n.createPhaseTitle,
-            ),
-        ],
-      ),
+    return AppScaffold(
+      title: l10n.managePhasesTitle,
+      currentIndex: AppNavIndex.production,
+      actions: [
+        if (_canEdit)
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _createPhase,
+            tooltip: l10n.createPhaseTitle,
+          ),
+      ],
       body: Consumer<ProductionDataProvider>(
         builder: (context, dataProvider, _) {
           final phases = dataProvider.phases;

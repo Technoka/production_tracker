@@ -1,12 +1,8 @@
-// lib/screens/management/management_folders_view.dart
-// ✅ OPTIMIZADO: Recibe lista de clientes como parámetro en lugar de hacer query
-
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/screens/clients/client_form_screen.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:provider/provider.dart';
 import '../../models/client_model.dart';
-import '../../services/auth_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/management_view_types.dart';
 import '../../widgets/management/client_folder_card.dart';
@@ -28,7 +24,6 @@ class ManagementFoldersView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final authService = Provider.of<AuthService>(context, listen: false);
     final permissionService = Provider.of<PermissionService>(context);
     final canCreateClients = permissionService.canCreateClients;
 
@@ -53,7 +48,6 @@ class ManagementFoldersView extends StatelessWidget {
     if (filteredClients.isEmpty) {
       return CommonRefresh(
         onRefresh: () async {
-          // ✅ OPTIMIZACIÓN: Refrescar desde el provider
           final provider = Provider.of<ProductionDataProvider>(
             context,
             listen: false,

@@ -1,8 +1,10 @@
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gestion_produccion/l10n/app_localizations.dart';
 import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
 import '../../models/product_catalog_model.dart';
 import '../../models/batch_product_model.dart';
@@ -295,27 +297,19 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_batchData == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Añadir Producto')),
+      return AppScaffold(
+        title: l10n.addProduct,
+        currentIndex: AppNavIndex.production,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Añadir Producto al Lote'),
-            Text(
-              _batchData!.batchNumber,
-              style: const TextStyle(
-                  fontSize: 14), // Tamaño más pequeño para el subtítulo
-            ),
-          ],
-        ),
-      ),
+    return AppScaffold(
+      title: l10n.addProduct,
+      currentIndex: AppNavIndex.production,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -332,36 +326,6 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
           const SizedBox(height: 24),
         ],
       ),
-      bottomNavigationBar: _pendingProducts.isNotEmpty
-          ? Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                      offset: Offset(0, -2))
-                ],
-              ),
-              child: FilledButton(
-                onPressed: (_isLoading || _currentMember == null)
-                    ? null
-                    : _saveAllProducts,
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.green[700],
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
-                    : const Text('Guardar productos'),
-              ),
-            )
-          : null,
     );
   }
 
@@ -641,11 +605,11 @@ class _AddProductToBatchScreenState extends State<AddProductToBatchScreen> {
 
             // Usamos un StreamBuilder común para obtener todos los productos
             // y luego filtrar familias y productos en memoria para los dropdowns
-            
+
             Consumer<ProductionDataProvider>(
               builder: (context, dataProvider, _) {
-
-                final relevantProducts = dataProvider.filterCatalogProducts(clientId: _batchClientId);
+                final relevantProducts = dataProvider.filterCatalogProducts(
+                    clientId: _batchClientId);
 
                 // 1. Extraer Familias Únicas
                 final families = relevantProducts
