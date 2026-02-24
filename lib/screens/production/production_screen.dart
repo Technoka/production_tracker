@@ -1,6 +1,3 @@
-// lib/screens/production/production_screen.dart
-// ✅ OPTIMIZADO: Usa ProductionDataProvider para eliminar queries redundantes
-
 import 'package:flutter/material.dart';
 import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:provider/provider.dart';
@@ -76,6 +73,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
   String? _projectFilter;
   bool _onlyUrgent = false;
   final TextEditingController _searchController = TextEditingController();
+  bool _filtersVisible = true; // Toggle para mostrar/ocultar filtros
 
   bool get _hasActiveFilters {
     return _searchQuery.isNotEmpty ||
@@ -219,6 +217,17 @@ class _ProductionScreenState extends State<ProductionScreen> {
               },
             ),
           ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Icon(
+              _filtersVisible ? Icons.tune : Icons.tune_outlined,
+              color: _filtersVisible
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey,
+            ),
+            tooltip: _filtersVisible ? 'Ocultar filtros' : 'Mostrar filtros',
+            onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
+          ),
         ],
       ),
     );
@@ -226,7 +235,9 @@ class _ProductionScreenState extends State<ProductionScreen> {
 
   Widget _buildFilters(UserModel user, AppLocalizations l10n) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: _filtersVisible
+          ? const EdgeInsets.fromLTRB(12, 8, 12, 12)
+          : EdgeInsets.zero,
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -240,87 +251,89 @@ class _ProductionScreenState extends State<ProductionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Búsqueda
-          if (FilterConfig.shouldShowFilter('search', _currentView))
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: l10n.search,
-                  prefixIcon: const Icon(Icons.search, size: 20),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, size: 20),
-                          onPressed: () {
-                            setState(() {
-                              _searchQuery = '';
-                            });
-                          },
-                        )
-                      : null,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
+          if (_filtersVisible) ...[
+            // Búsqueda
+            if (FilterConfig.shouldShowFilter('search', _currentView))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: l10n.search,
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 20),
+                            onPressed: () {
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          BorderSide(color: Theme.of(context).primaryColor),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        BorderSide(color: Theme.of(context).primaryColor),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
                 ),
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
               ),
-            ),
 
-          // Chips de filtros
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.start,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              if (FilterConfig.shouldShowFilter('client', _currentView))
-                _buildClientFilterChip(user, l10n),
-              if (FilterConfig.shouldShowFilter('batch', _currentView))
-                _buildBatchFilterChip(user, l10n),
-              if (FilterConfig.shouldShowFilter('phase', _currentView))
-                _buildPhaseFilterChip(user, l10n),
-              if (FilterConfig.shouldShowFilter('status', _currentView))
-                _buildStatusFilterChip(user, l10n),
-              if (FilterConfig.shouldShowFilter('project', _currentView))
-                _buildProjectFilterChip(user, l10n),
-              if (FilterConfig.shouldShowFilter('urgent', _currentView))
-                FilterUtils.buildUrgencyFilterChip(
+            // Chips de filtros
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.start,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (FilterConfig.shouldShowFilter('client', _currentView))
+                  _buildClientFilterChip(user, l10n),
+                if (FilterConfig.shouldShowFilter('batch', _currentView))
+                  _buildBatchFilterChip(user, l10n),
+                if (FilterConfig.shouldShowFilter('phase', _currentView))
+                  _buildPhaseFilterChip(user, l10n),
+                if (FilterConfig.shouldShowFilter('status', _currentView))
+                  _buildStatusFilterChip(user, l10n),
+                if (FilterConfig.shouldShowFilter('project', _currentView))
+                  _buildProjectFilterChip(user, l10n),
+                if (FilterConfig.shouldShowFilter('urgent', _currentView))
+                  FilterUtils.buildUrgencyFilterChip(
+                      context: context,
+                      isUrgentOnly: _onlyUrgent,
+                      onToggle: () {
+                        setState(() {
+                          _onlyUrgent = !_onlyUrgent;
+                        });
+                      }),
+
+                // Botón de limpiar filtros (universal)
+                if (_hasActiveFilters)
+                  FilterUtils.buildClearFiltersButton(
                     context: context,
-                    isUrgentOnly: _onlyUrgent,
-                    onToggle: () {
-                      setState(() {
-                        _onlyUrgent = !_onlyUrgent;
-                      });
-                    }),
-
-              // Botón de limpiar filtros (universal)
-              if (_hasActiveFilters)
-                FilterUtils.buildClearFiltersButton(
-                  context: context,
-                  onPressed: _clearAllFilters,
-                  hasActiveFilters: true,
-                ),
-            ],
-          ),
+                    onPressed: _clearAllFilters,
+                    hasActiveFilters: true,
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
