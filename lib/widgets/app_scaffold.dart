@@ -56,11 +56,11 @@ import '../screens/organization/organization_home_screen.dart';
 /// Identifica la sección activa de la app.
 /// Úsalo en `AppScaffold(currentIndex: AppNavIndex.xxx)`.
 enum AppNavIndex {
-  home,        // 0
-  production,  // 1
-  management,  // 2
-  profile,     // 3
-  organization,// 4 — visible en drawer pero no en bottom nav
+  home, // 0
+  production, // 1
+  management, // 2
+  profile, // 3
+  organization, // 4 — visible en drawer pero no en bottom nav
 }
 
 // =============================================================================
@@ -106,7 +106,8 @@ class AppScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width >= UIConstants.DESKTOP_MIN_SCREEN_WIDTH;
+    final isDesktop = MediaQuery.of(context).size.width >=
+        UIConstants.DESKTOP_MIN_SCREEN_WIDTH;
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserData;
 
@@ -176,8 +177,7 @@ class AppScaffold extends StatelessWidget {
 
     Widget titleWidget;
 
-    if (showOrgTitleInAppBar &&
-        initProvider.cachedOrgName != null) {
+    if (showOrgTitleInAppBar && initProvider.cachedOrgName != null) {
       titleWidget = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -222,7 +222,13 @@ class AppScaffold extends StatelessWidget {
     return AppBar(
       title: titleWidget,
       // En desktop el drawer está fijo, no hay hamburger; en móvil sí.
-      automaticallyImplyLeading: true,
+      leading: Navigator.canPop(context)
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.pop(context),
+            )
+          : null,
+      automaticallyImplyLeading: !isDesktop,
       actions: [
         ...?actions,
         const NotificationBadge(),
