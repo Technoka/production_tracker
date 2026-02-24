@@ -4,6 +4,7 @@ import 'package:gestion_produccion/providers/production_data_provider.dart';
 import 'package:gestion_produccion/services/kanban_service.dart';
 import 'package:gestion_produccion/services/permission_service.dart';
 import 'package:gestion_produccion/utils/ui_constants.dart';
+import 'package:gestion_produccion/widgets/app_scaffold.dart';
 import 'package:gestion_produccion/widgets/ui_widgets.dart';
 import 'package:provider/provider.dart';
 import '../../models/batch_product_model.dart';
@@ -126,8 +127,9 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
         final products = dataProvider.getProductsForBatch(widget.batchId);
 
         if (products.isEmpty) {
-          return Scaffold(
-            appBar: AppBar(title: Text(l10n.error)),
+          return AppScaffold(
+            currentIndex: AppNavIndex.production,
+            title: l10n.error,
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -167,58 +169,58 @@ class _BatchProductDetailScreenState extends State<BatchProductDetailScreen> {
           );
         }
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(product.productName),
-            actions: [
-              // Botón de chat en el AppBar con badge
-              if (canViewChat)
-                ChatButton(
-                    organizationId: widget.organizationId,
-                    entityType: 'batch_product',
-                    entityId: product.id,
-                    parentId: product.batchId,
-                    entityName:
-                        '${product.productName} - ${product.productReference}',
-                    user: user!,
-                    showInAppBar: true),
+        return AppScaffold(
+          currentIndex: AppNavIndex.production,
+          title: product.productName,
+          actions: [
+            // Botón de chat en el AppBar con badge
+            if (canViewChat)
+              ChatButton(
+                  organizationId: widget.organizationId,
+                  entityType: 'batch_product',
+                  entityId: product.id,
+                  parentId: product.batchId,
+                  entityName:
+                      '${product.productName} - ${product.productReference}',
+                  user: user!,
+                  showInAppBar: true),
 
-              if (canEditBatchProducts)
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert),
-                  onSelected: (value) => _handleAction(value, product!),
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.edit, size: 20),
-                          const SizedBox(width: 8),
-                          Text(l10n.editProductTitle),
-                        ],
-                      ),
+            if (canEditBatchProducts)
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert),
+                onSelected: (value) => _handleAction(value, product!),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.edit, size: 20),
+                        const SizedBox(width: 8),
+                        Text(l10n.editProductTitle),
+                      ],
                     ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.delete, size: 20, color: Colors.red),
-                          const SizedBox(width: 8),
-                          Text(l10n.delete,
-                              style: const TextStyle(color: Colors.red)),
-                        ],
-                      ),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.delete, size: 20, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Text(l10n.delete,
+                            style: const TextStyle(color: Colors.red)),
+                      ],
                     ),
-                  ],
-                ),
-            ],
-          ),
+                  ),
+                ],
+              ),
+          ],
           body: RefreshIndicator(
             onRefresh: () async {},
             child: LayoutBuilder(
               builder: (context, constraints) {
                 // Definimos el breakpoint para "Escritorio" (ej: 900px)
-                final isDesktop = constraints.maxWidth > UIConstants.DESKTOP_MIN_SCREEN_WIDTH;
+                final isDesktop =
+                    constraints.maxWidth > UIConstants.DESKTOP_MIN_SCREEN_WIDTH;
 
                 // Si es móvil, mantenemos el ListView original (1 columna)
                 if (!isDesktop) {

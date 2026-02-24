@@ -243,7 +243,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
     if (user?.organizationId == null) {
       return const AppScaffold(
         title: "Nuevo Proyecto",
-        currentIndex: AppNavIndex.organization,
+        currentIndex: AppNavIndex.management,
         body: Center(
           child: Text('Debes pertenecer a una organización'),
         ),
@@ -255,7 +255,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
     if (!canCreateProjects) {
       return AppScaffold(
         title: "Acceso denegado",
-        currentIndex: AppNavIndex.organization,
+        currentIndex: AppNavIndex.management,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -304,7 +304,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
 
     return AppScaffold(
       title: "Nuevo Proyecto",
-      currentIndex: AppNavIndex.organization,
+      currentIndex: AppNavIndex.management,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

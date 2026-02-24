@@ -43,7 +43,7 @@ class _ManagementScreenState extends State<ManagementScreen> {
 
     return AppScaffold(
       title: l10n.management,
-      currentIndex: AppNavIndex.production,
+      currentIndex: AppNavIndex.management,
       body: Consumer<ProductionDataProvider>(
         builder: (context, provider, child) {
           if (!provider.isInitialized) {

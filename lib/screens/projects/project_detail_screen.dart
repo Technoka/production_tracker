@@ -58,7 +58,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         if (project == null) {
           return AppScaffold(
             title: 'Detalle del Proyecto',
-            currentIndex: AppNavIndex.organization,
+            currentIndex: AppNavIndex.management,
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -82,7 +82,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         if (!canViewProjects) {
           return AppScaffold(
             title: 'Acceso denegado',
-            currentIndex: AppNavIndex.organization,
+            currentIndex: AppNavIndex.management,
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -124,7 +124,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
     return AppScaffold(
       title: 'Detalle del Proyecto',
-      currentIndex: AppNavIndex.organization,
+      currentIndex: AppNavIndex.management,
       actions: [
         if (hasAnyAction)
           PopupMenuButton(

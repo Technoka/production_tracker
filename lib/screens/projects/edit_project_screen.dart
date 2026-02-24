@@ -98,7 +98,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
     if (user?.organizationId == null) {
       return AppScaffold(
         title: l10n.editProjectTitle,
-        currentIndex: AppNavIndex.organization,
+        currentIndex: AppNavIndex.management,
         body: Center(
           child: Text(l10n.noOrganizationAssigned),
         ),
@@ -147,7 +147,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
 
     return AppScaffold(
       title: l10n.editProjectTitle,
-      currentIndex: AppNavIndex.organization,
+      currentIndex: AppNavIndex.management,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -182,7 +182,7 @@ class _EditProjectScreenState extends State<EditProjectScreen> {
 
     return AppScaffold(
       title: l10n.editProjectTitle,
-      currentIndex: AppNavIndex.organization,
+      currentIndex: AppNavIndex.management,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
