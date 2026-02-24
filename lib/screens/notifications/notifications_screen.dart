@@ -139,12 +139,12 @@ class NotificationsScreen extends StatelessWidget {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: notification.type.color.withOpacity(0.1),
+                            color: _getNotificationColor(notification).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Icon(
-                            displayIcon,
-                            color: displayColor,
+                            _getNotificationIcon(notification),
+                            color: _getNotificationColor(notification),
                             size: 20,
                           ),
                         ),
@@ -200,6 +200,24 @@ class NotificationsScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Color _getNotificationColor(NotificationModel notification) {
+    if (notification.type == NotificationType.approvalResponse) {
+      final approved = notification.metadata['approved'] as bool?;
+      if (approved == true) return Colors.green;
+      if (approved == false) return Colors.red;
+    }
+    return notification.type.color;
+  }
+
+  IconData _getNotificationIcon(NotificationModel notification) {
+    if (notification.type == NotificationType.approvalResponse) {
+      final approved = notification.metadata['approved'] as bool?;
+      if (approved == true) return Icons.check_circle_outline;
+      if (approved == false) return Icons.cancel_outlined;
+    }
+    return notification.type.icon;
   }
 
   String _formatTime(DateTime time) {

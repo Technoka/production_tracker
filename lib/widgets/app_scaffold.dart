@@ -226,6 +226,7 @@ class AppScaffold extends StatelessWidget {
       actions: [
         ...?actions,
         const NotificationBadge(),
+        const SizedBox(width: 20)
       ],
     );
   }
