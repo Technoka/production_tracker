@@ -86,18 +86,6 @@ class NotificationsScreen extends StatelessWidget {
               final notification = notifications[index];
               final isRead = notification.isReadBy(user.uid);
 
-              // Determinar si el usuario es el solicitante de esta notificación
-              final bool isRequesterNotif =
-                  notification.type == NotificationType.approvalRequest &&
-                      notification.isRequesterFor(user.uid);
-
-              // Usar icono y color diferenciado para el solicitante
-              final IconData displayIcon = isRequesterNotif
-                  ? Icons.hourglass_empty
-                  : notification.type.icon;
-              final Color displayColor =
-                  isRequesterNotif ? Colors.amber : notification.type.color;
-
               return Card(
                 elevation: isRead ? 0 : 2,
                 margin: const EdgeInsets.only(bottom: 12),
