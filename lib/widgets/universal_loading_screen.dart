@@ -19,7 +19,7 @@ class UniversalLoadingScreen extends StatelessWidget {
     final authService = Provider.of<AuthService>(context, listen: false);
     final user = authService.currentUserData;
     final l10n = AppLocalizations.of(context)!;
-    
+
     message == l10n.loading;
 
     // Usamos el color primario del tema para el fondo
@@ -31,11 +31,13 @@ class UniversalLoadingScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // 1. Icono animado o estático
-              Icon(
-                Icons.factory, // Icono de tu app
-                size: 80,
-                color: textColor.withOpacity(0.9),
+              // Logo/Icono
+              Image.asset(
+                'assets/icon/app_icon.png', // Asegúrate de que esta ruta coincida con la de tu pubspec.yaml
+                width: 100,
+                height: 100,
+                fit: BoxFit
+                    .contain, // Mantiene la proporción del logo sin distorsionarlo
               ),
               const SizedBox(height: 24),
 
@@ -49,14 +51,17 @@ class UniversalLoadingScreen extends StatelessWidget {
                   letterSpacing: 1.5,
                 ),
               ),
-              
+
               // todo: Agregar nombre de organización si está disponible
               // 3. Nombre de la Organización (Si el usuario tiene una y está logueado)
-              if (showOrganization && user != null && user.role != null) ...[const SizedBox(height: 24), // Un poco más de espacio respecto al título
+              if (showOrganization && user != null) ...[
+                const SizedBox(
+                    height: 24), // Un poco más de espacio respecto al título
 
                 // --- CHIP DE USUARIO ---
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -64,7 +69,8 @@ class UniversalLoadingScreen extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.person_outline, size: 16, color: textColor.withOpacity(0.9)),
+                      Icon(Icons.person_outline,
+                          size: 16, color: textColor.withOpacity(0.9)),
                       const SizedBox(width: 8),
                       Text(
                         user.name,
@@ -80,10 +86,12 @@ class UniversalLoadingScreen extends StatelessWidget {
 
                 // --- CHIP DE ORGANIZACIÓN (NUEVO) ---
                 // Verifica que organizationId exista y no esté vacío
-                if (user.organizationId != null && user.organizationId!.isNotEmpty) ...[
+                if (user.organizationId != null &&
+                    user.organizationId!.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -91,7 +99,8 @@ class UniversalLoadingScreen extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.business, size: 16, color: textColor.withOpacity(0.9)),
+                        Icon(Icons.business,
+                            size: 16, color: textColor.withOpacity(0.9)),
                         const SizedBox(width: 8),
                         Text(
                           "Org: ${user.organizationId}", // Aquí mostramos el ID
